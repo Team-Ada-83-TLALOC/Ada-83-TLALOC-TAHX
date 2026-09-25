@@ -1,0 +1,270 @@
+SYSTEM> ./tx_run -f TLALOC.txexe
+COMPILE ../src/expander/expander-expressions.adb
+ada83 compiling ./../src/expander/expander-expressions.adb ..... Ok 235550 msec
+========================================================================
+TLALOC  --  TX_RUN : profil dynamique d'execution LLIR
+========================================================================
+
+instructions executees                :   5278347002
+flux des opcodes       (octets)       :   5278347002
+flux des arguments     (octets)       :   8069738664
+octets de code lus par instruction    :         2.53
+
+profondeurs maximales atteintes
+  pile data            (octets)       :       344168
+  pile des retours     (adresses)     :          162
+  co-pile              (octets)       :       968600
+  tas                  (octets)       :      8388608
+  niveau statique le plus profond     :            9
+
+FORMATS (LLIR_hardware_support), en instructions executees
+  famille B        A (sans complement)   244601153    14.0 %
+                   B16                   995264895    57.1 %
+                   B24                   503072186    28.9 %
+                   hors format                   0     0.0 %
+  famille C        A (sans complement)    55875123     9.8 %
+                   C24                   463723346    81.0 %
+                   C32                    46392301     8.1 %
+                   hors format             6614516     1.2 %
+  immediats        imm4 (0..15)          433507678    75.6 %
+                   imm8                   47739514     8.3 %
+                   imm16                  90305557    15.7 %
+                   imm32                   1904460     0.3 %
+                   imm64                        11     0.0 %
+  branches (estim.) BR16                 267079095    60.9 %
+                   BR32                  151897203    34.6 %
+                   BR48                   19422288     4.4 %
+                   BR64                          0     0.0 %
+  (branches : ecart ARG estime au double de l'ecart OP)
+  controles CHK      B24                132174826
+                     C32                 86305602
+                     hors format                0
+
+ACCES MEMOIRE DES FAMILLES B ET C
+  adresse sur la pile (lvl = -1)        454622013    18.5 %
+  niveau courant                       1102772767    44.9 %
+  niveau 0 (global)                     870775078    35.5 %
+  niveau englobant intermediaire         26193497     1.1 %
+    lvl  0                              870776148    35.5 %
+    lvl  1                              612574386    25.0 %
+    lvl  2                              462117422    18.8 %
+    lvl  3                               21299047     0.9 %
+    lvl  4                                4570183     0.2 %
+    lvl  5                               28341809     1.2 %
+    lvl  6                                  33203     0.0 %
+    lvl  7                                  17030     0.0 %
+    lvl  8                                    588     0.0 %
+    lvl  9                                  11526     0.0 %
+
+SERVICES TRAP
+  EXIT                     1
+  CLOCK_GETTIME            2
+  PUT_CHAR                 2
+  PUT_STR                  2
+  GET_STR                  1
+  FILE_CREATE              4
+  FILE_OPEN               21
+  FILE_SET_POS         22987
+  FILE_WRITE           13160
+  FILE_READ            12949
+  FILE_CLOSE              25
+  FILE_DELETE              1
+
+DIAGNOSTICS
+  BT/BF sur valeur hors {0,1}         :            0
+  decalages de 64 positions ou plus   :            0
+  champs de bits de largeur 0 ou 64   :            0
+
+PAIRES ADJACENTES LES PLUS FREQUENTES   (part des instructions executees)
+    1  MUL        ADD          149362070     2.8 %   cumul    2.8 %
+    2  LI         SAR          148479356     2.8 %   cumul    5.6 %
+    3  SAR        MUL          148479356     2.8 %   cumul    8.5 %
+    4  LIA        LD           139650369     2.6 %   cumul   11.1 %
+    5  DUP        LI           117043247     2.2 %   cumul   13.3 %
+    6  LI         CEQ          108138409     2.0 %   cumul   15.4 %
+    7  LVA        SA            95407640     1.8 %   cumul   17.2 %
+    8  LID        SUB           89283321     1.7 %   cumul   18.9 %
+    9  LID        LI            88975626     1.7 %   cumul   20.6 %
+   10  SUB        LID           86323344     1.6 %   cumul   22.2 %
+   11  CHKID      LID           86305602     1.6 %   cumul   23.8 %
+   12  SA         LA            85857473     1.6 %   cumul   25.4 %
+   13  LD         LI            85481437     1.6 %   cumul   27.1 %
+   14  SA         LVA           83780094     1.6 %   cumul   28.7 %
+   15  LD         UBFXI         81121649     1.5 %   cumul   30.2 %
+   16  UNLINKR    RTD           73384457     1.4 %   cumul   31.6 %
+   17  LA         SA            68263918     1.3 %   cumul   32.9 %
+   18  LD         SUB           66126163     1.3 %   cumul   34.1 %
+   19  LI         LA            65411902     1.2 %   cumul   35.4 %
+   20  ULB        LI            64924417     1.2 %   cumul   36.6 %
+   21  BT         DUP           64892735     1.2 %   cumul   37.8 %
+   22  CEQ        BT            59170677     1.1 %   cumul   38.9 %
+   23  LA         BLKMOV        58424559     1.1 %   cumul   40.1 %
+   24  CEQ        BF            56783068     1.1 %   cumul   41.1 %
+   25  LIA        LI            55150662     1.0 %   cumul   42.2 %
+   26  CNE        BF            54968912     1.0 %   cumul   43.2 %
+   27  BF         DUP           53783680     1.0 %   cumul   44.2 %
+   28  ADD        ULB           53414420     1.0 %   cumul   45.2 %
+   29  BF         LIA           53215191     1.0 %   cumul   46.3 %
+   30  SUB        LD            52981765     1.0 %   cumul   47.3 %
+
+FUSIONS CANDIDATES          (instructions et octets OP economises)
+  comparaison + BT/BF                   259595439     4.9 %
+  UNLINK/UNLINKR + RTD                   73955241     1.4 %
+  LI + operation binaire                409361816     7.8 %
+  LI + rangement de constante            11628349     0.2 %
+  CALL/CALLI -> LINK a la cible          73955241     1.4 %
+  (les familles peuvent se chevaucher : LI CGT BT compte deux fois ;
+   CALL -> LINK n'est pas adjacent : fusion a la prise de l'appel)
+  paires adjacentes observees         4953957721    93.9 %
+
+CONTROLES D'INTERVALLE   (DUP / borne / CLT|CLE|CGT|CGE / BT)
+  controles complets (deux bornes)          29366
+    dont bornes voisines en memoire         29366   100.0 %
+    dont bornes immediates (LI, LI)             0     0.0 %
+  bornes voisines : instruction qui lit la 1re borne
+      LD                                    26167    89.1 %
+      ULD                                    3086    10.5 %
+      LID                                     113     0.4 %
+    LST = FST + taille, FST d'abord         29366   100.0 %
+    LST d'abord (ecart = -taille)               0     0.0 %
+    autre ecart                                 0     0.0 %
+    CLT sur FST puis CGT sur LST            29366   100.0 %
+    deux BT vers la meme cible              29366   100.0 %
+    cible de reference 16#0000000000D6AB80#
+  demi-controles (une borne)                    0
+  instructions de l'idiome                 234928     0.0 %
+  instructions economisees par CHK         205562     0.0 %
+  octets ARG de l'idiome                   470082     0.0 %
+  octets ARG estimes avec CHK               58845     0.0 %
+  octets ARG economises                    411237     0.0 %
+  (CHK sans cible : exception par vecteur ; bornes voisines lues par un seul acces)
+
+REDUCTIONS PAR PEEPHOLE   (adresse consommee aussitot au sommet, lvl = -1)
+  LVA l,d + acces B  -> acces B (l)         265826     0.0 %
+  LVA l,d + acces C  -> acces C (l)              0     0.0 %
+  LA  l,d + acces B  -> acces C (l,d)       209898     0.0 %
+  LA  l,d + acces C  (irreductible)       63676504     1.2 %
+
+BRANCHEMENTS CONDITIONNELS
+  BT/BF pris                            119394845    36.0 %
+  BT/BF non pris                        212606264    64.0 %
+
+DISPOSITION DU CODE (LLIR_hardware_support) ET CHARGEMENT
+  instructions statiques                      616388   dont branches 19516, CALL 20304, replis C 325, hors format 72
+  taille du code     flux unique             1577999 octets   2.56 par instruction
+                     double flux             1665539 octets   2.70 par instruction  (opcodes 616713, arguments 1048826)
+  branches (statique) flux unique   1 / 2 / 3 / 4 octets : 11999 / 6138 / 1379 / 0
+                      double flux   2 / 4 / 6 / 8 octets : 12874 / 5280 / 1362 / 0
+  relaxation des branches : 4 iterations
+  octets lus (dynamique)  flux unique   12719224385   2.41 par instruction
+                          double flux   13508693471   2.56 par instruction
+  lignes de 64 octets touchees : flux unique 8813, double flux 3850 + 6146
+  debit du chargement (prediction parfaite) :         largeur   instructions / cycle
+    flux unique, bloc 16                              6          4.32
+    flux unique, bloc 32                              6          4.82
+    flux unique, bloc 32                              8          5.77
+    double flux, blocs 8 + 8                          6          3.73
+    double flux, blocs 8 + 16                         6          4.46
+    double flux, blocs 16 + 16                        8          5.35
+
+CHAMPS DE BITS   (lsb et w fournis par LI, LI juste avant)
+               executions     lsb, w immediats      charge etroite / champ aligne
+  UBFX          217074         217074   100.0 %         216808    99.9 %
+  SBFX               0              0       -                0       -
+  BFI            11350          11350   100.0 %              0     0.0 %
+  (BFI : champ aligne sur l'octet, rangement etroit a verifier sur le code)
+  instr. economisees : UBFXI/SBFXI/BFII      456848     0.0 %
+    avec charges etroites (3 par cas)       673656     0.0 %
+  octets ARG, formes immediates            240040     0.0 % ajoutes
+    avec charges etroites                  193576     0.0 % economises
+  couples (lsb, w) les plus frequents
+    UBFX  24,  8         216808    94.9 %
+    BFI    0,  2          11350     5.0 %
+    UBFX   0,  2            264     0.1 %
+    UBFX   9, 15              2     0.0 %
+
+HISTOGRAMME DYNAMIQUE   code / executions / part / octets d'arguments
+  DROP          27190307     0.5 %           0
+  DUP          178500776     3.4 %           0
+  LI           571554357    10.8 %   228357080
+  LIF                  6     0.0 %          48
+  LCA            1894331     0.0 %     7577324
+  LSPA              8526     0.0 %       34104
+  LVA          221972255     4.2 %   443534212
+  LIVA          56394560     1.1 %    45036126
+  LB                  23     0.0 %          46
+  LW              339210     0.0 %       13546
+  LD           336234714     6.4 %   535175287
+  LQ            31405635     0.6 %    62811272
+  LA           356657775     6.8 %   799934714
+  ULB          246012752     4.7 %   487770270
+  ULW           53449581     1.0 %   154658706
+  ULD           92640795     1.8 %   181755727
+  LIW               1526     0.0 %        4578
+  LID          226231199     4.3 %   696040929
+  LIQ              42242     0.0 %      168964
+  LIA          242311315     4.6 %   727434979
+  ULIB          42535575     0.8 %   138294303
+  ULIW            423926     0.0 %     1271778
+  ULID           2137837     0.0 %    13822391
+  SB            33113218     0.6 %    60080681
+  SW            20297320     0.4 %    57915268
+  SD            77720608     1.5 %   160961606
+  SQ            11780306     0.2 %    23560625
+  SA           181653449     3.4 %   372068646
+  SIB            1176666     0.0 %     3530002
+  SIW             245152     0.0 %      735456
+  SID             622585     0.0 %     1867755
+  SIQ             482703     0.0 %     1448109
+  ET            19960054     0.4 %           0
+  OU            15445068     0.3 %           0
+  OUX           46411928     0.9 %           0
+  SHL                 18     0.0 %           0
+  SAR          148479356     2.8 %           0
+  CLAMP0         6023196     0.1 %           0
+  NEG            1930569     0.0 %           0
+  ABS              54807     0.0 %           0
+  ADD          206275950     3.9 %           0
+  SUB          158398773     3.0 %           0
+  INC            8395439     0.2 %           0
+  DEC            1890712     0.0 %           0
+  MUL          151868521     2.9 %           0
+  DIV            1536572     0.0 %           0
+  REMI            129564     0.0 %           0
+  MODI            208650     0.0 %           0
+  UBFX            217074     0.0 %           0
+  BFI              11350     0.0 %           0
+  CVTIX                8     0.0 %           0
+  CVTXI                1     0.0 %           0
+  FMUL                 4     0.0 %           0
+  FNEG                 2     0.0 %           0
+  CVTIF                4     0.0 %           0
+  CVTFIR               2     0.0 %           0
+  CEQ          154914508     2.9 %           0
+  CNE           55694303     1.1 %           0
+  CGT           43837016     0.8 %           0
+  CGE           69460673     1.3 %           0
+  CLT            9372583     0.2 %           0
+  CLE            5204034     0.1 %           0
+  BRA          106397477     2.0 %   275591132
+  BT            84039181     1.6 %   358876158
+  BF           247961928     4.7 %   623813440
+  CALL          73865306     1.4 %   221595918
+  CALLI           115607     0.0 %           0
+  RTD           73980913     1.4 %   221262426
+  LINK          79332888     1.5 %   158850332
+  UNLINK         5406817     0.1 %     5406817
+  UNLINKR       73926070     1.4 %    73926070
+  CO_VAR         1827721     0.0 %           0
+  HEAP_ALLOC       16384     0.0 %           0
+  EXC_MACH        327705     0.0 %      655410
+  BLKMOV       100636224     1.9 %           0
+  BLKCMP          181035     0.0 %           0
+  TRAP             49155     0.0 %       49155
+  CHKD          59389193     1.1 %   178167579
+  CHKUB         35755866     0.7 %   107267598
+  CHKUW         18283721     0.3 %    54851163
+  CHKUD         18746046     0.4 %    56238138
+  CHKID         86305602     1.6 %   345222408
+  UBFXI         82562546     1.6 %   165125092
+  BFII           8487648     0.2 %    16975296
