@@ -1,0 +1,139 @@
+------------------------------------------------------------------------------------------------------------------------
+-- SPDX-FileCopyrightText: 2026 VINCENT MORIN, UBO
+-- SPDX-License-Identifier: GPL-3.0-or-later
+------------------------------------------------------------------------------------------------------------------------
+--	1	2	3	4	5	6	7	8	9	0	1	2
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+use work.TAHX_RENAME_TYPES.all;
+use work.TAHX_BACKEND_TYPES.all;
+use work.TAHX_ROB_TYPES.all;
+
+				-----------
+entity				ISSUE_QUEUE
+is				-----------
+
+   generic (
+
+      ----------------------------------------------------------------
+      -- Nombre d'entrées de la file
+      ----------------------------------------------------------------
+
+      QUEUE_DEPTH_G		: positive := 16;
+
+      ----------------------------------------------------------------
+      -- Nombre maximal d'instructions émises par cycle
+      ----------------------------------------------------------------
+
+      ISSUE_WIDTH_G		: positive := 1;
+
+      ----------------------------------------------------------------
+      -- Nombre maximal de résultats diffusés simultanément
+      ----------------------------------------------------------------
+
+      WAKEUP_WIDTH_G	: positive := 8
+
+   );
+
+   port (
+
+      ----------------------------------------------------------------
+      -- Horloge / reset
+      ----------------------------------------------------------------
+
+      CLK_I	:in std_logic;
+      RESET_I	:in std_logic;
+
+      ----------------------------------------------------------------
+      -- Vidage complet
+      ----------------------------------------------------------------
+
+      FLUSH_I	:in std_logic;
+
+      ----------------------------------------------------------------
+      -- Insertion venant de BACKEND_DISPATCH
+      --
+      -- Les instructions valides sont :
+      --
+      --   INSERT_BLOCK_I(0 .. INSERT_COUNT_I-1)
+      ----------------------------------------------------------------
+
+      INSERT_VALID_I	:in std_logic;
+      INSERT_BLOCK_I	:in renamed_block_t;
+      INSERT_COUNT_I	:in dispatch_count_t;
+
+      ----------------------------------------------------------------
+      -- Capacité disponible pour BACKEND_DISPATCH
+      --
+      -- 0 .. 8.
+      --
+      -- Le résultat tient compte à la fois :
+      --   * des entrées libres ;
+      --   * de la largeur maximale d'insertion.
+      ----------------------------------------------------------------
+
+      INSERT_CAPACITY_O	:out issue_capacity_t;
+
+      ----------------------------------------------------------------
+      -- Wakeup des opérandes
+      ----------------------------------------------------------------
+
+      WAKEUP_I		:in wakeup_bus_t( 0 to WAKEUP_WIDTH_G - 1 );
+
+      ----------------------------------------------------------------
+      -- État courant du ROB
+      --
+      -- Utilisé pour déterminer l'ancienneté relative des
+      -- instructions malgré le fonctionnement circulaire du ROB.
+      ----------------------------------------------------------------
+
+      ROB_HEAD_I		:in rob_index_t;
+
+      ----------------------------------------------------------------
+      -- Annulation après mauvaise prédiction, exception, etc.
+      --
+      -- SQUASH_AFTER_ROB_I désigne la dernière instruction qui doit
+      -- être conservée.
+      --
+      -- Toute instruction plus jeune est invalidée.
+      ----------------------------------------------------------------
+
+      SQUASH_VALID_I	:in std_logic;
+      SQUASH_AFTER_ROB_I	:in rob_index_t;
+
+      ----------------------------------------------------------------
+      -- Sortie vers le groupe d'unités fonctionnelles
+      --
+      -- ISSUE_BLOCK_O contient jusqu'à ISSUE_WIDTH_G instructions
+      -- prêtes, compactées en tête du tableau.
+      ----------------------------------------------------------------
+
+      ISSUE_VALID_O		:out std_logic;
+      ISSUE_BLOCK_O		:out renamed_block_t;
+      ISSUE_COUNT_O		:out dispatch_count_t;
+
+      ----------------------------------------------------------------
+      -- L'unité fonctionnelle accepte le bloc proposé.
+      --
+      -- Pour commencer, transfert atomique : tout le bloc proposé
+      -- est accepté ou aucun élément ne l'est.
+      ----------------------------------------------------------------
+
+      ISSUE_READY_I		:in std_logic;
+
+      ----------------------------------------------------------------
+      -- Diagnostic
+      ----------------------------------------------------------------
+
+      ENTRY_COUNT_O		:out issue_capacity_t
+
+   );
+
+		-----------
+end entity	ISSUE_QUEUE;
+		-----------
+
+------------------------------------------------------------------------------------------------------------------------
+--	1	2	3	4	5	6	7	8	9	0	1	2

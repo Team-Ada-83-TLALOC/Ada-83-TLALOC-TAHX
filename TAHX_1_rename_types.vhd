@@ -38,10 +38,10 @@ is				-------------------
    constant PHYSICAL_TAG_BITS		: positive := 9;
 
    subtype physical_tag_t		is unsigned( PHYSICAL_TAG_BITS - 1 downto 0 );
-
    type physical_source_array_t	is array( 0 to MAX_SOURCE_COUNT - 1 ) of physical_tag_t;
-
+   type source_ready_array_t		is array( 0 to MAX_SOURCE_COUNT - 1 ) of std_logic;
    subtype source_count_t		is unsigned( 2 downto 0 );
+
 
    --------------------------------------------------------------------
    -- Classe d'unité fonctionnelle
@@ -87,6 +87,7 @@ is				-------------------
 
 			source_count	: source_count_t;
 			source		: physical_source_array_t;
+			source_ready	: source_ready_array_t;
 
       -----------------------------------------------------------------
       -- Destination physique

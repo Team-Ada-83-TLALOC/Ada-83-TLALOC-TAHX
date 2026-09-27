@@ -1,0 +1,22 @@
+                 INSTRUCTION_UNIT
+                       │
+                decoded_block_t
+                       ▼
+                 DECODE_QUEUE
+                       │
+                       ▼
+               RENAME_DISPATCH
+                + ROB allocation
+                       │
+                renamed_block_t
+                       ▼
+              BACKEND_DISPATCH
+           ┌───────────┼────────────┐
+           ▼           ▼            ▼
+       INTEGER_IQ   MEMORY_IQ    BRANCH_IQ
+           │           │            │
+       MULDIV_IQ    FLOAT_IQ    COMPLEX_IQ
+           │           │            │
+           └───────────┼────────────┘
+                       ▼
+                unités d'exécution
