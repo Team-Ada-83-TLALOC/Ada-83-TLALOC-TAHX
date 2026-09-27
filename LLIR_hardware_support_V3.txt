@@ -24,7 +24,8 @@ Révision V3 du 26 septembre 2026 (préparation de codi_HX) :
 	  des formats. Le champ lvl est ainsi toujours dans les bits 7..4 de l'octet qui suit
 	  l'opcode.
 	- Les deux formes FMT 00 réservées sont traitées par l'assembleur : LVA 1111,0 (identité)
-	  n'est pas émis, LIVA 1111,0,0 est émis comme LQ 1111,0.
+	  n'est émis par aucun codi (TX, x86 et HX), y compris quand le déplacement est un
+	  symbole qui vaut 0 à l'assemblage ; LIVA 1111,0,0 est émis comme LQ 1111,0.
 	- Toujours 180 opcodes, numérotation inchangée.
 
 --------------------------------------------------
@@ -796,21 +797,22 @@ Table des instructions : un mot de 32 bits par entrée, dans l'ordre du code.
 	bits 29..0	adresse relative à 0x400000
 	bit 31		SUITE : l'instruction prolonge l'instruction LLIR précédente (instructions
 			deux et suivantes d'un repli, TRAP de SYS_EXIT, séquence CHK)
-	bit 30		VIDE : instruction LLIR sans instruction HX (LVA 1111,0) ; l'entrée porte
-			l'adresse de l'instruction HX suivante et ne désigne pas d'instruction
+	bit 30		VIDE : instruction LLIR sans instruction HX ; l'entrée porte l'adresse de
+			l'instruction HX suivante et ne désigne pas d'instruction. Plus produit
+			depuis que LVA 1111,0 n'est émis par aucun codi ; l'émulateur le lit encore.
 La table n'a aucun rôle à l'exécution et la machine l'ignore. Elle permet à l'émulateur :
 	- de distinguer les instructions des données en ligne et de vérifier que tout PC
 	  atteint est un début d'instruction ; cette vérification compte : en HX l'octet 0x00
 	  est un opcode valide (ET), alors qu'en TX le code 0 est illégal ;
 	- de compter les instructions LLIR exécutées : une instruction HX en représente
-	  0 (SUITE), 1, ou 1 + le nombre d'entrées VIDE qui la précèdent immédiatement.
+	  0 (SUITE) ou 1 (1 + le nombre d'entrées VIDE qui la précèdent, s'il y en a).
 Le nombre d'instructions en +64 est celui des entrées, VIDE comprises.
 
 Nombre d'instructions : une instruction LLIR donne une instruction HX, sauf :
 	- les replis : 2 à 6 instructions (voir « Replis pour les champs trop étroits ») ;
 	- SYS_EXIT code : 2 instructions (LI code ; TRAP 0) ;
-	- les séquences de remplacement des CHK hors format ;
-	- LVA 1111, 0 : aucune instruction (identité ; son code FMT 00 est réservé).
+	- les séquences de remplacement des CHK hors format.
+LVA 1111, 0 (identité) n'est émis par aucun codi : il ne compte ni en TX ni en HX.
 L'écart avec le compte TX est donc exactement connu, et les drapeaux de la table
 permettent à l'émulateur de retrouver le compte LLIR.
 
