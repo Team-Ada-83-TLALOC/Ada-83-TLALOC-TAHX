@@ -5,85 +5,94 @@ use ieee.numeric_std.all;
 -- SPDX-FileCopyrightText: 2026 VINCENT MORIN, UBO
 -- SPDX-License-Identifier: GPL-3.0-or-later
 ------------------------------------------------------------------------------------------------------------------------
---	1	2	3	4	5	6	7	8	9	0	1	2
+--      1       2       3       4       5       6       7       8       9       0       1       2
+--
+--  DECODE_BLOC : décodeur combinatoire. Il transforme la fenêtre d'octets en au plus 8 formes
+--  canoniques (TAHX_1_DECODE_TYPES.canon_t).
+--
+--  1. Délimitation. La longueur ne dépend que de l'opcode (invariant de décodage) : pour chaque
+--     position i de la fenêtre, ISA_TABLE(WINDOW(i)).length donne la position de l'instruction
+--     suivante si i est un début d'instruction. Une sélection en arbre depuis la position 0 donne
+--     les 8 premiers débuts. Une instruction qui déborde des octets valides attend.
+--
+--  2. Extraction des champs (complément poids fort en tête ; lvl toujours dans les bits 7..4 de
+--     l'octet 1, donc lisible avant de connaître le format) :
+--       FMT 00 des familles B et C      lvl = 1111, val = 0, ofs = 0
+--       B16 / B24                       lvl ; val = disp étendu en signe (LINK : non signé)
+--       C24 / C32                       lvl, ofs ; val = disp étendu en signe
+--       LI imm4                         val = 0..15
+--       LI D8 / D16 / D32               val = immédiat étendu en signe
+--       LI D64                          DEUX formes : LI D32 (poids faible, len = 0)
+--                                       puis UOP_LIHI (poids fort, len = 9)
+--       UBFXI, SBFXI, BFII (D8_8)       val = lsb, ofs = w
+--       BR8 .. BR32, CALL (D24)         val = déplacement étendu en signe
+--       TRAP (D8)                       val = service
+--       UNLINK, UNLINKR (D8)            lvl = complément
+--       RTD n, EXC_RAISE (D24)          val = n, top (non signés)
+--
+--  3. Opérations indéfinies connues au décodage (faute 137) : opcode réservé, lvl = 1111 là où
+--     ISA_TABLE donne LVL_FRAME, UNLINK 0. Elles deviennent UOP_ILLEGAL (val = opcode). Un octet
+--     lu en faute donne UOP_FETCH_FAULT (faute 132). Le bloc s'arrête après une telle forme et
+--     STOP_O est levé : la longueur d'un opcode réservé est inconnue, et la faute sera livrée
+--     au retrait ; décoder plus loin ne servirait à rien.
+--
+--  Les champs pred des cases sont laissés à zéro : BRANCH_PREDICT les remplit.
+------------------------------------------------------------------------------------------------------------------------
 
-use work.TAHX_DECODE_TYPES.all;
+use work.TAHX_1_ISA.all;
+use work.TAHX_1_ISA_TABLE.all;
+use work.TAHX_1_DECODE_TYPES.all;
 
-				-----------
-entity				DECODE_BLOC
-is				-----------
+                                -----------
+entity                          DECODE_BLOC
+is                              -----------
    port (
 
-		--------------------------------------------------------------------------------
-		-- INPUT_WINDOW_BYTES = suite d'octets provenant de la Fetch Byte Queue
-		--
-		-- INPUT_WINDOW_BYTES( 0 ) est toujours supposé être le premier octet
-		--   de la prochaine instruction à décoder.
-		-- BYTE_VALID_COUNT_I = Nombre d'octets réellement disponibles dans
-		--   INPUT_WINDOW_BYTES (0 a 72)
-		-- PC_I = Adresse de INPUT_WINDOW_BYTES( 0 )
-		--------------------------------------------------------------------------------
-
-      INPUT_WINDOW_BYTES	:in decode_window_t;
-      BYTE_VALID_COUNT_I	:in unsigned( 6 downto 0 );
-      PC_I		:in address_t;
-
-		--------------------------------------------------------------------------------
-		-- CONSUMED_BYTES_O = Nombre d'octets d'entrée correspondant aux instructions *
-		--   produites.
-		-- La Fetch Byte Queue avancera son pointeur de cette quantité
-		-- lorsque le bloc aura été accepté par l'étage suivant.
-		--------------------------------------------------------------------------------
-		-- Validation effective du bloc.
-		--
-		-- Lorsque DECODE_ACCEPT_O = '1' :
-		--
-		--   * les instructions canonisées de la sortie DECODED_O sont acceptées,
-		--   * la Fetch Byte Queue doit consommer CONSUMED_BYTES_O,
-		--   * PC devra avancer de CONSUMED_BYTES_O.
-		--------------------------------------------------------------------------------
-
-      CONSUMED_BYTES_O	:out unsigned( 6 downto 0 );
-      DECODE_ACCEPT_O	:out std_logic;
-
       ----------------------------------------------------------------
-      -- File de sortie decodees canoniques vers la Decode Queue
-      -- Les instructions valides occupent toujours les premières
-      --   positions :
-      --   DECODED_O( 0 .. DECODED_COUNT_O - 1 )
-      --
-      -- Les autres ont valid = '0'.
+      -- Fenêtre venant de FETCH_BYTE_QUEUE
       ----------------------------------------------------------------
 
-      DECODED_O		:out decoded_block_t;
-      DECODED_COUNT_O	:out unsigned( 3 downto 0 );
-
-     ----------------------------------------------------------------
-      -- Handshake en sortie avec la Decode Queue
-      --
-      -- DECODE_VALID_O = au moins une instruction complète disponible.
-      --
-      -- DECODE_READY_I = la Decode Queue signifie qu'elle peut accepter tout le bloc.
-      ----------------------------------------------------------------
-
-      DECODE_VALID_O	:out std_logic;		-- signal du DECODER
-      DECODE_READY_I	:in  std_logic;		-- signal de la DECODE_QUQUE
+      WINDOW_I          :in  decode_window_t;
+      WINDOW_COUNT_I    :in  window_count_t;
+      WINDOW_PC_I       :in  address_t;
+      WINDOW_FAULT_I    :in  window_flags_t;
 
       ----------------------------------------------------------------
-      -- Pas assez d'octets disponibles pour former la prochaine
-      -- instruction.
-      --
-      -- Typiquement la Fetch Byte Queue doit simplement attendre le
-      -- prochain bloc de fetch.
+      -- Formes canoniques produites : DECODED_O(0 .. DECODED_COUNT_O - 1), les autres cases ont
+      -- valid = '0'. DECODE_VALID_O : au moins une forme complète.
       ----------------------------------------------------------------
 
-      NEED_MORE_BYTES_O	:out std_logic;
+      DECODED_O         :out decoded_block_t;
+      DECODED_COUNT_O   :out decode_count_t;
+      DECODE_VALID_O    :out std_logic;
+
+      -- l'étage suivant prend tout le bloc
+      DECODE_READY_I    :in  std_logic;
+
+      ----------------------------------------------------------------
+      -- Consommation : quand DECODE_VALID_O = DECODE_READY_I = '1', la file retire
+      -- CONSUMED_BYTES_O octets (somme des len des formes produites).
+      ----------------------------------------------------------------
+
+      CONSUME_O         :out std_logic;
+      CONSUMED_BYTES_O  :out window_count_t;
+
+      ----------------------------------------------------------------
+      -- Pas assez d'octets pour la prochaine instruction : attendre le prochain bloc
+      ----------------------------------------------------------------
+
+      NEED_MORE_BYTES_O :out std_logic;
+
+      ----------------------------------------------------------------
+      -- Le bloc se termine par UOP_ILLEGAL ou UOP_FETCH_FAULT
+      ----------------------------------------------------------------
+
+      STOP_O            :out std_logic
 
    );
-
-		-----------
-end entity	DECODE_BLOC;
-		-----------
+                                -----------
+end entity                      DECODE_BLOC;
+                                -----------
 
 ------------------------------------------------------------------------------------------------------------------------
---	1	2	3	4	5	6	7	8	9	0	1	2
+--      1       2       3       4       5       6       7       8       9       0       1       2

@@ -1,22 +1,31 @@
-                 INSTRUCTION_UNIT
-                       │
-                decoded_block_t
-                       ▼
-                 DECODE_QUEUE
-                       │
-                       ▼
-               RENAME_DISPATCH
-                + ROB allocation
-                       │
-                renamed_block_t
-                       ▼
-              BACKEND_DISPATCH
-           ┌───────────┼────────────┐
-           ▼           ▼            ▼
-       INTEGER_IQ   MEMORY_IQ    BRANCH_IQ
-           │           │            │
-       MULDIV_IQ    FLOAT_IQ    COMPLEX_IQ
-           │           │            │
-           └───────────┼────────────┘
-                       ▼
-                unités d'exécution
+                          INSTRUCTION_UNIT
+          ┌──────────────────────────────────────────────┐
+          │ FETCH_UNIT ──> FETCH_BYTE_QUEUE ──> DECODE_BLOC │
+          │     ^   ^                              │      │
+          │     │   └──── STOP ────────────────────┤      │
+          │     │                                  v      │
+          │     └──────── PREDICT ─────── BRANCH_PREDICT  │
+          └──────────────────────────────────┬───────────┘
+                                             │ decoded_block_t
+                                             v
+                                       DECODE_QUEUE
+                                             │
+                                             v
+                                      RENAME_DISPATCH ──── rob_alloc_block_t ───> ROB
+                                             │                                   ^ │ │
+                                      renamed_block_t                            │ │ └── RECOVERY_O ──> tous les blocs
+                                             v                         COMPLETION│ │
+                                      BACKEND_DISPATCH                           │ HEAD_STATUS / REDIRECT
+                              ┌──────────────┼──────────────┐                    │ │
+                              v              v              v                    │ v
+                         INTEGER_IQ      MEMORY_IQ      BRANCH_IQ                │ SYSTEM_UNIT
+                         MULDIV_IQ       FLOAT_IQ       COMPLEX_IQ               │ │   ^
+                              └──────────────┼──────────────┘                    │ │   │ SYS_REQ
+                                             v                                   │ │   │
+                                    unités fonctionnelles ───────────────────────┘ │   │
+                                   (COMPLEX : instructions sérialisantes) ─────────┼───┘
+                                                                                   │ SYNC
+                                                          RENAME_DISPATCH, COMPLEX <┘
+
+  Retrait (RETIRE) : ROB -> RENAME_DISPATCH (état retiré, registres libérés),
+                     BRANCH_PREDICT (apprentissage), LSQ (écriture des rangements).

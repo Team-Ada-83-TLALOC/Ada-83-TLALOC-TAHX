@@ -5,86 +5,73 @@ use ieee.numeric_std.all;
 -- SPDX-FileCopyrightText: 2026 VINCENT MORIN, UBO
 -- SPDX-License-Identifier: GPL-3.0-or-later
 ------------------------------------------------------------------------------------------------------------------------
---	1	2	3	4	5	6	7	8	9	0	1	2
-use work.TAHX_DECODE_TYPES.all;
+--      1       2       3       4       5       6       7       8       9       0       1       2
+--
+--  FETCH_BYTE_QUEUE : découple le chargement (blocs alignés) du décodage (instructions de 1 à 9
+--  octets). Elle présente au décodeur une fenêtre dont le premier octet est toujours le début
+--  de la prochaine instruction, et retire les octets que le décodeur a consommés.
+------------------------------------------------------------------------------------------------------------------------
 
-				----------------
-entity				FETCH_BYTE_QUEUE
-is				----------------
+use work.TAHX_1_ISA.all;
+use work.TAHX_1_DECODE_TYPES.all;
+
+                                ----------------
+entity                          FETCH_BYTE_QUEUE
+is                              ----------------
    port (
 
-      ----------------------------------------------------------------
-      -- Horloge / reset
-      ----------------------------------------------------------------
-
-      CLK_I		:in  std_logic;
-      RESET_I		:in  std_logic;
-
+      CLK_I             :in  std_logic;
+      RESET_I           :in  std_logic;
 
       ----------------------------------------------------------------
-      -- Vidage du flux courant
+      -- Vidage (redirection, arrêt du décodage) : la queue ne connaît pas la nouvelle
+      -- adresse, le prochain bloc porte la sienne.
+      ----------------------------------------------------------------
+
+      FLUSH_I           :in  std_logic;
+
+      ----------------------------------------------------------------
+      -- Entrée venant de FETCH_UNIT
+      ----------------------------------------------------------------
+
+      FETCH_VALID_I     :in  std_logic;
+      FETCH_READY_O     :out std_logic;             -- place pour un bloc entier
+      FETCH_PC_I        :in  address_t;
+      FETCH_BLOCK_I     :in  fetch_block_t;
+      FETCH_COUNT_I     :in  fetch_count_t;
+      FETCH_FAULT_I     :in  std_logic;
+
+      ----------------------------------------------------------------
+      -- Fenêtre présentée à DECODE_BLOC
       --
-      -- Utilisé après branchement, CALL, retour, exception...
-      --
-      -- Le bloc ne connaît pas la nouvelle adresse : le prochain
-      -- FETCH_BLOCK_I portera son adresse propre.
+      -- WINDOW_O(0) est le premier octet de la prochaine instruction, à l'adresse WINDOW_PC_O.
+      -- WINDOW_COUNT_O octets sont valides (0 .. 32).
+      -- WINDOW_FAULT_O(i) : l'octet i provient d'un bloc lu en faute.
       ----------------------------------------------------------------
 
-      FLUSH_I		:in  std_logic;
+      WINDOW_O          :out decode_window_t;
+      WINDOW_COUNT_O    :out window_count_t;
+      WINDOW_PC_O       :out address_t;
+      WINDOW_FAULT_O    :out window_flags_t;
 
       ----------------------------------------------------------------
-      -- Entrée provenant de l'unité de fetch
-      --
-      -- FETCH_PC_I est l'adresse de FETCH_BLOCK_I(0).
-      --
-      -- FETCH_COUNT_I permet éventuellement de fournir moins de
-      -- 32 octets. Dans le cas normal il vaut 32.
+      -- Consommation par DECODE_BLOC : CONSUMED_BYTES_I octets retirés quand CONSUME_I = '1'
       ----------------------------------------------------------------
 
-      FETCH_VALID_I		:in  std_logic;
-      FETCH_READY_O		:out std_logic;
-
-      FETCH_PC_I		:in  address_t;
-
-      FETCH_BLOCK_I		:in  fetch_block_t;
-      FETCH_COUNT_I		:in  fetch_count_t;
-
-      ----------------------------------------------------------------
-      -- Fenêtre présentée au DECODE_BLOC
-      --
-      -- WINDOW_O( 0 ) est toujours le premier octet de la prochaine
-      -- instruction.
-      ----------------------------------------------------------------
-
-      WINDOW_O		:out decode_window_t;
-      WINDOW_VALID_COUNT_O 	:out unsigned( 6 downto 0 );							-- 0 .. 72
-
-      WINDOW_PC_O		:out address_t;
-
-
-      ----------------------------------------------------------------
-      -- Consommation par DECODE_BLOC
-      --
-      -- Lorsque CONSUME_I = '1', les CONSUMED_BYTES_I premiers
-      -- octets sont retirés de la queue.
-      ----------------------------------------------------------------
-
-      CONSUME_I		:in std_logic;
-      CONSUMED_BYTES_I	:in unsigned( 6 downto 0 );
-
+      CONSUME_I         :in  std_logic;
+      CONSUMED_BYTES_I  :in  window_count_t;
 
       ----------------------------------------------------------------
       -- État
       ----------------------------------------------------------------
 
-      EMPTY_O		:out std_logic;
-      BYTE_COUNT_O		:out queue_count_t
+      EMPTY_O           :out std_logic;
+      BYTE_COUNT_O      :out queue_count_t
 
    );
-
-		----------------
-end entity	FETCH_BYTE_QUEUE;
-		----------------
+                                ----------------
+end entity                      FETCH_BYTE_QUEUE;
+                                ----------------
 
 ------------------------------------------------------------------------------------------------------------------------
---	1	2	3	4	5	6	7	8	9	0	1	2
+--      1       2       3       4       5       6       7       8       9       0       1       2

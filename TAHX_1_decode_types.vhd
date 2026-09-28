@@ -5,220 +5,140 @@ use ieee.numeric_std.all;
 -- SPDX-FileCopyrightText: 2026 VINCENT MORIN, UBO
 -- SPDX-License-Identifier: GPL-3.0-or-later
 ------------------------------------------------------------------------------------------------------------------------
---	1	2	3	4	5	6	7	8	9	0	1	2
+--      1       2       3       4       5       6       7       8       9       0       1       2
 
-				-----------------
-package				TAHX_DECODE_TYPES
-is				-----------------
+use work.TAHX_1_ISA.all;
 
-   subtype byte_t		is std_logic_vector( 7 downto 0 );						-- type octet
+                                -----------------------
+package                         TAHX_1_DECODE_TYPES
+is                              -----------------------
 
-		--------------------------------------------------------------------------------
-		--	          FETCH 32 octets
-		--	 	     │
-		--		     v
-		--	┌─────────────────────────────┐
-		--	│ Fetch Byte Queue, 128 bytes │
-		--	└──────────────┬──────────────┘
-		--	               │
-		--	          fenêtre 72 B = DECODE_WIDTH * MAX_INSN_BYTES
-		--	               │
-		--	               v
-		--	          DECODE_BLOC
-		--	              0..8
-		--	               │
-		--	               v
-		--	          Decode Queue
-		--------------------------------------------------------------------------------
-
-   --------------------------------------------------------------------
-   -- Paramètres architecturaux du décodeur
-   --------------------------------------------------------------------
-
-		--------------------------------------------------------------------------------
-		--		FETCH_BYTE_QUEUE
-		--------------------------------------------------------------------------------
-   constant FETCH_BLOCK_SIZE		: positive	:= 32;						-- FETCH_QUEUE alimentée par blocs de 32 octets
-   constant FETCH_QUEUE_SIZE		: positive	:= 128;						-- Taille de la FETCH_QUEUE
-
-   subtype fetch_count_t	is unsigned( 5 downto 0 );							-- 0 .. 32
-   subtype queue_count_t	is unsigned( 7 downto 0 );							-- 0 .. 128
-
-   type fetch_block_t	is array (0 to FETCH_BLOCK_SIZE - 1) of byte_t;
-
-		--------------------------------------------------------------------------------
-		--		DECODE_BLOC
-		--------------------------------------------------------------------------------
-
-   constant DECODE_WIDTH		: positive	:= 8;						-- 8 instructions max d'un coup
-   constant MAX_INSN_BYTES		: positive	:= 9;						-- Longueur max d'une instruction (opcode + imm 64)
-   constant DECODE_WINDOW_SIZE	: positive	:= DECODE_WIDTH * MAX_INSN_BYTES;			-- 72 octets
-
-		--------------------------------------------------------------------
-		-- Fenêtre d'octets fournie par la FETCH_BYTE_QUEUE au DECODE_BLOC
-		--------------------------------------------------------------------
-
-   type decode_window_t	is array (0 to DECODE_WINDOW_SIZE - 1) of byte_t;
-
+                --------------------------------------------------------------------------------
+                --                FETCH_UNIT : blocs de 32 octets alignés
+                --                     │
+                --                     v
+                --      ┌─────────────────────────────┐
+                --      │ FETCH_BYTE_QUEUE, 128 octets │
+                --      └──────────────┬──────────────┘
+                --                     │ fenêtre de 32 octets, WINDOW(0) = début d'instruction
+                --                     v
+                --                DECODE_BLOC        jusqu'à 8 formes canoniques
+                --                     │
+                --                     v
+                --               BRANCH_PREDICT      prédiction, coupure après un saut pris
+                --                     │
+                --                     v
+                --                DECODE_QUEUE
+                --------------------------------------------------------------------------------
 
    --------------------------------------------------------------------
-   -- Types élémentaires pour instruction décodée canonisée
+   -- Chargement
    --------------------------------------------------------------------
 
-   subtype opcode_t		is std_logic_vector( 7 downto 0 );						-- type opcode sur 1 octet
-   subtype word64_t		is std_logic_vector( 63 downto 0 );						-- mot machine 64 bits
-   subtype address_t	is unsigned( 63 downto 0 );							-- adresse machine 64 bits
+   constant FETCH_BLOCK_SIZE    : positive := 32;                       -- octets par cycle (étude : 4,8 à 5,8 instr./cycle)
+   constant FETCH_QUEUE_SIZE    : positive := 128;                      -- quatre blocs
 
-   subtype level_t		is unsigned( 3 downto 0 );							-- 15 niveaux statiques effectifs
-   subtype offset_t		is unsigned( 7 downto 0 );							-- offset max du format C32
-   subtype displacement_t	is signed( 31 downto 0 );							-- deplacement max du format BR32
+   subtype fetch_count_t        is unsigned( 5 downto 0 );              -- 0 .. 32
+   subtype queue_count_t        is unsigned( 7 downto 0 );              -- 0 .. 128
 
-   subtype insn_length_t	is unsigned( 3 downto 0 );							-- Longueur instruction 1 .. 9
-
-   type opcode_family_t	is ( FAMILY_A, FAMILY_B, FAMILY_C, FAMILY_D );
-
+   type fetch_block_t           is array( 0 to FETCH_BLOCK_SIZE - 1 ) of byte_t;
 
    --------------------------------------------------------------------
-   -- Format du complément d'instruction
+   -- Fenêtre de décodage
    --
-   -- Après décodage, cette information n'est normalement plus
-   -- nécessaire à l'exécution, mais reste utile pour debug,
-   -- validation et statistiques.
+   -- 32 octets suffisent : le débit moyen du décodeur ne peut pas dépasser celui du chargement
+   -- (32 octets par cycle), et 8 instructions de 2,41 octets en moyenne en occupent 19. Une
+   -- fenêtre de 72 octets (8 x 9) ne servirait qu'à une suite de LI imm64, au prix d'un arbre de
+   -- sélection et d'un croisement plus de deux fois plus grands. Une instruction qui déborde de
+   -- la fenêtre attend le cycle suivant.
    --------------------------------------------------------------------
 
-   type instruction_format_t	is (
-			FORMAT_A,
-			FORMAT_B16, FORMAT_B24,
-			FORMAT_C24, FORMAT_C32,
-			FORMAT_D8, FORMAT_D16, FORMAT_D8_8, FORMAT_D24, FORMAT_D32, FORMAT_D64,
-			FORMAT_BR8, FORMAT_BR16 FORMAT_BR24, FORMAT_BR32
-			);
+   constant DECODE_WIDTH        : positive := 8;                        -- formes canoniques par cycle
+   constant DECODE_WINDOW_SIZE  : positive := FETCH_BLOCK_SIZE;         -- 32 octets
 
+   subtype window_count_t       is unsigned( 5 downto 0 );              -- 0 .. 32
+   subtype decode_count_t       is unsigned( 3 downto 0 );              -- 0 .. 8
 
-   --------------------------------------------------------------------
-   -- Taille LLIR
-   --------------------------------------------------------------------
+   type decode_window_t         is array( 0 to DECODE_WINDOW_SIZE - 1 ) of byte_t;
 
-   type operand_size_t	is (
-			SIZE_BYTE, SIZE_WORD, SIZE_DOUBLE, SIZE_QUAD
-			);
-
+   -- Un bit par octet de la fenêtre : octet issu d'une lecture en faute (faute 132 au retrait
+   -- de la première instruction qui le touche).
+   subtype window_flags_t       is std_logic_vector( 0 to DECODE_WINDOW_SIZE - 1 );
 
    --------------------------------------------------------------------
-   -- Classe générale d'opération
+   -- Forme canonique interne : 56 bits
    --
-   -- Ce n'est pas l'opcode LLIR : c'est une information canonique
-   -- destinée aux étages suivants.
-   --------------------------------------------------------------------
-
-   type operation_class_t	is (
-			CLASS_ALU, CLASS_FLOAT, CLASS_STACK,
-			CLASS_LOAD, CLASS_STORE,
-			CLASS_ADDRESS,
-			CLASS_CHK,
-			CLASS_BRANCH, CLASS_CALL, CLASS_RETURN,
-			CLASS_FRAME, CLASS_BLOCK,
-			CLASS_TRAP,
-			CLASS_OTHER
-			);
-
-
-   --------------------------------------------------------------------
-   -- Action particulière sur la pile logique.
+   -- Modèle : l'enregistrement de Decodeur_HX (tx_run), réduit à ce que le matériel doit garder.
+   -- C'est aussi le format d'une entrée du futur cache de formes décodées.
    --
-   -- La majorité des instructions utilisent STACK_LINEAR et les
-   -- champs POP_COUNT / PUSH_COUNT.
+   --   op   8   opcode HX d'origine, ou micro-opération interne (UOP_xxx de TAHX_1_ISA)
+   --   lvl  4   B, C : lvl (FMT 00 : 1111) ; UNLINK, UNLINKR : niveau du complément
+   --   ofs  8   C24, C32 : ofs ; D8_8 : w
+   --   val 32   B, C : disp étendu en signe (LINK : taille non signée)
+   --            LI D8/D16/D32 : immédiat étendu en signe ; LI imm4 : 0..15
+   --            D8_8 : lsb ; branches, CALL : déplacement étendu en signe
+   --            TRAP : service ; RTD : n ; EXC_RAISE : top ; UOP_LIHI : poids fort de LI imm64
+   --            UOP_ILLEGAL : opcode d'origine
+   --   len  4   longueur en octets ; 0 pour une micro-opération qui n'est pas la dernière de
+   --            son instruction (LI imm64 : LI D32 avec len = 0, puis UOP_LIHI avec len = 9).
+   --            PC suivant = PC + len ; une interruption n'est prise qu'après len /= 0.
    --
-   -- DUP et OVER doivent pouvoir être traités par le renamer comme
-   -- duplication de tags, sans copie 64 bits.
+   -- La famille, le format, la classe d'unité et l'effet de pile ne sont pas rangés : ils se
+   -- lisent dans ISA_TABLE (op).
+   --------------------------------------------------------------------
+
+   subtype offset_t             is unsigned( 7 downto 0 );
+   subtype value32_t            is signed( 31 downto 0 );
+
+   type canon_t                 is record
+         op             : opcode_t;
+         lvl            : level_t;
+         ofs            : offset_t;
+         val            : value32_t;
+         len            : insn_length_t;
+      end record;
+
+   constant CANON_NOP           : canon_t := ( op => x"00", lvl => "0000", ofs => x"00",
+                                               val => (others => '0'), len => "0000" );
+
+   --------------------------------------------------------------------
+   -- Prédiction attachée à une instruction de transfert
+   --------------------------------------------------------------------
+
+   subtype ghist_t              is std_logic_vector( 15 downto 0 );     -- historique global (gshare 64 K)
+
+   type prediction_t            is record
+         taken          : std_logic;            -- prédit pris (toujours '1' pour BRA, CALL, RTD)
+         target         : address_t;            -- cible prédite (RTD : pile des retours)
+         ghist          : ghist_t;              -- historique au moment de la prédiction (mise à jour, reprise)
+      end record;
+
+   --------------------------------------------------------------------
+   -- Une case du bloc décodé
    --
-   -- STACK_KEEP_TOP convient notamment à CHK : la valeur lue reste
-   -- identique au sommet et aucun nouveau registre physique n'est
-   -- nécessaire.
+   -- pc est gardé en entier pour la clarté : FPC d'une faute, cible des branches relatives,
+   -- adresse de retour de CALL. Une réalisation pourra ne ranger qu'un PC par bloc.
    --------------------------------------------------------------------
 
-   type stack_action_t	is ( STACK_LINEAR,
-			STACK_DUP, STACK_OVER, STACK_DROP,
-			STACK_KEEP_TOP
-			);
+   type decoded_slot_t          is record
+         valid          : std_logic;
+         canon          : canon_t;
+         pc             : address_t;
+         pred           : prediction_t;
+      end record;
 
-
-   subtype stack_count_t	is unsigned( 2 downto 0 );
-
-
-   --------------------------------------------------------------------
-   -- Instruction LLIR décodée, sous forme canonique interne décodée
-   --------------------------------------------------------------------
-
-   type decoded_instruction_t	is record
-
-      -----------------------------------------------------------------
-      -- Identification
-      -----------------------------------------------------------------
-
-			valid		: std_logic;
-			illegal		: std_logic;
-
-			pc		: address_t;
-			length		: insn_length_t;
-
-			raw_opcode	: opcode_t;
-			family		: opcode_family_t;
-			format		: instruction_format_t;
-			op_class		: operation_class_t;
-
-      -----------------------------------------------------------------
-      -- Taille / interprétation
-      -----------------------------------------------------------------
-
-			size		: operand_size_t;
-			is_unsigned	: std_logic;
-
-      -----------------------------------------------------------------
-      -- Opérandes canoniques
-      --
-      -- Les champs inutilisés pour une instruction donnée sont
-      -- ignorés par les étages suivants.
-      -----------------------------------------------------------------
-
-			level		: level_t;
-			disp		: displacement_t;
-			offset		: offset_t;
-
-			immediate		: word64_t;
-
-      -- Deuxième immédiat, notamment D8_8 :
-      -- UBFXI / SBFXI / BFII
-			immediate_2	: byte_t;
-
-
-      -----------------------------------------------------------------
-      -- Branchements
-      -----------------------------------------------------------------
-
-			branch_disp	: signed( 31 downto 0 );
-
-      -----------------------------------------------------------------
-      -- Effet sur la pile logique
-      -----------------------------------------------------------------
-
-			stack_action	: stack_action_t;
-			pop_count		: stack_count_t;
-			push_count	: stack_count_t;
-
-			end record;
-
+   type decoded_block_t         is array( 0 to DECODE_WIDTH - 1 ) of decoded_slot_t;
 
    --------------------------------------------------------------------
-   -- Jusqu'à 8 instructions décodées par cycle
+   -- DECODE_QUEUE : tampon entre le frontal et le renommage
    --------------------------------------------------------------------
 
-   type decoded_block_t	is array ( 0 to DECODE_WIDTH - 1 ) of decoded_instruction_t;
+   constant DECODE_QUEUE_DEPTH  : positive := 32;                       -- cases
+   subtype decode_queue_count_t is unsigned( 5 downto 0 );              -- 0 .. 32
 
-
-		-----------------
-end package	TAHX_DECODE_TYPES;
-		-----------------
+                                -----------------------
+end package                     TAHX_1_DECODE_TYPES;
+                                -----------------------
 
 ------------------------------------------------------------------------------------------------------------------------
---	1	2	3	4	5	6	7	8	9	0	1	2
+--      1       2       3       4       5       6       7       8       9       0       1       2

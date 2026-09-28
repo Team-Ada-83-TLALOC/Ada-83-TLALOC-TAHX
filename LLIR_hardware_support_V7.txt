@@ -1,0 +1,1635 @@
+=========================================================================================
+	SUPPORT MATÉRIEL DE LA LLIR : MACHINE À PILE 64 BITS		(V7, ébauche révisée)
+	Référence fonctionnelle : codi_x86_64L.finc
+=========================================================================================
+
+--------------------------------------------------
+Révision V7 du 28 septembre 2026 (arithmétique entière contrôlée) :
+--------------------------------------------------
+	- ADD, SUB, MUL, NEG, ABS, INC et DEC lèvent la faute 129 (NUMERIC_ERROR) quand le
+	  résultat signé sort de [-2^63, 2^63) ; ils ne sont plus définis modulo 2^64. DIV
+	  le faisait déjà pour -2^63 / -1. Plus aucune opération entière n'enveloppe sans
+	  le dire.
+	- SHL, SHR, SAR : un compte n >= 64 (non signé) lève la faute 137 ; n n'est plus pris
+	  modulo 64. Ce modulo, hérité de x86, fait rendre 2 à 2**65.
+	- LI : la valeur d'un immédiat est dans [-2^63, 2^63) ; l'assembleur refuse le reste,
+	  au lieu d'en ranger le motif de bits.
+	- Mesure qui fonde la décision (tx_run -p, TLALOC compilant expander-expressions.adb,
+	  5,26 milliards d'instructions) : 6 débordements, tous dans l'élaboration des bornes
+	  des types déclarés « range -2**63 .. 2**63-1 » (STANDARD.LONG_INTEGER,
+	  SYSTEM.ADDRESS, un type de TARGET_CODE), où l'expander calculait 2**63 à
+	  l'exécution par 2 SHL 62. Après réécriture des sources en
+	  « -16#7FFFFFFFFFFFFFFF# - 1 .. 16#7FFFFFFFFFFFFFFF# » : 0 débordement, 0 décalage
+	  de 64 positions ou plus.
+	- [Q11] close : les opérations de base sont contrôlées ; ADDV, SUBV, MULV sont
+	  abandonnés et leurs trois cases redeviennent simplement réservées.
+	- Règle de plateforme : les adresses valides sont inférieures à 2^63.
+	- Replis des déplacements hors B24 / C32 (LI disp ; ADD) : effet du contrôle précisé.
+	- Table des opcodes, encodage et image inchangés (commentaires seulement).
+
+--------------------------------------------------
+Révision V6 du 28 septembre 2026 (fautes précises) :
+--------------------------------------------------
+	- FAUTES PRÉCISES : une instruction qui lève une faute ne modifie aucun état
+	  architectural ; seule la livraison modifie DR, FPC, FCODE, FSCR et PC. Le §3 disait
+	  que les registres reflétaient une exécution partielle, et la table des fautes
+	  portait « partiel » pour 132, 135 et 137, ce que contredisait l'annexe. La table
+	  porte maintenant « état antérieur » partout. Instructions à écritures multiples
+	  (blocs, LINK, EXC_MACH, CTX_SAVE) : la faute est constatée avant la première
+	  écriture. CO_VAR, HEAP_ALLOC : n reste au sommet.
+	- Piles : valeurs « pile vide » DSP0, RSP0, CSP0, HP0 ; HP défini comme la frontière
+	  basse de la zone allouée. Pile des retours tenue en registres : exigence de
+	  conformité à CTX_SAVE, CTX_RESTORE et EXC_RAISE.
+	- Mémoire : règle du code non modifiable reformulée (aucun octet d'instruction n'est
+	  modifié après le début de l'exécution).
+	- [Q11] : ce que MULV demande au multiplieur.
+	- Comportement inchangé pour les programmes qui ne fautent pas ; table des opcodes,
+	  encodage et image identiques à la V5.
+
+--------------------------------------------------
+Révision V5 du 28 septembre 2026 (précisions normatives) :
+--------------------------------------------------
+	- Aucun changement d'encodage ni de comportement pour les programmes produits par
+	  TLALOC : les précisions ci-dessous décrivent ce que font tx_run et la référence x86,
+	  sauf deux points signalés (NaN canoniques, pile des retours non adressable).
+	  hx_verif.py, gen_hx_codes et gen_tahx_isa rendent le même résultat qu'avec la V4.
+	- Conventions : section « Mémoire » (octets, petit-boutisme des données, accès non
+	  alignés permis, code non modifiable), section « Piles » (définitions de push, pop,
+	  push_retour, pop_retour, et des pointeurs DSP, RSP, CSP, HP), section « Programme
+	  valide » (toute cible dynamique est un début d'instruction), section « Arithmétique
+	  flottante » (arrondi, sous-normaux, NaN canonique).
+	- Pile des retours : descendante, RSP désigne la dernière adresse empilée ; le
+	  programme n'y accède pas par des chargements ou des rangements.
+	- Limites des piles : comparaisons exactes, selon le sens de chaque pile.
+	- Interruptions : modèle de la requête pendante précisé ; le protocole matériel passe
+	  dans la nouvelle section « Plateforme TAHX ».
+	- [Q11] : résolution proposée (ADDV, SUBV, MULV), cases réservées marquées dans la
+	  table. Dans TLALOC, INTEGER fait 32 bits et LONG_INTEGER 64 : seul LONG_INTEGER est
+	  concerné, et la question ne bloque pas le gel de l'ISA pour TLALOC. Condition ajoutée
+	  pour le contrôle a posteriori des types étroits (produits en chaîne).
+	- [Q12] : le bloc de démarrage relève de la plateforme, non de l'ISA ; il passe dans
+	  la section « Plateforme TAHX ».
+
+--------------------------------------------------
+Révision V4 du 27 septembre 2026 (fautes, déroutements, interruptions) :
+--------------------------------------------------
+	- Section « Fautes, déroutements et interruptions » reportée de la révision « fautes »
+	  du 26 septembre, écrite sur l'ancienne base à 182 opcodes (avec LINKX). Aucun opcode
+	  nouveau : table des opcodes, formats, ordre des octets, longueurs, replis et image HX
+	  de la V3 sont inchangés ; hx_verif.py et gen_hx_codes.py rendent le même résultat
+	  avec la V3 et avec la V4. Seuls des commentaires de la table ont changé.
+	- [Q2], [Q4] et [Q8] tranchées. Une faute équivaut à un « raise » de l'exception
+	  prédéfinie à l'instruction fautive ; EXC_MACH, EXC_RAISE et la disposition des
+	  contextes du compilateur sont inchangés.
+	- État ajouté : DR, FPC, FCODE, VTB, FSCR, IMASK, limites des piles et du tas. Le
+	  registre CEV est supprimé ; le champ CEV de l'en-tête (+48) est conservé et le
+	  chargeur le recopie en VTB[131]. CHK hors bornes : faute 131.
+	- En-tête : la disposition proposée par la révision « fautes » n'est pas retenue. On
+	  garde celle de l'image HX (et des images TX de format 3), déjà produite par codi_TX
+	  et codi_HX et lue par tx_run. Deux mots jusqu'ici nuls prennent un sens : +72 VTB et
+	  +80 FSCR, la valeur 0 signifiant « fourni par le chargeur ». Les images existantes
+	  restent valides, sans changement de version. Bases et limites des piles et du tas,
+	  IMASK initial (tout masqué) et DISPLAY[0] sont fixés par le chargeur.
+	- La condition qui sépare le tas de la pile data est reformulée sans hypothèse sur
+	  leur position relative (dans tx_run, le tas est sous la pile, dans une autre région).
+	- RTX et EXC_RAISE remettent DR à 0.
+	- Interruptions reliées aux entrées de tâche (RM 13.5.1) ; services machine
+	  CTX_SAVE, CTX_RESTORE, SET_IMASK (16..18).
+	- [Q6] tranchée pour les formes dynamiques : décalages modulo 64 ; champs de bits avec
+	  w dans 1..64 et lsb + w <= 64, faute 137 sinon. [Q7] tranchée : pour n < 0,
+	  x**n = 1.0 / x**(-n) (RM 4.5.6), ce que tx_run fait déjà.
+	- [Q10] (exposition des paramètres pour LINKX) n'a plus d'objet. [Q11] ouverte :
+	  débordement des types entiers de 64 bits. [Q12] ouverte : démarrage de la machine
+	  matérielle (bloc de démarrage).
+	- Annexe : livraison précise des fautes et des interruptions dans une machine à
+	  exécution dans le désordre.
+	- Toujours 180 opcodes, numérotation inchangée.
+
+--------------------------------------------------
+Révision V3 du 26 septembre 2026 (préparation de codi_HX) :
+--------------------------------------------------
+	- [Q9] tranchée : le champ ofs de C24/C32 reste non signé, mais TLALOC émet des ofs
+	  négatifs (DIRECT_IO : LIA 1, -GFP_ofs, -ELEMENT_TYPE__outadr_ofs). Ils passent par
+	  le repli, dont l'accès B porte ofs dans son disp signé. CHKI avec un ofs hors 0..255
+	  prend la séquence de remplacement.
+	- [Q3] tranchée : LI imm4 est NON SIGNÉ (0..15), pour couvrir la valeur 8 (taille
+	  d'un quad). C'est l'hypothèse de la mesure de taille du code (1,58 Mo).
+	- Replis pour les champs trop étroits réécrits et complétés : notation @@ précisée,
+	  séquences exactes pour LIVA, chargements et rangements, règle générale des
+	  rangements (OVER ... DROP). Aucun opcode d'échange n'est nécessaire. Séquences
+	  vérifiées sur codi_x86_64 et codi_TX (essai REPLIS.FINC).
+	- Description de la famille D alignée sur la table : K=0, s=1 porte UBFXI, SBFXI, BFII.
+	- Section « Image HX » ajoutée : en-tête (celui des images TX de format 3, signature
+	  'TLALOCHX') et table des instructions, avec les drapeaux SUITE et VIDE.
+	- Service EXIT : la macro LLIR SYS_EXIT code s'assemble en LI code ; TRAP 0.
+	- Ordre des octets du complément fixé : poids fort en tête, dans l'ordre de la notation
+	  des formats. Le champ lvl est ainsi toujours dans les bits 7..4 de l'octet qui suit
+	  l'opcode.
+	- Les deux formes FMT 00 réservées sont traitées par l'assembleur : LVA 1111,0 (identité)
+	  n'est émis par aucun codi (TX, x86 et HX), y compris quand le déplacement est un
+	  symbole qui vaut 0 à l'assemblage ; LIVA 1111,0,0 est émis comme LQ 1111,0.
+	- Toujours 180 opcodes, numérotation inchangée.
+
+--------------------------------------------------
+Révision de septembre 2026 (mesures sur TLALOC exécuté par tx_run) :
+--------------------------------------------------
+	- [Q1] tranchée : le code est en UN SEUL FLUX. Un seul compteur ordinal PC ; les
+	  branches portent un seul déplacement (BR8, BR16, BR24, BR32). Voir « Questions
+	  tranchées » pour les mesures.
+	- Invariant de décodage ajouté : la longueur d'une instruction est une fonction de son
+	  seul opcode. Table des longueurs ajoutée à la section des formats.
+	- Pas de notion d'exposition des variables dans la spécification : la LLIR et les
+	  adresses restent inchangées. Le renommage des locales est une affaire d'implantation
+	  (cache de pile adressé par intervalle sous DSP, voir l'annexe). Une variante LINKX,
+	  déclarant une zone exposée, a été étudiée puis abandonnée : mesurée, elle n'apporte rien.
+	- Sémantique de UBFXI, SBFXI, BFII (D8_8 : lsb puis w) ajoutée.
+	- Annexe « Éléments de micro-architecture » : résultats de l'étude de limites.
+	- Numérotation refaite en continu : 180 opcodes.
+
+--------------------------------------------------
+Révision précédente :
+--------------------------------------------------
+	- Format D24 corrigé (imm 23..0) et format D32 ajouté (imm 31..0, utilisé par LI imm32).
+	- Bits 5..4 des familles B/C décrits comme un champ MODE (00 spécial, 01 load signé,
+	  10 store, 11 load non signé) : l'ancienne lecture U/L contredisait la place des stores.
+	- SF=11 : FUN est un champ opaque de 4 bits (la lecture SZ ne tenait pas).
+	- Flottants réorganisés en miroir des entiers : b00_10_1ccc utilise le même code de
+	  condition que b00_00_1ccc ; FNEG/FABS occupent 000/111 comme NEG/ABS.
+	- Ajouts pour couvrir la référence : HEAP_ALLOC, BLKAND, BLKOU, BLKOUX, BLKNOT,
+	  LEXCMPx / ULEXCMPx ; registre HP ajouté à l'état architectural.
+	- Plages et signes des champs lvl, disp, ofs précisés ; lvl = 1111 interdit là où il
+	  n'a pas de sens.
+	- Effets de pile ajoutés pour chaque opcode.
+	- Numérotation refaite en continu (le n°53 manquait) : les numéros ont changé.
+	- Coquilles corrigées. Les points non tranchés sont marqués [Qn] et regroupés à la fin.
+
+
+=========================================================================================
+	CONVENTIONS GÉNÉRALES
+=========================================================================================
+
+Mot machine : 64 bits. Toute cellule de pile data fait 64 bits.
+Les flottants sont des IEEE 754 binary64 et transitent par la pile data comme des entiers.
+Les booléens LLIR valent 0 ou 1.
+
+La pile data croît vers les adresses hautes (comme dans la référence x86).
+La pile des retours est séparée de la pile data.
+Le frame pointer est sauvegardé sur la pile data.
+Les paramètres sont à déplacements négatifs à partir de -8.
+Les variables locales sont à déplacements positifs à partir de +8.
+DISPLAY[lvl] pointe sur la cellule de sauvegarde du frame pointer antérieur.
+
+Notation des effets de pile : ( avant -- après ), SOMMET À DROITE (notation Forth).
+Exemple : SB avec lvl = 1111 a l'effet ( @ v -- ) : v est au sommet, l'adresse dessous.
+
+Les déplacements de branche et de CALL sont relatifs à l'instruction suivante
+(comme les rel32 de la référence).
+
+-----------
+Mémoire :
+-----------
+La mémoire est adressée par octets, sur 64 bits. Mn[a] (n = 8, 16, 32, 64) désigne les n/8
+octets a .. a + n/8 - 1, lus ou écrits en PETIT-BOUTISTE (octet de poids faible en a), comme
+dans la référence x86. Les chargements étendent la valeur à 64 bits selon leur MODE (signe
+ou zéros) ; les rangements écrivent les n bits de poids faible.
+	- Aucun alignement n'est exigé : un accès non aligné donne le même résultat qu'une
+	  suite d'accès d'un octet. Une implantation peut le traiter plus lentement. (La
+	  référence et tx_run acceptent ces accès ; leur fréquence dans TLALOC reste à
+	  mesurer.)
+	- Un accès n'est valide que si tous ses octets le sont ; sinon faute 132.
+	- Les adresses valides sont inférieures à 2^63 (règle de plateforme ; tx_run :
+	  0x400000 et 0x7F00_0000_0000). L'arithmétique d'adresses faite par ADD et SUB
+	  (indexation, SYSTEM.ADDRESS) ne déborde donc jamais en signé. Les adresses que la
+	  machine calcule elle-même (DISPLAY[lvl] + disp, pointeur + ofs, LVA, LIVA) restent
+	  calculées modulo 2^64 et ne lèvent pas la faute 129.
+	- L'ordre « poids fort en tête » des compléments d'instruction est une règle
+	  d'ENCODAGE : le décodeur lit le code comme une suite d'octets. Il ne s'applique à
+	  aucun accès de données.
+	- Code non modifiable : après le début de l'exécution, modifier un octet appartenant
+	  à une instruction du programme donne un comportement non spécifié, que cette
+	  instruction ait déjà été exécutée ou non. Le chargeur écrit le code avant la
+	  première instruction. Les données placées dans le flux de code (contournées par BRA)
+	  ne sont pas des instructions : la règle ne les concerne pas. Une implantation peut
+	  donc garder instructions et formes décodées sans aucun mécanisme d'invalidation.
+
+-----------
+Piles :
+-----------
+Les quatre pointeurs sont des adresses d'octet ; chaque pile a son sens et sa convention :
+
+	DSP	pile data, CROISSANTE ; DSP désigne la cellule du SOMMET (dernière occupée).
+		push v		DSP := DSP + 8 ; M64[DSP] := v
+		pop		v := M64[DSP] ; DSP := DSP - 8
+		sommet		M64[DSP]
+	RSP	pile des retours, DÉCROISSANTE ; RSP désigne la dernière adresse empilée.
+		push_retour a	RSP := RSP - 8 ; M64[RSP] := a
+		pop_retour	a := M64[RSP] ; RSP := RSP + 8
+	CSP	co-pile, CROISSANTE ; CSP désigne le premier octet LIBRE (voir LINK, CO_VAR).
+	HP	tas, DÉCROISSANT ; HP est la FRONTIÈRE BASSE de la zone déjà allouée : les
+		octets alloués sont ceux de HP à HP0 - 1 (voir HEAP_ALLOC).
+
+Valeurs « pile vide », fixées par le chargeur (ou par le run-time pour une tâche) :
+	DSP0	position qui précède la première cellule : le premier push écrit en DSP0 + 8.
+		(tx_run : DSP0 = base de la région de pile, cellule factice ; DISPLAY[0] = DSP0.)
+	RSP0	fin (exclue) de la région des retours : le premier push_retour écrit en
+		RSP0 - 8 ; la pile des retours est vide quand RSP = RSP0.
+	CSP0	premier octet libre initial de la co-pile.
+	HP0	fin (exclue) de la région du tas : avant toute allocation, HP = HP0 et la
+		zone allouée est vide ; la première allocation de n octets rend HP0 - n.
+Un pop avec DSP = DSP0 et un pop_retour avec RSP = RSP0 dépilent une pile vide (voir §4
+des fautes).
+
+La pile data et la co-pile sont de la mémoire ordinaire : le programme y accède aussi par
+adresse (locales, paramètres, LVA, blocs de la co-pile). La pile des retours, elle, n'est
+lue et écrite que par push_retour et pop_retour (CALL, CALLI, RTD, TRAP vectorisé,
+interruption, RTX) ; EXC_MACH, EXC_RAISE et les services de contexte ne font que sauver et
+restaurer RSP. Un programme qui y accède par des chargements ou des rangements a un
+comportement non spécifié. Une implantation peut donc la tenir hors du chemin des données
+(tx_run : tableau interne ; TAHX : pile en registres, débordant en mémoire), sans cohérence à
+assurer avec les accès du programme. La référence x86 l'observe déjà : rsp n'y sert qu'à
+call, ret et aux services système.
+Conformité d'une pile des retours tenue en registres. Le contenu abstrait de la pile des
+retours d'une tâche est la suite M64[RSP], M64[RSP+8], ..., M64[RSP0-8] : l'implantation
+doit se comporter comme si chaque push_retour écrivait la mémoire. Elle peut retarder ces
+écritures, avec deux obligations, qui ne créent aucun état architectural nouveau :
+	- à CTX_SAVE, toutes les entrées gardées en registres sont écrites en mémoire :
+	  le bloc de contexte et la région des retours suffisent alors à reprendre la tâche,
+	  plus tard ou après d'autres tâches ;
+	- après EXC_RAISE et CTX_RESTORE, qui donnent à RSP une valeur quelconque, les
+	  entrées gardées en registres ne sont plus utilisées sans être revalidées : un
+	  pop_retour lit la mémoire, ou un cache indexé par adresse. (EXC_RAISE restaure un
+	  RSP plus haut que le RSP courant : les entrées situées entre les deux sont simplement
+	  abandonnées.)
+
+-------------------
+Programme valide :
+-------------------
+Un programme HX est VALIDE si toute adresse où le contrôle peut arriver dynamiquement est un
+début d'instruction : cibles de branche et de CALL, adresses sautées par CALLI, adresses de
+retour, DISPATCH des contextes d'exception, vecteurs de VTB, PC des blocs de contexte et point
+d'entrée. Les adresses empilées par la machine (CALL, CALLI, TRAP, interruption) le sont
+toujours. Le comportement d'un programme non valide n'est pas spécifié : la machine décode à
+partir de l'octet atteint. Elle ne peut pas le détecter et ne le vérifie pas ; l'émulateur le
+signale grâce à la table des instructions de l'image. TLALOC ne produit que des programmes
+valides ; les données en ligne sont contournées par BRA.
+
+----------------------
+Arithmétique entière :
+----------------------
+Les entiers de la pile sont signés sur 64 bits. Aucune opération entière n'enveloppe en
+silence : ADD, SUB, MUL, NEG, ABS, INC, DEC dont le résultat mathématique sort de
+[-2^63, 2^63), DIV de -2^63 par -1, CVTIX et CVTXI dont le quotient n'est pas représentable
+lèvent la faute 129 (NUMERIC_ERROR). REMI et MODI de -2^63 par -1 rendent 0, qui est le
+résultat exact. Les opérations logiques (ET, OU, OUX, NON) et les décalages portent sur des
+motifs de bits : elles ne débordent pas, mais un compte de décalage de 64 ou plus est la
+faute 137. La faute est précise : a et b restent en place.
+	- Matériel : ADD, SUB, INC, DEC lisent le débordement de l'additionneur ; NEG et ABS
+	  comparent l'opérande à -2^63 ; MUL vérifie que la moitié haute du produit signé de
+	  128 bits est l'extension de signe de sa moitié basse.
+	- Pour INTEGER et les types plus étroits, le contrôle d'intervalle reste fait par le
+	  code engendré (CHK ou comparaison) ; le calcul sur 64 bits ne peut plus rendre en
+	  silence une valeur fausse dans les bornes : un produit en chaîne qui sortirait de
+	  64 bits lève désormais la faute 129.
+	- Discipline du code engendré : il ne doit créer aucun débordement intermédiaire
+	  absent du source. Les expressions statiques universelles (bornes de types, nombres
+	  nommés) sont évaluées exactement à la compilation, et non à l'exécution sur 64
+	  bits. Pour les types de 64 bits, points à surveiller : fin de boucle sur 'LAST
+	  (ne pas incrémenter après la dernière itération), 'LENGTH (B - A + 1), 'SUCC,
+	  'PRED, normalisation d'un indice (x - bas), et 2**n par décalage (seulement si
+	  n est connu et le résultat représentable ; sinon par MUL, qui est contrôlé).
+
+------------------------
+Arithmétique flottante :
+------------------------
+IEEE 754 binary64, sans exception observable (drapeaux ni déroutements) :
+	- arrondi au plus proche, cas d'égalité vers le pair, pour FADD, FSUB, FMUL, FDIV,
+	  chaque multiplication de FEXP et CVTIF (entier de plus de 53 bits significatifs) ;
+	  CVTFI et CVTFIR ont leur propre règle (voir la table) ;
+	- sous-normaux traités complètement, en entrée comme en sortie (ni mise à zéro, ni
+	  lecture comme zéro), comme la référence x86 dans sa configuration par défaut ;
+	- tout résultat NaN de FADD, FSUB, FMUL, FDIV et FEXP est le NaN CANONIQUE
+	  0x7FF8000000000000, quel que soit le NaN des opérandes : le résultat ne dépend ni de
+	  l'ordre des opérandes, ni de l'hôte de l'émulateur. FNEG et FABS sont des opérations
+	  sur le bit 63 et conservent la charge utile ;
+	- comparaisons : voir le code de condition ccc (un NaN ne lève aucun des trois bits).
+
+
+=========================================================================================
+	ÉTAT ARCHITECTURAL
+=========================================================================================
+
+	PC		compteur ordinal (le code est en un seul flux)
+	DSP		sommet pile data					(rbp dans la référence)
+	RSP		sommet pile des retours					(rsp)
+	CFP		frame co-pile						(r13)
+	CSP		sommet co-pile						(r14)
+	HP		sommet du tas, croissance descendante			(r12)
+	DISPLAY[0..14]	frame pointers des niveaux statiques			([r15 + 8*lvl])
+	DR		déroutement en cours (1 bit)
+	FPC, FCODE	adresse et code de la dernière faute ou interruption
+	VTB, FSCR	table des vecteurs, zone d'exposition de FPC et FCODE
+	LIM_DSP, LIM_RSP, LIM_CSP, LIM_HP	limites des piles et du tas
+	IMASK		masque des interruptions
+	(voir « Fautes, déroutements et interruptions » ; l'ancien registre CEV est supprimé)
+Display à 15 niveaux effectifs (0..14), le code lvl = 1111 étant réservé à « adresse sur
+pile ». Cela suffit pour le compilateur TLALOC qui utilise 9 niveaux statiques.
+
+EXC_MACH sauve et EXC_RAISE restaure DSP, RSP, CFP, CSP et DISPLAY[0..lvl].
+EXC_RAISE remet en outre DR à 0.
+HP n'est ni sauvé ni restauré : le tas n'est pas déroulé par les exceptions.
+
+
+=========================================================================================
+	FORMATS D'OPÉRANDES
+=========================================================================================
+
+format "A"	[OP 7..0]*						aucun complément
+
+; lvl : 4 bits, toujours cadré à gauche (bits de poids fort)
+;       0000..1110 = niveau display 0..14
+;       1111       = lvl:-1, adresse prise sur la pile data
+; disp : signé, complément à deux, sauf pour LINK où c'est une taille non signée
+; ofs  : non signé, 0..255 ; un ofs négatif passe par le repli ([Q9] tranchée)
+
+format "B16"	[OP 7..0]	[lvl 15..12 | disp 11..0]		disp : -2048..+2047
+format "B24"	[OP 7..0]	[lvl 23..20 | disp 19..0]		disp : ±512 Kio
+
+format "C24"	[OP 7..0]	[lvl 23..20 | ofs 19..16 | disp 15..0]	lvl 4, ofs 4, disp 16
+format "C32"	[OP 7..0]	[lvl 31..28 | ofs 27..20 | disp 19..0]	lvl 4, ofs 8, disp 20
+
+format "D8"	[OP 7..0]	[imm 7..0]
+format "D16"	[OP 7..0]	[imm 15..0]
+format "D8_8"	[OP 7..0]	[imm 7..0 | Imm 7..0]
+format "D24"	[OP 7..0]	[imm 23..0]
+format "D32"	[OP 7..0]	[imm 31..0]
+format "D64"	[OP 7..0]	[imm 63..0]
+
+; Les immédiats de LI (D8 à D64) sont étendus en signe à 64 bits. La valeur d'un immédiat
+; est dans [-2^63, 2^63) : l'assembleur refuse une valeur hors de cet intervalle.
+; LIF (littéral flottant) s'assemble en LI de son motif IEEE 754 lu comme entier signé :
+; un motif de 2^63 ou plus (flottant négatif, -0.0) est pris moins 2^64, mêmes 64 bits.
+; LI imm4 (famille D, SF=01) est non signé : 0..15, étendu par zéros.
+
+format "BR8"	[OP 7..0]	[d 7..0]				déplacement signé, en octets
+format "BR16"	[OP 7..0]	[d 15..0]
+format "BR24"	[OP 7..0]	[d 23..0]
+format "BR32"	[OP 7..0]	[d 31..0]
+; Le déplacement est relatif à l'instruction suivante. Code en un seul flux.
+
+Ordre des octets du complément : POIDS FORT EN TÊTE, dans l'ordre de la notation ci-dessus.
+Pour les familles B et C, le premier octet du complément porte donc toujours lvl dans ses
+bits 7..4, quel que soit le format : le décodeur lit DISPLAY[lvl] sans attendre la longueur.
+Exemples :	LQ 3, -2049		5B 3F F7 FF		(B24 : lvl 3, disp FF7FF)
+		LIB 1, 8, 16		98 11 00 00 08		(C32 : lvl 1, ofs 10, disp 00008)
+		LI 128			C1 00 80		(D16)
+		UBFXI 12, 20		C4 0C 14		(D8_8 : lsb puis w)
+		BT +32768		E6 00 80 00		(BR24)
+
+-----------------------------------------------------
+Longueur des instructions (invariant de décodage) :
+-----------------------------------------------------
+La longueur d'une instruction est une fonction de son SEUL premier octet (l'opcode).
+Aucun champ du complément n'intervient. C'est ce qui permet de décoder plusieurs
+instructions par cycle dans un bloc de code : pour chaque position d'octet, une table
+de 256 entrées donne la longueur, et une sélection en arbre retrouve les débuts
+d'instructions. Toute évolution de la table des opcodes doit préserver cet invariant.
+
+	famille A							1 octet
+	familles B et C		FMT 00					1 octet
+				FMT 01	B16 / C24			3 / 4 octets
+				FMT 10	B24 / C32			4 / 5 octets
+				FMT 11	CHK B24 / CHKI C32		4 / 5 octets
+	famille D, SF=00	LI	SZ 00, 01, 10, 11		2, 3, 5, 9 octets
+				UBFXI, SBFXI, BFII (D8_8)		3 octets
+				LEXCMP					1 octet
+	famille D, SF=01	LI imm4					1 octet
+	famille D, SF=10	branches	SZ 00, 01, 10, 11	2, 3, 4, 5 octets
+	famille D, SF=11	TRAP, UNLINK, UNLINKR (D8)		2 octets
+				CALL, RTD n, EXC_RAISE (D24)		4 octets
+				RTD 0, RTX				1 octet
+	Longueur maximale : 9 octets (LI imm64).
+
+---------------------------------
+Calcul d'adresse effective (EA) :
+---------------------------------
+Famille B :	lvl 0..14	EA = DISPLAY[lvl] + disp
+		lvl = 1111	EA = pop + disp
+Famille C :	lvl 0..14	EA = M64[ DISPLAY[lvl] + disp ] + ofs
+		lvl = 1111	EA = M64[ pop + disp ] + ofs
+
+FMT = 00 (aucun complément) signifie : lvl = 1111, disp = 0, et ofs = 0 pour la famille C.
+Si l'adresse est sur la pile et que disp ou ofs est non nul, on utilise B16/B24 ou
+C24/C32 avec lvl = 1111.
+
+Notation des formes à adresse sur la pile (lvl = 1111) :
+	@	adresse d'une donnée ; @@ adresse d'une cellule qui contient une adresse.
+	Famille B :	LVA ( @ -- @+disp )		Lx ( @ -- v )		Sx ( @ v -- )
+	Famille C :	LIVA ( @@ -- @ )		LIx ( @@ -- v )		SIx ( @@ v -- )
+			avec @ = M64[@@ + disp] + ofs.
+	Un rangement dépile d'abord la donnée (sommet), puis l'adresse qui est dessous.
+	LIVA 1111, disp, ofs remplace donc l'adresse de la cellule pointeur par l'adresse
+	pointée augmentée de ofs ; avec disp = ofs = 0, c'est LQ 1111.
+
+Replis pour les champs trop étroits (séquences émises par l'assembleur) :
+
+	ofs hors 0..255, c'est-à-dire ofs > 255 ou ofs négatif (famille C ; ofs doit tenir
+	dans le disp signé d'un B24, soit ±512 Kio) :
+		LIVA lvl, disp, ofs		LIVA lvl,disp,0 ; LVA 1111,ofs
+		LIx  lvl, disp, ofs		LIVA lvl,disp,0 ; Lx 1111,ofs
+		SIx  lvl, disp, ofs		LIVA lvl,disp,0 ; OVER ; Sx 1111,ofs ; DROP
+		SIx  1111, disp, ofs		OVER ; LIVA 1111,disp,0 ; OVER ; Sx 1111,ofs ;
+						DROP ; DROP
+	Chaque instruction prend son format minimal : B16 si -2048 <= ofs < 2048, sinon B24 ; le LIVA
+	avec lvl = 1111 et disp = 0 est un LQ 1111,0 (FMT 00).
+		CHKIt lvl, disp, ofs		séquence de remplacement de CHKIt (voir sa sémantique)
+	Les deux premières lignes valent aussi pour lvl = 1111 (LIVA 1111 consomme @@).
+
+	Règle générale des rangements. Quand l'assembleur rencontre un rangement, la donnée v
+	est déjà empilée. Soit S la séquence qui calcule l'adresse effective, d'effet ( -- @ ),
+	ou ( @@ -- @ ) si lvl = 1111. Le rangement devient :
+		lvl 0..14	S ; OVER ; Sx 1111,0 ; DROP
+				(v) (v @) (v @ v) (v) ( )
+		lvl = 1111	OVER ; S ; OVER ; Sx 1111,0 ; DROP ; DROP
+				(@@ v) (@@ v @@) (@@ v @) (@@ v @ v) (@@ v) ( )
+	Le dernier déplacement de S peut être replié dans le Sx (cas ofs hors 0..255 ci-dessus).
+	Aucun opcode d'échange (SWAP) n'est nécessaire.
+
+	|disp| hors B24 / C32 :
+		S commence par le calcul de DISPLAY[lvl] + disp : LVA lvl,0 ; LI disp ; ADD
+		(avec lvl = 1111 : LI disp ; ADD), puis l'accès se fait par la forme lvl = 1111
+		avec disp = 0 (famille B) ou disp = 0 et ofs (famille C). Mesure TLALOC : aucun cas.
+		Effet du contrôle d'ADD (V7) : aucun pour un accès valide, puisque DISPLAY[lvl],
+		le pointeur et l'adresse effective sont alors dans [0, 2^63) et que la somme ne
+		peut pas déborder. Si la somme dépasse 2^63 - 1, l'accès direct aurait fauté
+		(adresse modulo 2^64, supérieure à 2^63 : faute 132) ; le repli faute aussi, mais
+		sur l'ADD (faute 129). Seuls le code de faute et FPC diffèrent, pour un accès
+		déjà erroné. Les replis de ofs, qui passent par LVA 1111, ne sont pas concernés.
+	LINK de plus de 1 Mio		non encodable, cf. [Q5]
+
+
+=========================================================================================
+	FORMAT DES OPCODES
+=========================================================================================
+
+OP[7..6]	Famille	Interprétation
+00		A	opérations sans complément d'opérande : ALU, pile, flottants…
+01		B	accès direct lvl + disp
+10		C	accès indirect lvl + disp + ofs
+11		D	immédiats, contrôle, adresses constantes…
+
+-------------
+Famille A :
+-------------
+        7 6   5 4   3   2 1 0
+      +-----+-----+---+-------+
+OP =  | 0 0 | GRP | K |  FUN  |
+      +-----+-----+---+-------+
+GRP :
+  00 = logique, décalages (K=0) ; comparaisons entières (K=1)
+  01 = arithmétique entière, champs de bits, virgule fixe
+  10 = flottants : arithmétique et conversions (K=0) ; comparaisons (K=1)
+  11 = pile, blocs, allocation
+
+Code de condition ccc (comparaisons, K=1, groupes 00 et 10) :
+  bit 0 = GT, bit 1 = LT, bit 2 = EQ
+  001 GT   010 LT   011 NE   100 EQ   101 GE   110 LE
+  000 et 111 (« jamais », « toujours ») sont réutilisés pour NEG/ABS et FNEG/FABS.
+  Le code 011 est défini comme « non EQ », et non comme « GT ou LT » : pour les
+  flottants, une comparaison non ordonnée (NaN) ne lève aucun des trois bits, et FCNE
+  doit alors rendre 1 (NaN /= x est vrai). Pour les entiers les deux lectures coïncident.
+  Pour toutes les autres conditions, un NaN donne 0.
+
+Sous-groupe ADD/INC/SUB/DEC (b00_01_00_xx) :
+  bit 1 = inverser l'opérande B, bit 0 = remplacer B par 0 (opération unaire),
+  retenue entrante = bit 1 xor bit 0.
+  ADD a+b+0   INC a+0+1   SUB a+~b+1   DEC a+~0+0
+
+-------------
+Familles B/C :
+-------------
+        7 6    5 4    3 2   1 0
+      +-----+------+-----+----+
+OP =  | B/C | MODE | FMT | SZ |
+      +-----+------+-----+----+
+B/C :
+  01 = B
+  10 = C
+
+MODE :
+  00 = spécial (espace réutilisé)
+  01 = load signé (extension de signe à 64 bits)
+  10 = store (troncature à la taille SZ)
+  11 = load non signé (extension par zéros) ; SZ = 11 réservé car ULQ = LQ
+
+MODE = 00, espace réutilisé :
+  SZ = 00  LINK		(famille B seulement)
+  SZ = 01  EXC_MACH	(famille B seulement)
+  SZ = 10  réservé
+  SZ = 11  LVA (famille B) / LIVA (famille C)
+
+FMT pour B :
+  00 = A    : aucun complément
+  01 = B16  : 2 octets
+  10 = B24  : 3 octets
+  11   CHK B24 si MODE = 01 ou 11
+           réservé autrement
+
+FMT pour C :
+  00 = A    : aucun complément
+  01 = C24  : 3 octets
+  10 = C32  : 4 octets
+  11   CHKI C32 si MODE = 01 ou 11
+           réservé autrement
+
+SZ :
+  00 = byte	8 bits
+  01 = word	16 bits
+  10 = double	32 bits
+  11 = quad / address	64 bits
+
+; Sur machine 64 bits, les adresses sont des quads :
+; LA = LQ, SA = SQ, LIA = LIQ, SIA = SIQ, ULQ = LQ, ULIQ = LIQ.
+
+-------------
+Famille D :
+-------------
+
+SF=00 : LI explicite et comparaisons lexicographiques
+
+        7 6   5 4   3   2   1 0
+      +-----+-----+---+---+-----+
+      | 1 1 | 0 0 | K | s |  SZ |
+      +-----+-----+---+---+-----+
+
+K=0, s=0 : LI, SZ = taille de l'immédiat
+           00 imm8 (D8)   01 imm16 (D16)   10 imm32 (D32)   11 imm64 (D64)
+K=0, s=1 : UBFXI, SBFXI, BFII (D8_8), SZ = 11 réservé
+K=1      : LEXCMP, pas d'immédiat, SZ = taille d'un composant, s = 1 non signé
+           (s=1, SZ=11 réservé : en 64 bits le signe est indifférent)
+
+
+SF=01 : LI imm4
+
+        7 6   5 4   3 2 1 0
+      +-----+-----+---------+
+      | 1 1 | 0 1 | i i i i |
+      +-----+-----+---------+
+
+iiii = imm4, NON SIGNÉ : LI empile 0..15 ([Q3] tranchée)
+
+
+SF=10 : branche
+
+        7 6   5 4   3 2   1 0
+      +-----+-----+-----+-----+
+      | 1 1 | 1 0 |  TB |  SZ |
+      +-----+-----+-----+-----+
+
+TB = 00	BRA	inconditionnel
+     01	BT	branche si vrai
+     10	BF	branche si faux
+     11	réservé
+
+SZ = 00 BR8   01 BR16   10 BR24   11 BR32
+
+
+SF=11 : contrôle
+
+        7 6   5 4   3 2 1 0
+      +-----+-----+---------+
+      | 1 1 | 1 1 |   FUN   |
+      +-----+-----+---------+
+
+FUN = fonction de contrôle, champ opaque de 4 bits : le format du complément est
+propre à chaque fonction (voir la table).
+
+
+=========================================================================================
+	TABLE DES OPCODES
+=========================================================================================
+
+;No	format	binaire		code	OPCODE	[compl]		; effet de pile (sommet à droite)
+
+;		b00_00_0xxx	opérations logiques, décalages
+1	A	b00_00_0_000	x	ET			; ( a b -- a and b )
+2	A	b00_00_0_001	x	OU			; ( a b -- a or b )
+3	A	b00_00_0_010	x	OUX			; ( a b -- a xor b )
+4	A	b00_00_0_011	x	NON			; ( a -- not a )	complément bit à bit
+5	A	b00_00_0_100	x	SHL			; ( a n -- a << n )	faute 137 si n >= 64
+6	A	b00_00_0_101	x	SHR			; ( a n -- a >> n )	logique, faute 137 si n >= 64
+7	A	b00_00_0_110	x	SAR			; ( a n -- a >> n )	arithmétique, faute 137 si n >= 64
+8	A	b00_00_0_111	x	CLAMP0			; ( a -- max(0,a) )
+
+;		b00_00_1ccc	comparaisons entières signées, code de condition ccc
+;		(schéma du décodeur du Gigatron, avec carry out et accu7)
+9	A	b00_00_1_000	x	NEG			; ( a -- -a )		case « jamais », faute 129
+10	A	b00_00_1_001	x	CGT			; ( a b -- a>b )	résultat 0/1
+11	A	b00_00_1_010	x	CLT			; ( a b -- a<b )
+12	A	b00_00_1_011	x	CNE			; ( a b -- a/=b )
+13	A	b00_00_1_100	x	CEQ			; ( a b -- a=b )
+14	A	b00_00_1_101	x	CGE			; ( a b -- a>=b )
+15	A	b00_00_1_110	x	CLE			; ( a b -- a<=b )
+16	A	b00_00_1_111	x	ABS			; ( a -- |a| )		case « toujours », faute 129
+
+;		b00_01_xxxx	arithmétique entière, champs de bits, virgule fixe
+;		      a+ ~c
+17	A	b00_01_00_00	x	ADD			; ( a b -- a+b )	faute 129
+18	A	b00_01_00_01	x	INC			; ( a -- a+1 )		B := 0, retenue 1, faute 129
+19	A	b00_01_00_10	x	SUB			; ( a b -- a-b )	~B, retenue 1, faute 129
+20	A	b00_01_00_11	x	DEC			; ( a -- a-1 )		~0, retenue 0, faute 129
+
+;		      a*
+21	A	b00_01_01_00	x	MUL			; ( a b -- a*b )	produit signé, faute 129
+22	A	b00_01_01_01	x	DIV			; ( a b -- a/b )	troncature vers zéro, fautes 128, 129
+23	A	b00_01_01_10	x	REMI			; ( a b -- a rem b )	signe du dividende, faute 128
+24	A	b00_01_01_11	x	MODI			; ( a b -- a mod b )	signe du diviseur, faute 128
+
+;		      bf	champs de bits
+25	A	b00_01_10_00	x	UBFX			; ( v lsb w -- champ )		extension par zéros, faute 137
+26	A	b00_01_10_01	x	SBFX			; ( v lsb w -- champ )		extension de signe, faute 137
+27	A	b00_01_10_10	x	BFI			; ( old ins lsb w -- new )	faute 137
+-	A	b00_01_10_11	-	-	réserve
+
+;		      vf	virgule fixe, SMALL = NUMER/DENOM
+28	A	b00_01_11_00	x	CVTIX			; ( i denom numer -- x )	x = i*denom/numer
+29	A	b00_01_11_01	x	CVTXI			; ( x numer denom -- i )	arrondi, mi-chemin à l'écart de zéro , produit intermédiaire calculé avec précision suffisante
+-	A	b00_01_11_10	-	-	réserve
+-	A	b00_01_11_11	-	-	réserve
+
+;		b00_10_0xxx	flottants : arithmétique et conversions
+30	A	b00_10_0_000	x	FADD			; ( a b -- a+b )
+31	A	b00_10_0_001	x	FSUB			; ( a b -- a-b )
+32	A	b00_10_0_010	x	FMUL			; ( a b -- a*b )
+33	A	b00_10_0_011	x	FDIV			; ( a b -- a/b )
+34	A	b00_10_0_100	x	FEXP			; ( x n -- x**n )	n entier, voir sémantique
+35	A	b00_10_0_101	x	CVTIF			; ( i -- f )
+36	A	b00_10_0_110	x	CVTFI			; ( f -- i )		troncature vers zéro, faute 130
+37	A	b00_10_0_111	x	CVTFIR			; ( f -- i )		au plus proche, mi-chemin à l'écart de zéro (Ada RM 4.6), faute 130
+
+;		b00_10_1ccc	flottants : comparaisons, même code ccc que les entiers
+38	A	b00_10_1_000	x	FNEG			; ( f -- -f )		inversion du bit 63
+39	A	b00_10_1_001	x	FCGT			; ( a b -- a>b )
+40	A	b00_10_1_010	x	FCLT			; ( a b -- a<b )
+41	A	b00_10_1_011	x	FCNE			; ( a b -- a/=b )	1 si non ordonné
+42	A	b00_10_1_100	x	FCEQ			; ( a b -- a=b )
+43	A	b00_10_1_101	x	FCGE			; ( a b -- a>=b )
+44	A	b00_10_1_110	x	FCLE			; ( a b -- a<=b )
+45	A	b00_10_1_111	x	FABS			; ( f -- |f| )		mise à zéro du bit 63
+
+;		b00_11_xxxx	pile, blocs, allocation
+46	A	b00_11_0000	x	DROP			; ( a -- )
+47	A	b00_11_0001	x	DUP			; ( a -- a a )
+48	A	b00_11_0010	x	OVER			; ( a b -- a b a )
+49	A	b00_11_0011	x	CALLI			; ( @sp -- )		adresse de retour sur pile des retours
+
+50	A	b00_11_0100	x	BLKMOV			; ( @dst len @src -- )	sans recouvrement, len en octets
+51	A	b00_11_0101	x	BLKCMP			; ( @a len @b -- eq )	1 si égaux, len = 0 -> 1
+-	A	b00_11_0110	-	-	réserve
+-	A	b00_11_0111	-	-	réserve
+
+52	A	b00_11_1000	x	CO_VAR			; ( n -- @bloc )	CSP += n arrondi à 8, faute 135
+53	A	b00_11_1001	x	HEAP_ALLOC		; ( n -- @bloc )	HP -= n arrondi à 8, faute 136
+-	A	b00_11_1010	-	-	réserve
+-	A	b00_11_1011	-	-	réserve
+
+;		b00_11_11xx	logique de blocs booléens, miroir de ET OU OUX NON (LRM 4.5.1)
+;		un octet par composant ; [dst] a déjà reçu l'opérande gauche par BLKMOV
+54	A	b00_11_1100	x	BLKAND			; ( @dst len @src -- )	[dst] and= [src]
+55	A	b00_11_1101	x	BLKOU			; ( @dst len @src -- )	[dst] or= [src]
+56	A	b00_11_1110	x	BLKOUX			; ( @dst len @src -- )	[dst] xor= [src]
+57	A	b00_11_1111	x	BLKNOT			; ( @dst len -- )	chaque octet xor= 1 (NOT booléen)
+
+
+;		b01_MODE_FMT_SZ
+-	B	b01_00_00_00	-	-	réserve		; LINK lvl=-1 : sans objet
+-	B	b01_00_00_01	-	-	réserve		; EXC_MACH lvl=-1 : sans objet
+-	B	b01_00_00_10	-	-	réserve
+-	B	b01_00_00_11	-	-	réserve		; LVA -1,0 : nop
+
+58	B	b01_00_01_00	x	LINK	[B16]		; voir sémantique ; disp = taille locales, non signée (4 Kio)
+59	B	b01_00_01_01	x	EXC_MACH [B16]		; ( -- )	disp = ctx
+-	B	b01_00_01_10	-	-	réserve
+60	B	b01_00_01_11	x	LVA	[B16]		; ( -- @ )  ou  ( @ -- @+disp ) si lvl=1111
+
+61	B	b01_00_10_00	x	LINK	[B24]		; taille non signée (1 Mio)
+62	B	b01_00_10_01	x	EXC_MACH [B24]
+-	B	b01_00_10_10	-	-	réserve
+63	B	b01_00_10_11	x	LVA	[B24]
+
+-	B	b01_00_11_00	-	-	réserve
+-	B	b01_00_11_01	-	-	réserve
+-	B	b01_00_11_10	-	-	réserve
+-	B	b01_00_11_11	-	-	réserve
+
+;		load signé : ( -- v )  ou  ( @ -- v ) si lvl=1111
+64	B	b01_01_00_00	x	LB
+65	B	b01_01_00_01	x	LW
+66	B	b01_01_00_10	x	LD
+67	B	b01_01_00_11	x	LQ			; = LA
+
+68	B	b01_01_01_00	x	LB	[B16]
+69	B	b01_01_01_01	x	LW	[B16]
+70	B	b01_01_01_10	x	LD	[B16]
+71	B	b01_01_01_11	x	LQ	[B16]
+
+72	B	b01_01_10_00	x	LB	[B24]
+73	B	b01_01_10_01	x	LW	[B24]
+74	B	b01_01_10_10	x	LD	[B24]
+75	B	b01_01_10_11	x	LQ	[B24]
+
+76	B	b01_01_11_00	x	CHKB	[B24]
+77	B	b01_01_11_01	x	CHKW	[B24]
+78	B	b01_01_11_10	x	CHKD	[B24]
+79	B	b01_01_11_11	x	CHKQ	[B24]
+
+;		store : ( v -- )  ou  ( @ v -- ) si lvl=1111 ; la donnée est au sommet
+80	B	b01_10_00_00	x	SB
+81	B	b01_10_00_01	x	SW
+82	B	b01_10_00_10	x	SD
+83	B	b01_10_00_11	x	SQ			; = SA
+
+84	B	b01_10_01_00	x	SB	[B16]
+85	B	b01_10_01_01	x	SW	[B16]
+86	B	b01_10_01_10	x	SD	[B16]
+87	B	b01_10_01_11	x	SQ	[B16]
+
+88	B	b01_10_10_00	x	SB	[B24]
+89	B	b01_10_10_01	x	SW	[B24]
+90	B	b01_10_10_10	x	SD	[B24]
+91	B	b01_10_10_11	x	SQ	[B24]
+
+-	B	b01_10_11_00	-	-	réserve
+-	B	b01_10_11_01	-	-	réserve
+-	B	b01_10_11_10	-	-	réserve
+-	B	b01_10_11_11	-	-	réserve
+
+;		load non signé : ( -- v )  ou  ( @ -- v ) si lvl=1111
+92	B	b01_11_00_00	x	ULB
+93	B	b01_11_00_01	x	ULW
+94	B	b01_11_00_10	x	ULD
+-	B	b01_11_00_11	-	-	réserve		; ULQ = LQ
+
+95	B	b01_11_01_00	x	ULB	[B16]
+96	B	b01_11_01_01	x	ULW	[B16]
+97	B	b01_11_01_10	x	ULD	[B16]
+-	B	b01_11_01_11	-	-	réserve
+
+98	B	b01_11_10_00	x	ULB	[B24]
+99	B	b01_11_10_01	x	ULW	[B24]
+100	B	b01_11_10_10	x	ULD	[B24]
+-	B	b01_11_10_11	-	-	réserve
+
+101	B	b01_11_11_00	x	CHKUB	[B24]
+102	B	b01_11_11_01	x	CHKUW	[B24]
+103	B	b01_11_11_10	x	CHKUD	[B24]
+-	B	b01_11_11_11	-	-	réserve
+
+
+;		b10_MODE_FMT_SZ
+-	C	b10_00_00_00	-	-	réserve
+-	C	b10_00_00_01	-	-	réserve
+-	C	b10_00_00_10	-	-	réserve
+-	C	b10_00_00_11	-	-	réserve		; LIVA -1,0,0 = LQ
+
+-	C	b10_00_01_00	-	-	réserve
+-	C	b10_00_01_01	-	-	réserve
+-	C	b10_00_01_10	-	-	réserve
+104	C	b10_00_01_11	x	LIVA	[C24]		; ( -- @ )  ou  ( @@ -- @ ) si lvl=1111
+
+-	C	b10_00_10_00	-	-	réserve
+-	C	b10_00_10_01	-	-	réserve
+-	C	b10_00_10_10	-	-	réserve
+105	C	b10_00_10_11	x	LIVA	[C32]
+
+-	C	b10_00_11_00	-	-	réserve
+-	C	b10_00_11_01	-	-	réserve
+-	C	b10_00_11_10	-	-	réserve
+-	C	b10_00_11_11	-	-	réserve
+
+;		load indirect signé : ( -- v )  ou  ( @@ -- v ) si lvl=1111
+106	C	b10_01_00_00	x	LIB
+107	C	b10_01_00_01	x	LIW
+108	C	b10_01_00_10	x	LID
+109	C	b10_01_00_11	x	LIQ			; = LIA
+
+110	C	b10_01_01_00	x	LIB	[C24]
+111	C	b10_01_01_01	x	LIW	[C24]
+112	C	b10_01_01_10	x	LID	[C24]
+113	C	b10_01_01_11	x	LIQ	[C24]
+
+114	C	b10_01_10_00	x	LIB	[C32]
+115	C	b10_01_10_01	x	LIW	[C32]
+116	C	b10_01_10_10	x	LID	[C32]
+117	C	b10_01_10_11	x	LIQ	[C32]
+
+118	C	b10_01_11_00	x	CHKIB	[C32]
+119	C	b10_01_11_01	x	CHKIW	[C32]
+120	C	b10_01_11_10	x	CHKID	[C32]
+121	C	b10_01_11_11	x	CHKIQ	[C32]
+
+;		store indirect : ( v -- )  ou  ( @@ v -- ) si lvl=1111
+122	C	b10_10_00_00	x	SIB
+123	C	b10_10_00_01	x	SIW
+124	C	b10_10_00_10	x	SID
+125	C	b10_10_00_11	x	SIQ			; = SIA
+
+126	C	b10_10_01_00	x	SIB	[C24]
+127	C	b10_10_01_01	x	SIW	[C24]
+128	C	b10_10_01_10	x	SID	[C24]
+129	C	b10_10_01_11	x	SIQ	[C24]
+
+130	C	b10_10_10_00	x	SIB	[C32]
+131	C	b10_10_10_01	x	SIW	[C32]
+132	C	b10_10_10_10	x	SID	[C32]
+133	C	b10_10_10_11	x	SIQ	[C32]
+
+-	C	b10_10_11_00	-	-	réserve
+-	C	b10_10_11_01	-	-	réserve
+-	C	b10_10_11_10	-	-	réserve
+-	C	b10_10_11_11	-	-	réserve
+
+;		load indirect non signé : ( -- v )  ou  ( @@ -- v ) si lvl=1111
+134	C	b10_11_00_00	x	ULIB
+135	C	b10_11_00_01	x	ULIW
+136	C	b10_11_00_10	x	ULID
+-	C	b10_11_00_11	-	-	réserve		; ULIQ = LIQ
+
+137	C	b10_11_01_00	x	ULIB	[C24]
+138	C	b10_11_01_01	x	ULIW	[C24]
+139	C	b10_11_01_10	x	ULID	[C24]
+-	C	b10_11_01_11	-	-	réserve
+
+140	C	b10_11_10_00	x	ULIB	[C32]
+141	C	b10_11_10_01	x	ULIW	[C32]
+142	C	b10_11_10_10	x	ULID	[C32]
+-	C	b10_11_10_11	-	-	réserve
+
+143	C	b10_11_11_00	x	CHKUIB	[C32]
+144	C	b10_11_11_01	x	CHKUIW	[C32]
+145	C	b10_11_11_10	x	CHKUID	[C32]
+-	C	b10_11_11_11	-	-	réserve
+
+
+;		b11_00_K_s_SZ	constantes immédiates signées, comparaisons lexicographiques
+146	D	b11_00_0_0_00	x	LI	[D8]		; ( -- imm )
+147	D	b11_00_0_0_01	x	LI	[D16]
+148	D	b11_00_0_0_10	x	LI	[D32]
+149	D	b11_00_0_0_11	x	LI	[D64]		; LIF = LI du motif IEEE 754 lu signé (format le plus étroit)
+
+150	D	b11_00_0_1_00	x	UBFXI	[D8_8]		; ( v -- champ )		lsb = imm, w = Imm (1..64)
+151	D	b11_00_0_1_01	x	SBFXI	[D8_8]		; ( v -- champ )		extension de signe
+152	D	b11_00_0_1_10	x	BFII	[D8_8]		; ( old ins -- new )
+-	D	b11_00_0_1_11	-	-	réserve
+
+;		LEXCMP (LRM 4.5.2) : ( @g lg @d ld -- r ), r = -1 / 0 / +1
+;		lg, ld en octets (bornées à 0 par CLAMP0) ; préfixe commun : r = signe(lg - ld)
+153	D	b11_00_1_0_00	x	LEXCMPB			; composants 8 bits signés
+154	D	b11_00_1_0_01	x	LEXCMPW			; 16 bits signés
+155	D	b11_00_1_0_10	x	LEXCMPD			; 32 bits signés
+156	D	b11_00_1_0_11	x	LEXCMPQ			; 64 bits
+157	D	b11_00_1_1_00	x	ULEXCMPB			; 8 bits non signés (CHARACTER, BOOLEAN, énumérés)
+158	D	b11_00_1_1_01	x	ULEXCMPW			; 16 bits non signés
+159	D	b11_00_1_1_10	x	ULEXCMPD			; 32 bits non signés
+-	D	b11_00_1_1_11	-	-	réserve		; ULEXCMPQ = LEXCMPQ
+
+;		SF=01
+160	D	b11_01_iiii	x	LI(imm4)			; ( -- imm4 )		imm4 non signé 0..15
+
+;		les instructions LCA et LSPA de la LLIR sont des LI ;
+;		l'assembleur choisit la taille d'immédiat la plus étroite
+
+;		b11_10_TB_SZ	branches, déplacements relatifs à l'instruction suivante
+161	D	b11_10_00_00	x	BRA	[BR8]		; ( -- )
+162	D	b11_10_00_01	x	BRA	[BR16]
+163	D	b11_10_00_10	x	BRA	[BR24]
+164	D	b11_10_00_11	x	BRA	[BR32]
+
+165	D	b11_10_01_00	x	BT	[BR8]		; ( b -- )	saute si b /= 0
+166	D	b11_10_01_01	x	BT	[BR16]
+167	D	b11_10_01_10	x	BT	[BR24]
+168	D	b11_10_01_11	x	BT	[BR32]
+
+169	D	b11_10_10_00	x	BF	[BR8]		; ( b -- )	saute si b = 0
+170	D	b11_10_10_01	x	BF	[BR16]
+171	D	b11_10_10_10	x	BF	[BR24]
+172	D	b11_10_10_11	x	BF	[BR32]
+
+-	D	b11_10_11_00	-	-	réserve
+		...				...
+-	D	b11_10_11_11	-	-	réserve
+
+;		b11_11_FUN	contrôle, FUN opaque
+173	D	b11_11_0000	x	TRAP	[D8]		; service n, cf. « Fautes, déroutements et interruptions » §3
+-	D	b11_11_0001	-	-	réserve
+174	D	b11_11_0010	x	CALL	[D24]		; ( -- ) déplacement relatif signé, ±8 Mio
+-	D	b11_11_0011	-	-	réserve
+
+-	D	b11_11_0100	-	-	réserve
+-	D	b11_11_0101	-	-	réserve
+175	D	b11_11_0110	x	RTD	[D24]		; DSP -= n (taille des paramètres), retour
+176	D	b11_11_0111	x	RTD			; RTD 0
+
+177	D	b11_11_1000	x	UNLINK	[D8]		; lvl 1..14 seulement
+178	D	b11_11_1001	x	UNLINKR	[D8]		; lvl 1..14 seulement
+-	D	b11_11_1010	-	-	réserve
+-	D	b11_11_1011	-	-	réserve
+
+-	D	b11_11_1100	-	-	réserve
+-	D	b11_11_1101	-	-	réserve
+179	D	b11_11_1110	x	EXC_RAISE [D24]		; top = déplacement non signé dans le frame de niveau 0
+180	D	b11_11_1111	x	RTX			; retour de service ou d'interruption, DR := 0
+
+
+=========================================================================================
+	SÉMANTIQUE DES OPÉRATIONS DE CONTRÔLE ET DE FRAME
+	(transcription de codi_x86_64 en termes d'état architectural)
+=========================================================================================
+
+LINK lvl, alloc			(lvl 0..14 ; lvl = 1111 interdit)
+	si lvl > 0 :
+		push DISPLAY[lvl]			; sauvegarde du FP antérieur sur la pile data
+		DISPLAY[lvl] := DSP			; le FP pointe sur la cellule de sauvegarde
+	DSP += 8 * ceil(alloc / 8)
+	M64[CSP] := CFP ; CFP := CSP ; CSP += 8		; cellule de chaînage de la co-pile
+
+UNLINK lvl			(lvl 1..14 ; UNLINK 0 interdit car LINK 0 ne sauve pas de FP)
+	DSP := DISPLAY[lvl]			; abandon des locales
+	DISPLAY[lvl] := pop			; restauration du FP antérieur
+	CFP := M64[CFP]				; la co-pile n'est PAS rendue (résultat tableau qui s'évade)
+
+UNLINKR lvl			(lvl 1..14)
+	DSP := DISPLAY[lvl]
+	DISPLAY[lvl] := pop
+	CSP := CFP				; rend toute la co-pile du frame, cellule LINK comprise
+	CFP := M64[CFP]
+
+CALL d		push_retour(PC suivant) ; PC := PC suivant + d
+CALLI		@ := pop ; push_retour(PC suivant) ; PC := @
+RTD n		DSP -= n ; PC := pop_retour		; n non signé
+RTX		PC := pop_retour ; DR := 0		; fin de service vectorisé ou de handler d'interruption
+
+EXC_MACH lvl, ctx		(lvl 0..14 ; lvl = 1111 interdit)
+	base := DISPLAY[lvl] + ctx
+	M64[base+16] := DSP
+	M64[base+24] := RSP
+	M64[base+32] := CFP
+	M64[base+40] := CSP
+	M64[base+48] := lvl + 1			; nlvl
+	M64[base+56 + 8*i] := DISPLAY[i]	pour i = 0..lvl
+	; M64[base+0] (PREV) et M64[base+8] (DISPATCH) sont écrits par de la LLIR ordinaire.
+
+EXC_RAISE top
+	ctx := M64[DISPLAY[0] + top]		; contexte au sommet
+	M64[DISPLAY[0] + top] := M64[ctx+0]	; POP avant dispatch (LRM 11.4.1)
+	CFP := M64[ctx+32]
+	CSP := M64[ctx+40]
+	RSP := M64[ctx+24]			; jette les adresses de retour des frames déroulés
+	DISPLAY[i] := M64[ctx+56 + 8*i]		pour i = 0..M64[ctx+48]-1
+	DSP := M64[ctx+16]
+	DR  := 0				; fin d'un éventuel handler de faute
+	PC  := M64[ctx+8]			; DISPATCH du frame porteur
+
+CHKt lvl, disp		[B24]	(lvl 0..14 ; lvl = 1111 interdit)
+CHKIt lvl, disp, ofs	[C32]	(lvl 0..14 ; lvl = 1111 interdit)
+	; ( v -- v )   t = B W D Q (MODE 01, bornes signées) ou UB UW UD (MODE 11)
+	A := DISPLAY[lvl] + disp			; forme B
+	A := M64[DISPLAY[lvl] + disp] + ofs		; forme C
+	FST := charge_t (A) ; LST := charge_t (A + taille_t)	; extension selon MODE
+	si v < FST ou v > LST (comparaison signée sur 64 bits) :
+		faute 131				; v reste au sommet (VTB[131] = ce_raise_)
+	; Remplace DUP / Lt / CLT / BT ce_raise_ / DUP / Lt / CGT / BT ce_raise_.
+	; Opérandes hors B24 / C32 : l'assembleur émet cette séquence de remplacement.
+
+UBFXI lsb, w	( v -- champ )		(D8_8 : imm = lsb 0..63, Imm = w 1..64, lsb + w <= 64)
+	champ := (v >> lsb) and (2**w - 1)
+SBFXI lsb, w	( v -- champ )		même champ, étendu en signe depuis le bit w-1
+BFII lsb, w	( old ins -- new )
+	m := (2**w - 1) << lsb ; new := (old and not m) or ((ins << lsb) and m)
+	; w = 64 désigne le mot entier. codi_HX refuse w = 0 et lsb + w > 64 ; une image qui
+	; contiendrait une telle forme lève la faute 137, comme les formes dynamiques.
+UBFX, SBFX, BFI		formes dynamiques : lsb et w sont pris sur la pile, même sémantique.
+	faute 137 si w = 0, w > 64 ou lsb + w > 64 (comparaisons non signées sur 64 bits) ([Q6]).
+
+FEXP	( x n -- x**n )		n entier signé sur 64 bits ([Q7])
+	n >= 0 :	multiplications successives de gauche à droite, comme la référence ;
+			x**0 = 1.0.
+	n < 0 :		1.0 / x**|n|, |n| calculé en non signé (n = -2**63 compris).
+	Aucune faute : 0.0**n avec n < 0 rend ±inf (IEEE 754, cf. « Notes » du §4 des fautes).
+
+CO_VAR		n := pop ; push CSP ; CSP += 8 * ceil(n / 8)		; n non signé
+HEAP_ALLOC	n := pop ; HP -= 8 * ceil(n / 8) ; push HP		; n non signé
+	; faute 135 (CSP) ou 136 (HP) : précise, n reste au sommet, CSP et HP inchangés.
+
+
+=========================================================================================
+	IMAGE HX (format de chargement produit par codi_HX)
+=========================================================================================
+
+L'image est chargée à 0x400000. Tous les mots sont petit-boutistes. L'en-tête est celui
+des images TX de format 3 ; seule la signature change, si bien qu'un même chargeur
+reconnaît les deux formats.
+
+	+0	'TLALOCHX'			signature, 8 octets
+	+8	1				version du format HX
+	+16	0x400000			adresse de chargement
+	+24	point d'entrée			0x400078, première instruction
+	+32	taille				octets de code et de données depuis 0x400078
+	+40	0				(TX : taille d'un enregistrement ; sans objet)
+	+48	CEV				adresse de STANDARD.ce_raise_, 0 si absente ;
+						le chargeur la recopie en VTB[131]
+	+56	table des instructions		adresse, 0 si absente
+	+64	nombre d'instructions
+	+72	VTB				table des vecteurs, 256 mots alignés ; 0 : fournie par le chargeur
+	+80	FSCR				zone de 16 octets, 0 : fournie par le chargeur
+	+88	0				réservé jusqu'à 0x78
+Les mots +72 et +80 étaient nuls avant la V4 : une image antérieure se lit comme une image
+qui laisse VTB et FSCR au chargeur. La version reste 1 en HX (3 en TX).
+
+Contenu, comme dans l'image x86 :
+	- le code, en un seul flux, à partir de 0x400078 ;
+	- des données en ligne (images d'énumérés, END_BLOC_DEF), contournées par un BRA ;
+	- les chaînes et constantes (STR, CST) après le code ;
+	- la table des instructions, alignée sur 8 octets, en fin d'image.
+Les bourrages d'alignement (0x90) ne se trouvent que dans les données.
+
+Table des instructions : un mot de 32 bits par entrée, dans l'ordre du code.
+	bits 29..0	adresse relative à 0x400000
+	bit 31		SUITE : l'instruction prolonge l'instruction LLIR précédente (instructions
+			deux et suivantes d'un repli, TRAP de SYS_EXIT, séquence CHK)
+	bit 30		VIDE : instruction LLIR sans instruction HX ; l'entrée porte l'adresse de
+			l'instruction HX suivante et ne désigne pas d'instruction. Plus produit
+			depuis que LVA 1111,0 n'est émis par aucun codi ; l'émulateur le lit encore.
+La table n'a aucun rôle à l'exécution et la machine l'ignore. Elle permet à l'émulateur :
+	- de distinguer les instructions des données en ligne et de vérifier que tout PC
+	  atteint est un début d'instruction ; cette vérification compte : en HX l'octet 0x00
+	  est un opcode valide (ET), alors qu'en TX le code 0 est illégal ;
+	- de compter les instructions LLIR exécutées : une instruction HX en représente
+	  0 (SUITE) ou 1 (1 + le nombre d'entrées VIDE qui la précèdent, s'il y en a).
+Le nombre d'instructions en +64 est celui des entrées, VIDE comprises.
+
+Nombre d'instructions : une instruction LLIR donne une instruction HX, sauf :
+	- les replis : 2 à 6 instructions (voir « Replis pour les champs trop étroits ») ;
+	- SYS_EXIT code : 2 instructions (LI code ; TRAP 0) ;
+	- les séquences de remplacement des CHK hors format.
+LVA 1111, 0 (identité) n'est émis par aucun codi : il ne compte ni en TX ni en HX.
+L'écart avec le compte TX est donc exactement connu, et les drapeaux de la table
+permettent à l'émulateur de retrouver le compte LLIR.
+
+L'initialisation est faite par le chargeur, comme en TX : piles, DISPLAY, co-pile, tas, et
+depuis la V4 l'état des déroutements :
+	DR := 0 ; IMASK := tous les bits à 1 (interruptions masquées) ; FPC := 0 ; FCODE := 0 ;
+	LIM_DSP, LIM_RSP, LIM_CSP, LIM_HP d'après les régions qu'il a allouées, réserves
+	comprises (voir « Limites et réserves » au §4 des fautes) ;
+	VTB := en-tête +72, ou l'adresse d'une table de 256 vecteurs nuls qu'il réserve ;
+	FSCR := en-tête +80, ou l'adresse d'une zone de 16 octets qu'il réserve ;
+	si CEV /= 0 : M64[VTB + 8*131] := CEV.
+La table des vecteurs et la zone FSCR sont en mémoire inscriptible : le run-time écrit
+VTB[n] à l'élaboration d'une tâche reliée à une interruption.
+Ces règles valent aussi pour les images TX de format 3, dont l'en-tête est le même.
+
+
+=========================================================================================
+	FAUTES, DÉROUTEMENTS ET INTERRUPTIONS
+	(clôture de [Q2], [Q4] et [Q8] ; aucun opcode nouveau ; reprise en V4)
+=========================================================================================
+
+1. PRINCIPES
+
+Le mécanisme est au service du compilateur Ada 83 et de lui seul :
+	- une faute détectée par la machine équivaut, pour le programme, à un « raise » de
+	  l'exception prédéfinie correspondante, exécuté à l'instruction fautive. Le mécanisme
+	  d'exceptions du compilateur (EXC_MACH, EXC_RAISE, chaîne des contextes issue de
+	  top, disposition des contextes) est utilisé tel quel, sans extension (§6) ;
+	- une interruption externe sert à appeler une entrée de tâche (RM 13.5.1, §7) ;
+	- un service TRAP est un appel de sous-programme du run-time ou de l'hôte.
+
+Trois sources de déroutement :
+	- FAUTES : synchrones, détectées par la machine (table §4) ;
+	- SERVICES TRAP : synchrones, demandés par le programme (E/S, horloge, fin) ;
+	- INTERRUPTIONS : asynchrones, émises par un périphérique.
+
+Chaque source porte un CODE n (0..255). Son vecteur est M64[VTB + 8*n] ; VTB, base de la
+table des vecteurs (256 entrées × 8 octets = 2 Kio), est fixée par le chargeur (en-tête
++72 ou table qu'il réserve, voir « Image HX »).
+
+	0..14		services TRAP (table « SERVICES TRAP »)
+	15		réservé
+	16..18		services machine (§7) : exécutés par la machine, jamais vectorisés
+	19..31		réservé services
+	32..63		interruptions externes
+	64..127		réservé
+	128..159	fautes (table §4)
+	160..255	réservé
+
+TRAP n avec un code non attribué (15, 19..255) : faute 137. Un programme ne peut donc
+simuler ni une faute ni une interruption par TRAP.
+
+2. ÉTAT AJOUTÉ
+
+DR		bit « déroutement en cours ». Mis à 1 à la livraison d'une faute ou d'une
+		interruption ; remis à 0 par RTX et par EXC_RAISE ; 0 au lancement.
+		Tant que DR = 1 : aucune interruption n'est livrée, les limites de pile sont
+		reculées de leur réserve (§4), et une faute ou un service vectorisé arrête
+		la machine (§3).
+FPC, FCODE	adresse et code de la dernière faute ou interruption.
+VTB, FSCR	fixés par le chargeur (en-tête +72 et +80, voir « Image HX »).
+LIM_DSP, LIM_RSP, LIM_CSP, LIM_HP
+		limites des piles et du tas, fixées par le chargeur d'après les régions
+		qu'il alloue ; les trois premières sont propres à chaque tâche (CTX_RESTORE,
+		§7).
+IMASK		masque des interruptions, 32 bits : bit i = 1, interruption 32+i masquée.
+		Tous les bits à 1 au lancement ; modifié par le service SET_IMASK (§7).
+		Fautes et services ne sont jamais masquables.
+
+FSCR est l'adresse d'une zone de 16 octets écrite par la machine à chaque faute ou
+interruption : M64[FSCR] := FPC ; M64[FSCR+8] := FCODE. C'est la seule exposition de
+FPC et FCODE : le handler les lit par des chargements ordinaires. DR restant à 1 pendant
+tout le handler, FSCR ne peut pas être réécrit avant d'avoir été lu.
+
+L'ancien registre CEV est supprimé de l'état architectural (§5).
+
+En-tête : on garde celui de l'image HX (section « Image HX »), qui porte CEV (+48),
+VTB (+72) et FSCR (+80). Les bases et les limites des piles et du tas, IMASK initial et
+DISPLAY[0] relèvent du chargeur, qui choisit la disposition de la mémoire (tx_run : options
+-c, -t et -d). La disposition d'en-tête proposée par la révision « fautes » n'est pas retenue.
+
+3. SÉMANTIQUE DU DÉROUTEMENT (normatif)
+
+Faute n, levée par l'instruction d'adresse P :
+	1. si DR = 1 : arrêt machine ;
+	2. DR := 1 ; FPC := P ; FCODE := n ; M64[FSCR] := FPC ; M64[FSCR+8] := FCODE ;
+	3. PC := M64[VTB + 8*n] ; vecteur nul : arrêt machine.
+Rien n'est empilé sur la pile des retours : un handler de faute ne revient jamais, il se
+termine par EXC_RAISE (§6). Le handler n'utilise que FSCR, DISPLAY[0], la mémoire du
+niveau 0 et la réserve des piles.
+
+FAUTE PRÉCISE : une instruction qui lève une faute ne modifie aucun état architectural
+propre à son exécution, ni registre, ni pile, ni mémoire. Seule la livraison ci-dessus
+modifie DR, FPC, FCODE, FSCR et PC. Le handler trouve donc la machine dans l'état d'avant
+l'instruction fautive, ses opérandes en place sur la pile data. En conséquence :
+	- une instruction qui écrit plusieurs fois (BLKMOV, BLKAND, BLKOU, BLKOUX, BLKNOT,
+	  LINK, EXC_MACH, CTX_SAVE) constate toute faute avant sa première écriture ; une
+	  implantation valide les intervalles d'adresses et les limites d'abord ;
+	- une instruction qui charge plusieurs registres (EXC_RAISE, CTX_RESTORE, UNLINK,
+	  UNLINKR) lit tout ce dont elle a besoin avant d'en modifier un ;
+	- dans une machine à exécution dans le désordre, c'est ce que donne naturellement la
+	  livraison au retrait (annexe).
+
+Interruption n, livrée entre deux instructions, si DR = 0 et n non masquée :
+	1. DR := 1 ;
+	2. push_retour(PC suivant) ;
+	3. FPC := PC suivant ; FCODE := n ; M64[FSCR] := FPC ; M64[FSCR+8] := FCODE ;
+	4. PC := M64[VTB + 8*n] ; vecteur nul : arrêt machine.
+Le handler se termine par RTX.
+
+FPC désigne une instruction machine : dans une image HX, une faute levée dans un repli
+désigne l'instruction du repli qui l'a levée ; la table des instructions de l'image permet
+à l'émulateur de remonter à l'instruction LLIR.
+
+Service TRAP n de vecteur non nul (service vectorisé) :
+	1. si DR = 1 : arrêt machine ;
+	2. push_retour(PC suivant) ;
+	3. PC := M64[VTB + 8*n].
+DR, FPC, FCODE et la zone FSCR ne sont pas modifiés. Le service se termine par RTX.
+
+Service TRAP n de vecteur nul, et services machine 16..18 quel que soit le vecteur :
+exécutés par l'hôte (émulateur) ou par la machine comme une instruction atomique, avec
+l'effet de pile de leur table, puis PC := PC suivant. DR n'est pas modifié, sauf par
+CTX_RESTORE. Un service 0..14 de vecteur nul que la machine n'implante pas : faute 137.
+
+RTX	PC := pop_retour ; DR := 0.
+	Ne s'utilise qu'en sortie de service vectorisé ou de handler d'interruption.
+
+Livraison des interruptions : entre deux instructions, jamais pendant une instruction,
+jamais tant que DR = 1 (donc jamais avant la première instruction d'un handler).
+Modèle : pour chaque code n de 32 à 63, la plateforme présente à la machine une REQUÊTE
+PENDANTE (un bit). Entre deux instructions, si DR = 0, la machine choisit le plus petit code
+pendant et non masqué, le livre, et l'ACQUITTE : l'acquittement dit à la plateforme que
+cette requête est servie. Une requête masquée, ou présente pendant que DR = 1, n'est pas
+acquittée et reste pendante. Qu'une requête naisse d'un niveau maintenu par le périphérique
+ou d'une impulsion mémorisée par un contrôleur est une affaire de plateforme (section
+« Plateforme TAHX ») : l'ISA ne connaît que les requêtes pendantes et l'acquittement.
+
+Arrêt machine (double faute) : faute ou service vectorisé avec DR = 1, vecteur nul
+d'une faute ou d'une interruption. La machine s'arrête avec une image d'état
+(émulateur : PC, FPC, FCODE, DR, pointeurs de pile). C'est une erreur du run-time ou de
+l'image, jamais une situation Ada ; aucune reprise n'est prévue.
+
+4. TABLE DES FAUTES (128..159)
+
+code	condition				état pile data	exception Ada 83
+128	DIV, REMI, MODI avec b = 0		a, b en place	NUMERIC_ERROR  (RM 4.5.5)
+129	ADD, SUB, MUL, NEG, ABS, INC, DEC :	opérande(s) en place	NUMERIC_ERROR  (RM 4.5.7)
+    résultat signé hors de [-2^63, 2^63) ;
+    DIV avec a = -2^63 et b = -1 ;
+    CVTIX, CVTXI dont le quotient n'est pas
+    représentable sur 64 bits
+    (REMI et MODI rendent alors 0 : aucune faute)
+130	CVTFI, CVTFIR : NaN ou hors de		f en place	NUMERIC_ERROR
+    [-2^63, 2^63)
+131	CHK : v hors bornes			v au sommet	CONSTRAINT_ERROR (RM 11.1)
+132	accès mémoire invalide, lecture		état antérieur	CONSTRAINT_ERROR
+    d'instruction comprise (détection
+    propre à l'implantation)
+133	DSP dépasserait sa limite		état antérieur	STORAGE_ERROR
+134	RSP : push_retour au-delà de sa limite	état antérieur	STORAGE_ERROR
+135	CSP dépasserait sa limite		état antérieur	STORAGE_ERROR
+136	HEAP_ALLOC : HP après décrément sous	état antérieur	STORAGE_ERROR
+    LIM_HP
+137	opération indéfinie : opcode réservé,	état antérieur	PROGRAM_ERROR
+    lvl = 1111 là où il est interdit,
+    UNLINK 0, UBFX/SBFX/BFI dynamiques
+    avec w = 0 ou lsb + w > 64, SHL, SHR,
+    SAR avec n >= 64 (non signé), TRAP de
+    code non attribué ou de service absent
+138..159	réservé
+
+Toutes les fautes sont précises (§3) : la colonne rappelle ce que le handler trouve sur la
+pile data, c'est-à-dire toujours l'état d'avant l'instruction.
+
+Limites et réserves :
+	- avec DR = 0, la limite d'une pile est LIM_x ; avec DR = 1, elle est reculée de la
+	  réserve R_x : R_DSP = 1 Kio, R_RSP = 32 adresses, R_CSP = 1 Kio (valeurs
+	  provisoires, à ajuster à la taille du trampoline). Avec r = R_x si DR = 1, r = 0
+	  sinon, et les conventions de la section « Piles », une instruction est en faute si
+	  elle amènerait, pendant ou à la fin de son exécution, l'un des pointeurs au-delà de
+	  sa limite ; la faute est précise (§3), le pointeur garde sa valeur antérieure :
+		133	DSP > LIM_DSP + r		(la pile data croît)
+		134	RSP < LIM_RSP - r		(la pile des retours décroît)
+		135	CSP > LIM_CSP + r		(CSP : premier octet libre)
+		136	HP  < LIM_HP			(HP : premier octet alloué ; pas de réserve)
+	  les comparaisons étant non signées sur 64 bits ;
+	- le chargeur (et le run-time pour chaque tâche) dispose ces réserves au-delà des
+	  limites, et rend disjointes les zones que peuvent atteindre la pile data (de DSP0 à
+	  LIM_DSP + R_DSP) et le tas (de LIM_HP à HP0) : le tas et la pile data ne peuvent
+	  alors pas se rencontrer, et HEAP_ALLOC ne compare HP qu'à LIM_HP. Si la pile monte
+	  vers le tas qui descend, dans une même région, la condition s'écrit
+	  LIM_HP >= LIM_DSP + R_DSP. Dans tx_run, le tas est sous la pile data, dans une
+	  autre région, et la condition est remplie d'office. Même règle pour la co-pile
+	  (de CSP0 à LIM_CSP + R_CSP) ;
+	- ainsi le trampoline qui lève STORAGE_ERROR s'exécute dans la réserve ; EXC_RAISE
+	  restaure un DSP, un RSP et un CSP antérieurs et remet DR à 0 ;
+	- le contrôle peut être fait par l'implantation au moyen d'une page de garde, pourvu
+	  que la faute reste précise (§3) ; LINK et CO_VAR, qui peuvent sauter une page de
+	  garde, testent la valeur finale de DSP ou de CSP ;
+	- CO_VAR et HEAP_ALLOC traitent n comme non signé ; un dépassement de capacité dans
+	  le calcul de CSP ou de HP est une faute 135 ou 136 ;
+	- un pop_retour sur une pile des retours vide (RSP = RSP0) ne peut pas se produire
+	  avec du code engendré : il n'est pas une faute ; l'émulateur le signale en
+	  diagnostic. De même pour un pop sur une pile data vide.
+
+Notes :
+	- ADD, SUB, MUL, NEG, ABS, INC, DEC lèvent la faute 129 hors de [-2^63, 2^63) (V7,
+	  section « Arithmétique entière »). Pour les types plus étroits que 64 bits, le
+	  contrôle d'intervalle (RM 4.5.7) reste de la compétence du code engendré : après
+	  une opération dont le résultat n'est pas prouvé dans les bornes, le compilateur
+	  émet un CHK vers une case bornes ou une comparaison immédiate (CLT/CGT + BT). Il
+	  lève CONSTRAINT_ERROR là où RM 4.5.7 nomme NUMERIC_ERROR, ce que l'AI-00387
+	  autorise.
+	- SHL, SHR, SAR avec n >= 64 : faute 137 ([Q6]).
+	- Flottants : aucune faute, comme dans la référence x86 (IEEE 754, exceptions
+	  masquées) ; FDIV par zéro rend ±inf. Cohérent avec MACHINE_OVERFLOWS = FALSE,
+	  à vérifier dans le paquetage STANDARD de TLALOC. Seules les conversions vers
+	  l'entier (faute 130) sont contrôlées.
+
+5. CHK ET CEV
+
+Un CHK hors bornes est la faute 131, livrée comme toute faute. Le registre CEV disparaît :
+si le champ CEV de l'en-tête est non nul, le chargeur l'installe en VTB[131]. Le code
+existant est inchangé : ce_raise_ est toujours entré par un saut sans adresse de retour,
+v au sommet ; il lève CONSTRAINT_ERROR par le mécanisme normal, donc par EXC_RAISE, qui
+remet DR à 0. Il peut lire FSCR pour situer l'erreur. En pratique ce_raise_ devient
+l'entrée 131 du trampoline générique.
+
+Transition : tant que le run-time ne fournit pas de trampoline, les autres vecteurs de
+fautes sont nuls et une faute arrête la machine avec son image d'état (§3). C'est le
+comportement actuel de tx_run, qui s'arrête sur un diagnostic. Seul le CHK prend, par
+VTB[131], le même chemin qu'avant ; il met en plus DR à 1 jusqu'à l'EXC_RAISE de ce_raise_.
+
+6. DES FAUTES AUX EXCEPTIONS ADA
+
+Le trampoline est du code LLIR ordinaire du run-time, installé sur les vecteurs 128..159
+par l'image (table fournie en +72) ou par le run-time à son initialisation. Il :
+	1. lit FCODE (et FPC s'il veut situer l'erreur) dans la zone FSCR ;
+	2. traduit FCODE en exception prédéfinie (table §4) ;
+	3. exécute la même séquence que le code engendré par TLALOC pour « raise E » :
+	   identité de l'exception rangée là où le compilateur la place, puis EXC_RAISE top.
+	   FPC peut être recopié dans une cellule du run-time, pour le message d'une
+	   exception non traitée.
+La machine ne connaît ni l'identité des exceptions ni l'emplacement de top : il n'y a
+pas d'EXC_RAISE implicite câblé. EXC_MACH et EXC_RAISE gardent leur sémantique (EXC_RAISE
+remet seulement DR à 0), et la disposition des contextes reste celle du compilateur. La
+propagation, la relève (« raise; ») et l'exception non traitée restent entièrement du
+ressort du code engendré et du run-time. Un handler Ada ne distingue pas une exception
+issue d'une faute d'une exception levée explicitement : c'est la sémantique de RM 11.
+
+7. INTERRUPTIONS ET ENTRÉES DE TÂCHE (Ada 83, RM 13.5.1)
+
+Une interruption est reliée à une entrée de tâche par une clause d'adresse
+(« for E use at N »). Sur cette machine, la valeur N est le code n de l'interruption
+(32..63), même convention que DEC Ada, où l'« adresse » désignait le vecteur.
+
+	- À l'élaboration de la tâche, le run-time écrit VTB[n] et démasque n (SET_IMASK).
+	- Le handler est du code LLIR ordinaire du run-time ; il s'exécute avec DR = 1,
+	  donc sans être interrompu. Il lit FCODE dans la zone FSCR et retrouve l'entrée ;
+	  il enregistre l'appel d'entrée, émis selon RM 13.5.1 par une tâche matérielle
+	  de priorité supérieure à toute tâche, dans la file du run-time ; il peut masquer
+	  n tant que l'appel n'est pas accepté. Si la tâche propriétaire attend sur cette
+	  entrée et doit prendre la main, il commute par CTX_SAVE et CTX_RESTORE ;
+	  sinon il termine par RTX.
+	- Le handler n'appelle aucun service vectorisé et ne lève pas d'exception.
+	- Dans le code des tâches, le run-time protège les files d'entrées qu'il partage
+	  avec les handlers en encadrant leur manipulation par SET_IMASK.
+	- Le rendez-vous lui-même (levée de barrière, reprise de la tâche) ressort de la
+	  couche tâches du run-time, hors ISA.
+
+DSP, RSP, CFP, CSP, DR, DISPLAY et les limites LIM_DSP, LIM_RSP, LIM_CSP appartiennent
+au contexte de la tâche courante. Aucun d'eux n'a d'accès direct : les services machine
+suivants les sauvent et les restaurent. HP, LIM_HP, VTB, FSCR et IMASK ne font pas partie du contexte
+de tâche sauvegardé par CTX_SAVE. Les cellules du niveau 0 propres à chaque tâche (top, identité
+de l'exception courante) sont de la mémoire ordinaire, échangées par le run-time à la commutation.
+
+	16	CTX_SAVE	( @blk -- r )
+		M64[blk]    := PC suivant		; point de reprise
+		M64[blk+8]  := DSP			; après le retrait de @blk
+		M64[blk+16] := RSP
+		M64[blk+24] := CFP
+		M64[blk+32] := CSP
+		M64[blk+40] := DR
+		M64[blk+48] := LIM_DSP ; M64[blk+56] := LIM_RSP ; M64[blk+64] := LIM_CSP
+		M64[blk+72 + 8*i] := DISPLAY[i]	pour i = 0..14	(bloc de 192 octets)
+		push 0
+	17	CTX_RESTORE	( @blk -- )
+		restaure DSP, RSP, CFP, CSP, DR, LIM_DSP, LIM_RSP, LIM_CSP et DISPLAY[0..14]
+		depuis blk ; push 1 ; PC := M64[blk].
+		L'exécution reprend après le CTX_SAVE correspondant, avec r = 1 (comme
+		setjmp / longjmp). Pour créer une tâche, le run-time fabrique un bloc
+		(point d'entrée, piles, limites, DISPLAY[0], DR = 0) et le restaure.
+	18	SET_IMASK	( m -- ancien )
+		IMASK := m (32 bits de poids faible) ; rend l'ancienne valeur. Effet à
+		partir de l'instruction suivante.
+
+Commutation depuis un handler d'interruption : le CTX_SAVE de la tâche interrompue
+enregistre DR = 1 et un point de reprise dans le handler ; l'adresse de l'instruction
+interrompue est au sommet de sa pile des retours. Quand le run-time restaure plus tard
+ce bloc, le handler reprend avec DR = 1 et termine par RTX, qui ramène la tâche à
+l'instruction interrompue et remet DR à 0.
+
+8. LISTE DE VÉRIFICATION POUR L'ÉMULATEUR (tx_run)
+
+	- DIV/REMI/MODI : tester b = 0, puis -2^63 / -1 (faute pour DIV seul ; REMI et MODI
+	  rendent alors 0, alors que tx_run signale aujourd'hui les trois) ;
+	- ADD, SUB, MUL, NEG, ABS, INC, DEC : débordement signé, faute 129 ; SHL, SHR, SAR :
+	  n >= 64, faute 137 (tx_run, V7 : arrêt sur diagnostic en attendant les vecteurs) ;
+	- CVTFI/CVTFIR : tester NaN et la plage [-2^63, +2^63) ;
+	- à chaque écriture : DSP, RSP, CSP contre leur limite, réserve comprise si DR = 1 ;
+	  LINK et CO_VAR sur la valeur finale ;
+	- HEAP_ALLOC : HP après décrément contre LIM_HP, n non signé ;
+	- opcodes réservés, lvl interdits, champs de bits invalides, TRAP non attribués :
+	  faute 137 ;
+	- déroutement : ordre exact du §3, saut par la table, DR ;
+	- fautes précises : chaque instruction vérifie avant de modifier (dépiler après les
+	  contrôles, ou rétablir DSP) ; blocs, LINK, EXC_MACH, CTX_SAVE valident leurs
+	  intervalles avant la première écriture ; EXC_RAISE et CTX_RESTORE lisent tout le
+	  bloc avant de modifier un registre ;
+	- services de vecteur nul exécutés par l'hôte ; services 16..18 ;
+	- interruptions : livraison entre instructions, DR = 0, filtre IMASK ;
+	- arrêt machine : image d'état.
+	- une instruction fautive compte comme exécutée, en TX comme en HX (comme un CHK en
+	  échec aujourd'hui) : les comptes des deux formats restent comparables ;
+	- un PC qui n'est pas un début d'instruction (image avec table) reste un diagnostic
+	  de l'émulateur : la machine ne peut pas le détecter, ce n'est pas une faute ;
+	- tout cela ne touche pas au décodage : TX et HX partagent la même mise en oeuvre.
+	- V5 : résultat NaN de FADD, FSUB, FMUL, FDIV, FEXP remplacé par le NaN canonique
+	  (tx_run rend aujourd'hui le NaN de l'hôte) ;
+	- V5 : compter les accès non alignés, par taille, dans le rapport -p ;
+	- V5 : tx_run tient la pile des retours dans un tableau et sauve un indice en guise
+	  de RSP. C'est conforme tant que RSP reste opaque pour le programme ; avec les tâches
+	  (CTX_SAVE, CTX_RESTORE, blocs fabriqués par le run-time), RSP devra être une
+	  adresse au sens de la section « Piles ».
+
+
+=========================================================================================
+	SERVICES TRAP (proposition de numérotation, effets de pile identiques aux
+	macros SYS_xxx de codi_x86_64 ; SYS_EXIT prend son code sur la pile)
+=========================================================================================
+
+	0	EXIT			( code -- )	la macro LLIR SYS_EXIT code (code immédiat)
+							s'assemble en LI code ; TRAP 0
+	1	CLOCK_GETTIME
+	2	PUT_CHAR
+	3	PUT_STR
+	4	GET_CHAR
+	5	GET_STR
+	6	FILE_CREATE
+	7	FILE_OPEN
+	8	FILE_SET_POS
+	9	FILE_GET_POS
+	10	FILE_GET_SIZE
+	11	FILE_WRITE
+	12	FILE_READ
+	13	FILE_CLOSE
+	14	FILE_DELETE
+	15		réservé
+	16	CTX_SAVE	( @blk -- r )		service machine
+	17	CTX_RESTORE	( @blk -- )		service machine
+	18	SET_IMASK	( m -- ancien )		service machine
+	19..31		réservé services
+	32..255		interruptions, fautes, réservé : TRAP interdit (faute 137)
+
+
+=========================================================================================
+	QUESTIONS TRANCHÉES
+=========================================================================================
+
+[Q1]	Un flux ou deux flux de code ?			=> UN SEUL FLUX
+	Mesure : TLALOC compilant expander-expressions.adb (616 388 instructions statiques,
+	5,28 milliards exécutées), disposition exacte selon cette table, branches relaxées.
+					flux unique		double flux
+		taille du code		1,58 Mo (2,56 o/i)	1,67 Mo (2,70 o/i)	+5,5 %
+		octets lus par instr.	2,41			2,56			+6 %
+		lignes de cache		8 813			9 996			+13 %
+	Débit de chargement (instructions par cycle, prédiction parfaite), à bande passante
+	égale : 16 octets/cycle, L = 6 : 4,32 contre 3,73 (blocs 8 + 8) ; 32 octets/cycle,
+	L = 8 : 5,77 contre 5,35 (blocs 16 + 16). Le double flux gaspille des fins de blocs dans
+	deux flux à chaque redirection, et son flux d'arguments devient le goulot.
+	Son seul avantage, trouver les opcodes sans calcul, est obtenu en flux unique grâce à
+	l'invariant de longueur (la longueur dépend du seul opcode).
+	Conséquences : un seul PC ; branches BR8 à BR32 à un seul déplacement ; CALL D24
+	(±8 Mio) suffit (code de 1,6 Mo) ; adresses de retour, LSPA, DISPATCH et RTX ne
+	portent qu'une adresse.
+
+[Q2]	TRAP et RTX.					=> voir « Fautes, déroutements et interruptions »
+	Pas de mode superviseur en v1. TRAP n empile l'adresse de retour sur la pile des retours
+	et saute par la table des vecteurs (VTB, en-tête +72 ou chargeur) ; un vecteur nul
+	désigne un service exécuté par l'hôte ou par la machine. RTX : PC := pop_retour ; DR := 0.
+
+[Q3]	LI imm4 : signé ou non signé ?			=> NON SIGNÉ (0..15)
+	La valeur 8, taille d'un quad, est fréquente en arithmétique d'adresse ; les petites
+	valeurs négatives sont rares et tiennent dans LI imm8. Hypothèse retenue par la mesure
+	de taille du code (1,58 Mo).
+
+[Q4]	Fautes matérielles.				=> table des fautes 128..137
+	Division par zéro, DIV de -2^63 par -1, CVTFI/CVTFIR hors plage : NUMERIC_ERROR ;
+	piles et tas épuisés : STORAGE_ERROR ; CHK et accès invalide : CONSTRAINT_ERROR ;
+	opération indéfinie : PROGRAM_ERROR. Pas d'EXC_RAISE implicite : un trampoline du
+	run-time exécute la séquence de « raise E » du compilateur.
+
+[Q6]	Comptes de décalage et largeurs de champ.	=> faute 137 hors des bornes (V7)
+	SHL, SHR, SAR : n dans 0..63, faute 137 sinon (jusqu'à la V6 : n modulo 64, comme la
+	référence). Champs de bits : w dans 1..64 et lsb + w <= 64 ; w = 64 désigne le mot
+	entier (la référence x86, qui construisait alors un masque nul, est corrigée en V7) ;
+	une forme dynamique hors de ces bornes est la faute 137.
+	Mesure sur TLALOC (tx_run -p, comptes désormais séparés) : 0 décalage de 64 positions
+	ou plus ; 0 champ de largeur 0, 64 ou plus de 64 ; 0 champ avec lsb + w > 64. Les
+	formes dynamiques UBFX, SBFX, BFI ne sont d'ailleurs plus exécutées : tout passe par
+	UBFXI et BFII.
+
+[Q7]	FEXP avec n < 0.				=> x**n = 1.0 / x**(-n) (RM 4.5.6)
+	Voir la sémantique de FEXP. tx_run le fait déjà ; codi_x86_64 reste en écart.
+
+[Q8]	Épuisement du tas.				=> faute 136 (HP sous LIM_HP), STORAGE_ERROR.
+
+[Q9]	ofs signé ou non signé ?				=> NON SIGNÉ, repli pour ofs < 0
+	TLALOC émet des ofs négatifs (DIRECT_IO : LIA 1, -GFP_ofs, -ELEMENT_TYPE__outadr_ofs).
+	Le champ reste non signé, car les offsets de champ positifs dominent : un ofs signé
+	perdrait 8..15 en C24 (fréquents avec les quads) et 128..255 en C32. Un ofs négatif
+	passe par le repli (voir « Replis pour les champs trop étroits »), dont l'accès B porte
+	ofs dans son disp signé. À confirmer par le compte des replis à ofs négatif sur TLALOC
+	(tx_run -f : ligne « replis C … (ofs negatif …) »).
+
+[Q11]	Débordement des types entiers de 64 bits.	=> opérations de base contrôlées (V7)
+	ADD, SUB, MUL, NEG, ABS, INC, DEC lèvent la faute 129 (section « Arithmétique
+	entière ») : aucun opcode nouveau. Les formes ADDV, SUBV, MULV proposées en V5 sont
+	abandonnées. Mesure préalable sur TLALOC : les seuls débordements venaient des bornes
+	« -2**63 .. 2**63-1 » calculées à l'exécution ; le source réécrit n'en produit plus.
+	Reste souhaitable dans le front end : évaluer à la compilation, exactement, les
+	expressions statiques universelles.
+	([Q10], propre à LINKX, n'a plus d'objet.)
+
+[Q12]	Démarrage de la machine matérielle.		=> plateforme (V5)
+	Relève de la plateforme, non de l'ISA : voir « Plateforme TAHX ».
+
+=========================================================================================
+	QUESTIONS OUVERTES
+=========================================================================================
+
+[Q5]	Extension des déplacements.
+	La référence x86 accepte disp et ofs sur 32 bits signés ; ici disp est limité à
+	±512 Kio, LINK à 1 Mio et ofs à 0..255. FMT = 11 est pris par CHK dans les groupes
+	de chargement ; il reste libre en MODE 00 et 10 (LVA, LINK, EXC_MACH, rangements)
+	pour un éventuel format étendu. Accès hors format : séquences de remplacement (voir
+	« Replis pour les champs trop étroits »). Mesure TLALOC : B hors format 0 %, C hors format
+	1,5 % (FILE_TYPE, ofs > 255 : à supprimer par réordonnancement des composants).
+
+=========================================================================================
+	ÉCARTS RELEVÉS DANS LA RÉFÉRENCE codi_x86_64
+=========================================================================================
+
+	CVTFIR	cvtsd2si arrondit selon MXCSR (au plus proche pair) : 2.5 donne 2.
+		Ada RM 4.6 exige l'arrondi à l'écart de zéro : 2.5 doit donner 3.
+	UBFX, SBFX, BFI	w = 64 : corrigé en V7 (masque par (-1) SHR (64 - w)). Formes
+		dynamiques hors bornes (w = 0, lsb + w > 64) : pas de faute 137 en x86.
+	FEXP	n < 0 non traité, cf. [Q7].
+	REMI, MODI	idiv lève #DE pour -2^63 / -1 ; la spécification rend 0 sans faute.
+	CVTFI, CVTFIR	NaN ou hors plage : 0x8000000000000000 en x86 ; ici faute 130.
+	ADD..DEC, MUL	codi_x86_64L (V7) : jo vers ud2 ; SIGILL arrête le processus, comme
+		SIGFPE pour une division par zéro, au lieu de lever NUMERIC_ERROR.
+	SHL..SAR	codi_x86_64L (V7) : compte > 63 vers ud2.
+	FADD..FDIV	NaN : x86 propage le NaN du premier opérande (a) ou rend le NaN
+		« indéfini » 0xFFF8000000000000 ; ici le NaN canonique 0x7FF8000000000000.
+	UNLINK 0	dépilerait un FP que LINK 0 n'a pas empilé ; ne doit jamais être émis.
+
+
+=========================================================================================
+	PLATEFORME TAHX (hors ISA ; propositions pour TAHX_1)
+=========================================================================================
+
+Ce qui suit ne concerne pas les programmes : c'est la façon dont une machine TAHX démarre et
+reçoit ses interruptions. L'émulateur n'en a pas besoin (son chargeur fixe l'état initial).
+
+Démarrage (ancienne [Q12]).
+	Aucune instruction n'écrit VTB, FSCR, LIM_HP ni HP. Au reset, la machine lit à
+	l'adresse BOOT_BLOCK un bloc de démarrage au format du bloc de CTX_RESTORE (192
+	octets : PC, DSP, RSP, CFP, CSP, DR, LIM_DSP, LIM_RSP, LIM_CSP, DISPLAY[0..14]), suivi
+	de HP (+192), LIM_HP (+200), VTB (+208), FSCR (+216) et IMASK (+224), soit 232 octets.
+	Le logiciel de démarrage, ou l'hôte qui charge l'image, prépare ce bloc d'après
+	l'en-tête de l'image, selon les règles d'initialisation de la section « Image HX ».
+
+Interruptions.
+	La machine reçoit un vecteur de 32 requêtes pendantes, IRQ_PENDING(i) pour le code
+	32 + i, et rend un acquittement (IRQ_ACK, avec le code livré) quand elle livre une
+	interruption. Elle fait elle-même le masquage (IMASK) et le choix du plus petit code.
+	Un contrôleur d'interruptions externe met en forme les requêtes des périphériques :
+		- source de niveau : la requête suit la ligne ; l'acquittement ne sert que de
+		  trace, le handler fait retomber la ligne en servant le périphérique ;
+		- source d'impulsion : le contrôleur mémorise l'impulsion dans un bit pendant et
+		  le remet à zéro à l'acquittement.
+	Présenter un seul code à la fois (VALID/ACK) ne suffirait pas : un code masqué
+	bloquerait les codes plus grands, non masqués, qui attendent derrière lui.
+
+
+=========================================================================================
+	ANNEXE : ÉLÉMENTS DE MICRO-ARCHITECTURE (étude de limites sur TLALOC)
+=========================================================================================
+
+Programme mesuré : TLALOC compilant expander-expressions.adb sous tx_run, après CHK,
+UBFXI, charges étroites et peephole (5,28 milliards d'instructions LLIR).
+Latences supposées : ALU 1, charge 3, charge indirecte 6, MUL 3, division 20.
+IPC en instructions LLIR par cycle.
+
+Machine à pile séquentielle (chaque instruction attend la précédente) : IPC 0,46.
+
+Mécanismes retenus, par ordre d'effet :
+1. Renommage de la pile d'évaluation. Le décodeur suit DSP ; chaque cellule reçoit un
+   nom absolu (adresse / 8) et un registre physique. 90 % des mots écrits sont des
+   cellules de pile.
+2. File des accès mémoire (LSQ) prudente, exploitant l'adressage (lvl, disp) : DISPLAY
+   étant connu au décodage, l'adresse d'un accès direct est connue dès le décodage.
+   Seuls les rangements indirects (2,9 % des mots écrits) font attendre les chargements,
+   jusqu'au calcul de leur adresse. Aucun prédicteur de dépendances mémoire n'est
+   nécessaire : 86 à 95 % de l'oracle mémoire (store sets : 70 à 77 %).
+3. Cache de pile : les 64 à 128 mots situés sous DSP sont tenus en registres renommés,
+   adressés par intervalle. Un accès direct (lvl courant, disp) ou par pointeur dont
+   l'adresse tombe dans cet intervalle est servi par ces registres ; les autres vont en
+   mémoire. Une lecture directe attend, comme en 2, que les rangements par pointeur
+   plus anciens aient calculé leur adresse : c'est ce qui assure la cohérence avec les
+   pointeurs, sans aucune information du compilateur.
+   Mesures : 92 % des lectures locales sont à moins de 64 mots sous le sommet ;
+   82 % des accès par pointeur visent la pile (40 % la tranche de 128 mots).
+   Gain : +12 % (fenêtre 64) à +13 % (fenêtre 256) sur la machine sans cache de pile ;
+   résultat identique, à 1 % près, à un renommage guidé par l'exposition des variables
+   déclarée par le compilateur (3,37 contre 3,35 ; 5,08 contre 5,10).
+   Un couple (lvl, disp) stocké comme référence ne suffirait pas : 19 % des accès par
+   pointeur vers la pile se font depuis une autre activation de même niveau (récursion,
+   procédures soeurs) ; les adresses plates n'ont pas ce défaut.
+4. Prédiction de branchement classique (gshare 64 K, pile des retours 32) :
+   0,74 erreur pour 1000 instructions ; moins de 6 % de perte avec 10 cycles de pénalité.
+
+IPC de la machine complète (1 + 2 + 3 + 4, cache de pile de 128 mots) :
+	fenêtre (instructions en vol)			128		256
+	largeur 4					3,49		3,53
+	largeur 6					3,94		4,49
+	largeur 8					4,08		4,82
+	largeur illimitée				4,23		5,10
+	(oracle mémoire, largeur illimitée : 5,25 avec une fenêtre de 256)
+
+Fautes et interruptions dans une machine à exécution dans le désordre :
+	- une faute est notée dans l'entrée du ROB de l'instruction fautive et livrée au
+	  retrait de celle-ci, quand elle est la plus ancienne ; les instructions plus jeunes
+	  sont annulées comme après une mauvaise prédiction. La faute précise du §3 en découle :
+	  l'instruction fautive ne retire rien, sa pile data est celle d'avant l'instruction.
+	  Les instructions de bloc, qui écrivent trop pour que la LSQ garde leurs rangements
+	  jusqu'au retrait, s'exécutent à la tête du ROB, après validation de leurs
+	  intervalles ;
+	- une interruption est prise au retrait, entre deux instructions retirées ; la
+	  machine vide le pipeline et redirige le chargement vers le vecteur ;
+	- DR, IMASK, FSCR et VTB ne changent qu'au retrait ; les instructions qui les lisent
+	  ou les écrivent (RTX, EXC_RAISE, services machine) sont sérialisantes ;
+	- les rangements ne sont écrits en mémoire qu'au retrait : une faute ne laisse aucune
+	  écriture d'une instruction plus jeune.
+
+Chargement en flux unique, bloc de 32 octets par cycle : 4,82 instructions par cycle
+(L = 6) et 5,77 (L = 8), soit environ 20 % de marge sur le moteur d'exécution.
+Points d'équilibre : fenêtre 128, largeur 6, bloc 32 (IPC 3,9) ; fenêtre 256, largeur 8,
+bloc 32 (IPC 4,8). Registres physiques : environ 64 (tranche) + taille de fenêtre.
