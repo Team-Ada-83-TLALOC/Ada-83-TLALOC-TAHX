@@ -1,0 +1,1844 @@
+=========================================================================================
+	LLIR HARDWARE SUPPORT: 64-BIT STACK MACHINE		(V8, proposed for freeze)
+	Normative document. Executable reference: tx_run (TX and HX images), apart from the
+	discrepancies in the checklist (§8 of the faults section). Historical reference:
+	codi_x86_64L.finc (discrepancies listed at the end of the document).
+	English translation of LLIR_hardware_support_V8.txt. In case of doubt, the French
+	version is the reference.
+=========================================================================================
+
+--------------------------------------------------
+Revision V8 of 29 September 2026 (preparing the ISA freeze):
+--------------------------------------------------
+	- No encoding change: opcode table (numbered lines identical, only comments change),
+	  formats, lengths, emitted fallback sequences and HX image are those of V7.
+	  Behaviour unchanged for any program that does not fault.
+	- Status of the document: it is normative; tx_run is its executable reference;
+	  codi_x86_64L.finc is now only the historical reference.
+	- FAULT PRIORITY ([Q13]): when one instruction meets several fault conditions, the
+	  order given in §4 of the faults section designates the code delivered. It follows
+	  the detection order of TAHX_1 (decode, rename, execute).
+	- STACK RESERVES frozen ([Q14]): R_DSP = 1 KiB, R_RSP = 32 addresses (256 bytes),
+	  R_CSP = 1 KiB, the values already used by TAHX_1_isa.vhd.
+	- FEXP ([Q15]): semantics unchanged; duration proportional to |n|, not bounded by the
+	  ISA; early termination allowed if it returns exactly the same result.
+	- CVTIX, CVTXI ([Q16]): zero divisor, fault 128; CVTIX truncates toward zero; CVTXI
+	  rounding is stated on the exact quotient; fault 129 on the rounded result.
+	- Fault 137 completed: UNLINK and UNLINKR whose complement lies outside 1..14;
+	  out-of-range bit fields written without an overflowing sum (w = 0, w > 64 or
+	  lsb > 64 - w), immediate forms UBFXI, SBFXI, BFII included.
+	- Reserved opcodes: they have no length; decoding stops on them.
+	- [Q5] settled: no extended format in V1. Fallback sequences cover all cases; codi_HX
+	  must emit those for |disp| instead of refusing to assemble. The B40 format (32-bit
+	  disp, parity with the x86 reference) is reserved for LINK, EXC_MACH and LVA in FMT 11
+	  of MODE 00 of family B, without being assigned. Measurements from the tx_run -p
+	  reports of 28 September (raw code, TX and HX).
+	- Machine halt extended to the case where a fault or an interrupt cannot be delivered.
+	- Out-of-format CHK: the replacement sequence reaches ce_raise_ without fault 131
+	  (DR = 0, FSCR not written); consequence for ce_raise_ stated (§5).
+	- Editorial: instruction counts of fallback sequences (ofs: 2 to 6; |disp|: 3 to 8);
+	  HP only changes through HEAP_ALLOC (platform); TRAP among serializing instructions
+	  (appendix); reserved opcodes reused internally by TAHX_1 (appendix); instruction
+	  counts of the measured program: 7.62 billion for raw code, 5.26 to 5.28 billion
+	  after rewriting (CHK, bit fields, peephole).
+
+--------------------------------------------------
+Revision V7 of 28 September 2026 (checked integer arithmetic):
+--------------------------------------------------
+	- ADD, SUB, MUL, NEG, ABS, INC and DEC raise fault 129 (NUMERIC_ERROR) when the signed
+	  result falls outside [-2^63, 2^63); they are no longer defined modulo 2^64. DIV
+	  already did so for -2^63 / -1. No integer operation wraps silently any more.
+	- SHL, SHR, SAR: a count n >= 64 (unsigned) raises fault 137; n is no longer taken
+	  modulo 64. That modulo, inherited from x86, makes 2**65 return 2.
+	- LI: the value of an immediate lies in [-2^63, 2^63); the assembler rejects anything
+	  else instead of storing its bit pattern.
+	- Measurement behind the decision (tx_run -p, TLALOC compiling expander-expressions.adb,
+	  5.26 billion instructions): 6 overflows, all in the elaboration of the bounds of
+	  types declared "range -2**63 .. 2**63-1" (STANDARD.LONG_INTEGER, SYSTEM.ADDRESS, a
+	  TARGET_CODE type), where the expander computed 2**63 at run time as 2 SHL 62. After
+	  rewriting the sources as "-16#7FFFFFFFFFFFFFFF# - 1 .. 16#7FFFFFFFFFFFFFFF#":
+	  0 overflows, 0 shifts by 64 positions or more.
+	- [Q11] closed: the basic operations are checked; ADDV, SUBV, MULV are dropped and
+	  their three slots simply become reserved again.
+	- Platform rule: valid addresses are below 2^63.
+	- Fallbacks for displacements outside B24 / C32 (LI disp ; ADD): effect of the check
+	  stated.
+	- Opcode table, encoding and image unchanged (comments only).
+
+--------------------------------------------------
+Revision V6 of 28 September 2026 (precise faults):
+--------------------------------------------------
+	- PRECISE FAULTS: an instruction that raises a fault modifies no architectural state;
+	  only the delivery modifies DR, FPC, FCODE, FSCR and PC. §3 said the registers
+	  reflected a partial execution, and the fault table said "partial" for 132, 135 and
+	  137, which contradicted the appendix. The table now says "prior state" everywhere.
+	  Instructions with multiple writes (blocks, LINK, EXC_MACH, CTX_SAVE): the fault is
+	  detected before the first write. CO_VAR, HEAP_ALLOC: n stays on top.
+	- Stacks: "empty stack" values DSP0, RSP0, CSP0, HP0; HP defined as the low boundary of
+	  the allocated area. Return stack held in registers: conformance requirement with
+	  respect to CTX_SAVE, CTX_RESTORE and EXC_RAISE.
+	- Memory: rule on non-modifiable code reworded (no instruction byte is modified after
+	  execution starts).
+	- [Q11]: what MULV requires from the multiplier.
+	- Behaviour unchanged for programs that do not fault; opcode table, encoding and image
+	  identical to V5.
+
+--------------------------------------------------
+Revision V5 of 28 September 2026 (normative clarifications):
+--------------------------------------------------
+	- No encoding or behaviour change for programs produced by TLALOC: the clarifications
+	  below describe what tx_run and the x86 reference do, except for two points noted
+	  (canonical NaNs, non-addressable return stack). hx_verif.py, gen_hx_codes and
+	  gen_tahx_isa give the same result as with V4.
+	- Conventions: "Memory" section (bytes, little-endian data, unaligned accesses allowed,
+	  non-modifiable code), "Stacks" section (definitions of push, pop, push_return,
+	  pop_return, and of the pointers DSP, RSP, CSP, HP), "Valid program" section (every
+	  dynamic target is an instruction start), "Floating-point arithmetic" section
+	  (rounding, subnormals, canonical NaN).
+	- Return stack: descending, RSP designates the last pushed address; the program does
+	  not access it through loads or stores.
+	- Stack limits: exact comparisons, according to the direction of each stack.
+	- Interrupts: pending-request model clarified; the hardware protocol moves to the new
+	  "TAHX platform" section.
+	- [Q11]: proposed resolution (ADDV, SUBV, MULV), reserved slots marked in the table. In
+	  TLALOC, INTEGER is 32 bits and LONG_INTEGER 64: only LONG_INTEGER is concerned, and
+	  the question does not block the ISA freeze for TLALOC. Condition added for the a
+	  posteriori check of narrow types (chained products).
+	- [Q12]: the boot block belongs to the platform, not to the ISA; it moves to the "TAHX
+	  platform" section.
+
+--------------------------------------------------
+Revision V4 of 27 September 2026 (faults, traps, interrupts):
+--------------------------------------------------
+	- "Faults, traps and interrupts" section carried over from the "faults" revision of
+	  26 September, written on the former 182-opcode base (with LINKX). No new opcode:
+	  opcode table, formats, byte order, lengths, fallbacks and HX image of V3 are
+	  unchanged; hx_verif.py and gen_hx_codes.py give the same result with V3 and V4. Only
+	  comments of the table changed.
+	- [Q2], [Q4] and [Q8] settled. A fault is equivalent to a "raise" of the predefined
+	  exception at the faulting instruction; EXC_MACH, EXC_RAISE and the compiler's layout
+	  of contexts are unchanged.
+	- Added state: DR, FPC, FCODE, VTB, FSCR, IMASK, stack and heap limits. The CEV
+	  register is removed; the CEV field of the header (+48) is kept and the loader copies
+	  it to VTB[131]. Out-of-bounds CHK: fault 131.
+	- Header: the layout proposed by the "faults" revision is not adopted. The layout of the
+	  HX image (and of TX format 3 images) is kept, already produced by codi_TX and codi_HX
+	  and read by tx_run. Two words that were zero until now take a meaning: +72 VTB and
+	  +80 FSCR, the value 0 meaning "provided by the loader". Existing images remain valid,
+	  without a version change. Stack and heap bases and limits, the initial IMASK (all
+	  masked) and DISPLAY[0] are set by the loader.
+	- The condition that separates the heap from the data stack is reworded without any
+	  assumption on their relative position (in tx_run, the heap lies below the stack, in
+	  another region).
+	- RTX and EXC_RAISE reset DR to 0.
+	- Interrupts tied to task entries (RM 13.5.1); machine services CTX_SAVE, CTX_RESTORE,
+	  SET_IMASK (16..18).
+	- [Q6] settled for the dynamic forms: shifts modulo 64; bit fields with w in 1..64 and
+	  lsb + w <= 64, fault 137 otherwise. [Q7] settled: for n < 0,
+	  x**n = 1.0 / x**(-n) (RM 4.5.6), which tx_run already does.
+	- [Q10] (parameter exposure for LINKX) is moot. [Q11] open: overflow of 64-bit integer
+	  types. [Q12] open: start-up of the hardware machine (boot block).
+	- Appendix: precise delivery of faults and interrupts in an out-of-order machine.
+	- Still 180 opcodes, numbering unchanged.
+
+--------------------------------------------------
+Revision V3 of 26 September 2026 (preparation of codi_HX):
+--------------------------------------------------
+	- [Q9] settled: the ofs field of C24/C32 stays unsigned, but TLALOC emits negative ofs
+	  (DIRECT_IO: LIA 1, -GFP_ofs, -ELEMENT_TYPE__outadr_ofs). They go through the
+	  fallback, whose B access carries ofs in its signed disp. CHKI with an ofs outside
+	  0..255 uses the replacement sequence.
+	- [Q3] settled: LI imm4 is UNSIGNED (0..15), to cover the value 8 (size of a quad). This
+	  is the assumption of the code size measurement (1.58 MB).
+	- Fallbacks for fields that are too narrow rewritten and completed: @@ notation
+	  clarified, exact sequences for LIVA, loads and stores, general rule for stores
+	  (OVER ... DROP). No swap opcode is needed. Sequences checked on codi_x86_64 and
+	  codi_TX (test REPLIS.FINC).
+	- Description of family D aligned with the table: K=0, s=1 holds UBFXI, SBFXI, BFII.
+	- "HX image" section added: header (that of TX format 3 images, signature 'TLALOCHX')
+	  and instruction table, with the SUITE and VIDE flags.
+	- EXIT service: the LLIR macro SYS_EXIT code assembles as LI code ; TRAP 0.
+	- Byte order of the complement fixed: most significant first, in the order of the
+	  format notation. The lvl field is thus always in bits 7..4 of the byte that follows
+	  the opcode.
+	- The two reserved FMT 00 forms are handled by the assembler: LVA 1111,0 (identity) is
+	  emitted by no codi (TX, x86 and HX), including when the displacement is a symbol
+	  whose value is 0 at assembly time; LIVA 1111,0,0 is emitted as LQ 1111,0.
+	- Still 180 opcodes, numbering unchanged.
+
+--------------------------------------------------
+Revision of September 2026 (measurements on TLALOC run by tx_run):
+--------------------------------------------------
+	- [Q1] settled: the code is in a SINGLE STREAM. A single program counter PC; branches
+	  carry a single displacement (BR8, BR16, BR24, BR32). See "Settled questions" for the
+	  measurements.
+	- Decoding invariant added: the length of an instruction is a function of its opcode
+	  alone. Length table added to the formats section.
+	- No notion of variable exposure in the specification: the LLIR and the addresses
+	  remain unchanged. Renaming of locals is an implementation matter (stack cache
+	  addressed by interval below DSP, see the appendix). A LINKX variant, declaring an
+	  exposed area, was studied then dropped: measured, it brings nothing.
+	- Semantics of UBFXI, SBFXI, BFII (D8_8: lsb then w) added.
+	- Appendix "Micro-architecture elements": results of the limit study.
+	- Numbering redone continuously: 180 opcodes.
+
+--------------------------------------------------
+Previous revision:
+--------------------------------------------------
+	- D24 format corrected (imm 23..0) and D32 format added (imm 31..0, used by LI imm32).
+	- Bits 5..4 of families B/C described as a MODE field (00 special, 01 signed load,
+	  10 store, 11 unsigned load): the former U/L reading contradicted the placement of
+	  stores.
+	- SF=11: FUN is an opaque 4-bit field (the SZ reading did not hold).
+	- Floating point reorganized as a mirror of integers: b00_10_1ccc uses the same
+	  condition code as b00_00_1ccc; FNEG/FABS occupy 000/111 like NEG/ABS.
+	- Additions to cover the reference: HEAP_ALLOC, BLKAND, BLKOU, BLKOUX, BLKNOT,
+	  LEXCMPx / ULEXCMPx; HP register added to the architectural state.
+	- Ranges and signs of the fields lvl, disp, ofs clarified; lvl = 1111 forbidden where
+	  it is meaningless.
+	- Stack effects added for each opcode.
+	- Numbering redone continuously (no. 53 was missing): the numbers have changed.
+	- Typos fixed. Unresolved points are marked [Qn] and gathered at the end.
+
+
+=========================================================================================
+	GENERAL CONVENTIONS
+=========================================================================================
+
+Machine word: 64 bits. Every data stack cell is 64 bits.
+Floating-point values are IEEE 754 binary64 and travel on the data stack like integers.
+LLIR booleans are 0 or 1.
+
+The data stack grows toward higher addresses (as in the x86 reference).
+The return stack is separate from the data stack.
+The frame pointer is saved on the data stack.
+Parameters are at negative displacements starting from -8.
+Local variables are at positive displacements starting from +8.
+DISPLAY[lvl] points to the cell that holds the saved previous frame pointer.
+
+Stack effect notation: ( before -- after ), TOP ON THE RIGHT (Forth notation).
+Example: SB with lvl = 1111 has the effect ( @ v -- ): v is on top, the address below it.
+
+Branch and CALL displacements are relative to the next instruction
+(like the rel32 of the reference).
+
+-----------
+Memory:
+-----------
+Memory is byte-addressed, on 64 bits. Mn[a] (n = 8, 16, 32, 64) denotes the n/8 bytes
+a .. a + n/8 - 1, read or written LITTLE-ENDIAN (least significant byte at a), as in the
+x86 reference. Loads extend the value to 64 bits according to their MODE (sign or zeros);
+stores write the n least significant bits.
+	- No alignment is required: an unaligned access gives the same result as a sequence of
+	  one-byte accesses. An implementation may handle it more slowly. (The reference and
+	  tx_run accept such accesses; their frequency in TLALOC remains to be measured.)
+	- An access is valid only if all its bytes are valid; otherwise fault 132.
+	- Valid addresses are below 2^63 (platform rule; tx_run: 0x400000 and
+	  0x7F00_0000_0000). Address arithmetic done by ADD and SUB (indexing,
+	  SYSTEM.ADDRESS) therefore never overflows in signed arithmetic. The addresses that
+	  the machine computes itself (DISPLAY[lvl] + disp, pointer + ofs, LVA, LIVA) are still
+	  computed modulo 2^64 and do not raise fault 129.
+	- The "most significant first" order of instruction complements is an ENCODING rule:
+	  the decoder reads the code as a sequence of bytes. It applies to no data access.
+	- Non-modifiable code: after execution starts, modifying a byte that belongs to an
+	  instruction of the program gives unspecified behaviour, whether that instruction
+	  has already been executed or not. The loader writes the code before the first
+	  instruction. Data placed in the code stream (jumped over by BRA) are not
+	  instructions: the rule does not concern them. An implementation may therefore keep
+	  instructions and decoded forms without any invalidation mechanism.
+
+-----------
+Stacks:
+-----------
+The four pointers are byte addresses; each stack has its own direction and convention:
+
+	DSP	data stack, ASCENDING; DSP designates the TOP cell (last occupied one).
+		push v		DSP := DSP + 8 ; M64[DSP] := v
+		pop		v := M64[DSP] ; DSP := DSP - 8
+		top		M64[DSP]
+	RSP	return stack, DESCENDING; RSP designates the last pushed address.
+		push_return a	RSP := RSP - 8 ; M64[RSP] := a
+		pop_return	a := M64[RSP] ; RSP := RSP + 8
+	CSP	co-stack, ASCENDING; CSP designates the first FREE byte (see LINK, CO_VAR).
+	HP	heap, DESCENDING; HP is the LOW BOUNDARY of the area already allocated: the
+		allocated bytes are those from HP to HP0 - 1 (see HEAP_ALLOC).
+
+"Empty stack" values, set by the loader (or by the run-time for a task):
+	DSP0	position preceding the first cell: the first push writes at DSP0 + 8.
+		(tx_run: DSP0 = base of the stack region, dummy cell; DISPLAY[0] = DSP0.)
+	RSP0	end (excluded) of the return region: the first push_return writes at
+		RSP0 - 8; the return stack is empty when RSP = RSP0.
+	CSP0	initial first free byte of the co-stack.
+	HP0	end (excluded) of the heap region: before any allocation, HP = HP0 and the
+		allocated area is empty; the first allocation of n bytes returns HP0 - n.
+A pop with DSP = DSP0 and a pop_return with RSP = RSP0 pop an empty stack (see §4 of the
+faults section).
+
+The data stack and the co-stack are ordinary memory: the program also accesses them by
+address (locals, parameters, LVA, co-stack blocks). The return stack, on the other hand,
+is read and written only by push_return and pop_return (CALL, CALLI, RTD, vectored TRAP,
+interrupt, RTX); EXC_MACH, EXC_RAISE and the context services only save and restore RSP.
+A program that accesses it through loads or stores has unspecified behaviour. An
+implementation may therefore keep it outside the data path (tx_run: internal array;
+TAHX: stack in registers, spilling to memory), with no coherence to maintain with the
+program's accesses. The x86 reference already follows this: rsp is used only by call,
+ret and the system services.
+Conformance of a return stack held in registers. The abstract content of the return stack
+of a task is the sequence M64[RSP], M64[RSP+8], ..., M64[RSP0-8]: the implementation must
+behave as if each push_return wrote memory. It may delay these writes, with two
+obligations, which create no new architectural state:
+	- at CTX_SAVE, all entries held in registers are written to memory: the context block
+	  and the return region are then sufficient to resume the task, later or after other
+	  tasks;
+	- after EXC_RAISE and CTX_RESTORE, which give RSP an arbitrary value, the entries held
+	  in registers are no longer used without being revalidated: a pop_return reads
+	  memory, or a cache indexed by address. (EXC_RAISE restores an RSP higher than the
+	  current RSP: the entries between the two are simply abandoned.)
+
+-------------------
+Valid program:
+-------------------
+An HX program is VALID if every address where control can arrive dynamically is the start
+of an instruction: branch and CALL targets, addresses jumped to by CALLI, return
+addresses, DISPATCH of exception contexts, VTB vectors, PC of context blocks and the entry
+point. Addresses pushed by the machine (CALL, CALLI, TRAP, interrupt) always are. The
+behaviour of a non-valid program is unspecified: the machine decodes from the byte
+reached. It cannot detect this and does not check it; the emulator reports it thanks to
+the instruction table of the image. TLALOC only produces valid programs; inline data are
+jumped over by BRA.
+
+----------------------
+Integer arithmetic:
+----------------------
+Integers on the stack are signed 64-bit. No integer operation wraps silently: ADD, SUB,
+MUL, NEG, ABS, INC, DEC whose mathematical result falls outside [-2^63, 2^63), DIV of
+-2^63 by -1, CVTIX and CVTXI whose quotient is not representable raise fault 129
+(NUMERIC_ERROR). REMI and MODI of -2^63 by -1 return 0, which is the exact result. A zero
+divisor (DIV, REMI, MODI, CVTIX, CVTXI) raises fault 128 (NUMERIC_ERROR). Logical
+operations (ET, OU, OUX, NON: and, or, xor, not) and shifts work on bit patterns: they do
+not overflow, but a shift count of 64 or more is fault 137. The fault is precise: a and b
+stay in place.
+	- Hardware: ADD, SUB, INC, DEC read the adder overflow; NEG and ABS compare the operand
+	  with -2^63; MUL checks that the upper half of the 128-bit signed product is the sign
+	  extension of its lower half.
+	- For INTEGER and narrower types, the range check is still done by the generated code
+	  (CHK or comparison); 64-bit computation can no longer silently return a wrong value
+	  within the bounds: a chained product that would exceed 64 bits now raises fault 129.
+	- Discipline of the generated code: it must create no intermediate overflow that is not
+	  in the source. Static universal expressions (type bounds, named numbers) are
+	  evaluated exactly at compile time, not at run time on 64 bits. For 64-bit types,
+	  points to watch: end of loop on 'LAST (do not increment after the last iteration),
+	  'LENGTH (B - A + 1), 'SUCC, 'PRED, normalization of an index (x - low), and 2**n by
+	  shift (only if n is known and the result representable; otherwise by MUL, which is
+	  checked).
+
+------------------------
+Floating-point arithmetic:
+------------------------
+IEEE 754 binary64, with no observable exception (neither flags nor traps):
+	- round to nearest, ties to even, for FADD, FSUB, FMUL, FDIV, each multiplication of
+	  FEXP and CVTIF (integer with more than 53 significant bits); CVTFI and CVTFIR have
+	  their own rule (see the table);
+	- subnormals handled fully, as input and output (neither flush-to-zero nor
+	  denormals-are-zero), like the x86 reference in its default configuration;
+	- any NaN result of FADD, FSUB, FMUL, FDIV and FEXP is the CANONICAL NaN
+	  0x7FF8000000000000, whatever the NaN of the operands: the result depends neither on
+	  the order of the operands nor on the emulator's host. FNEG and FABS are operations on
+	  bit 63 and keep the payload;
+	- comparisons: see the condition code ccc (a NaN sets none of the three bits).
+
+
+=========================================================================================
+	ARCHITECTURAL STATE
+=========================================================================================
+
+	PC		program counter (the code is in a single stream)
+	DSP		data stack top						(rbp in the reference)
+	RSP		return stack top					(rsp)
+	CFP		co-stack frame						(r13)
+	CSP		co-stack top						(r14)
+	HP		heap top, growing downward				(r12)
+	DISPLAY[0..14]	frame pointers of the static levels			([r15 + 8*lvl])
+	DR		trap in progress (1 bit)
+	FPC, FCODE	address and code of the last fault or interrupt
+	VTB, FSCR	vector table, exposure area of FPC and FCODE
+	LIM_DSP, LIM_RSP, LIM_CSP, LIM_HP	stack and heap limits
+	IMASK		interrupt mask
+	(see "Faults, traps and interrupts"; the former CEV register is removed)
+Display with 15 effective levels (0..14), the lvl code 1111 being reserved for "address on
+the stack". This is enough for the TLALOC compiler, which uses 9 static levels.
+
+EXC_MACH saves and EXC_RAISE restores DSP, RSP, CFP, CSP and DISPLAY[0..lvl].
+EXC_RAISE also resets DR to 0.
+HP is neither saved nor restored: the heap is not unwound by exceptions.
+
+
+=========================================================================================
+	OPERAND FORMATS
+=========================================================================================
+
+format "A"	[OP 7..0]*						no complement
+
+; (Translation note) The "complement" is the sequence of operand bytes that follows the opcode byte.
+; lvl : 4 bits, always left-aligned (most significant bits)
+;       0000..1110 = display level 0..14
+;       1111       = lvl:-1, address taken from the data stack
+; disp : signed, two's complement, except for LINK where it is an unsigned size
+; ofs  : unsigned, 0..255; a negative ofs goes through the fallback ([Q9] settled)
+
+format "B16"	[OP 7..0]	[lvl 15..12 | disp 11..0]		disp: -2048..+2047
+format "B24"	[OP 7..0]	[lvl 23..20 | disp 19..0]		disp: ±512 KiB
+format "B40"	[OP 7..0]	[lvl 39..36 | 0000 | disp 31..0]	RESERVED ([Q5]): not assigned in V8
+
+format "C24"	[OP 7..0]	[lvl 23..20 | ofs 19..16 | disp 15..0]	lvl 4, ofs 4, disp 16
+format "C32"	[OP 7..0]	[lvl 31..28 | ofs 27..20 | disp 19..0]	lvl 4, ofs 8, disp 20
+
+format "D8"	[OP 7..0]	[imm 7..0]
+format "D16"	[OP 7..0]	[imm 15..0]
+format "D8_8"	[OP 7..0]	[imm 7..0 | Imm 7..0]
+format "D24"	[OP 7..0]	[imm 23..0]
+format "D32"	[OP 7..0]	[imm 31..0]
+format "D64"	[OP 7..0]	[imm 63..0]
+
+; The immediates of LI (D8 to D64) are sign-extended to 64 bits. The value of an immediate
+; lies in [-2^63, 2^63): the assembler rejects a value outside this interval.
+; LIF (floating-point literal) assembles as LI of its IEEE 754 pattern read as a signed
+; integer: a pattern of 2^63 or more (negative float, -0.0) is taken minus 2^64, same
+; 64 bits.
+; LI imm4 (family D, SF=01) is unsigned: 0..15, zero-extended.
+
+format "BR8"	[OP 7..0]	[d 7..0]				signed displacement, in bytes
+format "BR16"	[OP 7..0]	[d 15..0]
+format "BR24"	[OP 7..0]	[d 23..0]
+format "BR32"	[OP 7..0]	[d 31..0]
+; The displacement is relative to the next instruction. Code in a single stream.
+
+Byte order of the complement: MOST SIGNIFICANT FIRST, in the order of the notation above.
+For families B and C, the first byte of the complement therefore always holds lvl in its
+bits 7..4, whatever the format: the decoder reads DISPLAY[lvl] without waiting for the
+length.
+Examples:	LQ 3, -2049		5B 3F F7 FF		(B24: lvl 3, disp FF7FF)
+		LIB 1, 8, 16		98 11 00 00 08		(C32: lvl 1, ofs 10, disp 00008)
+		LI 128			C1 00 80		(D16)
+		UBFXI 12, 20		C4 0C 14		(D8_8: lsb then w)
+		BT +32768		E6 00 80 00		(BR24)
+(Translation note: in the examples, the field values in parentheses are hexadecimal.)
+
+-----------------------------------------------------
+Instruction length (decoding invariant):
+-----------------------------------------------------
+The length of an instruction is a function of its FIRST byte ALONE (the opcode).
+No field of the complement plays a part. This is what makes it possible to decode several
+instructions per cycle in a block of code: for each byte position, a 256-entry table
+gives the length, and a tree selection finds the instruction starts. Any evolution of the
+opcode table must preserve this invariant.
+
+	family A							1 byte
+	families B and C	FMT 00					1 byte
+				FMT 01	B16 / C24			3 / 4 bytes
+				FMT 10	B24 / C32			4 / 5 bytes
+				FMT 11	CHK B24 / CHKI C32		4 / 5 bytes
+					(MODE 00 of B: B40 reserved, 6 bytes if assigned, [Q5])
+	family D, SF=00	LI	SZ 00, 01, 10, 11		2, 3, 5, 9 bytes
+				UBFXI, SBFXI, BFII (D8_8)		3 bytes
+				LEXCMP					1 byte
+	family D, SF=01	LI imm4					1 byte
+	family D, SF=10	branches	SZ 00, 01, 10, 11	2, 3, 4, 5 bytes
+	family D, SF=11	TRAP, UNLINK, UNLINKR (D8)		2 bytes
+				CALL, RTD n, EXC_RAISE (D24)		4 bytes
+				RTD 0, RTX				1 byte
+	Maximum length: 9 bytes (LI imm64).
+	Reserved opcodes: no length. A reserved opcode is fault 137 (FPC = its address), and the
+	decoder interprets none of the bytes that follow it. The value that a decoding table
+	stores in its slot (1 in TAHX_1_ISA_TABLE) only serves to fill it.
+
+---------------------------------
+Effective address (EA) computation:
+---------------------------------
+Family B:	lvl 0..14	EA = DISPLAY[lvl] + disp
+		lvl = 1111	EA = pop + disp
+Family C:	lvl 0..14	EA = M64[ DISPLAY[lvl] + disp ] + ofs
+		lvl = 1111	EA = M64[ pop + disp ] + ofs
+
+FMT = 00 (no complement) means: lvl = 1111, disp = 0, and ofs = 0 for family C.
+If the address is on the stack and disp or ofs is non-zero, B16/B24 or C24/C32 is used
+with lvl = 1111.
+
+Notation of the forms with the address on the stack (lvl = 1111):
+	@	address of a datum; @@ address of a cell that contains an address.
+	Family B:	LVA ( @ -- @+disp )		Lx ( @ -- v )		Sx ( @ v -- )
+	Family C:	LIVA ( @@ -- @ )		LIx ( @@ -- v )		SIx ( @@ v -- )
+			with @ = M64[@@ + disp] + ofs.
+	A store first pops the datum (top), then the address below it.
+	LIVA 1111, disp, ofs therefore replaces the address of the pointer cell by the
+	address pointed to plus ofs; with disp = ofs = 0, it is LQ 1111.
+
+Fallbacks for fields that are too narrow (sequences emitted by the assembler):
+
+	ofs outside 0..255, that is ofs > 255 or negative ofs (family C; ofs must fit in
+	the signed disp of a B24, i.e. ±512 KiB):
+		LIVA lvl, disp, ofs		LIVA lvl,disp,0 ; LVA 1111,ofs
+		LIx  lvl, disp, ofs		LIVA lvl,disp,0 ; Lx 1111,ofs
+		SIx  lvl, disp, ofs		LIVA lvl,disp,0 ; OVER ; Sx 1111,ofs ; DROP
+		SIx  1111, disp, ofs		OVER ; LIVA 1111,disp,0 ; OVER ; Sx 1111,ofs ;
+						DROP ; DROP
+	Each instruction takes its minimal format: B16 if -2048 <= ofs < 2048, otherwise B24;
+	the LIVA with lvl = 1111 and disp = 0 is an LQ 1111,0 (FMT 00).
+		CHKIt lvl, disp, ofs		replacement sequence of CHKIt (see its semantics)
+	The first two lines also hold for lvl = 1111 (LIVA 1111 consumes @@).
+
+	General rule for stores. When the assembler meets a store, the datum v is already
+	pushed. Let S be the sequence that computes the effective address, with effect
+	( -- @ ), or ( @@ -- @ ) if lvl = 1111. The store becomes:
+		lvl 0..14	S ; OVER ; Sx 1111,0 ; DROP
+				(v) (v @) (v @ v) (v) ( )
+		lvl = 1111	OVER ; S ; OVER ; Sx 1111,0 ; DROP ; DROP
+				(@@ v) (@@ v @@) (@@ v @) (@@ v @ v) (@@ v) ( )
+	The last displacement of S may be folded into the Sx (case of ofs outside 0..255
+	above). No swap opcode (SWAP) is needed.
+
+	|disp| outside B24 / C32:
+		S starts with the computation of DISPLAY[lvl] + disp: LVA lvl,0 ; LI disp ; ADD
+		(with lvl = 1111: LI disp ; ADD), then the access uses the lvl = 1111 form
+		with disp = 0 (family B) or disp = 0 and ofs (family C). TLALOC measurement: no case.
+		codi_HX must emit these sequences ([Q5], V8); it still refuses to assemble (err).
+		They take from 3 instructions (B load, lvl = 1111) to 8 (C store with lvl = 1111
+		and ofs also outside 0..255: OVER ; LI disp ; ADD ; LQ 1111,0 ; OVER ;
+		Sx 1111,ofs ; DROP ; DROP).
+		Effect of the ADD check (V7): none for a valid access, since DISPLAY[lvl], the
+		pointer and the effective address are then in [0, 2^63) and the sum cannot
+		overflow. If the sum exceeds 2^63 - 1, the direct access would have faulted
+		(address modulo 2^64, above 2^63: fault 132); the fallback faults too, but on the
+		ADD (fault 129). Only the fault code and FPC differ, for an access that is already
+		wrong. The ofs fallbacks, which go through LVA 1111, are not concerned.
+	LINK of more than 1 MiB		not encodable in V1: no instruction adds an arbitrary
+					amount to DSP; LINK [B40] is reserved for this case ([Q5])
+
+
+=========================================================================================
+	OPCODE FORMAT
+=========================================================================================
+
+OP[7..6]	Family	Interpretation
+00		A	operations with no operand complement: ALU, stack, floating point...
+01		B	direct access lvl + disp
+10		C	indirect access lvl + disp + ofs
+11		D	immediates, control, constant addresses...
+
+-------------
+Family A:
+-------------
+        7 6   5 4   3   2 1 0
+      +-----+-----+---+-------+
+OP =  | 0 0 | GRP | K |  FUN  |
+      +-----+-----+---+-------+
+GRP:
+  00 = logic, shifts (K=0); integer comparisons (K=1)
+  01 = integer arithmetic, bit fields, fixed point
+  10 = floating point: arithmetic and conversions (K=0); comparisons (K=1)
+  11 = stack, blocks, allocation
+
+Condition code ccc (comparisons, K=1, groups 00 and 10):
+  bit 0 = GT, bit 1 = LT, bit 2 = EQ
+  001 GT   010 LT   011 NE   100 EQ   101 GE   110 LE
+  000 and 111 ("never", "always") are reused for NEG/ABS and FNEG/FABS.
+  Code 011 is defined as "not EQ", not as "GT or LT": for floating point, an unordered
+  comparison (NaN) sets none of the three bits, and FCNE must then return 1
+  (NaN /= x is true). For integers the two readings coincide.
+  For all the other conditions, a NaN gives 0.
+
+ADD/INC/SUB/DEC subgroup (b00_01_00_xx):
+  bit 1 = invert operand B, bit 0 = replace B by 0 (unary operation),
+  carry in = bit 1 xor bit 0.
+  ADD a+b+0   INC a+0+1   SUB a+~b+1   DEC a+~0+0
+
+-------------
+Families B/C:
+-------------
+        7 6    5 4    3 2   1 0
+      +-----+------+-----+----+
+OP =  | B/C | MODE | FMT | SZ |
+      +-----+------+-----+----+
+B/C:
+  01 = B
+  10 = C
+
+MODE:
+  00 = special (reused space)
+  01 = signed load (sign extension to 64 bits)
+  10 = store (truncation to size SZ)
+  11 = unsigned load (zero extension); SZ = 11 reserved because ULQ = LQ
+
+MODE = 00, reused space:
+  SZ = 00  LINK		(family B only)
+  SZ = 01  EXC_MACH	(family B only)
+  SZ = 10  reserved
+  SZ = 11  LVA (family B) / LIVA (family C)
+
+FMT for B:
+  00 = A    : no complement
+  01 = B16  : 2 bytes
+  10 = B24  : 3 bytes
+  11   CHK B24 if MODE = 01 or 11
+           reserved otherwise; in MODE 00, reserved for the B40 format ([Q5])
+
+FMT for C:
+  00 = A    : no complement
+  01 = C24  : 3 bytes
+  10 = C32  : 4 bytes
+  11   CHKI C32 if MODE = 01 or 11
+           reserved otherwise
+
+SZ:
+  00 = byte	8 bits
+  01 = word	16 bits
+  10 = double	32 bits
+  11 = quad / address	64 bits
+
+; On a 64-bit machine, addresses are quads:
+; LA = LQ, SA = SQ, LIA = LIQ, SIA = SIQ, ULQ = LQ, ULIQ = LIQ.
+
+-------------
+Family D:
+-------------
+
+SF=00: explicit LI and lexicographic comparisons
+
+        7 6   5 4   3   2   1 0
+      +-----+-----+---+---+-----+
+      | 1 1 | 0 0 | K | s |  SZ |
+      +-----+-----+---+---+-----+
+
+K=0, s=0 : LI, SZ = size of the immediate
+           00 imm8 (D8)   01 imm16 (D16)   10 imm32 (D32)   11 imm64 (D64)
+K=0, s=1 : UBFXI, SBFXI, BFII (D8_8), SZ = 11 reserved
+K=1      : LEXCMP, no immediate, SZ = size of a component, s = 1 unsigned
+           (s=1, SZ=11 reserved: on 64 bits the sign is irrelevant)
+
+
+SF=01: LI imm4
+
+        7 6   5 4   3 2 1 0
+      +-----+-----+---------+
+      | 1 1 | 0 1 | i i i i |
+      +-----+-----+---------+
+
+iiii = imm4, UNSIGNED: LI pushes 0..15 ([Q3] settled)
+
+
+SF=10: branch
+
+        7 6   5 4   3 2   1 0
+      +-----+-----+-----+-----+
+      | 1 1 | 1 0 |  TB |  SZ |
+      +-----+-----+-----+-----+
+
+TB = 00	BRA	unconditional
+     01	BT	branch if true
+     10	BF	branch if false
+     11	reserved
+
+SZ = 00 BR8   01 BR16   10 BR24   11 BR32
+
+
+SF=11: control
+
+        7 6   5 4   3 2 1 0
+      +-----+-----+---------+
+      | 1 1 | 1 1 |   FUN   |
+      +-----+-----+---------+
+
+FUN = control function, opaque 4-bit field: the format of the complement is specific to
+each function (see the table).
+
+
+=========================================================================================
+	OPCODE TABLE
+=========================================================================================
+
+;No	format	binary		code	OPCODE	[compl]		; stack effect (top on the right)
+
+;		b00_00_0xxx	logical operations, shifts
+1	A	b00_00_0_000	x	ET			; ( a b -- a and b )
+2	A	b00_00_0_001	x	OU			; ( a b -- a or b )
+3	A	b00_00_0_010	x	OUX			; ( a b -- a xor b )
+4	A	b00_00_0_011	x	NON			; ( a -- not a )	bitwise complement
+5	A	b00_00_0_100	x	SHL			; ( a n -- a << n )	fault 137 if n >= 64
+6	A	b00_00_0_101	x	SHR			; ( a n -- a >> n )	logical, fault 137 if n >= 64
+7	A	b00_00_0_110	x	SAR			; ( a n -- a >> n )	arithmetic, fault 137 if n >= 64
+8	A	b00_00_0_111	x	CLAMP0			; ( a -- max(0,a) )
+
+;		b00_00_1ccc	signed integer comparisons, condition code ccc
+;		(Gigatron decoder scheme, with carry out and accu7)
+9	A	b00_00_1_000	x	NEG			; ( a -- -a )		"never" slot, fault 129
+10	A	b00_00_1_001	x	CGT			; ( a b -- a>b )	result 0/1
+11	A	b00_00_1_010	x	CLT			; ( a b -- a<b )
+12	A	b00_00_1_011	x	CNE			; ( a b -- a/=b )
+13	A	b00_00_1_100	x	CEQ			; ( a b -- a=b )
+14	A	b00_00_1_101	x	CGE			; ( a b -- a>=b )
+15	A	b00_00_1_110	x	CLE			; ( a b -- a<=b )
+16	A	b00_00_1_111	x	ABS			; ( a -- |a| )		"always" slot, fault 129
+
+;		b00_01_xxxx	integer arithmetic, bit fields, fixed point
+;		      a+ ~c
+17	A	b00_01_00_00	x	ADD			; ( a b -- a+b )	faute 129
+18	A	b00_01_00_01	x	INC			; ( a -- a+1 )		B := 0, carry 1, fault 129
+19	A	b00_01_00_10	x	SUB			; ( a b -- a-b )	~B, carry 1, fault 129
+20	A	b00_01_00_11	x	DEC			; ( a -- a-1 )		~0, carry 0, fault 129
+
+;		      a*
+21	A	b00_01_01_00	x	MUL			; ( a b -- a*b )	signed product, fault 129
+22	A	b00_01_01_01	x	DIV			; ( a b -- a/b )	truncation toward zero, faults 128, 129
+23	A	b00_01_01_10	x	REMI			; ( a b -- a rem b )	sign of the dividend, fault 128
+24	A	b00_01_01_11	x	MODI			; ( a b -- a mod b )	sign of the divisor, fault 128
+
+;		      bf	bit fields
+25	A	b00_01_10_00	x	UBFX			; ( v lsb w -- field )		zero extension, fault 137
+26	A	b00_01_10_01	x	SBFX			; ( v lsb w -- field )		sign extension, fault 137
+27	A	b00_01_10_10	x	BFI			; ( old ins lsb w -- new )	fault 137
+-	A	b00_01_10_11	-	-	reserved
+
+;		      vf	fixed point, SMALL = NUMER/DENOM
+28	A	b00_01_11_00	x	CVTIX			; ( i denom numer -- x )	x = i*denom/numer, truncation toward zero, faults 128, 129
+29	A	b00_01_11_01	x	CVTXI			; ( x numer denom -- i )	i = x*numer/denom rounded, ties away from zero, exact product, faults 128, 129
+-	A	b00_01_11_10	-	-	reserved
+-	A	b00_01_11_11	-	-	reserved
+
+;		b00_10_0xxx	floating point: arithmetic and conversions
+30	A	b00_10_0_000	x	FADD			; ( a b -- a+b )
+31	A	b00_10_0_001	x	FSUB			; ( a b -- a-b )
+32	A	b00_10_0_010	x	FMUL			; ( a b -- a*b )
+33	A	b00_10_0_011	x	FDIV			; ( a b -- a/b )
+34	A	b00_10_0_100	x	FEXP			; ( x n -- x**n )	n integer, see semantics
+35	A	b00_10_0_101	x	CVTIF			; ( i -- f )
+36	A	b00_10_0_110	x	CVTFI			; ( f -- i )		truncation toward zero, fault 130
+37	A	b00_10_0_111	x	CVTFIR			; ( f -- i )		to nearest, ties away from zero (Ada RM 4.6), fault 130
+
+;		b00_10_1ccc	floating point: comparisons, same ccc code as integers
+38	A	b00_10_1_000	x	FNEG			; ( f -- -f )		inversion of bit 63
+39	A	b00_10_1_001	x	FCGT			; ( a b -- a>b )
+40	A	b00_10_1_010	x	FCLT			; ( a b -- a<b )
+41	A	b00_10_1_011	x	FCNE			; ( a b -- a/=b )	1 if unordered
+42	A	b00_10_1_100	x	FCEQ			; ( a b -- a=b )
+43	A	b00_10_1_101	x	FCGE			; ( a b -- a>=b )
+44	A	b00_10_1_110	x	FCLE			; ( a b -- a<=b )
+45	A	b00_10_1_111	x	FABS			; ( f -- |f| )		clearing of bit 63
+
+;		b00_11_xxxx	stack, blocks, allocation
+46	A	b00_11_0000	x	DROP			; ( a -- )
+47	A	b00_11_0001	x	DUP			; ( a -- a a )
+48	A	b00_11_0010	x	OVER			; ( a b -- a b a )
+49	A	b00_11_0011	x	CALLI			; ( @sp -- )		return address on the return stack
+
+50	A	b00_11_0100	x	BLKMOV			; ( @dst len @src -- )	no overlap, len in bytes
+51	A	b00_11_0101	x	BLKCMP			; ( @a len @b -- eq )	1 if equal, len = 0 -> 1
+-	A	b00_11_0110	-	-	reserved
+-	A	b00_11_0111	-	-	reserved
+
+52	A	b00_11_1000	x	CO_VAR			; ( n -- @block )	CSP += n rounded up to 8, fault 135
+53	A	b00_11_1001	x	HEAP_ALLOC		; ( n -- @block )	HP -= n rounded up to 8, fault 136
+-	A	b00_11_1010	-	-	reserved
+-	A	b00_11_1011	-	-	reserved
+
+;		b00_11_11xx	boolean block logic, mirror of ET OU OUX NON (LRM 4.5.1)
+;		one byte per component; [dst] has already received the left operand by BLKMOV
+54	A	b00_11_1100	x	BLKAND			; ( @dst len @src -- )	[dst] and= [src]
+55	A	b00_11_1101	x	BLKOU			; ( @dst len @src -- )	[dst] or= [src]
+56	A	b00_11_1110	x	BLKOUX			; ( @dst len @src -- )	[dst] xor= [src]
+57	A	b00_11_1111	x	BLKNOT			; ( @dst len -- )	each byte xor= 1 (boolean NOT)
+
+
+;		b01_MODE_FMT_SZ
+-	B	b01_00_00_00	-	-	reserved		; LINK lvl=-1: meaningless
+-	B	b01_00_00_01	-	-	reserved		; EXC_MACH lvl=-1: meaningless
+-	B	b01_00_00_10	-	-	reserved
+-	B	b01_00_00_11	-	-	reserved		; LVA -1,0: nop
+
+58	B	b01_00_01_00	x	LINK	[B16]		; see semantics; disp = size of locals, unsigned (4 KiB)
+59	B	b01_00_01_01	x	EXC_MACH [B16]		; ( -- )	disp = ctx
+-	B	b01_00_01_10	-	-	reserved
+60	B	b01_00_01_11	x	LVA	[B16]		; ( -- @ )  or  ( @ -- @+disp ) if lvl=1111
+
+61	B	b01_00_10_00	x	LINK	[B24]		; unsigned size (1 MiB)
+62	B	b01_00_10_01	x	EXC_MACH [B24]
+-	B	b01_00_10_10	-	-	reserved
+63	B	b01_00_10_11	x	LVA	[B24]
+
+-	B	b01_00_11_00	-	-	reserved		; LINK [B40] planned ([Q5]), not assigned
+-	B	b01_00_11_01	-	-	reserved		; EXC_MACH [B40] planned ([Q5]), not assigned
+-	B	b01_00_11_10	-	-	reserved
+-	B	b01_00_11_11	-	-	reserved		; LVA [B40] planned ([Q5]), not assigned
+
+;		signed load: ( -- v )  or  ( @ -- v ) if lvl=1111
+64	B	b01_01_00_00	x	LB
+65	B	b01_01_00_01	x	LW
+66	B	b01_01_00_10	x	LD
+67	B	b01_01_00_11	x	LQ			; = LA
+
+68	B	b01_01_01_00	x	LB	[B16]
+69	B	b01_01_01_01	x	LW	[B16]
+70	B	b01_01_01_10	x	LD	[B16]
+71	B	b01_01_01_11	x	LQ	[B16]
+
+72	B	b01_01_10_00	x	LB	[B24]
+73	B	b01_01_10_01	x	LW	[B24]
+74	B	b01_01_10_10	x	LD	[B24]
+75	B	b01_01_10_11	x	LQ	[B24]
+
+76	B	b01_01_11_00	x	CHKB	[B24]
+77	B	b01_01_11_01	x	CHKW	[B24]
+78	B	b01_01_11_10	x	CHKD	[B24]
+79	B	b01_01_11_11	x	CHKQ	[B24]
+
+;		store: ( v -- )  or  ( @ v -- ) if lvl=1111; the datum is on top
+80	B	b01_10_00_00	x	SB
+81	B	b01_10_00_01	x	SW
+82	B	b01_10_00_10	x	SD
+83	B	b01_10_00_11	x	SQ			; = SA
+
+84	B	b01_10_01_00	x	SB	[B16]
+85	B	b01_10_01_01	x	SW	[B16]
+86	B	b01_10_01_10	x	SD	[B16]
+87	B	b01_10_01_11	x	SQ	[B16]
+
+88	B	b01_10_10_00	x	SB	[B24]
+89	B	b01_10_10_01	x	SW	[B24]
+90	B	b01_10_10_10	x	SD	[B24]
+91	B	b01_10_10_11	x	SQ	[B24]
+
+-	B	b01_10_11_00	-	-	reserved
+-	B	b01_10_11_01	-	-	reserved
+-	B	b01_10_11_10	-	-	reserved
+-	B	b01_10_11_11	-	-	reserved
+
+;		unsigned load: ( -- v )  or  ( @ -- v ) if lvl=1111
+92	B	b01_11_00_00	x	ULB
+93	B	b01_11_00_01	x	ULW
+94	B	b01_11_00_10	x	ULD
+-	B	b01_11_00_11	-	-	reserved		; ULQ = LQ
+
+95	B	b01_11_01_00	x	ULB	[B16]
+96	B	b01_11_01_01	x	ULW	[B16]
+97	B	b01_11_01_10	x	ULD	[B16]
+-	B	b01_11_01_11	-	-	reserved
+
+98	B	b01_11_10_00	x	ULB	[B24]
+99	B	b01_11_10_01	x	ULW	[B24]
+100	B	b01_11_10_10	x	ULD	[B24]
+-	B	b01_11_10_11	-	-	reserved
+
+101	B	b01_11_11_00	x	CHKUB	[B24]
+102	B	b01_11_11_01	x	CHKUW	[B24]
+103	B	b01_11_11_10	x	CHKUD	[B24]
+-	B	b01_11_11_11	-	-	reserved
+
+
+;		b10_MODE_FMT_SZ
+-	C	b10_00_00_00	-	-	reserved
+-	C	b10_00_00_01	-	-	reserved
+-	C	b10_00_00_10	-	-	reserved
+-	C	b10_00_00_11	-	-	reserved		; LIVA -1,0,0 = LQ
+
+-	C	b10_00_01_00	-	-	reserved
+-	C	b10_00_01_01	-	-	reserved
+-	C	b10_00_01_10	-	-	reserved
+104	C	b10_00_01_11	x	LIVA	[C24]		; ( -- @ )  or  ( @@ -- @ ) if lvl=1111
+
+-	C	b10_00_10_00	-	-	reserved
+-	C	b10_00_10_01	-	-	reserved
+-	C	b10_00_10_10	-	-	reserved
+105	C	b10_00_10_11	x	LIVA	[C32]
+
+-	C	b10_00_11_00	-	-	reserved
+-	C	b10_00_11_01	-	-	reserved
+-	C	b10_00_11_10	-	-	reserved
+-	C	b10_00_11_11	-	-	reserved
+
+;		signed indirect load: ( -- v )  or  ( @@ -- v ) if lvl=1111
+106	C	b10_01_00_00	x	LIB
+107	C	b10_01_00_01	x	LIW
+108	C	b10_01_00_10	x	LID
+109	C	b10_01_00_11	x	LIQ			; = LIA
+
+110	C	b10_01_01_00	x	LIB	[C24]
+111	C	b10_01_01_01	x	LIW	[C24]
+112	C	b10_01_01_10	x	LID	[C24]
+113	C	b10_01_01_11	x	LIQ	[C24]
+
+114	C	b10_01_10_00	x	LIB	[C32]
+115	C	b10_01_10_01	x	LIW	[C32]
+116	C	b10_01_10_10	x	LID	[C32]
+117	C	b10_01_10_11	x	LIQ	[C32]
+
+118	C	b10_01_11_00	x	CHKIB	[C32]
+119	C	b10_01_11_01	x	CHKIW	[C32]
+120	C	b10_01_11_10	x	CHKID	[C32]
+121	C	b10_01_11_11	x	CHKIQ	[C32]
+
+;		indirect store: ( v -- )  or  ( @@ v -- ) if lvl=1111
+122	C	b10_10_00_00	x	SIB
+123	C	b10_10_00_01	x	SIW
+124	C	b10_10_00_10	x	SID
+125	C	b10_10_00_11	x	SIQ			; = SIA
+
+126	C	b10_10_01_00	x	SIB	[C24]
+127	C	b10_10_01_01	x	SIW	[C24]
+128	C	b10_10_01_10	x	SID	[C24]
+129	C	b10_10_01_11	x	SIQ	[C24]
+
+130	C	b10_10_10_00	x	SIB	[C32]
+131	C	b10_10_10_01	x	SIW	[C32]
+132	C	b10_10_10_10	x	SID	[C32]
+133	C	b10_10_10_11	x	SIQ	[C32]
+
+-	C	b10_10_11_00	-	-	reserved
+-	C	b10_10_11_01	-	-	reserved
+-	C	b10_10_11_10	-	-	reserved
+-	C	b10_10_11_11	-	-	reserved
+
+;		unsigned indirect load: ( -- v )  or  ( @@ -- v ) if lvl=1111
+134	C	b10_11_00_00	x	ULIB
+135	C	b10_11_00_01	x	ULIW
+136	C	b10_11_00_10	x	ULID
+-	C	b10_11_00_11	-	-	reserved		; ULIQ = LIQ
+
+137	C	b10_11_01_00	x	ULIB	[C24]
+138	C	b10_11_01_01	x	ULIW	[C24]
+139	C	b10_11_01_10	x	ULID	[C24]
+-	C	b10_11_01_11	-	-	reserved
+
+140	C	b10_11_10_00	x	ULIB	[C32]
+141	C	b10_11_10_01	x	ULIW	[C32]
+142	C	b10_11_10_10	x	ULID	[C32]
+-	C	b10_11_10_11	-	-	reserved
+
+143	C	b10_11_11_00	x	CHKUIB	[C32]
+144	C	b10_11_11_01	x	CHKUIW	[C32]
+145	C	b10_11_11_10	x	CHKUID	[C32]
+-	C	b10_11_11_11	-	-	reserved
+
+
+;		b11_00_K_s_SZ	signed immediate constants, lexicographic comparisons
+146	D	b11_00_0_0_00	x	LI	[D8]		; ( -- imm )
+147	D	b11_00_0_0_01	x	LI	[D16]
+148	D	b11_00_0_0_10	x	LI	[D32]
+149	D	b11_00_0_0_11	x	LI	[D64]		; LIF = LI of the IEEE 754 pattern read as signed (narrowest format)
+
+150	D	b11_00_0_1_00	x	UBFXI	[D8_8]		; ( v -- field )		lsb = imm, w = Imm (1..64)
+151	D	b11_00_0_1_01	x	SBFXI	[D8_8]		; ( v -- field )		sign extension
+152	D	b11_00_0_1_10	x	BFII	[D8_8]		; ( old ins -- new )
+-	D	b11_00_0_1_11	-	-	reserved
+
+;		LEXCMP (LRM 4.5.2): ( @g lg @d ld -- r ), r = -1 / 0 / +1
+;		lg, ld in bytes (clamped at 0 by CLAMP0); common prefix: r = sign(lg - ld)
+153	D	b11_00_1_0_00	x	LEXCMPB			; signed 8-bit components
+154	D	b11_00_1_0_01	x	LEXCMPW			; signed 16 bits
+155	D	b11_00_1_0_10	x	LEXCMPD			; signed 32 bits
+156	D	b11_00_1_0_11	x	LEXCMPQ			; 64 bits
+157	D	b11_00_1_1_00	x	ULEXCMPB			; unsigned 8 bits (CHARACTER, BOOLEAN, enumerations)
+158	D	b11_00_1_1_01	x	ULEXCMPW			; unsigned 16 bits
+159	D	b11_00_1_1_10	x	ULEXCMPD			; unsigned 32 bits
+-	D	b11_00_1_1_11	-	-	reserved		; ULEXCMPQ = LEXCMPQ
+
+;		SF=01
+160	D	b11_01_iiii	x	LI(imm4)			; ( -- imm4 )		imm4 unsigned 0..15
+
+;		the LLIR instructions LCA and LSPA are LIs;
+;		the assembler chooses the narrowest immediate size
+
+;		b11_10_TB_SZ	branches, displacements relative to the next instruction
+161	D	b11_10_00_00	x	BRA	[BR8]		; ( -- )
+162	D	b11_10_00_01	x	BRA	[BR16]
+163	D	b11_10_00_10	x	BRA	[BR24]
+164	D	b11_10_00_11	x	BRA	[BR32]
+
+165	D	b11_10_01_00	x	BT	[BR8]		; ( b -- )	branches if b /= 0
+166	D	b11_10_01_01	x	BT	[BR16]
+167	D	b11_10_01_10	x	BT	[BR24]
+168	D	b11_10_01_11	x	BT	[BR32]
+
+169	D	b11_10_10_00	x	BF	[BR8]		; ( b -- )	branches if b = 0
+170	D	b11_10_10_01	x	BF	[BR16]
+171	D	b11_10_10_10	x	BF	[BR24]
+172	D	b11_10_10_11	x	BF	[BR32]
+
+-	D	b11_10_11_00	-	-	reserved
+		...				...
+-	D	b11_10_11_11	-	-	reserved
+
+;		b11_11_FUN	control, opaque FUN
+173	D	b11_11_0000	x	TRAP	[D8]		; service n, see "Faults, traps and interrupts" §3
+-	D	b11_11_0001	-	-	reserved
+174	D	b11_11_0010	x	CALL	[D24]		; ( -- ) signed relative displacement, ±8 MiB
+-	D	b11_11_0011	-	-	reserved
+
+-	D	b11_11_0100	-	-	reserved
+-	D	b11_11_0101	-	-	reserved
+175	D	b11_11_0110	x	RTD	[D24]		; DSP -= n (size of the parameters), return
+176	D	b11_11_0111	x	RTD			; RTD 0
+
+177	D	b11_11_1000	x	UNLINK	[D8]		; lvl 1..14 only, fault 137 otherwise
+178	D	b11_11_1001	x	UNLINKR	[D8]		; lvl 1..14 only, fault 137 otherwise
+-	D	b11_11_1010	-	-	reserved
+-	D	b11_11_1011	-	-	reserved
+
+-	D	b11_11_1100	-	-	reserved
+-	D	b11_11_1101	-	-	reserved
+179	D	b11_11_1110	x	EXC_RAISE [D24]		; top = unsigned displacement in the level-0 frame
+180	D	b11_11_1111	x	RTX			; return from service or interrupt, DR := 0
+
+
+=========================================================================================
+	SEMANTICS OF THE CONTROL AND FRAME OPERATIONS
+	(transcription of codi_x86_64 in terms of architectural state)
+=========================================================================================
+
+LINK lvl, alloc			(lvl 0..14; lvl = 1111 forbidden)
+	if lvl > 0:
+		push DISPLAY[lvl]			; saves the previous FP on the data stack
+		DISPLAY[lvl] := DSP			; the FP points to the save cell
+	DSP += 8 * ceil(alloc / 8)
+	M64[CSP] := CFP ; CFP := CSP ; CSP += 8		; co-stack chaining cell
+
+UNLINK lvl			(lvl 1..14; UNLINK 0 forbidden because LINK 0 saves no FP)
+	DSP := DISPLAY[lvl]			; drops the locals
+	DISPLAY[lvl] := pop			; restores the previous FP
+	CFP := M64[CFP]				; the co-stack is NOT released (array result that escapes)
+
+UNLINKR lvl			(lvl 1..14)
+	DSP := DISPLAY[lvl]
+	DISPLAY[lvl] := pop
+	CSP := CFP				; releases the whole co-stack of the frame, LINK cell included
+	CFP := M64[CFP]
+
+	; UNLINK, UNLINKR: the D8 complement is 0..255; outside 1..14 (0, 15..255), it is
+	; fault 137, known at decode.
+
+CALL d		push_return(next PC) ; PC := next PC + d
+CALLI		@ := pop ; push_return(next PC) ; PC := @
+RTD n		DSP -= n ; PC := pop_return		; n unsigned
+RTX		PC := pop_return ; DR := 0		; end of a vectored service or of an interrupt handler
+
+EXC_MACH lvl, ctx		(lvl 0..14; lvl = 1111 forbidden)
+	base := DISPLAY[lvl] + ctx
+	M64[base+16] := DSP
+	M64[base+24] := RSP
+	M64[base+32] := CFP
+	M64[base+40] := CSP
+	M64[base+48] := lvl + 1			; nlvl
+	M64[base+56 + 8*i] := DISPLAY[i]	for i = 0..lvl
+	; M64[base+0] (PREV) and M64[base+8] (DISPATCH) are written by ordinary LLIR.
+
+EXC_RAISE top
+	ctx := M64[DISPLAY[0] + top]		; context on top
+	M64[DISPLAY[0] + top] := M64[ctx+0]	; POP before dispatch (LRM 11.4.1)
+	CFP := M64[ctx+32]
+	CSP := M64[ctx+40]
+	RSP := M64[ctx+24]			; discards the return addresses of the unwound frames
+	DISPLAY[i] := M64[ctx+56 + 8*i]		for i = 0..M64[ctx+48]-1
+	DSP := M64[ctx+16]
+	DR  := 0				; end of a possible fault handler
+	PC  := M64[ctx+8]			; DISPATCH of the frame that holds the context
+
+CHKt lvl, disp		[B24]	(lvl 0..14; lvl = 1111 forbidden)
+CHKIt lvl, disp, ofs	[C32]	(lvl 0..14; lvl = 1111 forbidden)
+	; ( v -- v )   t = B W D Q (MODE 01, signed bounds) or UB UW UD (MODE 11)
+	A := DISPLAY[lvl] + disp			; form B
+	A := M64[DISPLAY[lvl] + disp] + ofs		; form C
+	FST := load_t (A) ; LST := load_t (A + size_t)	; extension according to MODE
+	if v < FST or v > LST (signed comparison on 64 bits):
+		fault 131				; v stays on top (VTB[131] = ce_raise_)
+	; Replaces DUP / Lt / CLT / BT ce_raise_ / DUP / Lt / CGT / BT ce_raise_.
+	; Operands outside B24 / C32: the assembler emits this replacement sequence.
+
+UBFXI lsb, w	( v -- field )		(D8_8: imm = lsb 0..63, Imm = w 1..64, lsb + w <= 64)
+	field := (v >> lsb) and (2**w - 1)
+SBFXI lsb, w	( v -- field )		same field, sign-extended from bit w-1
+BFII lsb, w	( old ins -- new )
+	m := (2**w - 1) << lsb ; new := (old and not m) or ((ins << lsb) and m)
+	; w = 64 designates the whole word. codi_HX rejects w = 0 and lsb + w > 64; an image
+	; that contained such a form raises fault 137, like the dynamic forms.
+UBFX, SBFX, BFI		dynamic forms: lsb and w are taken from the stack, same semantics.
+	fault 137 if w = 0, or w > 64, or lsb > 64 - w (unsigned comparisons on 64 bits)
+	([Q6]). This form avoids computing lsb + w, which can wrap modulo 2^64
+	(lsb = 2^64 - 1, w = 2); for the immediate forms, lsb and w are in 0..255 and the two
+	formulations coincide.
+
+FEXP	( x n -- x**n )		n signed 64-bit integer ([Q7], [Q15])
+	n >= 0:		successive multiplications from left to right, like the reference;
+			x**0 = 1.0.
+	n < 0:		1.0 / x**|n|, |n| computed as unsigned (n = -2**63 included).
+	No fault: 0.0**n with n < 0 returns ±inf (IEEE 754, see "Notes" in §4 of the faults).
+	Duration ([Q15]): proportional to |n|, with no bound fixed by the ISA. Like the block
+	instructions, FEXP is not interrupted: it delays the delivery of interrupts
+	accordingly. An implementation may stop the loop as soon as the partial product p can
+	no longer change except in sign (p = ±0, ±inf or NaN, or |x| = 1.0), provided it
+	returns exactly the result of the complete loop (sign according to the parity of the
+	remaining multiplications, canonical NaN). A shorter method (repeated squaring)
+	changes the roundings: it does not conform.
+
+CVTIX	( i denom numer -- x )		fixed point, SMALL = NUMER / DENOM ([Q16])
+	x := quotient of the exact product i * denom (128 bits) by numer, truncated toward
+	zero. numer = 0: fault 128. Quotient outside [-2^63, 2^63): fault 129.
+CVTXI	( x numer denom -- i )
+	i := exact quotient x * numer / denom (exact product on 128 bits), rounded to the
+	nearest integer, ties away from zero. The rule applies to the exact quotient, whatever
+	the sign of denom. denom = 0: fault 128. Result, after rounding, outside
+	[-2^63, 2^63): fault 129.
+	; Precise faults: i, denom, numer (or x, numer, denom) stay in place.
+
+CO_VAR		n := pop ; push CSP ; CSP += 8 * ceil(n / 8)		; n unsigned
+HEAP_ALLOC	n := pop ; HP -= 8 * ceil(n / 8) ; push HP		; n unsigned
+	; fault 135 (CSP) or 136 (HP): precise, n stays on top, CSP and HP unchanged.
+
+
+=========================================================================================
+	HX IMAGE (load format produced by codi_HX)
+=========================================================================================
+
+The image is loaded at 0x400000. All words are little-endian. The header is that of TX
+format 3 images; only the signature changes, so that a single loader recognizes both
+formats.
+
+	+0	'TLALOCHX'			signature, 8 bytes
+	+8	1				HX format version
+	+16	0x400000			load address
+	+24	entry point			0x400078, first instruction
+	+32	size				bytes of code and data from 0x400078
+	+40	0				(TX: record size; not applicable)
+	+48	CEV				address of STANDARD.ce_raise_, 0 if absent;
+						the loader copies it to VTB[131]
+	+56	instruction table		address, 0 if absent
+	+64	number of instructions
+	+72	VTB				vector table, 256 aligned words; 0: provided by the loader
+	+80	FSCR				16-byte area, 0: provided by the loader
+	+88	0				reserved up to 0x78
+Words +72 and +80 were zero before V4: an older image reads as an image that leaves VTB
+and FSCR to the loader. The version remains 1 in HX (3 in TX).
+
+Contents, as in the x86 image:
+	- the code, in a single stream, starting at 0x400078;
+	- inline data (enumeration images, END_BLOC_DEF), jumped over by a BRA;
+	- strings and constants (STR, CST) after the code;
+	- the instruction table, aligned on 8 bytes, at the end of the image.
+Alignment padding (0x90) only occurs in the data.
+
+Instruction table: one 32-bit word per entry, in code order.
+	bits 29..0	address relative to 0x400000
+	bit 31		SUITE ("continuation"): the instruction continues the previous LLIR
+			instruction (second and following instructions of a fallback, TRAP of
+			SYS_EXIT, CHK sequence)
+	bit 30		VIDE ("empty"): LLIR instruction with no HX instruction; the entry holds
+			the address of the next HX instruction and designates no instruction. No
+			longer produced since LVA 1111,0 is emitted by no codi; the emulator still
+			reads it.
+The table has no role at run time and the machine ignores it. It allows the emulator:
+	- to distinguish instructions from inline data and to check that every PC reached is
+	  an instruction start; this check matters: in HX the byte 0x00 is a valid opcode
+	  (ET), whereas in TX code 0 is illegal;
+	- to count the executed LLIR instructions: an HX instruction represents 0 of them
+	  (SUITE) or 1 (1 + the number of VIDE entries that precede it, if any).
+The number of instructions at +64 is the number of entries, VIDE included.
+
+Number of instructions: one LLIR instruction gives one HX instruction, except:
+	- ofs fallbacks: 2 to 6 instructions (see "Fallbacks for fields that are too narrow";
+	  |disp| fallbacks take 3 to 8; codi_HX does not emit them yet);
+	- SYS_EXIT code: 2 instructions (LI code ; TRAP 0);
+	- replacement sequences of out-of-format CHKs: 8 instructions, more when their loads
+	  themselves take an ofs fallback.
+LVA 1111, 0 (identity) is emitted by no codi: it counts neither in TX nor in HX.
+The difference with the TX count is therefore exactly known, and the flags of the table
+allow the emulator to recover the LLIR count.
+
+Initialization is done by the loader, as in TX: stacks, DISPLAY, co-stack, heap, and
+since V4 the trap state:
+	DR := 0 ; IMASK := all bits at 1 (interrupts masked) ; FPC := 0 ; FCODE := 0 ;
+	LIM_DSP, LIM_RSP, LIM_CSP, LIM_HP from the regions it has allocated, reserves included
+	(see "Limits and reserves" in §4 of the faults);
+	VTB := header +72, or the address of a table of 256 null vectors that it reserves;
+	FSCR := header +80, or the address of a 16-byte area that it reserves;
+	if CEV /= 0: M64[VTB + 8*131] := CEV.
+The vector table and the FSCR area are in writable memory: the run-time writes VTB[n]
+at the elaboration of a task tied to an interrupt.
+These rules also apply to TX format 3 images, whose header is the same.
+
+
+=========================================================================================
+	FAULTS, TRAPS AND INTERRUPTS
+	(closes [Q2], [Q4] and [Q8]; no new opcode; carried over in V4)
+=========================================================================================
+
+1. PRINCIPLES
+
+The mechanism serves the Ada 83 compiler and it alone:
+	- a fault detected by the machine is equivalent, for the program, to a "raise" of the
+	  corresponding predefined exception, executed at the faulting instruction. The
+	  compiler's exception mechanism (EXC_MACH, EXC_RAISE, chain of contexts starting at
+	  top, layout of contexts) is used as is, without extension (§6);
+	- an external interrupt serves to call a task entry (RM 13.5.1, §7);
+	- a TRAP service is a call of a subprogram of the run-time or of the host.
+
+Three sources of traps:
+	- FAULTS: synchronous, detected by the machine (table §4);
+	- TRAP SERVICES: synchronous, requested by the program (I/O, clock, exit);
+	- INTERRUPTS: asynchronous, issued by a device.
+
+Each source carries a CODE n (0..255). Its vector is M64[VTB + 8*n]; VTB, base of the
+vector table (256 entries × 8 bytes = 2 KiB), is set by the loader (header +72 or a table
+it reserves, see "HX image").
+
+	0..14		TRAP services (table "TRAP SERVICES")
+	15		reserved
+	16..18		machine services (§7): executed by the machine, never vectored
+	19..31		reserved for services
+	32..63		external interrupts
+	64..127		reserved
+	128..159	faults (table §4)
+	160..255	reserved
+
+TRAP n with an unassigned code (15, 19..255): fault 137. A program therefore cannot
+simulate a fault or an interrupt through TRAP.
+
+2. ADDED STATE
+
+DR		"trap in progress" bit. Set to 1 on delivery of a fault or an interrupt;
+		reset to 0 by RTX and by EXC_RAISE; 0 at start-up.
+		As long as DR = 1: no interrupt is delivered, the stack limits are moved back
+		by their reserve (§4), and a fault or a vectored service halts the machine
+		(§3).
+FPC, FCODE	address and code of the last fault or interrupt.
+VTB, FSCR	set by the loader (header +72 and +80, see "HX image").
+LIM_DSP, LIM_RSP, LIM_CSP, LIM_HP
+		stack and heap limits, set by the loader from the regions it allocates;
+		the first three are specific to each task (CTX_RESTORE, §7).
+IMASK		interrupt mask, 32 bits: bit i = 1, interrupt 32+i masked.
+		All bits at 1 at start-up; modified by the SET_IMASK service (§7).
+		Faults and services are never maskable.
+
+FSCR is the address of a 16-byte area written by the machine at each fault or interrupt:
+M64[FSCR] := FPC ; M64[FSCR+8] := FCODE. This is the only exposure of FPC and FCODE: the
+handler reads them with ordinary loads. Since DR stays at 1 during the whole handler,
+FSCR cannot be rewritten before it has been read.
+
+The former CEV register is removed from the architectural state (§5).
+
+Header: the HX image header is kept ("HX image" section), which holds CEV (+48),
+VTB (+72) and FSCR (+80). Stack and heap bases and limits, the initial IMASK and
+DISPLAY[0] are the loader's responsibility, as it chooses the memory layout (tx_run:
+options -c, -t and -d). The header layout proposed by the "faults" revision is not
+adopted.
+
+3. TRAP SEMANTICS (normative)
+
+Fault n, raised by the instruction at address P:
+	1. if DR = 1: machine halt;
+	2. DR := 1 ; FPC := P ; FCODE := n ; M64[FSCR] := FPC ; M64[FSCR+8] := FCODE ;
+	3. PC := M64[VTB + 8*n] ; null vector: machine halt.
+Nothing is pushed on the return stack: a fault handler never returns, it ends with
+EXC_RAISE (§6). The handler only uses FSCR, DISPLAY[0], level-0 memory and the stack
+reserves.
+
+PRECISE FAULT: an instruction that raises a fault modifies no architectural state of its
+own execution, neither register, nor stack, nor memory. Only the delivery above modifies
+DR, FPC, FCODE, FSCR and PC. The handler therefore finds the machine in the state before
+the faulting instruction, with its operands in place on the data stack. Consequently:
+	- an instruction that writes several times (BLKMOV, BLKAND, BLKOU, BLKOUX, BLKNOT,
+	  LINK, EXC_MACH, CTX_SAVE) detects any fault before its first write; an
+	  implementation validates the address ranges and the limits first;
+	- an instruction that loads several registers (EXC_RAISE, CTX_RESTORE, UNLINK,
+	  UNLINKR) reads everything it needs before modifying any of them;
+	- in an out-of-order machine, this is what delivery at retirement naturally gives
+	  (appendix).
+
+Interrupt n, delivered between two instructions, if DR = 0 and n not masked:
+	1. DR := 1 ;
+	2. push_return(next PC) ;
+	3. FPC := next PC ; FCODE := n ; M64[FSCR] := FPC ; M64[FSCR+8] := FCODE ;
+	4. PC := M64[VTB + 8*n] ; null vector: machine halt.
+The handler ends with RTX.
+
+FPC designates a machine instruction: in an HX image, a fault raised in a fallback
+designates the instruction of the fallback that raised it; the instruction table of the
+image lets the emulator trace back to the LLIR instruction.
+
+TRAP service n with a non-null vector (vectored service):
+	1. if DR = 1: machine halt;
+	2. push_return(next PC) ;
+	3. PC := M64[VTB + 8*n].
+DR, FPC, FCODE and the FSCR area are not modified. The service ends with RTX.
+
+TRAP service n with a null vector, and machine services 16..18 whatever the vector:
+executed by the host (emulator) or by the machine as an atomic instruction, with the
+stack effect of their table, then PC := next PC. DR is not modified, except by
+CTX_RESTORE. A service 0..14 with a null vector that the machine does not implement:
+fault 137.
+
+RTX	PC := pop_return ; DR := 0.
+	Used only at the end of a vectored service or of an interrupt handler.
+
+Delivery of interrupts: between two instructions, never during an instruction, never
+while DR = 1 (hence never before the first instruction of a handler).
+Model: for each code n from 32 to 63, the platform presents to the machine a PENDING
+REQUEST (one bit). Between two instructions, if DR = 0, the machine chooses the lowest
+code that is pending and not masked, delivers it, and ACKNOWLEDGES it: the acknowledgement
+tells the platform that this request is served. A masked request, or one present while
+DR = 1, is not acknowledged and remains pending. Whether a request comes from a level held
+by the device or from a pulse latched by a controller is a platform matter (section "TAHX
+platform"): the ISA only knows pending requests and acknowledgement.
+
+Machine halt: fault or vectored service with DR = 1 (double fault); null vector of a
+fault or of an interrupt; impossible delivery of a fault or of an interrupt (invalid read
+of M64[VTB + 8*n] or invalid write of the FSCR area; push_return of an interrupt beyond
+LIM_RSP - R_RSP, the reserve being open since DR is already 1).
+The machine halts with a state image (emulator: PC, FPC, FCODE, DR, stack pointers). It is
+an error of the run-time or of the image, never an Ada situation; no recovery is
+provided.
+
+4. FAULT TABLE (128..159)
+
+code	condition				data stack state	Ada 83 exception
+128	DIV, REMI, MODI with b = 0;		operands in place	NUMERIC_ERROR  (RM 4.5.5)
+    CVTIX with numer = 0; CVTXI with
+    denom = 0
+129	ADD, SUB, MUL, NEG, ABS, INC, DEC:	operand(s) in place	NUMERIC_ERROR  (RM 4.5.7)
+    signed result outside [-2^63, 2^63);
+    DIV with a = -2^63 and b = -1;
+    CVTIX, CVTXI whose quotient is not
+    representable on 64 bits
+    (REMI and MODI then return 0: no fault)
+130	CVTFI, CVTFIR: NaN or outside		f in place	NUMERIC_ERROR
+    [-2^63, 2^63)
+131	CHK: v out of bounds			v on top	CONSTRAINT_ERROR (RM 11.1)
+132	invalid memory access, instruction	prior state	CONSTRAINT_ERROR
+    fetch included (detection specific
+    to the implementation)
+133	DSP would exceed its limit		prior state	STORAGE_ERROR
+134	RSP: push_return beyond its limit	prior state	STORAGE_ERROR
+135	CSP would exceed its limit		prior state	STORAGE_ERROR
+136	HEAP_ALLOC: HP after decrement below	prior state	STORAGE_ERROR
+    LIM_HP
+137	undefined operation: reserved opcode,	prior state	PROGRAM_ERROR
+    lvl = 1111 where it is forbidden,
+    UNLINK, UNLINKR outside 1..14,
+    dynamic UBFX/SBFX/BFI and UBFXI/
+    SBFXI/BFII with w = 0, w > 64 or
+    lsb > 64 - w, SHL, SHR, SAR with
+    n >= 64 (unsigned), TRAP with an
+    unassigned code or an absent service
+138..159	reserved
+
+All faults are precise (§3): the column recalls what the handler finds on the data stack,
+that is always the state before the instruction.
+
+Priority ([Q13]). An instruction may meet several fault conditions; only one is
+delivered, the first in this order:
+	1. 132 on the instruction fetch (one of its bytes is invalid);
+	2. 137 determined by the instruction bytes alone: reserved opcode, forbidden
+	   lvl = 1111, UNLINK or UNLINKR outside 1..14, UBFXI, SBFXI or BFII out of range,
+	   TRAP with an unassigned code;
+	3. 133, then 134: overflow of DSP or RSP determined by the effect of the instruction
+	   on the pointers (pushes, LINK, CALL, CALLI; TRAP belongs to point 6);
+	4. conditions on the operands taken from the stack, and on CSP and HP: 128, 129, 130,
+	   137 (shifts, dynamic bit fields), 135 (LINK, CO_VAR), 136 (HEAP_ALLOC); an
+	   instruction never meets two of them;
+	5. 132 on data accesses, reads and writes, including the read of the vector by TRAP
+	   and that of the block by CTX_RESTORE;
+	6. conditions on values that the instruction has read: 131 (CHK, bounds read); for
+	   TRAP 0..14, 134 (vectored service) or 137 (absent service) according to the vector
+	   read, then the faults of the service executed by the machine; for CTX_RESTORE, 133
+	   against the restored DSP and LIM_DSP.
+Several faults 132 of one instruction cannot be told apart: FSCR only receives FPC and
+FCODE, never the faulting address. Points 1 to 3 are known at decode and rename (TAHX_1:
+DECODE_BLOC, RENAME_DISPATCH), points 4 to 6 at execution.
+
+Limits and reserves:
+	- with DR = 0, the limit of a stack is LIM_x; with DR = 1, it is moved back by the
+	  reserve R_x: R_DSP = 1 KiB, R_RSP = 32 addresses (256 bytes), R_CSP = 1 KiB. These
+	  values are architectural ([Q14], frozen in V8): they decide which instruction
+	  faults. The fault trampoline and the interrupt handlers, which execute with
+	  DR = 1, must fit in these reserves. With r = R_x if DR = 1, r = 0 otherwise, and the
+	  conventions of the "Stacks" section, an instruction faults if it would bring,
+	  during or at the end of its execution, one of the pointers beyond its limit; the
+	  fault is precise (§3), the pointer keeps its previous value:
+		133	DSP > LIM_DSP + r		(the data stack grows upward)
+		134	RSP < LIM_RSP - r		(the return stack grows downward)
+		135	CSP > LIM_CSP + r		(CSP: first free byte)
+		136	HP  < LIM_HP			(HP: first allocated byte; no reserve)
+	  the comparisons being unsigned on 64 bits;
+	- the loader (and the run-time for each task) places these reserves beyond the
+	  limits, and makes disjoint the areas that the data stack (from DSP0 to
+	  LIM_DSP + R_DSP) and the heap (from LIM_HP to HP0) can reach: the heap and the data
+	  stack then cannot meet, and HEAP_ALLOC only compares HP with LIM_HP. If the stack
+	  grows toward the heap that grows down, in the same region, the condition reads
+	  LIM_HP >= LIM_DSP + R_DSP. In tx_run, the heap is below the data stack, in another
+	  region, and the condition is met by construction. Same rule for the co-stack (from
+	  CSP0 to LIM_CSP + R_CSP);
+	- thus the trampoline that raises STORAGE_ERROR runs in the reserve; EXC_RAISE
+	  restores an earlier DSP, RSP and CSP and resets DR to 0;
+	- the check may be done by the implementation by means of a guard page, provided that
+	  the fault remains precise (§3); LINK and CO_VAR, which may jump over a guard page,
+	  test the final value of DSP or CSP;
+	- CO_VAR and HEAP_ALLOC treat n as unsigned; an overflow in the computation of CSP or
+	  HP is a fault 135 or 136;
+	- a pop_return on an empty return stack (RSP = RSP0) cannot occur with generated
+	  code: it is not a fault; the emulator reports it as a diagnostic. Likewise for a pop
+	  on an empty data stack.
+
+Notes:
+	- ADD, SUB, MUL, NEG, ABS, INC, DEC raise fault 129 outside [-2^63, 2^63) (V7,
+	  "Integer arithmetic" section). For types narrower than 64 bits, the range check
+	  (RM 4.5.7) remains the responsibility of the generated code: after an operation
+	  whose result is not proven within bounds, the compiler emits a CHK against a bounds
+	  cell or an immediate comparison (CLT/CGT + BT). It raises CONSTRAINT_ERROR where
+	  RM 4.5.7 names NUMERIC_ERROR, which AI-00387 allows.
+	- SHL, SHR, SAR with n >= 64: fault 137 ([Q6]).
+	- Floating point: no fault, as in the x86 reference (IEEE 754, exceptions masked);
+	  FDIV by zero returns ±inf. Consistent with MACHINE_OVERFLOWS = FALSE, to be checked
+	  in the STANDARD package of TLALOC. Only conversions to integer (fault 130) are
+	  checked.
+
+5. CHK AND CEV
+
+An out-of-bounds CHK is fault 131, delivered like any fault. The CEV register disappears:
+if the CEV field of the header is non-zero, the loader installs it in VTB[131]. Existing
+code is unchanged: ce_raise_ is still entered by a jump without a return address, v on
+top; it raises CONSTRAINT_ERROR by the normal mechanism, hence through EXC_RAISE, which
+resets DR to 0. It may read FSCR to locate the error, except when it is reached through a
+replacement sequence (below). In practice ce_raise_ becomes entry 131 of the generic
+trampoline.
+
+Replacement sequence (out-of-format CHK, see the semantics of CHKt): it jumps to
+ce_raise_ by BT, without fault 131. v is on top, as at the delivery of the fault, but DR
+stays at 0 and the FSCR area is not written (it keeps the last fault or interrupt).
+ce_raise_ therefore can rely neither on FSCR nor on DR to locate the error; its EXC_RAISE
+resets DR to 0 in both cases, which makes the two paths equivalent for the program.
+
+Transition: as long as the run-time provides no trampoline, the other fault vectors are
+null and a fault halts the machine with its state image (§3). This is the current
+behaviour of tx_run, which stops on a diagnostic. Only the CHK takes, through VTB[131],
+the same path as before; in addition it sets DR to 1 until the EXC_RAISE of ce_raise_.
+
+6. FROM FAULTS TO ADA EXCEPTIONS
+
+The trampoline is ordinary LLIR code of the run-time, installed on vectors 128..159 by
+the image (table provided at +72) or by the run-time at its initialization. It:
+	1. reads FCODE (and FPC if it wants to locate the error) in the FSCR area;
+	2. translates FCODE into a predefined exception (table §4);
+	3. executes the same sequence as the code generated by TLALOC for "raise E": identity
+	   of the exception stored where the compiler places it, then EXC_RAISE top.
+	   FPC may be copied to a run-time cell, for the message of an unhandled exception.
+The machine knows neither the identity of exceptions nor the location of top: there is
+no hard-wired implicit EXC_RAISE. EXC_MACH and EXC_RAISE keep their semantics (EXC_RAISE
+only resets DR to 0), and the layout of contexts remains that of the compiler.
+Propagation, re-raise ("raise;") and unhandled exceptions remain entirely the
+responsibility of the generated code and the run-time. An Ada handler does not
+distinguish an exception coming from a fault from an exception raised explicitly: this is
+the semantics of RM 11.
+
+7. INTERRUPTS AND TASK ENTRIES (Ada 83, RM 13.5.1)
+
+An interrupt is tied to a task entry by an address clause ("for E use at N"). On this
+machine, the value N is the code n of the interrupt (32..63), the same convention as DEC
+Ada, where the "address" designated the vector.
+
+	- At the elaboration of the task, the run-time writes VTB[n] and unmasks n
+	  (SET_IMASK).
+	- The handler is ordinary LLIR code of the run-time; it executes with DR = 1, hence
+	  without being interrupted. It reads FCODE in the FSCR area and finds the entry; it
+	  records the entry call, issued according to RM 13.5.1 by a hardware task with a
+	  priority higher than any task, in the run-time queue; it may mask n as long as the
+	  call is not accepted. If the owner task waits on this entry and must take control,
+	  it switches by CTX_SAVE and CTX_RESTORE; otherwise it ends with RTX.
+	- The handler calls no vectored service and raises no exception.
+	- In the code of the tasks, the run-time protects the entry queues that it shares
+	  with the handlers by bracketing their manipulation with SET_IMASK.
+	- The rendezvous itself (opening of the barrier, resumption of the task) belongs to
+	  the tasking layer of the run-time, outside the ISA.
+
+DSP, RSP, CFP, CSP, DR, DISPLAY and the limits LIM_DSP, LIM_RSP, LIM_CSP belong to the
+context of the current task. None of them has direct access: the following machine
+services save and restore them. HP, LIM_HP, VTB, FSCR and IMASK are not part of the task
+context saved by CTX_SAVE. The level-0 cells specific to each task (top, identity of the
+current exception) are ordinary memory, exchanged by the run-time at the switch.
+
+	16	CTX_SAVE	( @blk -- r )
+		M64[blk]    := next PC			; resumption point
+		M64[blk+8]  := DSP			; after removal of @blk
+		M64[blk+16] := RSP
+		M64[blk+24] := CFP
+		M64[blk+32] := CSP
+		M64[blk+40] := DR
+		M64[blk+48] := LIM_DSP ; M64[blk+56] := LIM_RSP ; M64[blk+64] := LIM_CSP
+		M64[blk+72 + 8*i] := DISPLAY[i]	for i = 0..14	(192-byte block)
+		push 0
+	17	CTX_RESTORE	( @blk -- )
+		restores DSP, RSP, CFP, CSP, DR, LIM_DSP, LIM_RSP, LIM_CSP and DISPLAY[0..14]
+		from blk ; push 1 ; PC := M64[blk].
+		Execution resumes after the corresponding CTX_SAVE, with r = 1 (like
+		setjmp / longjmp). To create a task, the run-time builds a block (entry point,
+		stacks, limits, DISPLAY[0], DR = 0) and restores it.
+	18	SET_IMASK	( m -- old )
+		IMASK := m (32 least significant bits); returns the previous value. Takes effect
+		from the next instruction.
+
+Switch from an interrupt handler: the CTX_SAVE of the interrupted task records DR = 1 and
+a resumption point in the handler; the address of the interrupted instruction is on top
+of its return stack. When the run-time later restores this block, the handler resumes
+with DR = 1 and ends with RTX, which brings the task back to the interrupted instruction
+and resets DR to 0.
+
+8. CHECKLIST FOR THE EMULATOR (tx_run)
+
+	- DIV/REMI/MODI: test b = 0, then -2^63 / -1 (fault for DIV only; REMI and MODI then
+	  return 0, whereas tx_run currently reports all three);
+	- ADD, SUB, MUL, NEG, ABS, INC, DEC: signed overflow, fault 129; SHL, SHR, SAR:
+	  n >= 64, fault 137 (tx_run, V7: stop on diagnostic pending the vectors);
+	- CVTFI/CVTFIR: test NaN and the range [-2^63, +2^63);
+	- on each write: DSP, RSP, CSP against their limit, reserve included if DR = 1; LINK
+	  and CO_VAR on the final value;
+	- HEAP_ALLOC: HP after decrement against LIM_HP, n unsigned;
+	- reserved opcodes, forbidden lvl, invalid bit fields, unassigned TRAPs: fault 137;
+	- trap: exact order of §3, jump through the table, DR;
+	- precise faults: each instruction checks before modifying (pop after the checks, or
+	  restore DSP); blocks, LINK, EXC_MACH, CTX_SAVE validate their ranges before the
+	  first write; EXC_RAISE and CTX_RESTORE read the whole block before modifying a
+	  register;
+	- services with a null vector executed by the host; services 16..18;
+	- interrupts: delivery between instructions, DR = 0, IMASK filter;
+	- machine halt: state image.
+	- a faulting instruction counts as executed, in TX as in HX (like a failing CHK
+	  today): the counts of the two formats remain comparable;
+	- a PC that is not an instruction start (image with table) remains a diagnostic of
+	  the emulator: the machine cannot detect it, it is not a fault;
+	- none of this affects decoding: TX and HX share the same implementation.
+	- V5: NaN result of FADD, FSUB, FMUL, FDIV, FEXP replaced by the canonical NaN
+	  (tx_run currently returns the host's NaN);
+	- V5: count unaligned accesses, by size, in the -p report;
+	- V5: tx_run keeps the return stack in an array and saves an index in place of RSP.
+	  This conforms as long as RSP stays opaque to the program; with tasks (CTX_SAVE,
+	  CTX_RESTORE, blocks built by the run-time), RSP will have to be an address in the
+	  sense of the "Stacks" section.
+	- V8: fault priority (§4): checks in the order 1 to 6. As long as tx_run stops on a
+	  diagnostic, only the announced code depends on it;
+	- V8: UNLINK, UNLINKR with a complement outside 1..14: fault 137. Decodeur_HX
+	  converts the complement to Integer_8: the values 128..255 must be rejected before;
+	- V8: CVTIX with numer = 0, CVTXI with denom = 0: fault 128 (tx_run already stops on
+	  a diagnostic). CVTXI: tx_run, like the reference, compares |remainder| with
+	  ceil(denom / 2) as unsigned, which is right only for denom > 0, and does not check
+	  the rounded result (2^63 - 1 rounded up);
+	- V8: FEXP: |n| as unsigned (tx_run computes abs SB, wrong for n = -2^63); exact early
+	  termination recommended, without which a loop of 2^63 iterations does not end;
+	- V8: reserves R_DSP, R_RSP, R_CSP at the frozen values;
+	- V8: machine halt when the delivery of a fault or an interrupt is impossible (§3);
+	- V8: -p report: maximum LINK size and maximum |disp| per level, to follow the margin
+	  of level 0 ([Q5]).
+
+
+=========================================================================================
+	TRAP SERVICES (proposed numbering, stack effects identical to the
+	SYS_xxx macros of codi_x86_64; SYS_EXIT takes its code from the stack)
+=========================================================================================
+
+	0	EXIT			( code -- )	the LLIR macro SYS_EXIT code (immediate code)
+							assembles as LI code ; TRAP 0
+	1	CLOCK_GETTIME
+	2	PUT_CHAR
+	3	PUT_STR
+	4	GET_CHAR
+	5	GET_STR
+	6	FILE_CREATE
+	7	FILE_OPEN
+	8	FILE_SET_POS
+	9	FILE_GET_POS
+	10	FILE_GET_SIZE
+	11	FILE_WRITE
+	12	FILE_READ
+	13	FILE_CLOSE
+	14	FILE_DELETE
+	15		reserved
+	16	CTX_SAVE	( @blk -- r )		machine service
+	17	CTX_RESTORE	( @blk -- )		machine service
+	18	SET_IMASK	( m -- old )		machine service
+	19..31		reserved for services
+	32..255		interrupts, faults, reserved: TRAP forbidden (fault 137)
+
+
+=========================================================================================
+	SETTLED QUESTIONS
+=========================================================================================
+
+[Q1]	One or two code streams?			=> SINGLE STREAM
+	Measurement: TLALOC compiling expander-expressions.adb (616,388 static instructions,
+	5.28 billion executed), exact layout according to this table, relaxed branches.
+					single stream		double stream
+		code size		1.58 MB (2.56 B/i)	1.67 MB (2.70 B/i)	+5.5 %
+		bytes read per instr.	2.41			2.56			+6 %
+		cache lines		8,813			9,996			+13 %
+	Fetch throughput (instructions per cycle, perfect prediction), at equal bandwidth:
+	16 bytes/cycle, L = 6: 4.32 versus 3.73 (blocks 8 + 8); 32 bytes/cycle, L = 8: 5.77
+	versus 5.35 (blocks 16 + 16). The double stream wastes block ends in two streams at each
+	redirection, and its argument stream becomes the bottleneck.
+	Its only advantage, finding the opcodes without computation, is obtained in a single
+	stream thanks to the length invariant (the length depends on the opcode alone).
+	Consequences: a single PC; branches BR8 to BR32 with a single displacement; CALL D24
+	(±8 MiB) is enough (1.6 MB of code); return addresses, LSPA, DISPATCH and RTX carry
+	only one address.
+
+[Q2]	TRAP and RTX.					=> see "Faults, traps and interrupts"
+	No supervisor mode in v1. TRAP n pushes the return address on the return stack and
+	jumps through the vector table (VTB, header +72 or loader); a null vector designates a
+	service executed by the host or by the machine. RTX: PC := pop_return ; DR := 0.
+
+[Q3]	LI imm4: signed or unsigned?			=> UNSIGNED (0..15)
+	The value 8, size of a quad, is frequent in address arithmetic; small negative values
+	are rare and fit in LI imm8. Assumption used by the code size measurement (1.58 MB).
+
+[Q4]	Hardware faults.				=> fault table 128..137
+	Division by zero, DIV of -2^63 by -1, CVTFI/CVTFIR out of range: NUMERIC_ERROR;
+	stacks and heap exhausted: STORAGE_ERROR; CHK and invalid access: CONSTRAINT_ERROR;
+	undefined operation: PROGRAM_ERROR. No implicit EXC_RAISE: a run-time trampoline
+	executes the compiler's "raise E" sequence.
+
+[Q5]	Extension of displacements.			=> no extended format in V1 (V8)
+	The x86 reference accepts disp and ofs on 32 signed bits; here disp is limited to
+	±512 KiB, LINK to 1 MiB and ofs to 0..255. FMT = 11 is taken by CHK in the load
+	groups; it remains free in MODE 00 and 10 (LVA, LINK, EXC_MACH, stores).
+	Measurement (TLALOC compiling expander-expressions.adb, raw code, tx_run -p reports TX
+	and HX of 28 September):
+		- family C: 4,797,073 out-of-format accesses (1.0 % of C accesses, 0.063 % of the
+		  instructions of the raw code), all with ofs outside 0..255: FILE_TYPE (ofs > 255,
+		  found by the earlier measurement) and negative ofs of [Q9], whose share remains
+		  to be counted (tx_run -f). The HX image executes exactly that many more
+		  instructions than the LLIR, apart from the TRAP of SYS_EXIT: each fallback takes
+		  2. They are all loads or LIVAs (ULIB 2.14 million, ULID 1.48 million, LIVA
+		  1.18 million, one LID), no store;
+		- family B and LINK: no out-of-format case. This is structural: the expander
+		  places array data on the co-stack (CO_VAR) and keeps in the frame only the
+		  pair of pointers (data pointer, info pointer). Only level 0, which gathers the
+		  library-level variables of all units, grows with the program; its margin with
+		  respect to ±512 KiB is not measured yet (maximum data stack, level 0 included:
+		  336 KiB).
+	Decision:
+		- no extended format in the frozen ISA. In family C it would gain nothing: in
+		  MODE 01 and 11, FMT 11 is taken by CHK, and an extended LIVA followed by
+		  Lx 1111,0 takes 2 instructions, like the fallback. In family B, no need is
+		  measured;
+		- the fallbacks cover all accesses: codi_HX must emit those for |disp| (see
+		  "Fallbacks for fields that are too narrow") instead of refusing to assemble;
+		  only LINK beyond 1 MiB remains non-encodable;
+		- RESERVED FORMAT B40, documented so that no other assignment takes it:
+		  [OP] [lvl 39..36 | 0000 | disp 31..0], i.e. 6 bytes; lvl stays in bits 7..4 of
+		  the first byte of the complement. Planned opcodes, in FMT 11 of MODE 00 of
+		  family B: LINK [B40] b01_00_11_00 (unsigned size, 4 GiB), EXC_MACH [B40]
+		  b01_00_11_01 and LVA [B40] b01_00_11_11 (signed disp, ±2 GiB), i.e. parity
+		  with the 32-bit disps of the x86 reference. As long as they are not assigned,
+		  they are reserved opcodes (fault 137, no length): assigning them later changes
+		  no existing binary. b01_00_11_10 and FMT 11 of MODE 10 (stores) remain free;
+		- follow-up: tx_run -p reports the maximum LINK size and the maximum |disp| per
+		  level (margin of level 0); reordering the components of FILE_TYPE becomes
+		  optional (0.06 % of the instructions).
+	The only reason to assign B40 now would be to guarantee that a program that assembles
+	for x86 also assembles for HX, including with more than 1 MiB of library-level
+	variables; nothing requires it for TLALOC.
+
+[Q6]	Shift counts and field widths.			=> fault 137 out of bounds (V7)
+	SHL, SHR, SAR: n in 0..63, fault 137 otherwise (up to V6: n modulo 64, like the
+	reference). Bit fields: w in 1..64 and lsb + w <= 64, written lsb <= 64 - w for the
+	dynamic forms (V8, no overflow of the sum); w = 64 designates the whole word (the x86
+	reference, which then built a null mask, is corrected in V7); a dynamic form outside
+	these bounds is fault 137.
+	Measurement on TLALOC (tx_run -p, counts now separated): 0 shifts by 64 positions or
+	more; 0 fields of width 0, 64 or more than 64; 0 fields with lsb + w > 64. The dynamic
+	forms UBFX, SBFX, BFI are in fact no longer executed: everything goes through UBFXI
+	and BFII.
+
+[Q7]	FEXP with n < 0.				=> x**n = 1.0 / x**(-n) (RM 4.5.6)
+	See the semantics of FEXP. tx_run already does it; codi_x86_64 still deviates.
+
+[Q8]	Heap exhaustion.				=> fault 136 (HP below LIM_HP), STORAGE_ERROR.
+
+[Q9]	ofs signed or unsigned?				=> UNSIGNED, fallback for ofs < 0
+	TLALOC emits negative ofs (DIRECT_IO: LIA 1, -GFP_ofs, -ELEMENT_TYPE__outadr_ofs).
+	The field stays unsigned, because positive field offsets dominate: a signed ofs would
+	lose 8..15 in C24 (frequent with quads) and 128..255 in C32. A negative ofs goes
+	through the fallback (see "Fallbacks for fields that are too narrow"), whose B access
+	carries ofs in its signed disp. To be confirmed by the count of fallbacks with
+	negative ofs on TLALOC (tx_run -f: line "replis C ... (ofs negatif ...)").
+
+[Q11]	Overflow of 64-bit integer types.		=> basic operations checked (V7)
+	ADD, SUB, MUL, NEG, ABS, INC, DEC raise fault 129 ("Integer arithmetic" section): no
+	new opcode. The forms ADDV, SUBV, MULV proposed in V5 are dropped. Prior measurement on
+	TLALOC: the only overflows came from the bounds "-2**63 .. 2**63-1" computed at run
+	time; the rewritten source no longer produces any.
+	Still desirable in the front end: evaluate static universal expressions exactly at
+	compile time.
+	([Q10], specific to LINKX, is moot.)
+
+[Q12]	Start-up of the hardware machine.		=> platform (V5)
+	Belongs to the platform, not to the ISA: see "TAHX platform".
+
+[Q13]	Fault priority.					=> order of §4 of the faults (V8)
+	Without a rule, two conforming implementations could deliver different codes for the
+	same instruction (LINK: 133 and 135; load: 132 and 133). The chosen order follows the
+	detection in TAHX_1: faults known at decode and rename (132 on fetch, 137, 133, 134)
+	come before those of execution; among the latter, conditions on operands come before
+	accesses, and conditions on values read come last.
+
+[Q14]	Stack reserves.					=> frozen (V8)
+	R_DSP = 1 KiB, R_RSP = 32 addresses, R_CSP = 1 KiB, the values of TAHX_1_isa.vhd.
+	They are observable (they decide which instruction faults when DR = 1) and could not
+	remain provisional. Making them loader parameters would have added words to the header
+	and to the boot block.
+
+[Q15]	Duration of FEXP.				=> semantics unchanged, unbounded duration (V8)
+	The result of the left-to-right loop cannot, in general, be reproduced by a shorter
+	method; changing the method would separate HX from TX and from the reference. The
+	duration is proportional to |n| (up to 2^63 multiplications), as that of the blocks is
+	to len. Exact early termination brings it down to about 1100 multiplications at most
+	when |x| <= 1/2 or |x| >= 2; it remains long when |x| is close to 1. The ISA therefore
+	does not bound the interrupt latency; to be reconsidered if a real-time platform
+	requires it.
+
+[Q16]	Fixed point: CVTIX, CVTXI.			=> zero divisor: fault 128 (V8)
+	CVTIX truncates toward zero (idiv of the reference, Mul_Div of tx_run); CVTXI rounds to
+	nearest, ties away from zero, a rule now stated on the exact quotient.
+	Zero divisor: fault 128, like DIV. Non-representable result (after rounding for
+	CVTXI): fault 129.
+
+=========================================================================================
+	OPEN QUESTIONS
+=========================================================================================
+
+	None in V8. The answers to the settled questions fix the ISA proposed for freezing.
+
+=========================================================================================
+	DISCREPANCIES FOUND IN THE codi_x86_64 REFERENCE
+=========================================================================================
+
+	CVTFIR	cvtsd2si rounds according to MXCSR (to nearest even): 2.5 gives 2.
+		Ada RM 4.6 requires rounding away from zero: 2.5 must give 3.
+	UBFX, SBFX, BFI	w = 64: corrected in V7 (mask by (-1) SHR (64 - w)). Out-of-range
+		dynamic forms (w = 0, lsb + w > 64): no fault 137 on x86.
+	FEXP	n < 0 not handled, see [Q7].
+	REMI, MODI	idiv raises #DE for -2^63 / -1; the specification returns 0 without
+		fault.
+	CVTFI, CVTFIR	NaN or out of range: 0x8000000000000000 on x86; here fault 130.
+	ADD..DEC, MUL	codi_x86_64L (V7): jo to ud2; SIGILL stops the process, like SIGFPE
+		for a division by zero, instead of raising NUMERIC_ERROR.
+	SHL..SAR	codi_x86_64L (V7): count > 63 to ud2.
+	FADD..FDIV	NaN: x86 propagates the NaN of the first operand (a) or returns the
+		"indefinite" NaN 0xFFF8000000000000; here the canonical NaN 0x7FF8000000000000.
+	UNLINK 0	would pop an FP that LINK 0 did not push; must never be emitted.
+	CVTIX, CVTXI	zero divisor: idiv raises #DE (SIGFPE) instead of fault 128. CVTXI:
+		the rounding compares |remainder| with ceil(denom / 2) as unsigned (right for
+		denom > 0 only) and its result is not checked (2^63 - 1 rounded up wraps).
+
+
+=========================================================================================
+	TAHX PLATFORM (outside the ISA; proposals for TAHX_1)
+=========================================================================================
+
+What follows does not concern programs: it is the way a TAHX machine starts and receives
+its interrupts. The emulator does not need it (its loader sets the initial state).
+
+Start-up (former [Q12]).
+	No instruction writes VTB, FSCR or LIM_HP, and HP only changes through HEAP_ALLOC, which
+	decrements it: their initial values can only come from start-up. At reset, the machine
+	reads at address BOOT_BLOCK a boot block in the format of the CTX_RESTORE block
+	(192 bytes: PC, DSP, RSP, CFP, CSP, DR, LIM_DSP, LIM_RSP, LIM_CSP, DISPLAY[0..14]),
+	followed by HP (+192), LIM_HP (+200), VTB (+208), FSCR (+216) and IMASK (+224), i.e.
+	232 bytes.
+	The boot software, or the host that loads the image, prepares this block from the
+	image header, according to the initialization rules of the "HX image" section.
+
+Interrupts.
+	The machine receives a vector of 32 pending requests, IRQ_PENDING(i) for code 32 + i,
+	and returns an acknowledgement (IRQ_ACK, with the delivered code) when it delivers an
+	interrupt. It does the masking (IMASK) and the choice of the lowest code itself.
+	An external interrupt controller shapes the requests of the devices:
+		- level source: the request follows the line; the acknowledgement only serves as
+		  a trace, the handler drops the line by servicing the device;
+		- pulse source: the controller latches the pulse in a pending bit and clears it
+		  on acknowledgement.
+	Presenting a single code at a time (VALID/ACK) would not be enough: a masked code
+	would block the higher, unmasked codes waiting behind it.
+
+
+=========================================================================================
+	APPENDIX: MICRO-ARCHITECTURE ELEMENTS (limit study on TLALOC)
+=========================================================================================
+
+Measured program: TLALOC compiling expander-expressions.adb under tx_run, after CHK,
+UBFXI, narrow loads and peephole (5.28 billion LLIR instructions; the V7 measurement,
+5.26 billion, is also on the rewritten code). The raw code, before these rewritings,
+executes 7.62 billion of them (tx_run -p reports TX and HX of 28 September, after
+correction of the overflows); the savings that these reports estimate recover the
+rewritten count: 7.62 - 1.53 (CHK) - 0.44 (bit fields, narrow loads) - 0.40 (peephole)
+= 5.25 billion.
+Assumed latencies: ALU 1, load 3, indirect load 6, MUL 3, division 20.
+IPC in LLIR instructions per cycle.
+
+Sequential stack machine (each instruction waits for the previous one): IPC 0.46.
+
+Mechanisms retained, in order of effect:
+1. Renaming of the evaluation stack. The decoder tracks DSP; each cell receives an
+   absolute name (address / 8) and a physical register. 90 % of the words written are
+   stack cells.
+2. Cautious load/store queue (LSQ) exploiting the (lvl, disp) addressing: DISPLAY being
+   known at decode, the address of a direct access is known from decode on.
+   Only indirect stores (2.9 % of the words written) make loads wait, until their
+   address is computed. No memory dependence predictor is needed: 86 to 95 % of the
+   memory oracle (store sets: 70 to 77 %).
+3. Stack cache: the 64 to 128 words below DSP are held in renamed registers, addressed
+   by interval. A direct access (current lvl, disp) or a pointer access whose address
+   falls in this interval is served by these registers; the others go to memory. A
+   direct read waits, as in 2, until older pointer stores have computed their address:
+   this is what ensures coherence with pointers, without any information from the
+   compiler.
+   Measurements: 92 % of local reads are less than 64 words below the top;
+   82 % of pointer accesses target the stack (40 % the 128-word slice).
+   Gain: +12 % (window 64) to +13 % (window 256) over the machine without stack cache;
+   result identical, within 1 %, to a renaming guided by the variable exposure declared
+   by the compiler (3.37 versus 3.35; 5.08 versus 5.10).
+   A (lvl, disp) pair stored as a reference would not be enough: 19 % of pointer
+   accesses to the stack are made from another activation of the same level
+   (recursion, sibling procedures); flat addresses do not have this defect.
+4. Classic branch prediction (gshare 64 K, return stack 32):
+   0.74 mispredictions per 1000 instructions; less than 6 % loss with a 10-cycle
+   penalty.
+
+IPC of the complete machine (1 + 2 + 3 + 4, 128-word stack cache):
+	window (instructions in flight)			128		256
+	width 4						3.49		3.53
+	width 6						3.94		4.49
+	width 8						4.08		4.82
+	unlimited width					4.23		5.10
+	(memory oracle, unlimited width: 5.25 with a window of 256)
+
+Faults and interrupts in an out-of-order machine:
+	- a fault is recorded in the ROB entry of the faulting instruction and delivered at
+	  its retirement, when it is the oldest; younger instructions are cancelled as after a
+	  misprediction. The precise fault of §3 follows: the faulting instruction retires
+	  nothing, its data stack is the one before the instruction. Block instructions, which
+	  write too much for the LSQ to keep their stores until retirement, execute at the
+	  head of the ROB, after validation of their ranges;
+	- an interrupt is taken at retirement, between two retired instructions; the machine
+	  flushes the pipeline and redirects fetch to the vector;
+	- DR, IMASK, FSCR and VTB only change at retirement; the instructions that read or
+	  write them (RTX, EXC_RAISE, TRAP, machine services) are serializing; TRAP reads DR
+	  (halt if DR = 1 and vectored service) and its vector;
+	- fault priority (§4 of the faults) is read in the ROB entry: a fault recorded at
+	  decode or rename (points 1 to 3) prevents the execution of the instruction, which
+	  therefore cannot detect another one;
+	- stores are written to memory only at retirement: a fault leaves no write of a
+	  younger instruction.
+
+Reserved opcodes reused internally by TAHX_1: C7 (UOP_LIHI, second half of LI imm64),
+EC (UOP_ILLEGAL) and ED (UOP_FETCH_FAULT) exist only in the decoded form. The decoder
+replaces any reserved opcode of the code by UOP_ILLEGAL, so that no program reaches them;
+assigning one of these codes some day would require moving the micro-operation.
+
+Single-stream fetch, 32-byte block per cycle: 4.82 instructions per cycle (L = 6) and
+5.77 (L = 8), i.e. about 20 % margin over the execution engine.
+Balance points: window 128, width 6, block 32 (IPC 3.9); window 256, width 8, block 32
+(IPC 4.8). Physical registers: about 64 (slice) + window size.
