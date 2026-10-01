@@ -49,15 +49,8 @@ is				-------------
    type exec_result_bus_t	is array( natural range <> ) of exec_result_t;
 
 		----------------------------------------------------------------
-		-- Réveil : extrait de exec_result_t, diffusé à toutes les files
+		-- Réveil : wakeup_t et wakeup_bus_t sont dans RENAME_TYPES
 		----------------------------------------------------------------
-
-   type wakeup_t		is record
-			  valid		: std_logic;		-- En effet
-			  tag		: physical_tag_t;		-- Pour qui
-			end record;
-
-   type wakeup_bus_t	is array( natural range <> ) of wakeup_t;	-- Table de réveils
 
 		--------------------------------------------------------------------------------
 		-- Registres de co-pile et de tas

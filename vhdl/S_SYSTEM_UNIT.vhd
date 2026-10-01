@@ -56,9 +56,15 @@ use work.BACKEND_TYPES.all;
 		--	       REDIRECT_O vers DISPATCH.
 		--  Dans ces cas REDIRECT_O porte retire_head = '1'.
 		--
-		--  Les accès mémoire de l'unité passent par MEM_xxx, arbitré avec la LSQ dans
-		--  le sommet. Ils ne se produisent que machine vide : aucune question de
-		--  cohérence avec les accès en vol.
+		--  Les accès mémoire de l'unité passent par MEM_xxx, port DCACHE_SYSTEM du cache
+		--  de données. Ils ne se produisent que machine vide : aucune question de
+		--  cohérence avec les accès en vol. La mémoire n'est pourtant à jour qu'après
+		--  deux attentes : STACK_MAINT (le cache de pile et la pile des retours rangent
+		--  les mots qu'ils tiennent en registre) et LSQ_DRAINED (les rangements retirés
+		--  et les SPILL sont écrits). Toute SYNC, CTX_SAVE et la lecture du contexte par
+		--  EXC_RAISE en ont besoin. Une interruption ou un TRAP vectorisé, qui écrivent
+		--  l'adresse de retour en mémoire (push_retour) puis resynchronisent RSP, passent
+		--  donc aussi par là ; une faute n'écrit que la zone FSCR.
 		--------------------------------------------------------------------------------
 
 
@@ -96,6 +102,14 @@ is                              -----------
       SYNC_VALID_o		:out std_logic;
       SYNC_FRAME_o		:out frame_state_t;			-- vers RENAME_DISPATCH
       SYNC_COPILE_o		:out copile_state_t;		-- vers l'unité COMPLEX
+
+		--------------------------------------------------
+		-- Mise à jour de la mémoire avant un accès système
+		--------------------------------------------------
+
+      STACK_MAINT_o		:out stack_maint_t;			-- vers RENAME_DISPATCH
+      STACK_MAINT_DONE_i	:in  std_logic;
+      LSQ_DRAINED_i		:in  std_logic;				-- ni rangement retiré ni SPILL en attente
 
 		-----------------------------------------
 		-- État des déroutements utilisé ailleurs

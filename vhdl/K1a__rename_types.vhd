@@ -108,6 +108,134 @@ is                              ------------
    type renamed_block_t	is array( 0 to RENAME_WIDTH - 1 ) of renamed_instruction_t;
 
 
+		--------------------------------------------------------------------------------
+		-- Réveil : extrait de exec_result_t, diffusé à toutes les files d'émission et à
+		-- RENAME_DISPATCH, qui tient les bits « prêt » des registres physiques.
+		-- (Déplacé de BACKEND_TYPES : RENAME_DISPATCH, analysé avant, en a besoin.)
+		--------------------------------------------------------------------------------
+
+   type wakeup_t		is record
+			  valid		: std_logic;		-- En effet
+			  tag		: physical_tag_t;		-- Pour qui
+			end record;
+
+   type wakeup_bus_t	is array( natural range <> ) of wakeup_t;	-- Table de réveils
+
+		--------------------------------------------------------------------------------
+		-- Cache de pile et pile des retours : échanges avec la mémoire
+		--
+		-- Le cache de pile (STACK_CACHE_WORDS mots sous DSP) et la pile des retours tenue
+		-- en registres sont des caches à écriture différée de la mémoire. RENAME_DISPATCH
+		-- en est le seul maître ; la LSQ fait les accès.
+		--
+		--   SPILL  un mot tenu en registre quitte le cache (DSP avance, pile des retours
+		--          trop profonde) : la LSQ le range en mémoire depuis son registre
+		--          physique. committed = '0' : rattaché à rob_index, écrit au retrait de
+		--          cette instruction ; committed = '1' : écrit sans attendre (maintenance
+		--          demandée à la tête du ROB).
+		--   FILL   un mot dépilé qui n'est pas tenu en registre (rangé plus tôt, machine
+		--          resynchronisée, mot sous le cache) : la LSQ le lit en mémoire dans le
+		--          registre physique neuf tag ; le résultat revient par le bus des
+		--          résultats de la LSQ, avec completion.valid = '0'.
+		--------------------------------------------------------------------------------
+
+   constant STACK_XFER_WIDTH		: positive	:= 2;			-- échanges par cycle
+
+   type stack_xfer_kind_t		is ( XFER_SPILL, XFER_FILL );
+
+   type stack_xfer_t		is record
+			  valid		: std_logic;
+			  kind		: stack_xfer_kind_t;
+			  address		: address_t;		-- mot de 64 bits
+			  tag		: physical_tag_t;		-- SPILL : source ; FILL : destination
+			  rob_index	: rob_index_t;		-- instruction qui a causé l'échange
+			  committed	: std_logic;
+			end record;
+
+   type stack_xfer_bus_t		is array( 0 to STACK_XFER_WIDTH - 1 ) of stack_xfer_t;
+
+		--------------------------------------------------------------------------------
+		-- Consultation par la LSQ
+		--
+		-- Un accès dont l'adresse n'est connue qu'à l'exécution (par pointeur) et tombe
+		-- dans la tranche du cache de pile doit voir le mot tel qu'il est au point du
+		-- programme de l'instruction (rob_index) : hit = '1', le mot est tenu dans le
+		-- registre physique tag ; hit = '0', la mémoire est à jour pour ce mot.
+		--------------------------------------------------------------------------------
+
+   type stack_lookup_request_t	is record
+			  valid		: std_logic;
+			  address		: address_t;
+			  rob_index	: rob_index_t;
+			end record;
+
+   type stack_lookup_response_t	is record
+			  valid		: std_logic;
+			  hit		: std_logic;
+			  tag		: physical_tag_t;
+			end record;
+
+   type stack_lookup_request_bus_t	is array( natural range <> ) of stack_lookup_request_t;
+   type stack_lookup_response_bus_t	is array( natural range <> ) of stack_lookup_response_t;
+
+		--------------------------------------------------------------------------------
+		-- Invalidation d'un mot du cache de pile
+		--
+		-- Un rangement par pointeur, retiré, a écrit la mémoire (LSQ) : le mot cesse
+		-- d'être tenu en registre, sauf si une instruction plus jeune que rob_index l'a
+		-- déjà réécrit.
+		--------------------------------------------------------------------------------
+
+   type stack_invalidate_t		is record
+			  valid		: std_logic;
+			  address		: address_t;
+			  rob_index	: rob_index_t;
+			end record;
+
+   type stack_invalidate_bus_t	is array( natural range <> ) of stack_invalidate_t;
+
+		--------------------------------------------------------------------------------
+		-- Maintenance demandée à la tête du ROB (unité COMPLEX, SYSTEM_UNIT)
+		--
+		--   MAINT_WRITEBACK_RANGE  tout mot tenu en registre dans [base, base + length)
+		--                          est rangé (SPILL committed) et reste tenu : avant la
+		--                          lecture d'un bloc (BLKMOV, BLKCMP, LEXCMP...), avant
+		--                          la lecture d'un contexte par EXC_RAISE ;
+		--   MAINT_WRITEBACK_ALL    idem pour tout le cache de pile et toute la pile des
+		--                          retours : CTX_SAVE, et avant toute SYNC ;
+		--   MAINT_INVALIDATE_RANGE après une écriture de bloc (BLKMOV, BLKAND, BLKOU,
+		--                          BLKOUX, BLKNOT, EXC_MACH) dans la tranche.
+		-- STACK_MAINT_DONE : RENAME_DISPATCH a confié tous ses SPILL à la LSQ ; le
+		-- demandeur attend en plus que la LSQ soit vide de rangements (LSQ_DRAINED).
+		--------------------------------------------------------------------------------
+
+   type stack_maint_kind_t		is ( MAINT_WRITEBACK_RANGE, MAINT_WRITEBACK_ALL, MAINT_INVALIDATE_RANGE );
+
+   type stack_maint_t		is record
+			  valid		: std_logic;
+			  kind		: stack_maint_kind_t;
+			  base		: address_t;
+			  length		: address_t;		-- en octets
+			end record;
+
+		--------------------------------------------------------------------------------
+		-- Pointeur de frame restauré par UNLINK / UNLINKR
+		--
+		-- RENAME_DISPATCH suit DISPLAY au renommage : la valeur sauvée par LINK est
+		-- d'ordinaire connue (pile d'ombre des FP sauvés). Sinon (pile d'ombre vide), le
+		-- renommage s'arrête après l'UNLINK jusqu'à ce que l'unité COMPLEX, qui a lu la
+		-- cellule, renvoie la valeur. COMPLEX l'envoie pour tout UNLINK et UNLINKR ;
+		-- le renommage ne l'attend que s'il en a besoin.
+		--------------------------------------------------------------------------------
+
+   type frame_update_t		is record
+			  valid		: std_logic;
+			  rob_index	: rob_index_t;
+			  lvl		: level_t;
+			  value		: address_t;		-- nouveau DISPLAY[lvl]
+			end record;
+
+
 		------------
 end package	RENAME_TYPES;
 		------------
