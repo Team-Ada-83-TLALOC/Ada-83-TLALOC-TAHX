@@ -49,6 +49,17 @@ frontal...). Les répertoires de travail de GHDL sont dans tests/travail/, jamai
 par git.
 
 
+Architectures
+-------------
+
+L'architecture d'une pièce est dans son propre fichier, à côté de celui de l'entité, comme
+V_TAHX_1_structure.vhd pour le sommet : <fichier de l'entité>_rtl.vhd, architecture RTL
+(P_PHYSICAL_REGISTER_FILE_rtl.vhd). Elle est ajoutée à Z_analyze.sh juste après son entité,
+et à la liste sources de son test. V0_CABLAGE n'invente une architecture vide que pour les
+entités qui n'en ont pas encore : le câblage est donc vérifié avec les pièces réelles.
+Le code de vhdl/ reste analysable en VHDL-93 : V0_CABLAGE le vérifie.
+
+
 Convention d'un banc
 --------------------
 

@@ -16,12 +16,17 @@ for STD in 08 93c; do
 	done
 done
 
-#	architectures vides, sauf pour le sommet
-grep -h -E '^entity[[:space:]]' "$VHDL"/*.vhd | awk '{print $2}' | grep -v -x 'TAHX_1' \
+#	architectures vides pour les entités qui n'ont pas encore la leur (liste des unités
+#	analysées, donnée par GHDL) ; le sommet garde STRUCTURE, les pièces écrites leur RTL
+ghdl --dir --std=08 --workdir="$W/08" > "$W/unites.txt"
+grep -i '^entity ' "$W/unites.txt" | awk '{print tolower($2)}' | sort -u > "$W/entites.txt"
+grep -i '^architecture ' "$W/unites.txt" | awk '{print tolower($4)}' | sort -u > "$W/realisees.txt"
+comm -23 "$W/entites.txt" "$W/realisees.txt" \
 	| sed 's/.*/architecture VIDE of & is begin end architecture;/' > "$W/vides.vhd"
+R=$(( $(wc -l < "$W/realisees.txt") - 1 ))
 E=$(wc -l < "$W/vides.vhd")
 
 ghdl -a --std=08 --workdir="$W/08" "$W/vides.vhd"					|| { echo "TEST V0_CABLAGE : ECHEC (architectures vides)"; exit 1; }
 ( cd "$W/08" && ghdl -e --std=08 TAHX_1 STRUCTURE )					|| { echo "TEST V0_CABLAGE : ECHEC (élaboration du sommet)"; exit 1; }
 
-echo "TEST V0_CABLAGE : OK ($N analyses, $E entités sous le sommet, élaboration)"
+echo "TEST V0_CABLAGE : OK ($N analyses ; élaboration : $R pièce(s) réelle(s), $E vide(s))"
