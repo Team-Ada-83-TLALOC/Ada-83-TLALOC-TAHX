@@ -52,12 +52,40 @@ use work.FETCH_DECODE_TYPES.all;
 		--       UNLINK, UNLINKR (D8)            lvl = complément
 		--       RTD n, EXC_RAISE (D24)          val = n, top (non signés)
 		--
-		--  3. Opérations indéfinies connues au décodage (faute 137) : opcode réservé,
-		--     lvl = 1111 là où ISA_TABLE donne LVL_FRAME, UNLINK 0. Elles deviennent
-		--     UOP_ILLEGAL (val = opcode). Un octet lu en faute donne UOP_FETCH_FAULT
-		--     (faute 132). Le bloc s'arrête après une telle forme et STOP_o est
-		--     levé : la longueur d'un opcode réservé est inconnue, et la faute sera
-		--     livrée au retrait ; décoder plus loin ne servirait à rien.
+		--  3. Formes de faute, connues au décodage (spéc. V8, §4 des fautes, priorité 1
+		--     et 2). Le bloc s'arrête après elles et STOP_o est levé : la faute sera
+		--     livrée au retrait, décoder plus loin ne servirait à rien.
+		--       UOP_FETCH_FAULT   l'un des octets de l'instruction est en faute de
+		--                         lecture (WINDOW_FAULT_i) : faute 132 ; val = 0
+		--       UOP_ILLEGAL       faute 137, val = opcode d'origine :
+		--                           opcode réservé (sa longueur est inconnue) ;
+		--                           lvl = 1111 où ISA_TABLE donne LVL_FRAME
+		--                             (LINK, EXC_MACH, CHK, CHKI) ;
+		--                           UNLINK, UNLINKR dont le complément sort de 1..14 ;
+		--                           UBFXI, SBFXI, BFII avec w = 0, w > 64 ou
+		--                             lsb > 64 - w ;
+		--                           TRAP de code non attribué (15, 19..255)
+		--     Les deux ont lvl = 0, ofs = 0, len = 0 : elles ne consomment aucun octet.
+		--     Un opcode en faute de lecture donne UOP_FETCH_FAULT avant toute autre
+		--     question ; un opcode réservé donne UOP_ILLEGAL sans attendre les octets
+		--     qui suivraient ; sinon l'instruction doit être entière dans la fenêtre
+		--     avant d'être jugée.
+		--
+		--  4. Champs non cités au point 2 : lvl = 0, ofs = 0, val = 0 (famille A,
+		--     LEXCMP dont taille et signe sont dans l'opcode, RTD 0, RTX).
+		--
+		--  5. Fin du bloc, à la première de ces conditions :
+		--       DECODE_WIDTH formes produites ;
+		--       LI D64 alors qu'il reste moins de deux cases (il attend le bloc
+		--         suivant, NEED_MORE_BYTES_o = '0') ;
+		--       instruction incomplète dans les WINDOW_COUNT_i octets valides, ou
+		--         fenêtre épuisée : NEED_MORE_BYTES_o = '1' ;
+		--       forme de faute : STOP_o = '1'.
+		--     Les octets au-delà de WINDOW_COUNT_i, et leurs drapeaux de faute, ne
+		--     sont jamais regardés. pc d'une forme = WINDOW_PC_i + position de son
+		--     instruction ; les deux formes d'un LI D64 ont le même pc.
+		--     CONSUME_o = DECODE_VALID_o and DECODE_READY_i ; CONSUMED_BYTES_o est la
+		--     somme des len des formes produites, que la file les prenne ou non.
 		--
 		--  Les champs pred des cases sont laissés à zéro : BRANCH_PREDICT les remplit.
 		--------------------------------------------------------------------------------

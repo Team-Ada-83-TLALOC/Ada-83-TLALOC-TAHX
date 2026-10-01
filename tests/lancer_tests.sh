@@ -5,7 +5,9 @@
 #
 #	Un test est un répertoire de tests/ :
 #	  - soit il contient un script test.sh, lancé avec en argument son répertoire de travail ;
-#	  - soit il contient T_<nom>_tb.vhd et sources (fichiers de vhdl/ utilisés, dans l'ordre).
+#	  - soit il contient T_<nom>_tb.vhd et sources (fichiers de vhdl/ utilisés, dans l'ordre) ;
+#	    ses fichiers vecteurs/* sont copiés dans le répertoire de travail, décompressés s'ils
+#	    finissent par .gz.
 #	Le verdict est le code de retour (0 : OK) ; le journal complet est dans travail/<nom>/journal.txt.
 
 cd "$(dirname "$0")" || exit 2
@@ -29,6 +31,13 @@ banc_vhdl ()			# $1 : nom du test, $2 : répertoire de travail
 		ghdl -a --std=08 "$VHDL/$f"				|| return 1
 	done < "$ICI/$NOM/sources"
 	ghdl -a --std=08 "$ICI/$NOM/T_${NOM}_tb.vhd"			|| return 1
+	for v in "$ICI/$NOM"/vecteurs/*; do				# vecteurs, décompressés
+		[ -e "$v" ] || continue
+		case $v in
+			*.gz)	gunzip -c "$v" > "$(basename "${v%.gz}")"	|| return 1 ;;
+			*)	cp "$v" .					|| return 1 ;;
+		esac
+	done
 	ghdl -e --std=08 "T_${NOM}_tb"					|| return 1
 	ghdl -r --std=08 "T_${NOM}_tb"
 }

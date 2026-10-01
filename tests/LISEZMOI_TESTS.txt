@@ -40,8 +40,11 @@ tests/
   <code>_<PIECE>/           un répertoire par test :
       T_<code>_<PIECE>_tb.vhd     le banc
       sources                     fichiers de vhdl/ que le banc utilise, dans l'ordre
-      vecteurs/                   vecteurs d'entrée et résultats attendus, s'il y en a
-      gen_*.adb                   générateur de vecteurs (Ada 83), s'il y en a
+      vecteurs/                   vecteurs d'entrée et résultats attendus, s'il y en a ;
+                                  copiés dans le répertoire de travail, décompressés
+                                  s'ils finissent par .gz
+      gen_*.adb, generer.sh       générateur de vecteurs (Ada 83) et le script qui le
+                                  compile et reconstruit vecteurs/, s'il y en a
 
 Le <code> reprend la lettre et le numéro du fichier testé (A1, I3, K, L1, P...), suffixé
 par le niveau quand ce n'est pas N1 (V0 pour le câblage, I_N2 pour l'assemblage du
