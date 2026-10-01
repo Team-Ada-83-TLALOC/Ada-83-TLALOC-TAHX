@@ -1,0 +1,97 @@
+TAHX_1 : organisation des tests
+===============================
+
+But : tester des pièces indépendantes sans se perdre. Trois règles :
+  1. chaque test se juge seul : il dit OK ou ECHEC, sans lecture de chronogrammes ;
+  2. un seul script les lance tous (lancer_tests.sh) et un seul fichier dit où l'on en
+     est (SUIVI.txt) ;
+  3. la référence est toujours exécutable : la spécification V8 à travers tx_run (ses
+     paquetages Ada, Decodeur_HX, Machine) ou un outil Ada qui en dérive, jamais un
+     résultat recopié à la main.
+
+
+Niveaux
+-------
+
+N0  Statique : analyse de tout vhdl/ (Z_analyze.sh) et élaboration du sommet avec des
+    architectures vides (V0_CABLAGE). Rien ne simule ; on vérifie que tout se branche.
+
+N1  Pièce seule : une entité, son banc, des modèles simples pour ses voisins. C'est le
+    niveau où l'on passe le plus de temps.
+
+N2  Assemblage : plusieurs pièces réelles reliées comme dans V_TAHX_1_structure (par
+    exemple INSTRUCTION_UNIT entier, ou une file d'émission avec son unité et le fichier
+    de registres).
+
+N3  Machine : TAHX_1 exécute une image HX ; on compare la trace de retrait à celle de
+    tx_run, instruction par instruction. Banc progressif : DIS_BONJOUR, puis CORPS.FINC,
+    CHK.FINC, BF.FINC, PEEP.FINC, puis TLALOC lui-même.
+
+
+Rangement
+---------
+
+tests/
+  LISEZMOI_TESTS.txt        ce fichier
+  SUIVI.txt                 état de chaque pièce (à tenir à jour à chaque commit)
+  LISTE                     tests lancés par lancer_tests.sh, dans l'ordre
+  lancer_tests.sh           lance tout, ou un test : ./lancer_tests.sh A1_ISA_TABLE
+  commun/                   paquetage TB_UTILS, modèles partagés (mémoire, horloge...)
+  <code>_<PIECE>/           un répertoire par test :
+      T_<code>_<PIECE>_tb.vhd     le banc
+      sources                     fichiers de vhdl/ que le banc utilise, dans l'ordre
+      vecteurs/                   vecteurs d'entrée et résultats attendus, s'il y en a
+      gen_*.adb                   générateur de vecteurs (Ada 83), s'il y en a
+
+Le <code> reprend la lettre et le numéro du fichier testé (A1, I3, K, L1, P...), suffixé
+par le niveau quand ce n'est pas N1 (V0 pour le câblage, I_N2 pour l'assemblage du
+frontal...). Les répertoires de travail de GHDL sont dans tests/travail/, jamais suivis
+par git.
+
+
+Convention d'un banc
+--------------------
+
+- Un banc est une entité sans port, nommée comme son fichier (T_A1_ISA_TABLE_tb...).
+- Il utilise TB_UTILS : CHECK compte les vérifications et décrit chaque échec en clair
+  (ce qui était attendu, ce qui a été obtenu, où) ; FINISH écrit la ligne de bilan
+      TEST <nom> : OK (<n> vérifications)
+      TEST <nom> : ECHEC (<k> sur <n>)
+  et arrête la simulation par std.env.stop, avec le code 0 ou 1. lancer_tests.sh ne lit
+  que ce code ; la ligne de bilan est pour nous.
+- Il s'arrête de lui-même (pas de --stop-time) et borne sa durée par un chien de garde.
+- Tout aléa est reproductible : graine fixe, écrite dans le bilan.
+- VHDL-2008 pour les bancs (std.env, lecture de fichiers commode) ; le code de vhdl/
+  reste analysable en VHDL-93.
+
+
+Cycle de travail d'une pièce
+----------------------------
+
+  1. écrire le banc et ses vecteurs contre l'entité seule : il doit ÉCHOUER sur une
+     architecture vide (sinon le banc ne teste rien) ;
+  2. écrire l'architecture jusqu'à ce que le banc passe ;
+  3. mettre SUIVI.txt à jour (état, nombre de vérifications, date) ;
+  4. lancer ./lancer_tests.sh en entier avant de pousser : rien de ce qui passait ne
+     doit casser.
+
+
+Ordre proposé des pièces
+------------------------
+
+D'abord celles qui ne dépendent de rien et dont la référence existe déjà dans tx_run :
+
+  N1  P   PHYSICAL_REGISTER_FILE     trivial ; sert à rôder le banc et les scripts
+  N1  I3  DECODE_BLOC                combinatoire ; référence : Decodeur_HX
+  N1  I2  FETCH_BYTE_QUEUE           référence : octets d'une image HX
+  N1  L1  INTEGER_UNIT               référence : Machine (sémantique, fautes 129, 137)
+  N1  L2  MULDIV_UNIT, L4 FLOAT_UNIT
+  N1  K   ISSUE_QUEUE, J1 DECODE_QUEUE
+  N2  I   INSTRUCTION_UNIT           flux décodé d'une image entière, comparé à la table
+                                     des instructions de l'image
+  N1  R   ROB
+  N1  K1b RENAME_DISPATCH, M2 LOAD_STORE_QUEUE, M3 DATA_CACHE, L5 COMPLEX_UNIT, S SYSTEM_UNIT
+  N3  TAHX_1
+
+Avant N3, il faudra ajouter à tx_run une trace de retrait (option à définir : PC,
+opcode, DSP, sommet après l'instruction), qui sera la référence de toute la machine.

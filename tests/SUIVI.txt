@@ -1,0 +1,49 @@
+TAHX_1 : état des pièces
+========================
+
+À tenir à jour à chaque commit qui touche une pièce ou son test.
+
+État de l'architecture :  ---  entité seule (pas d'architecture)
+                          ébau  architecture commencée
+                          ok    passe son test
+État du test :            ---  pas de banc
+                          banc  banc écrit, vu échouer sur une architecture vide
+                          OK n  passe, n vérifications
+
+niv  fichier                     pièce                     archi  test        date        remarques
+---  --------------------------  ------------------------  -----  ----------  ----------  ---------------------------------
+N0   (tout vhdl/)                câblage                   -      OK          2026-10-01  V0_CABLAGE : analyse 08 et 93c,
+                                                                                          élaboration du sommet
+N1   A__TAHX_1_isa_table.vhd     TAHX_1_ISA_TABLE          ok     OK 652      2026-10-01  A1_ISA_TABLE : table générée contre
+                                                                                          les règles de la spéc. V8
+
+N1   P_PHYSICAL_REGISTER_FILE    PHYSICAL_REGISTER_FILE    ---    ---
+N1   I3_DECODE_BLOC              DECODE_BLOC               ---    ---                     référence : Decodeur_HX
+N1   I2_FETCH_BYTE_QUEUE         FETCH_BYTE_QUEUE          ---    ---
+N1   L1_INTEGER_UNIT             INTEGER_UNIT              ---    ---                     référence : Machine
+N1   L2_MULDIV_UNIT              MULDIV_UNIT               ---    ---
+N1   L4_FLOAT_UNIT               FLOAT_UNIT                ---    ---
+N1   K_ISSUE_QUEUE               ISSUE_QUEUE               ---    ---
+N1   J1_DECODE_QUEUE             DECODE_QUEUE              ---    ---
+N1   I1_FETCH_UNIT               FETCH_UNIT                ---    ---
+N1   I4_BRANCH_PREDICT           BRANCH_PREDICT            ---    ---
+N2   I_INSTRUCTION_UNIT          INSTRUCTION_UNIT          ---    ---                     flux d'une image HX entière
+N1   K2b_BACKEND_DISPATCH        BACKEND_DISPATCH          ---    ---
+N1   L3_BRANCH_UNIT              BRANCH_UNIT               ---    ---
+N1   R_ROB                       ROB                       ---    ---
+N1   M1_ADDRESS_UNIT             ADDRESS_UNIT              ---    ---
+N1   M3_DATA_CACHE               DATA_CACHE                ---    ---
+N1   M2_LOAD_STORE_QUEUE         LOAD_STORE_QUEUE          ---    ---
+N1   K1b_RENAME_DISPATCH         RENAME_DISPATCH           ---    ---
+N1   L5_COMPLEX_UNIT             COMPLEX_UNIT              ---    ---
+N1   S_SYSTEM_UNIT               SYSTEM_UNIT               ---    ---
+N3   V_TAHX_1_structure          TAHX_1                    ok     ---                     trace de retrait de tx_run à définir
+
+
+Outils de test à écrire (suivis ici aussi)
+------------------------------------------
+
+  modèle de mémoire (instructions, données) chargé depuis une image HX     commun/    ---
+  générateur de vecteurs de DECODE_BLOC depuis une image HX (Ada 83,        I3_.../    ---
+    paquetages de tx_run)
+  trace de retrait de tx_run (option à définir)                              eXecutor   ---
