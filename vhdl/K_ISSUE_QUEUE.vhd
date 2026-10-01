@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 -- SPDX-FileCopyrightText: 2026 VINCENT MORIN, UBO
 -- SPDX-License-Identifier: GPL-3.0-or-later
 ------------------------------------------------------------------------------------------------------------------------
---      1       2       3       4       5       6       7       8       9       0       1       2
+--	1	2	3	4	5	6	7	8	9	0	1	2
 --
 --  ISSUE_QUEUE : file d'émission générique, instanciée six fois (INTEGER, MUL_DIV, MEMORY,
 --  BRANCH, FLOAT, COMPLEX).
@@ -19,9 +19,9 @@ use ieee.numeric_std.all;
 --  Une instruction sérialisante n'est émise que si elle est à la tête du ROB.
 ------------------------------------------------------------------------------------------------------------------------
 
-use work.TAHX_1_ROB_TYPES.all;
-use work.TAHX_1_RENAME_TYPES.all;
-use work.TAHX_1_BACKEND_TYPES.all;
+use work.ROB_TYPES.all;
+use work.RENAME_TYPES.all;
+use work.BACKEND_TYPES.all;
 
                                 -----------
 entity                          ISSUE_QUEUE
@@ -89,4 +89,4 @@ end entity                      ISSUE_QUEUE;
                                 -----------
 
 ------------------------------------------------------------------------------------------------------------------------
---      1       2       3       4       5       6       7       8       9       0       1       2
+--	1	2	3	4	5	6	7	8	9	0	1	2
