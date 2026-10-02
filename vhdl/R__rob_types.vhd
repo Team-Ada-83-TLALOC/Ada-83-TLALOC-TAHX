@@ -163,8 +163,41 @@ is				---------
 			  new_pc		: address_t;		-- où reprendre le chargement
 			end record;
 
+		--------------------------------------------------------------------------------
+		-- Reprise : une instruction est-elle abandonnée ?
+		--
+		-- Oui si rec est valide et que kind = RECOVER_COMMITTED, ou qu'elle est plus
+		-- jeune que keep_last ; l'âge est ( rob_index - head ) modulo ROB_SIZE, head
+		-- étant la tête du ROB. Règle commune à toutes les unités (contrat
+		-- d'INTEGER_UNIT) : une instruction abandonnée ne paraît jamais sur le bus des
+		-- résultats, pas même au cycle de la reprise.
+		--------------------------------------------------------------------------------
+
+   function ABANDONED( idx : rob_index_t; rec : recovery_t; head : rob_index_t ) return boolean;
+
+
 		---------
 end package	ROB_TYPES;
+		---------
+
+
+				---------
+package body			ROB_TYPES
+is				---------
+
+   function ABANDONED( idx : rob_index_t; rec : recovery_t; head : rob_index_t ) return boolean is
+   begin
+      if rec.valid /= '1' then
+         return false;
+      elsif rec.kind = RECOVER_COMMITTED then
+         return true;
+      else
+         return ( idx - head ) > ( rec.keep_last - head );		-- modulo ROB_SIZE
+      end if;
+   end function;
+
+		---------
+end package body	ROB_TYPES;
 		---------
 
 ------------------------------------------------------------------------------------------------------------------------

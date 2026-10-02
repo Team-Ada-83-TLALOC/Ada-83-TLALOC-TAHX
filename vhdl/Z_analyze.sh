@@ -44,6 +44,7 @@ $A K2b_BACKEND_DISPATCH.vhd		|| exit 1
 #	UNITES OPERATIVES
 
 $A K_ISSUE_QUEUE.vhd			|| exit 1
+$A K_ISSUE_QUEUE_rtl.vhd		|| exit 1
 $A L0__exec_types.vhd			|| exit 1
 $A L1_INTEGER_UNIT.vhd			|| exit 1
 $A L1_INTEGER_UNIT_rtl.vhd		|| exit 1
