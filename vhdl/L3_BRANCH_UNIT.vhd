@@ -29,6 +29,22 @@ use work.EXEC_TYPES.all;
 		--                            renommage a dû la relire en mémoire (FILL)
 		--  RSP, DSP et la pile des retours sont tenus par RENAME_DISPATCH (CALL, CALLI,
 		--  RTD ; faute 134 au renommage) : l'unité n'écrit rien.
+		--
+		--  Résultat : valid = '1', destination_valid = '0', aucune faute ; completion :
+		--    taken         issue réelle (BRA, CALL, CALLI, RTD : toujours '1') ;
+		--    target        adresse où le programme continue : la cible si pris, sinon
+		--                  pc + len ; c'est le new_pc de la reprise ;
+		--    mispredicted  target /= adresse prédite, qui est pred.target si pred.taken
+		--                  = '1', sinon pc + len. Comparer les adresses, et non les seuls
+		--                  bits « pris », évite une reprise inutile quand une direction
+		--                  fausse mène quand même à la bonne adresse.
+		--  Additions d'adresses modulo 2^64 ; val étendu en signe.
+		--
+		--  Temps, opérandes, reprise : comme INTEGER_UNIT (sources dans l'ordre de la
+		--  notation de pile ; prise au front t, voie = rang dans le bloc, opérandes lus
+		--  pendant ]t, t+1], résultat sur RESULT_o( voie ) pendant ]t+1, t+2] ;
+		--  contournement prioritaire ; une instruction abandonnée ne paraît jamais sur
+		--  RESULT_o). ISSUE_READY_o reste à '1'.
 		--------------------------------------------------------------------------------
 
 				-----------

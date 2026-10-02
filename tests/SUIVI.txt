@@ -54,7 +54,8 @@ N2   I_INSTRUCTION_UNIT          INSTRUCTION_UNIT          ok     OK 96638    20
                                                                                           formes contre chaque octet de
                                                                                           l'image (Decodeur_HX)
 N1   K2b_BACKEND_DISPATCH        BACKEND_DISPATCH          ---    ---
-N1   L3_BRANCH_UNIT              BRANCH_UNIT               ---    ---
+N1   L3_BRANCH_UNIT              BRANCH_UNIT               ok     OK 90001    2026-10-02  mispredicted : adresse suivante
+                                                                                          réelle /= adresse prédite
 N1   R_ROB                       ROB                       ---    ---
 N1   M1_ADDRESS_UNIT             ADDRESS_UNIT              ---    ---
 N1   M3_DATA_CACHE               DATA_CACHE                ---    ---
@@ -91,6 +92,8 @@ concernée quand on l'écrira, puis à rayer ici.
                    inchangé sinon ; ras_ptr = pred.ras_ptr + 1 après CALL, CALLI, - 1 après
                    RTD), ou état retiré (RECOVER_COMMITTED) ; retire.conditional pour BT,
                    BF ; retire.ghist = pred.ghist.
+                   (BRANCH_UNIT) completion.mispredicted = '1' : reprise RECOVER_CHECKPOINT
+                   avec keep_last = l'instruction, new_pc = completion.target.
   BACKEND_DISPATCH (ISSUE_QUEUE) jamais plus que INSERT_CAPACITY_O instructions par file.
 
 Écarts relevés dans les références

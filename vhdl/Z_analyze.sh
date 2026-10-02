@@ -55,6 +55,7 @@ $A L1_INTEGER_UNIT_rtl.vhd		|| exit 1
 $A L2_MULDIV_UNIT.vhd			|| exit 1
 $A L2_MULDIV_UNIT_rtl.vhd		|| exit 1
 $A L3_BRANCH_UNIT.vhd			|| exit 1
+$A L3_BRANCH_UNIT_rtl.vhd		|| exit 1
 $A L4_FLOAT_UNIT.vhd			|| exit 1
 $A L4__float64_pkg.vhd		|| exit 1
 $A L4_FLOAT_UNIT_rtl.vhd		|| exit 1
