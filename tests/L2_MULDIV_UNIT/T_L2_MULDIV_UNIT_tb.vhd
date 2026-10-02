@@ -69,8 +69,6 @@ of T_L2_MULDIV_UNIT_tb is
    constant NO_RESULT		: exec_result_t := ( valid => '0', destination_valid => '0',
 					    destination => ( others => '0' ), value => ( others => '0' ),
 					    completion => NO_COMPLETION );
-   constant NO_RECOVERY	: recovery_t := ( valid => '0', kind => RECOVER_CHECKPOINT, keep_last => ( others => '0' ),
-					    checkpoint => ( others => '0' ), new_pc => ( others => '0' ) );
 
    type expect_t		is record
 			  valid		: boolean;
@@ -216,7 +214,7 @@ begin
       CHECK( c, status = open_ok, "ouverture de vecteurs_muldiv.txt" );
       s2 := SEED_2;
       blk := ( others => ( slot => ( valid => '0', canon => CANON_NOP, pc => ( others => '0' ),
-                                     pred => ( taken => '0', target => ( others => '0' ), ghist => ( others => '0' ) ) ),
+                                     pred => NO_PREDICTION ),
                            rob_index => ( others => '0' ), issue_class => ISSUE_MUL_DIV,
                            source_count => 0, source => ( others => ( others => '0' ) ),
                            source_ready => ( others => '1' ), destination_valid => '1',

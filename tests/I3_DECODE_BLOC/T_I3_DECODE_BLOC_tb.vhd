@@ -158,8 +158,7 @@ begin
                   CHECK( c, decoded( i ).pc = unsigned( pc ) + pos,
                          where.all & ", forme " & integer'image( i ) & " : pc",
                          to_hstring( unsigned( pc ) + pos ), to_hstring( decoded( i ).pc ) );
-                  CHECK( c, decoded( i ).pred.taken = '0' and decoded( i ).pred.target = 0
-                            and decoded( i ).pred.ghist = x"0000",
+                  CHECK( c, decoded( i ).pred = NO_PREDICTION,
                          where.all & ", forme " & integer'image( i ) & " : pred nulle" );
                end if;
             end loop;

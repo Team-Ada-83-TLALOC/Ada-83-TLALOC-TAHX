@@ -74,11 +74,18 @@ is				------------------
 
    subtype ghist_t		is std_logic_vector( 15 downto 0 );     -- historique global (gshare 64 K)
 
+   constant RAS_DEPTH		: positive := 32;				-- pile des retours
+   subtype ras_ptr_t		is unsigned( 4 downto 0 );		-- son sommet, modulo RAS_DEPTH
+
    type prediction_t	is record
 			  taken		: std_logic;            -- prédit pris (toujours '1' pour BRA, CALL, RTD)
 			  target		: address_t;            -- cible prédite (RTD : pile des retours)
 			  ghist		: ghist_t;              -- historique au moment de la prédiction (mise à jour, reprise)
+			  ras_ptr		: ras_ptr_t;           -- sommet de la pile des retours, idem (reprise)
       end record;
+
+   constant NO_PREDICTION	: prediction_t := ( taken => '0', target => ( others => '0' ),
+						    ghist => ( others => '0' ), ras_ptr => ( others => '0' ) );
 
    --------------------------------------------------------------------
    -- Une case du bloc décodé

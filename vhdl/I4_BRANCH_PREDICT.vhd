@@ -25,29 +25,46 @@ use work.ROB_TYPES.all;
 		--		\................../
 		--------------------------------------------------------------------------------
 		--
-		--  BRANCH_PREDICT : prédiction au décodage, première version.
+		--  BRANCH_PREDICT : prédiction au décodage, première version. Le prédicteur
+		--  est celui de l'étude de limites de tx_run (Limites.Mal_Predit, image HX) ;
+		--  il n'influe que sur la performance : toute mauvaise prédiction est rattrapée
+		--  par BRANCH_UNIT et le ROB.
 		--
-		--  Le bloc décodé montre les transferts de contrôle et leurs déplacements : la
-		--  cible de BRA, BT, BF et CALL est PC + len + val, calculée ici. Il reste à
-		--  prédire :
-		--    BT, BF         le sens, par gshare (64 K compteurs de 2 bits, historique
-		--		 global de 16 bits) ;
-		--    RTD            la cible, par la pile des retours (32 entrées) que CALL
-		--		 et CALLI alimentent ;
-		--    CALLI          la cible : non prédite en v1 (le chargement attend la
-		--		 résolution).
-		--  Étude de limites : 0,74 erreur pour 1000 instructions, moins de 6 % de perte
-		--  avec 10 cycles de pénalité.
+		--  État : 2^16 compteurs de 2 bits (gshare), initialisés à 1 (faiblement non
+		--  pris) ; historique global ghist de 16 bits, initialisé à 0 ; pile des
+		--  retours circulaire de RAS_DEPTH adresses, initialisées à 0, et son sommet
+		--  ras_ptr, initialisé à 0.
 		--
-		--  Le bloc sortant est coupé après le premier transfert prédit pris, et
-		--  PREDICT_VALID_O redirige le chargement. Chaque case de transfert reçoit sa
-		--  prédiction (champ pred), que l'unité de branchement vérifiera. La
-		--  prédiction au chargement (BTB), qui supprimerait la bulle d'un saut
-		--  pris, pourra s'ajouter plus tard sans changer cette interface.
+		--  1. Passage. Combinatoire : OUT_VALID_o = IN_VALID_i, IN_READY_o =
+		--     OUT_READY_i ; le bloc est transféré au front où IN_VALID_i =
+		--     OUT_READY_i = '1'. L'état spéculatif (ghist, pile) n'avance qu'à ce front.
 		--
-		--  Mise à jour : au retrait (RETIRE_I), pour les transferts retirés.
-		--  Reprise : RECOVERY_I rend l'historique et le sommet de la pile des retours
-		--  de l'instruction fautive ou mal prédite.
+		--  2. Prédiction, case par case, dans l'ordre, l'état avançant d'une case à la
+		--     suivante. Chaque case reçoit pred.ghist et pred.ras_ptr d'avant elle.
+		--       BT, BF    indice = ( pc mod 2^16 ) xor ghist ; pris si compteur >= 2 ;
+		--                 cible = pc + len + val ; ghist := ( ghist << 1 ) or pris
+		--       BRA       pris ; cible = pc + len + val
+		--       CALL      pris ; cible = pc + len + val ; empile pc + len
+		--       CALLI     non prédit en v1 : pred.taken = '0' (la cible, sur la pile,
+		--                 n'est connue qu'à l'exécution ; BRANCH_UNIT redirige) ;
+		--                 empile pc + len
+		--       RTD 0, RTD n   pris ; cible = sommet de la pile ; dépile
+		--       autres    pred.taken = '0', pred.target = 0
+		--     La première case prédite prise coupe le bloc : OUT_COUNT_o = son rang + 1,
+		--     les cases suivantes ne sont pas transmises et n'agissent pas sur l'état.
+		--     PREDICT_VALID_o = '1' au cycle du transfert d'un bloc ainsi coupé,
+		--     PREDICT_PC_o = sa cible.
+		--
+		--  3. Apprentissage. Au front, pour chaque entrée de RETIRE_i valide, dans
+		--     l'ordre, avec is_control = '1' et conditional = '1' : le compteur
+		--     d'indice ( pc mod 2^16 ) xor ghist (celui de la prédiction) avance vers
+		--     taken, avec saturation à 0 et 3.
+		--
+		--  4. Reprise. Au front où RECOVERY_i est valide, ghist := recovery.ghist et
+		--     ras_ptr := recovery.ras_ptr (calculés par le ROB) ; le bloc du cycle ne
+		--     fait pas avancer l'état. Les entrées de la pile ne sont pas réparées :
+		--     une adresse écrasée par le mauvais chemin coûte une mauvaise prédiction.
+		--     RESET_i remet l'état initial.
 		--------------------------------------------------------------------------------
 
 

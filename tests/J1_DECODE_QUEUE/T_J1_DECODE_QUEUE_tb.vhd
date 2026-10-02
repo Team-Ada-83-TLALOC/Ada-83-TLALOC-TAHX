@@ -69,6 +69,7 @@ of T_J1_DECODE_QUEUE_tb is
       s.pred.taken := '1' when seq mod 5 = 0 else '0';
       s.pred.target := to_unsigned( 16#500000# + 11 * seq, 64 );
       s.pred.ghist := std_logic_vector( to_unsigned( seq mod 65536, 16 ) );
+      s.pred.ras_ptr := to_unsigned( ( seq / 2 ) mod RAS_DEPTH, 5 );
       return s;
    end function;
 

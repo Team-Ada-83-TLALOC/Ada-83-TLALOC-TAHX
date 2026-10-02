@@ -105,9 +105,10 @@ is				---------
 			  pc		: address_t;
 			  is_store	: std_logic;		-- la LSQ écrit le rangement en mémoire
 			  is_control	: std_logic;		-- mise à jour du prédicteur
+			  conditional	: std_logic;		-- BT, BF : entraîne un compteur gshare
 			  taken		: std_logic;
 			  target		: address_t;
-			  ghist		: ghist_t;
+			  ghist		: ghist_t;		-- historique au moment de la prédiction
 			end record;
 
    type retire_block_t	is array( 0 to RETIRE_WIDTH - 1 ) of retire_t;
@@ -161,7 +162,16 @@ is				---------
 			  keep_last	: rob_index_t;		-- dernière instruction gardée (RECOVER_CHECKPOINT)
 			  checkpoint	: checkpoint_id_t;
 			  new_pc		: address_t;		-- où reprendre le chargement
+			  -- état du prédicteur où reprendre (BRANCH_PREDICT) : après l'instruction
+			  -- gardée et sa vraie issue (RECOVER_CHECKPOINT), ou état retiré
+			  -- (RECOVER_COMMITTED) ; le ROB le calcule
+			  ghist		: ghist_t;
+			  ras_ptr		: ras_ptr_t;
 			end record;
+
+   constant NO_RECOVERY		: recovery_t := ( valid => '0', kind => RECOVER_CHECKPOINT, keep_last => ( others => '0' ),
+						    checkpoint => ( others => '0' ), new_pc => ( others => '0' ),
+						    ghist => ( others => '0' ), ras_ptr => ( others => '0' ) );
 
 		--------------------------------------------------------------------------------
 		-- Reprise : une instruction est-elle abandonnée ?

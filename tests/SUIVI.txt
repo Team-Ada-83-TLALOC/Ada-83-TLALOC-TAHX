@@ -45,7 +45,9 @@ N1   K_ISSUE_QUEUE               ISSUE_QUEUE               ok     OK 144004   20
 N1   J1_DECODE_QUEUE             DECODE_QUEUE              ok     OK 180001   2026-10-02  contrat calqué sur FETCH_BYTE_QUEUE ;
                                                                                           cases = fonction de leur numéro
 N1   I1_FETCH_UNIT               FETCH_UNIT                ---    ---
-N1   I4_BRANCH_PREDICT           BRANCH_PREDICT            ---    ---
+N1   I4_BRANCH_PREDICT           BRANCH_PREDICT            ok     OK 80001    2026-10-02  prédicteur de l'étude de limites
+                                                                                          (gshare 64 K, pile de 32) ; modèle
+                                                                                          exact
 N2   I_INSTRUCTION_UNIT          INSTRUCTION_UNIT          ---    ---                     flux d'une image HX entière
 N1   K2b_BACKEND_DISPATCH        BACKEND_DISPATCH          ---    ---
 N1   L3_BRANCH_UNIT              BRANCH_UNIT               ---    ---
@@ -67,6 +69,26 @@ Outils de test à écrire (suivis ici aussi)
     paquetages de tx_run) : generer.sh
   trace de retrait de tx_run (option à définir)                              eXecutor   ---
 
+
+Obligations envers les pièces à écrire
+--------------------------------------
+
+Posées par les contrats des pièces déjà écrites ; à reprendre dans le contrat de la pièce
+concernée quand on l'écrira, puis à rayer ici.
+
+  FETCH_UNIT       (FETCH_BYTE_QUEUE) un bloc commence là où finit le précédent, sauf le
+                   premier après RESET ou vidage ; FETCH_VALID = '0' le cycle où il lève
+                   FLUSH.
+  RENAME_DISPATCH  (ISSUE_QUEUE) source_ready reflète tous les réveils des cycles
+                   précédant l'insertion ; sources dans l'ordre de la notation de pile
+                   (RENAME_TYPES) ; au plus ROB_SIZE instructions de la tête à la dernière.
+  ROB              (BRANCH_PREDICT) recovery.ghist et recovery.ras_ptr : état du
+                   prédicteur après l'instruction gardée et sa vraie issue
+                   (RECOVER_CHECKPOINT : ghist = ( pred.ghist << 1 ) or issue pour BT, BF,
+                   inchangé sinon ; ras_ptr = pred.ras_ptr + 1 après CALL, CALLI, - 1 après
+                   RTD), ou état retiré (RECOVER_COMMITTED) ; retire.conditional pour BT,
+                   BF ; retire.ghist = pred.ghist.
+  BACKEND_DISPATCH (ISSUE_QUEUE) jamais plus que INSERT_CAPACITY_O instructions par file.
 
 Écarts relevés dans les références
 ----------------------------------

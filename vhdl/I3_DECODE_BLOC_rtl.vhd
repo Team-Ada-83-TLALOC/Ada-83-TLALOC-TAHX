@@ -45,7 +45,6 @@ is				---
       return ( op => op, lvl => lvl, ofs => ofs, val => val, len => to_unsigned( len, insn_length_t'length ) );
    end function;
 
-   constant NO_PREDICTION	: prediction_t := ( taken => '0', target => ( others => '0' ), ghist => ( others => '0' ) );
    constant EMPTY_SLOT		: decoded_slot_t := ( valid => '0', canon => CANON_NOP, pc => ( others => '0' ),
 						    pred => NO_PREDICTION );
 

@@ -67,8 +67,7 @@ of BANC_ISSUE_QUEUE is
    signal insert_capacity	: issue_capacity_t;
    signal wakeup		: wakeup_bus_t( 0 to WAKE_W - 1 ) := ( others => ( valid => '0', tag => ( others => '0' ) ) );
    signal rob_head		: rob_index_t := ( others => '0' );
-   signal recovery		: recovery_t := ( valid => '0', kind => RECOVER_CHECKPOINT, keep_last => ( others => '0' ),
-					      checkpoint => ( others => '0' ), new_pc => ( others => '0' ) );
+   signal recovery		: recovery_t := NO_RECOVERY;
    signal issue_valid		: std_logic;
    signal issue_block		: renamed_block_t;
    signal issue_count		: dispatch_count_t;
@@ -189,7 +188,7 @@ begin
    begin
       s1 := SEED_1_G; s2 := SEED_2_G;
       blk := ( others => ( slot => ( valid => '1', canon => CANON_NOP, pc => ( others => '0' ),
-                                     pred => ( taken => '0', target => ( others => '0' ), ghist => ( others => '0' ) ) ),
+                                     pred => NO_PREDICTION ),
                            rob_index => ( others => '0' ), issue_class => ISSUE_INTEGER,
                            source_count => 0, source => ( others => ( others => '0' ) ),
                            source_ready => ( others => '1' ), destination_valid => '1',
