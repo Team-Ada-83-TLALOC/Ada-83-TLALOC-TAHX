@@ -15,18 +15,37 @@ use work.BACKEND_TYPES.all;
 use work.EXEC_TYPES.all;
 
 		--------------------------------------------------------------------------------
-		--  MULDIV_UNIT : multiplication, division, virgule fixe.
+		--  MULDIV_UNIT : multiplication, division, virgule fixe (LLIR_hardware_support
+		--  V8, « Arithmétique entière » et [Q16]). Sources dans l'ordre de la notation de
+		--  pile (RENAME_TYPES) ; entiers signés sur 64 bits.
 		--
-		--    MUL                     produit signé 128 bits ; faute 129 si la moitié haute
-		--                            n'est pas l'extension de signe de la basse ; 3 cycles,
-		--                            pipelinée
-		--    DIV REMI MODI           itérative (~ 20 cycles) ; faute 128 si b = 0, 129
-		--                            pour DIV de -2^63 par -1 (REMI, MODI : 0)
-		--    CVTIX                   ( i denom numer ) quotient exact de i * denom par
-		--                            numer, tronqué vers zéro ; fautes 128, 129
-		--    CVTXI                   ( x numer denom ) quotient exact arrondi au plus
-		--                            proche, mi-chemin à l'écart de zéro ; fautes 128, 129
-		--  (LLIR_hardware_support V8, [Q16].)
+		--    MUL     ( a b -- a*b )       produit exact ; faute 129 s'il sort de
+		--                                 [-2^63, 2^63)
+		--    DIV     ( a b -- a/b )       tronqué vers zéro ; faute 128 si b = 0 ;
+		--                                 faute 129 pour -2^63 / -1
+		--    REMI    ( a b -- a rem b )   signe du dividende ; faute 128 si b = 0 ;
+		--                                 -2^63 rem -1 = 0
+		--    MODI    ( a b -- a mod b )   signe du diviseur ; faute 128 si b = 0 ;
+		--                                 -2^63 mod -1 = 0
+		--    CVTIX   ( i denom numer -- x )  quotient exact de i * denom par numer,
+		--                                 tronqué vers zéro ; faute 128 si numer = 0 ;
+		--                                 faute 129 hors de [-2^63, 2^63)
+		--    CVTXI   ( x numer denom -- i )  quotient exact de x * numer par denom,
+		--                                 arrondi au plus proche, mi-chemin à l'écart de
+		--                                 zéro, quel que soit le signe de denom ; faute 128
+		--                                 si denom = 0 ; faute 129 si le résultat arrondi
+		--                                 sort de [-2^63, 2^63)
+		--
+		--  Temps : une instruction est prise au front où ISSUE_VALID_i = ISSUE_READY_o =
+		--  '1' (ISSUE_COUNT_i >= 1, voie 0) ; elle lit ses opérandes pendant le cycle qui
+		--  suit, comme dans INTEGER_UNIT ; son résultat paraît sur RESULT_o( 0 ) pendant
+		--  un seul cycle, plus tard. La latence n'est pas fixée par le contrat : elle
+		--  dépend de l'opération et de la réalisation (multiplieur pipeliné, division
+		--  itérative). ISSUE_READY_o ne dépend que de l'état de l'unité.
+		--
+		--  Opérandes, résultat, fautes précises et reprise : comme INTEGER_UNIT. Une
+		--  instruction abandonnée ne paraît jamais sur RESULT_o, et l'unité qui la
+		--  calculait est libérée.
 		--------------------------------------------------------------------------------
 
 				-----------

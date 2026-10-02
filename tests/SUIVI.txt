@@ -32,7 +32,9 @@ N1   L1_INTEGER_UNIT             INTEGER_UNIT              ok     OK 49417    20
                                                                                           reprise) dans l'en-tête ; vecteurs
                                                                                           d'après Machine, contre-vérifiés
                                                                                           en Python
-N1   L2_MULDIV_UNIT              MULDIV_UNIT               ---    ---
+N1   L2_MULDIV_UNIT              MULDIV_UNIT               ok     OK 10790    2026-10-02  latence hors contrat (banc par
+                                                                                          rob_index) ; règles V8, non tx_run,
+                                                                                          pour REMI/MODI et CVTXI
 N1   L4_FLOAT_UNIT               FLOAT_UNIT                ---    ---
 N1   K_ISSUE_QUEUE               ISSUE_QUEUE               ---    ---
 N1   J1_DECODE_QUEUE             DECODE_QUEUE              ---    ---
@@ -67,3 +69,7 @@ Outils de test à écrire (suivis ici aussi)
               HX_Codes donne donc FF pour réservé, alors que la spécification V8 le définit
               (1 octet). Sans effet aujourd'hui (TLALOC n'émet pas RTX) ; gen_vecteurs_decode
               suit la spécification.
+  2026-10-02  tx_run (eXecutor) : REMI et MODI de -2^63 par -1 en faute (V8 : 0) ; CVTXI
+              n'arrondit pas pour denom < 0 et ne contrôle pas le débordement après
+              l'arrondi (V8, [Q16]). Déjà dans la liste de vérification de la V8 ;
+              gen_vecteurs_muldiv suit la V8.

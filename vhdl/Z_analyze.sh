@@ -35,6 +35,7 @@ $A L0__exec_types.vhd			|| exit 1
 $A L1_INTEGER_UNIT.vhd			|| exit 1
 $A L1_INTEGER_UNIT_rtl.vhd		|| exit 1
 $A L2_MULDIV_UNIT.vhd			|| exit 1
+$A L2_MULDIV_UNIT_rtl.vhd		|| exit 1
 $A L3_BRANCH_UNIT.vhd			|| exit 1
 $A L4_FLOAT_UNIT.vhd			|| exit 1
 $A L5_COMPLEX_UNIT.vhd			|| exit 1
