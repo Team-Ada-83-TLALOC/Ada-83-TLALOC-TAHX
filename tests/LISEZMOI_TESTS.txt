@@ -74,6 +74,10 @@ Convention d'un banc
   et arrête la simulation par std.env.stop, avec le code 0 ou 1. lancer_tests.sh ne lit
   que ce code ; la ligne de bilan est pour nous.
 - Il s'arrête de lui-même (pas de --stop-time) et borne sa durée par un chien de garde.
+- Vitesse : sous GHDL, l'arithmétique numeric_std sur des vecteurs larges est lente (bit
+  à bit). Dans les boucles d'un banc, calculer en entiers ; ne composer un message
+  d'échec que s'il y a échec (CHECK_PASSED, voir TB_UTILS). Une suite entière doit
+  rester de l'ordre de la minute pour qu'on la lance avant chaque commit.
 - Tout aléa est reproductible : graine fixe, écrite dans le bilan.
 - VHDL-2008 pour les bancs (std.env, lecture de fichiers commode) ; le code de vhdl/
   reste analysable en VHDL-93.

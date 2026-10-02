@@ -27,6 +27,37 @@ use work.FETCH_DECODE_TYPES.all;
 		--  (instructions de 1 à 9 octets). Elle présente au décodeur une fenêtre
 		--  dont le premier octet est toujours le début de la prochaine instruction,
 		--  et retire les octets que le décodeur a consommés.
+		--
+		--  File circulaire de FETCH_QUEUE_SIZE octets, chacun avec son drapeau de faute.
+		--  Un seul PC est gardé, celui de l'octet de tête : les octets de la file sont
+		--  consécutifs en mémoire.
+		--
+		--  1. Entrée. Un bloc est pris au front d'horloge quand FETCH_VALID_i =
+		--     FETCH_READY_o = '1' : ses FETCH_COUNT_i premiers octets (0 .. 32) sont
+		--     ajoutés en queue, tous avec le drapeau FETCH_FAULT_i. FETCH_READY_o = '1'
+		--     quand la place libre est d'au moins FETCH_BLOCK_SIZE octets ; il ne dépend
+		--     que de l'état de la file (aucun chemin combinatoire depuis les entrées).
+		--     Contrat de FETCH_UNIT : un bloc commence là où finit le précédent, sauf
+		--     le premier après RESET_i ou FLUSH_i, qui fixe le PC de tête.
+		--
+		--  2. Fenêtre, combinatoire depuis l'état de la file : WINDOW_COUNT_o =
+		--     min( octets présents, DECODE_WINDOW_SIZE ) ; WINDOW_o( i ) et
+		--     WINDOW_FAULT_o( i ) sont l'octet de tête + i et son drapeau ;
+		--     WINDOW_PC_o = adresse de l'octet de tête. Au-delà de WINDOW_COUNT_o, et
+		--     WINDOW_PC_o quand la file est vide, les valeurs ne sont pas définies.
+		--     Un bloc pris au front n est dans la fenêtre au cycle n + 1.
+		--
+		--  3. Sortie. Au front d'horloge, CONSUME_i = '1' retire CONSUMED_BYTES_i octets
+		--     de tête (contrat : pas plus que WINDOW_COUNT_o) et avance le PC de tête
+		--     d'autant. Entrée et sortie peuvent avoir lieu au même front.
+		--
+		--  4. Vidage. RESET_i ou FLUSH_i = '1' vide la file au front, sans retrait ni
+		--     ajout ce cycle-là. Contrat de FETCH_UNIT : FETCH_VALID_i = '0' le cycle
+		--     où il lève FLUSH_i (il n'a encore rien lu à la nouvelle adresse).
+		--
+		--  Les manquements aux contrats (bloc non consécutif, retrait de plus que la
+		--  fenêtre, bloc pendant un vidage, plus de 32 octets) sont signalés en
+		--  simulation.
 		--------------------------------------------------------------------------------
 
 				----------------

@@ -21,6 +21,8 @@ use ieee.numeric_std.all;
 		--
 		--  FINISH écrit la ligne de bilan et arrête la simulation (std.env.stop) avec
 		--  le code 0 (OK) ou 1 (ECHEC) : c'est ce code que lit lancer_tests.sh.
+		--  CHECK_PASSED compte une vérification réussie sans composer de message
+		--  (boucles chaudes : le message n'est construit que pour un échec).
 		--  Les MAX_REPORTED premiers échecs sont décrits ; les suivants sont seulement
 		--  comptés, pour qu'un banc cassé ne noie pas le terminal.
 		--------------------------------------------------------------------------------
@@ -46,6 +48,12 @@ is				--------
       what		: string;
       expected		: string := "";
       obtained		: string := "" );
+
+   -- une vérification réussie, sans message à composer : dans une boucle chaude,
+   --    if condition then CHECK_PASSED( c ); else CHECK( c, false, "...", ... ); end if;
+   -- évite de mettre en forme le message à chaque appel
+   procedure CHECK_PASSED(
+      variable counter	: inout tb_counter_t );
 
    -- bilan, puis arrêt de la simulation avec le code 0 ou 1
    procedure FINISH(
@@ -87,6 +95,12 @@ is				--------
             report "(échecs suivants comptés sans détail)" severity error;
          end if;
       end if;
+   end procedure;
+
+   procedure CHECK_PASSED(
+      variable counter	: inout tb_counter_t ) is
+   begin
+      counter.checks := counter.checks + 1;
    end procedure;
 
    procedure FINISH(
