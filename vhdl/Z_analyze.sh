@@ -44,6 +44,7 @@ $A K1a__rename_types.vhd		|| exit 1
 $A K1b_RENAME_DISPATCH.vhd		|| exit 1
 $A K2a__backend_types.vhd		|| exit 1
 $A K2b_BACKEND_DISPATCH.vhd		|| exit 1
+$A K2b_BACKEND_DISPATCH_rtl.vhd	|| exit 1
 
 #	UNITES OPERATIVES
 

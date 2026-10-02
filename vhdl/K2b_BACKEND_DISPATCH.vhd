@@ -19,9 +19,22 @@ use work.BACKEND_TYPES.all;
 		--    router    vers les six files d'émission.
 		--  Une instruction avec execute_required = '0' n'est routée nulle part : elle
 		--  est déjà terminée dans le ROB. Les instructions sérialisantes vont dans
-		--  la file COMPLEX.
+		--  la file COMPLEX (ISA_TABLE les classe ISSUE_COMPLEX : le routage ne lit que
+		--  issue_class).
 		--  Transfert atomique : le bloc n'est pris que si chaque file peut recevoir
 		--  sa part.
+		--
+		--  Contrat, combinatoire, pour chaque file X :
+		--    X_BLOCK_o( 0 .. k - 1 ) = les instructions RENAME_BLOCK_i( 0 ..
+		--      RENAME_COUNT_i - 1 ) de classe X et execute_required = '1', dans
+		--      l'ordre du bloc ; X_COUNT_o = k ; au-delà de k, cases non définies ;
+		--    RENAME_READY_o = '1' si k <= X_CAPACITY_i pour chaque file (ne dépend
+		--      pas de RENAME_VALID_i) ;
+		--    X_VALID_o = RENAME_VALID_i and RENAME_READY_o and k > 0 : les files
+		--      n'ont pas de signal « prêt », elles insèrent dès que X_VALID_o = '1',
+		--      ce qui rend le transfert atomique.
+		--  ISSUE_NONE (DROP, DUP, OVER) n'a pas de file : une telle instruction n'est
+		--  routée nulle part, quel que soit execute_required.
 		--------------------------------------------------------------------------------
 
 
