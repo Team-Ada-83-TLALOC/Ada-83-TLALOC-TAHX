@@ -5,7 +5,8 @@
 #
 #	Un test est un répertoire de tests/ :
 #	  - soit il contient un script test.sh, lancé avec en argument son répertoire de travail ;
-#	  - soit il contient T_<nom>_tb.vhd et sources (fichiers de vhdl/ utilisés, dans l'ordre) ;
+#	  - soit il contient T_<nom>_tb.vhd et sources (fichiers de vhdl/ utilisés, dans l'ordre,
+#	    et modèles partagés de tests/commun/ écrits commun/<fichier>) ;
 #	    ses fichiers vecteurs/* sont copiés dans le répertoire de travail, décompressés s'ils
 #	    finissent par .gz.
 #	Le verdict est le code de retour (0 : OK) ; le journal complet est dans travail/<nom>/journal.txt.
@@ -28,7 +29,11 @@ banc_vhdl ()			# $1 : nom du test, $2 : répertoire de travail
 	ghdl -a --std=08 "$ICI/commun/TB_UTILS.vhd"			|| return 1
 	while read -r f; do
 		[[ -z $f || $f == \#* ]] && continue
-		ghdl -a --std=08 "$VHDL/$f"				|| return 1
+		if [[ $f == commun/* ]]; then				# modèle partagé des bancs
+			ghdl -a --std=08 "$ICI/$f"			|| return 1
+		else
+			ghdl -a --std=08 "$VHDL/$f"			|| return 1
+		fi
 	done < "$ICI/$NOM/sources"
 	ghdl -a --std=08 "$ICI/$NOM/T_${NOM}_tb.vhd"			|| return 1
 	for v in "$ICI/$NOM"/vecteurs/*; do				# vecteurs, décompressés

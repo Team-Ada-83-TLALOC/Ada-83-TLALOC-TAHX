@@ -44,7 +44,8 @@ N1   K_ISSUE_QUEUE               ISSUE_QUEUE               ok     OK 144004   20
                                                                                           modèle exact cycle par cycle
 N1   J1_DECODE_QUEUE             DECODE_QUEUE              ok     OK 180001   2026-10-02  contrat calqué sur FETCH_BYTE_QUEUE ;
                                                                                           cases = fonction de leur numéro
-N1   I1_FETCH_UNIT               FETCH_UNIT                ---    ---
+N1   I1_FETCH_UNIT               FETCH_UNIT                ok     OK 75623    2026-10-02  cache 16 Kio, une ligne en vol ;
+                                                                                          mémoire : commun/MEMOIRE_INSTRUCTIONS
 N1   I4_BRANCH_PREDICT           BRANCH_PREDICT            ok     OK 80001    2026-10-02  prédicteur de l'étude de limites
                                                                                           (gshare 64 K, pile de 32) ; modèle
                                                                                           exact
@@ -64,7 +65,9 @@ N3   V_TAHX_1_structure          TAHX_1                    ok     ---           
 Outils de test à écrire (suivis ici aussi)
 ------------------------------------------
 
-  modèle de mémoire (instructions, données) chargé depuis une image HX     commun/    ---
+  modèle de mémoire d'instructions, contenu fonction de l'adresse          commun/    ok
+    (MEMOIRE_INSTRUCTIONS, MEMOIRE_PKG)
+  le même, chargé depuis une image HX (pour N2 et N3)                      commun/    ---
   générateur de vecteurs de DECODE_BLOC depuis une image HX (Ada 83,        I3_.../    ok
     paquetages de tx_run) : generer.sh
   trace de retrait de tx_run (option à définir)                              eXecutor   ---
@@ -76,9 +79,8 @@ Obligations envers les pièces à écrire
 Posées par les contrats des pièces déjà écrites ; à reprendre dans le contrat de la pièce
 concernée quand on l'écrira, puis à rayer ici.
 
-  FETCH_UNIT       (FETCH_BYTE_QUEUE) un bloc commence là où finit le précédent, sauf le
-                   premier après RESET ou vidage ; FETCH_VALID = '0' le cycle où il lève
-                   FLUSH.
+  INSTRUCTION_UNIT (FETCH_UNIT) STOP_i de FETCH_UNIT = STOP_o and CONSUME_o de DECODE_BLOC :
+                   la file d'octets n'est vidée qu'une fois la forme de faute transmise.
   RENAME_DISPATCH  (ISSUE_QUEUE) source_ready reflète tous les réveils des cycles
                    précédant l'insertion ; sources dans l'ordre de la notation de pile
                    (RENAME_TYPES) ; au plus ROB_SIZE instructions de la tête à la dernière.

@@ -28,6 +28,7 @@ $A I1__fetch_decode_types.vhd		|| exit 1
 $A R__rob_types.vhd			|| exit 1
 
 $A I1_FETCH_UNIT.vhd			|| exit 1
+$A I1_FETCH_UNIT_rtl.vhd		|| exit 1
 $A I2_FETCH_BYTE_QUEUE.vhd		|| exit 1
 $A I2_FETCH_BYTE_QUEUE_rtl.vhd	|| exit 1
 $A I3_DECODE_BLOC.vhd			|| exit 1
