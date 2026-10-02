@@ -77,20 +77,6 @@ of INTEGER_UNIT is		---
    signal computed		: lane_result_t;
    signal result		: lane_result_t;
 
-		--------------------------------------------------------------------------------
-		-- Âge et reprise
-		--------------------------------------------------------------------------------
-
-   function ABANDONED( idx : rob_index_t; rec : recovery_t; head : rob_index_t ) return boolean is
-   begin
-      if rec.valid /= '1' then
-         return false;
-      elsif rec.kind = RECOVER_COMMITTED then
-         return true;
-      else
-         return ( idx - head ) > ( rec.keep_last - head );		-- modulo ROB_SIZE
-      end if;
-   end function;
 
 		--------------------------------------------------------------------------------
 		-- Champs de bits

@@ -58,21 +58,6 @@ is				---
    signal result		: exec_result_t;
    signal countdown		: natural range 0 to LATENCY_CVT;
 
-		--------------------------------------------------------------------------------
-		-- Âge et reprise (comme INTEGER_UNIT)
-		--------------------------------------------------------------------------------
-
-  function  ABANDONED( idx : rob_index_t; rec : recovery_t; head : rob_index_t ) return boolean
-  is
-  begin
-    if  rec.valid /= '1'  then
-      return  false;
-    elsif  rec.kind = RECOVER_COMMITTED  then
-      return  true;
-    else
-      return ( idx - head ) > ( rec.keep_last - head );
-    end if;
-  end function;
 
   function  LATENCY( op : opcode_t ) return positive is
   begin
