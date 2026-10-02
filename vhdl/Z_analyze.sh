@@ -2,7 +2,20 @@
 #	Analyse GHDL de TAHX_1, dans l'ordre des dépendances.
 #	./Z_analyze.sh [93c|08]		(08 par défaut)
 STD=${1:-08}
-A="ghdl analyze --std=$STD"
+
+#	Fichiers qui reposent sur un paquetage de VHDL-2008 : sautés en 93c.
+#	(Seule liste du dépôt : tests/V0_CABLAGE la relit.)
+VHDL2008_SEULEMENT="L4__float64_pkg.vhd L4_FLOAT_UNIT_rtl.vhd"
+
+analyse ()
+{
+	if [ "$STD" = 93c ] && [[ " $VHDL2008_SEULEMENT " == *" $1 "* ]]; then
+		echo "($1 : VHDL-2008 seulement)"
+		return 0
+	fi
+	ghdl analyze --std=$STD "$1"
+}
+A=analyse
 
 #	Specifications, Definitions
 
@@ -38,6 +51,8 @@ $A L2_MULDIV_UNIT.vhd			|| exit 1
 $A L2_MULDIV_UNIT_rtl.vhd		|| exit 1
 $A L3_BRANCH_UNIT.vhd			|| exit 1
 $A L4_FLOAT_UNIT.vhd			|| exit 1
+$A L4__float64_pkg.vhd		|| exit 1
+$A L4_FLOAT_UNIT_rtl.vhd		|| exit 1
 $A L5_COMPLEX_UNIT.vhd			|| exit 1
 
 #	MEMOIRE DE DONNEES ET REGISTRES

@@ -16,15 +16,30 @@ use work.EXEC_TYPES.all;
 
 		--------------------------------------------------------------------------------
 		--  FLOAT_UNIT : IEEE 754 binary64, arrondi au plus proche pair, sous-normaux
-		--  complets, aucune exception observable (section « Arithmétique flottante »).
+		--  complets, aucune exception observable (LLIR_hardware_support V8, section
+		--  « Arithmétique flottante »). Sources dans l'ordre de la notation de pile.
 		--
-		--    FADD FSUB FMUL FDIV     tout résultat NaN est CANONICAL_NAN ; FDIV itérative
-		--    FNEG FABS               bit 63 seulement, la charge du NaN est gardée
-		--    FCGT .. FCLE            résultat 0 / 1 ; FCNE rend 1 si non ordonné
-		--    CVTIF                   arrondi au plus proche pair
-		--    CVTFI, CVTFIR           troncature, ou au plus proche mi-chemin à l'écart de
-		--                            zéro ; faute 130 : NaN ou hors de [-2^63, 2^63)
+		--    FADD FSUB FMUL FDIV  ( a b -- a op b )   tout résultat NaN est le NaN
+		--                                            canonique 0x7FF8000000000000
+		--    FNEG FABS            ( f -- r )         bit 63 seulement ; la charge d'un
+		--                                            NaN est gardée
+		--    FCGT FCLT FCEQ FCGE FCLE  ( a b -- 0/1 )  0 si a ou b est un NaN ;
+		--                                            +0 = -0
+		--    FCNE                 ( a b -- 0/1 )     1 si a /= b ou non ordonné
+		--    CVTIF                ( i -- f )         i signé ; arrondi au plus proche pair
+		--    CVTFI                ( f -- i )         tronqué vers zéro
+		--    CVTFIR               ( f -- i )         au plus proche, mi-chemin à l'écart
+		--                                            de zéro (Ada RM 4.6)
+		--                         CVTFI, CVTFIR : faute 130 si f est un NaN ou hors de
+		--                         [-2^63, 2^63) (aucun binary64 n'est entre 2^63 - 1 et
+		--                         2^63 : le test sur f suffit aussi pour CVTFIR)
 		--  FEXP n'est pas ici : sa durée dépend de n, il passe par l'unité COMPLEX.
+		--
+		--  Temps, opérandes, résultat, reprise : comme MULDIV_UNIT. Prise au front où
+		--  ISSUE_VALID_i = ISSUE_READY_o = '1' (voie 0) ; opérandes lus au cycle qui
+		--  suit ; résultat sur RESULT_o( 0 ) pendant un cycle, plus tard ; la latence
+		--  ne fait pas partie du contrat (FDIV itérative). Une instruction abandonnée ne
+		--  paraît jamais sur RESULT_o.
 		--------------------------------------------------------------------------------
 
 				----------

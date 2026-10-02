@@ -1,6 +1,8 @@
 #!/bin/bash
 #	V0_CABLAGE (niveau N0) : tout vhdl/ s'analyse en VHDL-08 et 93c, dans l'ordre de
 #	Z_analyze.sh ; le sommet s'élabore quand chaque entité reçoit une architecture vide.
+#	Exceptions VHDL-93 : les fichiers de VHDL2008_SEULEMENT (liste tenue dans Z_analyze.sh),
+#	qui reposent sur un paquetage de VHDL-2008, ne sont analysés qu'en VHDL-08.
 #	Rien ne simule : on vérifie seulement que tout se branche.
 #	$1 : répertoire de travail
 
@@ -8,9 +10,12 @@ W=$1; VHDL=$(cd ../../vhdl && pwd)
 mapfile -t FICHIERS < <(grep -E '^\$A ' "$VHDL/Z_analyze.sh" | awk '{print $2}')
 N=0
 
+eval "$(grep -E '^VHDL2008_SEULEMENT=' "$VHDL/Z_analyze.sh")"
+
 for STD in 08 93c; do
 	mkdir -p "$W/$STD"
 	for f in "${FICHIERS[@]}"; do
+		[[ $STD == 93c && " $VHDL2008_SEULEMENT " == *" $f "* ]] && continue
 		ghdl -a --std=$STD --workdir="$W/$STD" "$VHDL/$f" || { echo "TEST V0_CABLAGE : ECHEC (analyse VHDL-$STD de $f)"; exit 1; }
 		N=$((N + 1))
 	done

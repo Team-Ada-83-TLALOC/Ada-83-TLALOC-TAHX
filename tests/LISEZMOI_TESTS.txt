@@ -60,7 +60,9 @@ V_TAHX_1_structure.vhd pour le sommet : <fichier de l'entité>_rtl.vhd, architec
 (P_PHYSICAL_REGISTER_FILE_rtl.vhd). Elle est ajoutée à Z_analyze.sh juste après son entité,
 et à la liste sources de son test. V0_CABLAGE n'invente une architecture vide que pour les
 entités qui n'en ont pas encore : le câblage est donc vérifié avec les pièces réelles.
-Le code de vhdl/ reste analysable en VHDL-93 : V0_CABLAGE le vérifie.
+Le code de vhdl/ reste analysable en VHDL-93 : V0_CABLAGE le vérifie. Seule exception, les
+fichiers qui reposent sur un paquetage de VHDL-2008 (FLOAT_UNIT : float_generic_pkg) ; ils
+sont nommés dans VHDL2008_SEULEMENT, au début de vhdl/Z_analyze.sh, seule liste du dépôt.
 
 
 Convention d'un banc
