@@ -75,7 +75,10 @@ use work.MEMOIRE_PKG.all;
 		--  selon le contrat de FETCH_UNIT : mots de 64 bits alignés, requête acceptée
 		--  au front où I_REQ = I_READY = '1' (I_READY tiré au hasard), réponses dans
 		--  l'ordre après une latence tirée dans [LATENCY_MIN_G, LATENCY_MAX_G], une par
-		--  cycle au plus. Contenu : MEMOIRE_PKG. Signale toute requête non alignée.
+		--  cycle au plus. Signale toute requête non alignée.
+		--  Contenu : MEMOIRE_PKG si IMAGE_G est vide ; sinon le fichier IMAGE_G (image
+		--  HX entière, en-tête compris) chargé à IMAGE_BASE_G, la zone valide arrondie à
+		--  la ligne de 32 octets et complétée par des zéros ; hors d'elle, faute.
 		--  ACCEPTED_o compte les requêtes acceptées (statistiques des bancs).
 		--------------------------------------------------------------------------------
 
@@ -86,6 +89,8 @@ is				--------------------
       LATENCY_MIN_G	: positive := 1;
       LATENCY_MAX_G	: positive := 20;
       READY_PROB_G	: real := 0.8;
+      IMAGE_G		: string := "";
+      IMAGE_BASE_G	: natural := 16#400000#;
       SEED_1_G		: positive := 1;
       SEED_2_G		: positive := 2
    );
@@ -122,15 +127,78 @@ begin
       variable r		: real;
       variable ready	: std_logic := '0';
       variable accepted	: natural := 0;
+
+      -- image chargée (mode IMAGE_G)
+      type byte_vector_t	is array( natural range <> ) of natural range 0 to 255;
+      type byte_access_t	is access byte_vector_t;
+      type char_file_t	is file of character;
+      file f		: char_file_t;
+      variable status	: file_open_status;
+      variable ch		: character;
+      variable image	: byte_access_t;
+      variable size, limit	: natural := 0;			-- octets lus, zone valide arrondie
+      variable tmp		: byte_access_t;
+
+      impure function WORD_AT( a : address_t ) return word64_t is
+         variable w	: word64_t := ( others => '0' );
+         variable off	: integer;
+      begin
+         if IMAGE_G'length = 0 then
+            return MEM_WORD( a );
+         end if;
+         off := to_integer( a( 31 downto 0 ) ) - IMAGE_BASE_G;
+         for i in 0 to 7 loop
+            if off + i >= 0 and off + i < size then
+               w( 8 * i + 7 downto 8 * i ) := std_logic_vector( to_unsigned( image( off + i ), 8 ) );
+            end if;
+         end loop;
+         return w;
+      end function;
+
+      impure function FAULT_AT( a : address_t ) return std_logic is
+         variable off	: integer;
+      begin
+         if IMAGE_G'length = 0 then
+            return MEM_FAULT( a );
+         end if;
+         if a( 63 downto 32 ) /= 0 then
+            return '1';
+         end if;
+         off := to_integer( a( 31 downto 0 ) ) - IMAGE_BASE_G;
+         if off >= 0 and off + 8 <= limit then
+            return '0';
+         end if;
+         return '1';
+      end function;
+
    begin
+      if IMAGE_G'length > 0 then
+         file_open( status, f, IMAGE_G, read_mode );
+         assert status = open_ok report "MEMOIRE_INSTRUCTIONS : image " & IMAGE_G & " introuvable" severity failure;
+         image := new byte_vector_t( 0 to 1023 );
+         while not endfile( f ) loop
+            read( f, ch );
+            if size > image'high then					-- on double la place
+               tmp := new byte_vector_t( 0 to 2 * image'length - 1 );
+               tmp( 0 to size - 1 ) := image( 0 to size - 1 );
+               deallocate( image );
+               image := tmp;
+            end if;
+            image( size ) := character'pos( ch );
+            size := size + 1;
+         end loop;
+         file_close( f );
+         limit := ( size + 31 ) / 32 * 32;
+         report "MEMOIRE_INSTRUCTIONS : " & IMAGE_G & ", " & integer'image( size ) & " octets" severity note;
+      end if;
       wait until falling_edge( CLK_i );
       loop
          now := now + 1;
          -- réponse du cycle : la plus ancienne, si elle est échue
          if n > 0 and q( head ).due <= now then
             I_RVALID_o <= '1';
-            I_RDATA_o <= MEM_WORD( q( head ).addr );
-            I_FAULT_o <= MEM_FAULT( q( head ).addr );
+            I_RDATA_o <= WORD_AT( q( head ).addr );
+            I_FAULT_o <= FAULT_AT( q( head ).addr );
             head := ( head + 1 ) mod CAPACITY;
             n := n - 1;
          else

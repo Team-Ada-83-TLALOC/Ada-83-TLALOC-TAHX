@@ -36,6 +36,7 @@ $A I3_DECODE_BLOC_rtl.vhd		|| exit 1
 $A I4_BRANCH_PREDICT.vhd		|| exit 1
 $A I4_BRANCH_PREDICT_rtl.vhd		|| exit 1
 $A I_INSTRUCTION_UNIT.vhd		|| exit 1
+$A I_INSTRUCTION_UNIT_structure.vhd	|| exit 1
 
 $A J1_DECODE_QUEUE.vhd			|| exit 1
 $A J1_DECODE_QUEUE_rtl.vhd		|| exit 1

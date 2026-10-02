@@ -15,6 +15,10 @@
 --    gen_vecteurs_decode hasard <octets> <fenetres> <graine> <copie.hx> <sortie>
 --        flot d'instructions tirees au hasard (opcodes reserves et champs illegaux
 --        compris) ; fenetres a des positions, longueurs et fautes tirees
+--    gen_vecteurs_decode positions <image.hx> <copie.hx> <sortie>
+--        pour chaque octet de la zone valide de l'image (depuis le point d'entree) :
+--          P <pc:16> <debut d'instruction 0/1> <formes>, puis les F de cette instruction
+--        (test d'assemblage I_N2_INSTRUCTION_UNIT)
 --
 --  Sortie, une fenetre par groupe de lignes (hexadecimal en majuscules) :
 --    W <pc:16> <nombre d'octets valides> <32 octets:64> <32 drapeaux de faute 0/1>
@@ -74,6 +78,10 @@ procedure Gen_Vecteurs_Decode is
    type Formes is array (Natural range 0 .. Largeur - 1) of Forme;
 
    Nb_Fenetres, Nb_Formes, Nb_Stop, Nb_Attente : Natural := 0;
+
+   --  mode positions : une ligne P par octet, les formes de l'instruction qui y commence
+   En_Positions : Boolean := False;
+   Debut_Courant : Boolean := False;
 
    type Octets is array (Natural range <>) of Unsigned_8;
    type Acces_Octets is access Octets;
@@ -284,6 +292,33 @@ procedure Gen_Vecteurs_Decode is
       <<Suivante>> null;
       end loop;
 
+      if En_Positions then
+         --  formes de l'instruction en position 0 seulement ; aucune : elle deborde
+         --  de la zone (le chargement fautera)
+         declare
+            N0 : Natural := 0;
+            C : Character := '0';
+         begin
+            for I in 0 .. N - 1 loop
+               if F (I).Position = 0 then
+                  N0 := N0 + 1;
+               end if;
+            end loop;
+            if Debut_Courant then
+               C := '1';
+            end if;
+            Text_IO.Put_Line (Sortie, "P " & Hex (PC, 16) & " " & C & " " & Dec (N0));
+            for I in 0 .. N0 - 1 loop
+               Text_IO.Put_Line (Sortie, "F " & Hex (Unsigned_64 (F (I).Op), 2) & " "
+                                 & Hex (Unsigned_64 (F (I).Lvl), 1) & " " & Hex (Unsigned_64 (F (I).Ofs), 2)
+                                 & " " & Hex (F (I).Val, 8) & " " & Hex (Unsigned_64 (F (I).Lg), 1)
+                                 & " 0");
+            end loop;
+            Nb_Fenetres := Nb_Fenetres + 1;
+            Nb_Formes := Nb_Formes + N0;
+         end;
+         return;
+      end if;
       Text_IO.Put_Line (Sortie, "W " & Hex (PC, 16) & " " & Dec (Nb) & " " & Ligne & " " & Drapeaux);
       Text_IO.Put (Sortie, "R " & Dec (N) & " " & Dec (Consomme));
       if Attente then
@@ -402,6 +437,65 @@ procedure Gen_Vecteurs_Decode is
       end;
    end Mode_Image;
 
+   --  positions : chaque octet de la zone valide de l'image (image entiere, arrondie a la
+   --  ligne de 32 octets, comme tests/commun/MEMOIRE_INSTRUCTIONS), depuis le point d'entree
+   procedure Mode_Positions (Image, Copie : String) is
+      Table, W, Taille, Fin_Zone, A : Unsigned_64;
+      Code : Acces_Octets;
+      type Drapeaux is array (Natural range <>) of Boolean;
+      type Acces_Drapeaux is access Drapeaux;
+      Debut : Acces_Drapeaux;
+      Nb : Natural;
+      Nb_Debuts : Natural := 0;
+   begin
+      Memoire.Charger_Image (Image, 0);
+      Table := Memoire.Table_Instructions;
+      if Table = 0 then
+         Text_IO.Put_Line ("l'image n'a pas de table des instructions");
+         raise Usage;
+      end if;
+      Taille := Memoire.Fin_Code - Memoire.Entree;
+      Fin_Zone := Memoire.Base_Image + ((Memoire.Fin_Code - Memoire.Base_Image + 31) / 32) * 32;
+      Debut := new Drapeaux (0 .. Natural (Fin_Zone - Memoire.Entree) - 1);
+      for I in Debut'Range loop
+         Debut (I) := False;
+      end loop;
+      for K in 0 .. Memoire.Nombre_Instructions - 1 loop
+         W := Memoire.Lire_32 (Table + Unsigned_64 (4 * K));
+         if (W and 16#4000_0000#) = 0 then
+            Debut (Natural (Memoire.Base_Image + (W and 16#3FFF_FFFF#) - Memoire.Entree)) := True;
+            Nb_Debuts := Nb_Debuts + 1;
+         end if;
+      end loop;
+
+      --  copie sans table, bourree de zeros jusqu'a la fin de la zone, comme la memoire
+      --  du banc : Decodeur_HX decode alors toute position de la zone
+      Code := new Octets (0 .. Natural (Fin_Zone - Memoire.Entree) - 1);
+      for I in Code'Range loop
+         Code (I) := 0;
+         if I < Natural (Taille) then
+            Code (I) := Unsigned_8 (Memoire.Lire_8 (Memoire.Entree + Unsigned_64 (I)));
+         end if;
+      end loop;
+      Ecrire_Image (Copie, Code.all);
+      Memoire.Charger_Image (Copie, 0);
+      Decodeur_HX.Preparer;
+
+      Text_IO.Put_Line (Sortie, "# positions de " & Image & " : " & Hex (Memoire.Entree, 16) & " .. "
+                        & Hex (Fin_Zone - 1, 16) & ", " & Dec (Nb_Debuts) & " debuts d'instruction");
+      En_Positions := True;
+      A := Memoire.Entree;
+      while A < Fin_Zone loop
+         Nb := Fenetre;
+         if Fin_Zone - A < Fenetre then
+            Nb := Natural (Fin_Zone - A);
+         end if;
+         Debut_Courant := Debut (Natural (A - Memoire.Entree));
+         Traiter (A, Nb, Sans_Faute);
+         A := A + 1;
+      end loop;
+   end Mode_Positions;
+
    procedure Mode_Hasard (Taille, Nb_Fen : Positive; Graine : Positive; Copie : String) is
       Code : Octets (0 .. Taille - 1) := (others => 0);
       Liste : array (0 .. Taille - 1) of Natural;
@@ -487,6 +581,9 @@ begin
    if Args.Nombre = 5 and then Args.Argument (1) = "image" then
       Text_IO.Create (Sortie, Text_IO.Out_File, Args.Argument (5));
       Mode_Image (Args.Argument (2), Args.Argument (4), Positive'Value (Args.Argument (3)));
+   elsif Args.Nombre = 4 and then Args.Argument (1) = "positions" then
+      Text_IO.Create (Sortie, Text_IO.Out_File, Args.Argument (4));
+      Mode_Positions (Args.Argument (2), Args.Argument (3));
    elsif Args.Nombre = 6 and then Args.Argument (1) = "hasard" then
       Text_IO.Create (Sortie, Text_IO.Out_File, Args.Argument (6));
       Mode_Hasard (Positive'Value (Args.Argument (2)), Positive'Value (Args.Argument (3)),
@@ -501,6 +598,7 @@ exception
    when Usage =>
       Text_IO.Put_Line ("usage : gen_vecteurs_decode image  <image.hx> <pas> <copie.hx> <sortie>");
       Text_IO.Put_Line ("        gen_vecteurs_decode hasard <octets> <fenetres> <graine> <copie.hx> <sortie>");
+      Text_IO.Put_Line ("        gen_vecteurs_decode positions <image.hx> <copie.hx> <sortie>");
       Args.Code_De_Sortie (2);
    when Memoire.Faute =>
       Text_IO.Put_Line ("erreur : " & Memoire.Message);
