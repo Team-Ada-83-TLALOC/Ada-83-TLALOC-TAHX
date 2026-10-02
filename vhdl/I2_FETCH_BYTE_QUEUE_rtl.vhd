@@ -111,7 +111,7 @@ FILE_OCTETS :
         end if;
 
             -- pragma translate_off
-        assert  pop <= count  and p op <= DECODE_WINDOW_SIZE
+        assert  pop <= count  and pop <= DECODE_WINDOW_SIZE
           report  "FETCH_BYTE_QUEUE : retrait de " & integer'image( pop ) & " octets, "
                       & integer'image( count ) & " présents" severity error;
         assert  push <= FETCH_BLOCK_SIZE

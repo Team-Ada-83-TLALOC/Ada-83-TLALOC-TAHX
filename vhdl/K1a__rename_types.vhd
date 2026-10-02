@@ -79,7 +79,9 @@ is                              ------------
 			  rob_index	: rob_index_t;
 			  issue_class	: issue_class_t;		-- copie de ISA_TABLE, pour BACKEND_DISPATCH
 
-         -- sources physiques (cellules de pile lues)
+         -- sources physiques (cellules de pile lues), dans l'ordre de la notation de pile :
+         -- source( 0 ) la plus profonde, source( source_count - 1 ) le sommet ;
+         -- pour ( a b -- r ) : a = source( 0 ), b = source( 1 )
 			  source_count	: source_count_t;
 			  source		: physical_source_array_t;
 			  source_ready	: source_ready_array_t;

@@ -17,20 +17,50 @@ use work.EXEC_TYPES.all;
 		--------------------------------------------------------------------------------
 		--  INTEGER_UNIT : opérations entières d'un cycle, LANES_G voies identiques.
 		--
-		--    ET OU OUX NON, SHL SHR SAR, CLAMP0       faute 137 : décalage n >= 64
-		--    NEG ABS ADD INC SUB DEC                  faute 129 : débordement signé
-		--    CGT CLT CNE CEQ CGE CLE                  résultat 0 / 1
-		--    UBFX SBFX BFI, UBFXI SBFXI BFII          faute 137 : w = 0, w > 64 ou
-		--                                             lsb > 64 - w
-		--    LI (D8, D16, D32, imm4)                  val de la forme canonique
-		--    UOP_LIHI                                 sommet := val << 32 or (sommet and
-		--                                             0xFFFF_FFFF)
-		--    LVA lvl 0..14                            adresse calculée au renommage
-		--                                             (address_known, address)
-		--    LVA 1111                                 source 0 + disp (modulo 2^64)
+		--  Sources (RENAME_TYPES) : dans l'ordre de la notation de pile, source( 0 ) la
+		--  plus profonde, la dernière au sommet. Pour ( a b -- r ) : a = source( 0 ),
+		--  b = source( 1 ). Comparaisons et arithmétique en complément à deux sur 64 bits.
 		--
-		--  Les fautes sont précises : l'unité ne produit pas de résultat
-		--  (destination_valid = '0') et note la faute dans completion.
+		--    ET OU OUX            ( a b -- a op b )
+		--    NON                  ( a -- not a )
+		--    SHL SHR SAR          ( a n -- r )          faute 137 si n >= 64 (non signé)
+		--    CLAMP0               ( a -- max( a, 0 ) )
+		--    NEG ABS              ( a -- r )            faute 129 si a = -2^63
+		--    ADD SUB              ( a b -- a op b )     faute 129 : débordement signé
+		--    INC DEC              ( a -- a op 1 )       faute 129 : débordement signé
+		--    CGT CLT CNE CEQ CGE CLE  ( a b -- a op b )  résultat 0 / 1
+		--    UBFX SBFX            ( v lsb w -- champ )  faute 137 : w = 0, w > 64 ou
+		--    BFI                  ( old ins lsb w -- new )        lsb > 64 - w
+		--    UBFXI SBFXI          ( v -- champ )        lsb = val, w = ofs (déjà
+		--    BFII                 ( old ins -- new )     contrôlés au décodage)
+		--                         champ = ( v >> lsb ) and ( 2^w - 1 ), SBFX : étendu
+		--                         depuis le bit w - 1 ; new = ( old and not m ) or
+		--                         ( ( ins << lsb ) and m ), m = ( 2^w - 1 ) << lsb
+		--    LI (D8, D16, D32, imm4)  ( -- val étendu en signe )
+		--    UOP_LIHI             ( x -- val << 32 or ( x and 0xFFFF_FFFF ) )
+		--    LVA lvl 0..14        ( -- address )        calculée au renommage
+		--    LVA lvl = 1111       ( @ -- @ + disp )     modulo 2^64, sans faute
+		--
+		--  Temps : une instruction prise au front t (voie = son rang dans le bloc) lit
+		--  ses opérandes pendant le cycle ]t, t+1] et présente son résultat sur
+		--  RESULT_o( voie ) pendant le cycle ]t+1, t+2], un seul cycle. ISSUE_READY_o
+		--  reste à '1'.
+		--
+		--  Opérandes : pour chaque source, l'entrée de BYPASS_i qui porte valid = '1',
+		--  destination_valid = '1' et destination = l'étiquette, s'il y en a une ;
+		--  sinon READ_DATA_i. Les sources au-delà de source_count sont ignorées.
+		--
+		--  Résultat : valid = '1' ; completion = ( valid '1', rob_index, fault, taken
+		--  '0', target 0, mispredicted '0' ). Sans faute : destination_valid et
+		--  destination de l'instruction, value. Faute précise : destination_valid =
+		--  '0', fault = ( '1', code ), value non définie.
+		--
+		--  Reprise : une instruction est abandonnée si RECOVERY_i est valide et que
+		--  kind = RECOVER_COMMITTED, ou qu'elle est plus jeune que keep_last, l'âge
+		--  étant ( rob_index - ROB_HEAD_i ) modulo ROB_SIZE. Une instruction abandonnée
+		--  ne paraît jamais sur RESULT_o, pas même au cycle de la reprise : la sortie
+		--  est masquée par RECOVERY_i, et les instructions prises ce cycle-là y sont
+		--  soumises aussi. RESET_i vide l'unité.
 		--------------------------------------------------------------------------------
 
 				------------
