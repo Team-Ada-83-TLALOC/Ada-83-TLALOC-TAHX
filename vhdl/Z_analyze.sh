@@ -36,6 +36,7 @@ $A I4_BRANCH_PREDICT.vhd		|| exit 1
 $A I_INSTRUCTION_UNIT.vhd		|| exit 1
 
 $A J1_DECODE_QUEUE.vhd			|| exit 1
+$A J1_DECODE_QUEUE_rtl.vhd		|| exit 1
 $A K1a__rename_types.vhd		|| exit 1
 $A K1b_RENAME_DISPATCH.vhd		|| exit 1
 $A K2a__backend_types.vhd		|| exit 1

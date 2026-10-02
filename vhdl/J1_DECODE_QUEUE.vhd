@@ -27,6 +27,28 @@ use work.FETCH_DECODE_TYPES.all;
 		--  renommage. Elle absorbe les à-coups : le frontal produit par blocs de
 		--  taille variable (coupés après un saut pris), le renommage peut s'arrêter
 		--  faute de registres physiques ou d'entrées du ROB.
+		--
+		--  1. Entrée. Au front où PUSH_VALID_i = PUSH_READY_o = '1', les cases
+		--     PUSH_BLOCK_i( 0 .. PUSH_COUNT_i - 1 ) entrent en queue, dans l'ordre
+		--     (PUSH_COUNT_i = 0 : rien). PUSH_READY_o = '1' quand il reste au moins
+		--     DECODE_WIDTH cases libres ; il ne dépend que de l'état de la file.
+		--
+		--  2. Sortie, combinatoire depuis l'état : POP_COUNT_o = min( cases présentes,
+		--     DECODE_WIDTH ) ; POP_BLOCK_o( i ), i < POP_COUNT_o, est la i-ème plus
+		--     ancienne, avec valid = '1' ; au-delà, valid = '0' et le reste n'est pas
+		--     défini. Un bloc pris au front n est en sortie au cycle n + 1.
+		--
+		--  3. Retrait. Au front, les POP_TAKE_i plus anciennes quittent la file
+		--     (contrat du renommage : pas plus que POP_COUNT_o). Entrée et retrait
+		--     peuvent avoir lieu au même front.
+		--
+		--  4. Vidage. RESET_i ou FLUSH_i = '1' vide la file au front, sans entrée ni
+		--     retrait ce cycle-là. Le bloc présenté au cycle du vidage est perdu : le
+		--     frontal, vidé par la même reprise, ne l'attend pas.
+		--
+		--  COUNT_o : cases présentes. Les manquements aux contrats (retrait de plus que
+		--  POP_COUNT_o, bloc de plus de DECODE_WIDTH cases) sont signalés en
+		--  simulation ; un bloc présenté sans place attend, ce n'est pas un manquement.
 		--------------------------------------------------------------------------------
 
 
