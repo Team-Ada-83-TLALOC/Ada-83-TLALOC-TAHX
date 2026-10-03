@@ -16,7 +16,7 @@ use work.TAHX_1_ISA.all;
 		--------------------------------------------------------------------------------
 
 		--
-		--  Machine à pile 64 bits exécutant les images HX (LLIR_hardware_support V7),
+		--  Machine à pile 64 bits exécutant les images HX (LLIR_hardware_support V8),
 		--    dans le désordre, avec renommage de la pile.
 		--
 		--  Blocs (une entité par fichier vhd) :

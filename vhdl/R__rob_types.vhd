@@ -14,7 +14,7 @@ use work.FETCH_DECODE_TYPES.all;
 		--  Le ROB tient les instructions en vol dans l'ordre du programme. Il est le
 		--  seul lieu où l'on sait qu'une instruction est la plus ancienne : c'est là
 		--  que se décident le retrait, la livraison des fautes et la prise des
-		--  interruptions (LLIR_hardware_support V7, annexe).
+		--  interruptions (LLIR_hardware_support V8, annexe).
 		--------------------------------------------------------------------------------
 
 

@@ -76,6 +76,9 @@ Convention d'un banc
   et arrête la simulation par std.env.stop, avec le code 0 ou 1. lancer_tests.sh ne lit
   que ce code ; la ligne de bilan est pour nous.
 - Il s'arrête de lui-même (pas de --stop-time) et borne sa durée par un chien de garde.
+- Parallélisme : ./lancer_tests.sh -j 8 lance jusqu'à 8 tests à la fois (ils sont
+  indépendants) ; le bilan suit l'ordre de LISTE. Sur une machine à 8 cœurs, la suite
+  entière tient alors dans le temps de son test le plus long (une vingtaine de secondes).
 - Vitesse : sous GHDL, l'arithmétique numeric_std sur des vecteurs larges est lente (bit
   à bit). Dans les boucles d'un banc, calculer en entiers ; ne composer un message
   d'échec que s'il y a échec (CHECK_PASSED, voir TB_UTILS). Une suite entière doit

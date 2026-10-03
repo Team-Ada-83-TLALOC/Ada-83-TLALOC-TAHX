@@ -73,6 +73,7 @@ $A P_PHYSICAL_REGISTER_FILE_rtl.vhd	|| exit 1
 #	REMISE EN ORDRE
 
 $A R_ROB.vhd				|| exit 1
+$A R_ROB_rtl.vhd			|| exit 1
 
 $A S_SYSTEM_UNIT.vhd			|| exit 1
 

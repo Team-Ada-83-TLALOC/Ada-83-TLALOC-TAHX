@@ -34,6 +34,63 @@ use work.ROB_TYPES.all;
 		--
 		--  Les rangements ne quittent la LSQ qu'au retrait (RETIRE_o.is_store) :
 		--	une instruction annulée n'a jamais écrit en mémoire.
+		--
+		--  CONTRAT
+		--
+		--  1. Allocation. TAIL_o (index de la prochaine entrée) et FREE_o (ROB_SIZE -
+		--     entrées présentes) ne dépendent que de l'état. Au front où ALLOC_VALID_i
+		--     = '1', ALLOC_BLOCK_i( 0 .. ALLOC_COUNT_i - 1 ) entrent à TAIL_o, TAIL_o + 1...
+		--     (contrat du renommage : ALLOC_COUNT_i <= FREE_o). Une entrée est terminée
+		--     dès l'allocation si done = '1' ou fault.valid = '1'. Un bloc alloué au
+		--     cycle où RECOVERY_o est valide est sur le chemin abandonné : ignoré.
+		--
+		--  2. Fins d'exécution. Au front, chaque COMPLETION_i( p ) valide qui désigne
+		--     une entrée présente la termine, y note sa faute (fault.valid) et, pour un
+		--     transfert, taken et target. Les autres sont ignorées.
+		--
+		--  3. Retrait, combinatoire sur l'état, effectif au front : RETIRE_o( 0 .. k - 1 )
+		--     = le plus long préfixe, depuis la tête, d'au plus RETIRE_WIDTH entrées
+		--     terminées, sans faute et non sérialisantes, raccourci pour ne pas finir
+		--     sur une entrée de len = 0 (micro-opération non finale : elle part avec la
+		--     suivante). k = 0 si HOLD_RETIRE_i = '1'. Au cycle où RECOVERY_o est
+		--     valide : RECOVER_CHECKPOINT, le préfixe s'arrête à keep_last ;
+		--     RECOVER_COMMITTED, k = 1 (la tête) si la redirection l'a demandé
+		--     (retire_head), sinon 0, quel que soit HOLD_RETIRE_i (SYSTEM_UNIT a décidé).
+		--     keep_last et checkpoint ne sont définis que pour RECOVER_CHECKPOINT.
+		--     Chaque retrait : rob_index, pc, is_store ; is_control ; conditional = BT,
+		--     BF ; taken et target de la fin d'exécution (transferts ; '0' et 0 sinon) ;
+		--     ghist = pred.ghist.
+		--
+		--  4. Tête. HEAD_o ; HEAD_STATUS_o : valid = ROB non vide, puis l'entrée de tête
+		--     (rob_index, pc, done, fault, serializing) et boundary = la dernière entrée
+		--     retirée avait len /= 0 ('1' après RESET_i et après une reprise
+		--     RECOVER_COMMITTED). Avec la règle du point 3, un retrait ne finit jamais sur
+		--     len = 0 : la tête commence toujours une instruction HX et boundary vaut
+		--     toujours '1' ; le champ reste pour l'interface. EMPTY_o.
+		--
+		--  5. Reprises. RECOVERY_o est registré : valide pendant le cycle n + 1 pour une
+		--     cause du cycle n, par priorité :
+		--       SYSTEM_REDIRECT_i valide     RECOVER_COMMITTED, new_pc = sa pc ; ghist et
+		--                                    ras_ptr : l'état retiré du prédicteur ;
+		--       fin d'exécution mal prédite  la plus ancienne des fins du cycle n avec
+		--                                    mispredicted = '1', sur une entrée présente
+		--                                    que la reprise du cycle n n'abandonne pas
+		--                                    (les unités n'en présentent jamais : test
+		--                                    de défense) :
+		--                                    RECOVER_CHECKPOINT, keep_last = elle,
+		--                                    checkpoint = le sien, new_pc = target ;
+		--                                    ghist = ( pred.ghist << 1 ) or taken pour BT,
+		--                                    BF, pred.ghist sinon ; ras_ptr = pred.ras_ptr
+		--                                    + 1 après CALL, CALLI, - 1 après RTD, inchangé
+		--                                    sinon (modulo RAS_DEPTH).
+		--     Au front du cycle n + 1 : RECOVER_CHECKPOINT retire du ROB les entrées plus
+		--     jeunes que keep_last ; RECOVER_COMMITTED vide le ROB (après le retrait de
+		--     la tête si retire_head).
+		--     État retiré du prédicteur, mis à jour au retrait, dans l'ordre : ghist :=
+		--     ( ghist << 1 ) or taken après BT, BF ; ras_ptr + 1 après CALL, CALLI, - 1
+		--     après RTD. Initialement 0.
+		--
+		--  6. RESET_i vide le ROB.
 		--------------------------------------------------------------------------------
 
 

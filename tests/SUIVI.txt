@@ -57,7 +57,9 @@ N1   K2b_BACKEND_DISPATCH        BACKEND_DISPATCH          ok     OK 60001    20
                                                                                           (VALID seulement si tout passe)
 N1   L3_BRANCH_UNIT              BRANCH_UNIT               ok     OK 90001    2026-10-02  mispredicted : adresse suivante
                                                                                           réelle /= adresse prédite
-N1   R_ROB                       ROB                       ---    ---
+N1   R_ROB                       ROB                       ok     OK 160001   2026-10-02  RECOVERY_o registré ; état du
+                                                                                          prédicteur dans les reprises ;
+                                                                                          boundary toujours '1'
 N1   M1_ADDRESS_UNIT             ADDRESS_UNIT              ---    ---
 N1   M3_DATA_CACHE               DATA_CACHE                ---    ---
 N1   M2_LOAD_STORE_QUEUE         LOAD_STORE_QUEUE          ---    ---
@@ -87,14 +89,11 @@ concernée quand on l'écrira, puis à rayer ici.
   RENAME_DISPATCH  (ISSUE_QUEUE) source_ready reflète tous les réveils des cycles
                    précédant l'insertion ; sources dans l'ordre de la notation de pile
                    (RENAME_TYPES) ; au plus ROB_SIZE instructions de la tête à la dernière.
-  ROB              (BRANCH_PREDICT) recovery.ghist et recovery.ras_ptr : état du
-                   prédicteur après l'instruction gardée et sa vraie issue
-                   (RECOVER_CHECKPOINT : ghist = ( pred.ghist << 1 ) or issue pour BT, BF,
-                   inchangé sinon ; ras_ptr = pred.ras_ptr + 1 après CALL, CALLI, - 1 après
-                   RTD), ou état retiré (RECOVER_COMMITTED) ; retire.conditional pour BT,
-                   BF ; retire.ghist = pred.ghist.
-                   (BRANCH_UNIT) completion.mispredicted = '1' : reprise RECOVER_CHECKPOINT
-                   avec keep_last = l'instruction, new_pc = completion.target.
+                   (ROB) ALLOC_COUNT_i <= FREE_o ; rien d'alloué au cycle d'une reprise
+                   (le ROB l'ignore) ; done = '1' pour ce qui n'a rien à exécuter.
+  SYSTEM_UNIT      (ROB) une redirection à la fois : attendre RECOVERY_o avant la suivante ;
+                   retire_head = '1' seulement pour une tête terminée, sans faute (TRAP,
+                   RTX, EXC_RAISE exécutés).
 
 Écarts relevés dans les références
 ----------------------------------

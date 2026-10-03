@@ -7,7 +7,7 @@ use ieee.numeric_std.all;
 ------------------------------------------------------------------------------------------------------------------------
 --      1       2       3       4       5       6       7       8       9       0       1       2
 --
---  Ce que la spécification LLIR_hardware_support (V7) impose à toute réalisation, indépendamment de la
+--  Ce que la spécification LLIR_hardware_support (V8) impose à toute réalisation, indépendamment de la
 --  micro-architecture : types des champs, propriétés des opcodes, codes des fautes et des services.
 --  La table des 256 opcodes est dans TAHX_1_ISA_TABLE, générée depuis la spécification.
 ------------------------------------------------------------------------------------------------------------------------
