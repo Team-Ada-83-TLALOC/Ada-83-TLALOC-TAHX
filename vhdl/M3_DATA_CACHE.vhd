@@ -39,9 +39,29 @@ use work.EXEC_TYPES.all;
 		--               peut répondre sans consulter ses étiquettes ni la mémoire ; la
 		--               LSQ s'en sert pour rendre précise la faute 132 d'un rangement,
 		--               qui ne s'écrit qu'au retrait.
-		--  Une réponse par requête acceptée, dans l'ordre des requêtes de son port.
+		--  Une réponse par requête acceptée, dans l'ordre des requêtes de son port ;
+		--  rdata est nul au-delà des size octets lus. La latence n'est pas fixée.
 		--  Ordre entre ports : une requête voit l'effet de toutes les écritures
 		--  acceptées à un front antérieur, quel que soit leur port.
+		--
+		--  Validité : un accès de n octets est valide si VALID_BASE_G <= address et
+		--  address + n <= VALID_LIMIT_G (règle de plateforme ; par défaut celle de
+		--  tx_run). Hors de là : fault = '1' tout de suite, sans aller en mémoire ; c'est
+		--  ce qui permet au sondage de répondre sur la seule adresse.
+		--
+		--  Côté mémoire (D_xxx) : des mots de 64 bits alignés (D_ADDR_o mod 8 = 0,
+		--  D_SIZE_o = 11), une requête acceptée au front où D_REQ_o = D_READY_i = '1'.
+		--  Écriture (D_WRITE_o = '1') : les octets de D_WDATA_o désignés par D_WSTRB_o,
+		--  sans réponse (postée). Lecture : une réponse D_RVALID_i, D_RDATA_i, dans
+		--  l'ordre des lectures ; D_FAULT_i = '1' fait fauter l'accès qui l'a causée, et
+		--  la ligne n'est pas rangée. Engagement de la plateforme : la mémoire ne refuse
+		--  pas d'écriture dans [VALID_BASE_G, VALID_LIMIT_G) (une écriture différée ne
+		--  pourrait plus rendre sa faute précise).
+		--
+		--  Modèle de référence (architecture RTL) : écriture différée, allocation sur
+		--  écriture, WAYS_G voies, lignes de LINE_BYTES_G octets, remplacement tournant
+		--  par ensemble ; une requête à la fois, ports servis à tour de rôle ; un accès
+		--  à cheval sur deux lignes est fait en deux parties.
 		--------------------------------------------------------------------------------
 
 
@@ -52,7 +72,9 @@ is				----------
       PORTS_G		: positive	:= DCACHE_PORTS;
       SIZE_BYTES_G		: positive	:= 32 * 1024;
       LINE_BYTES_G		: positive	:= 32;
-      WAYS_G		: positive	:= 4
+      WAYS_G		: positive	:= 4;
+      VALID_BASE_G		: address_t	:= x"0000000000400000";	-- règle de validité
+      VALID_LIMIT_G	: address_t	:= x"00007F0000000000"	--  (tx_run)
    );
    port (
       CLK_i		:in  std_logic;

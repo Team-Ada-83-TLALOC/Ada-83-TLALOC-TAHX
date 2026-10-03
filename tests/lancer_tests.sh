@@ -13,6 +13,7 @@
 #	    ses fichiers vecteurs/* sont copiés dans le répertoire de travail, décompressés s'ils
 #	    finissent par .gz.
 #	Le verdict est le code de retour (0 : OK) ; le journal complet est dans travail/<nom>/journal.txt.
+debutT=$(date +%s)
 
 cd "$(dirname "$0")" || exit 2
 ICI=$(pwd)
@@ -105,3 +106,12 @@ fi
 echo "----"
 echo "$OK test(s) OK, $ECHEC en échec"
 [ $ECHEC -eq 0 ]
+
+finT=$(date +%s)
+dureeT=$((finT - debutT))
+
+heuresT=$((dureeT / 3600))
+minutesT=$(((dureeT % 3600) / 60))
+secondesT=$((dureeT % 60))
+
+printf "Durée des tests : %02dh %02dmin %02dsec\n" $heuresT $minutesT $secondesT
