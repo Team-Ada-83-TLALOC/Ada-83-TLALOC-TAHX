@@ -65,6 +65,80 @@ use work.BACKEND_TYPES.all;
 		--  EXC_RAISE en ont besoin. Une interruption ou un TRAP vectorisé, qui écrivent
 		--  l'adresse de retour en mémoire (push_retour) puis resynchronisent RSP, passent
 		--  donc aussi par là ; une faute n'écrit que la zone FSCR.
+		--
+		--  CONTRAT
+		--
+		--  1. Une séquence à la fois. Au repos, par priorité : HALT_REQ_i (arrêt
+		--     HALT_REQUEST) ; tête du ROB terminée en faute ; SYS_REQ_i ; interruption.
+		--     HOLD_RETIRE_o = '1' pendant toute séquence, et au repos dès qu'une
+		--     interruption est à livrer (DR = 0, code pendant non masqué). Une
+		--     interruption est livrée avant l'instruction de tête, quand il y en a une
+		--     et qu'elle ne porte pas de faute : PC suivant = son pc. Une SYS_REQ_i reçue
+		--     hors du repos est ignorée (l'instruction sera abandonnée par la reprise de
+		--     la séquence en cours).
+		--
+		--  2. Mémoire : un accès à la fois sur MEM_xxx (contrat de DATA_CACHE), toujours
+		--     après LSQ_DRAINED_i = '1'. Les séquences qui lisent ou écrivent les piles
+		--     (interruption, TRAP vectorisé, CTX_SAVE, CTX_RESTORE, RTX, EXC_RAISE)
+		--     demandent d'abord STACK_MAINT_o (MAINT_WRITEBACK_ALL, maintenu jusqu'à
+		--     STACK_MAINT_DONE_i = '1'), puis attendent LSQ_DRAINED_i. Une instruction
+		--     qui écrit plusieurs mots les sonde tous d'abord (faute précise).
+		--
+		--  3. Séquences (r : réserve de la limite, selon DR ; PCS : PC suivant = pc de
+		--     tête + longueur de l'opcode ; C : état retiré COMMITTED_FRAME_i,
+		--     COMMITTED_COPILE_i) :
+		--     démarrage   lit le bloc de 232 octets à BOOT_BLOCK_i ; DR, limites, VTB,
+		--                 FSCR, IMASK ; SYNC (DSP, RSP, DISPLAY ; CFP, CSP, HP) ; redirection
+		--                 vers son PC, retire_head = '0'. Lecture en faute : HALT_DELIVERY.
+		--     faute n     DR = 1 : HALT_DOUBLE_FAULT ; sinon DR := 1, FPC := pc de tête,
+		--                 FCODE := n, M64[FSCR], M64[FSCR+8] ; vecteur M64[VTB+8n] ;
+		--                 accès en faute : HALT_DELIVERY ; vecteur nul : HALT_NULL_VECTOR ;
+		--                 sinon redirection vers le vecteur, retire_head = '0'.
+		--     interruption n   C.rsp - 8 < LIM_RSP - R_RSP : HALT_DELIVERY ; DR := 1 ;
+		--                 M64[C.rsp - 8] := pc de tête ; FPC, FCODE, FSCR comme une faute ;
+		--                 vecteur (faute ou nul : arrêt) ; IRQ_ACK_o ; SYNC (RSP - 8) ;
+		--                 redirection vers le vecteur, retire_head = '0'.
+		--     SYS_REQ_i (instruction de tête, réponse SYS_RSP_o, puis, sauf faute,
+		--     attente de HEAD_STATUS_i.done et redirection avec retire_head = '1') :
+		--       TRAP n, n = 0..14   vecteur M64[VTB+8n] (en faute : 132) ;
+		--                 non nul : DR = 1 : HALT_DOUBLE_FAULT ; C.rsp - 8 < LIM_RSP - r :
+		--                 faute 134 ; M64[C.rsp - 8] := PCS (en faute : 132) ; SYNC
+		--                 (RSP - 8) ; redirection vers le vecteur ;
+		--                 nul : n = 0 EXIT : HALT_EXIT, EXIT_CODE_o := operand ; sinon
+		--                 faute 137 (service absent) ;
+		--       TRAP 16 CTX_SAVE    blk = operand ; sonde les 192 octets (en faute :
+		--                 132) ; écrit PCS, C.dsp - 8, C.rsp, CFP, CSP, DR, LIM_DSP, LIM_RSP,
+		--                 LIM_CSP, DISPLAY[0..14] ; résultat 0 par SYS_RSP_o (chemin
+		--                 normal : COMPLEX_UNIT l'écrit, le retrait de la tête le retient) ;
+		--                 redirection vers PCS ;
+		--       TRAP 17 CTX_RESTORE lit le bloc (en faute : 132), sonde M64[DSP + 8] du
+		--                 bloc (en faute : 132), y écrit 1 (le résultat va sur la pile
+		--                 restaurée, non dans un registre) ; DR, limites ; SYNC (DSP + 8,
+		--                 RSP, DISPLAY ; CFP, CSP) ; redirection vers M64[blk] ;
+		--       TRAP 18 SET_IMASK   résultat : l'ancien IMASK (chemin normal) ;
+		--                 IMASK := operand( 31 .. 0 ) ; redirection vers PCS ;
+		--       TRAP 15, 19..255    faute 137 ;
+		--       RTX       a := M64[C.rsp] (en faute : 132) ; DR := 0 ; SYNC (RSP + 8) ;
+		--                 redirection vers a ;
+		--       EXC_RAISE top   lit ctx := M64[C.DISPLAY[0] + top], puis le contexte
+		--                 (spéc., EXC_RAISE ; DISPLAY[0 .. min( n, 15 ) - 1]), tout avant
+		--                 d'écrire (en faute : 132) ; M64[C.DISPLAY[0] + top] := M64[ctx] ;
+		--                 DR := 0 ; SYNC (DSP, RSP, DISPLAY restaurés ; CFP, CSP) ;
+		--                 redirection vers M64[ctx + 8].
+		--     Une faute rendue par SYS_RSP_o est livrée ensuite comme toute faute :
+		--     COMPLEX_UNIT termine l'instruction en faute, la tête la porte.
+		--
+		--  4. Sorties de fin. REDIRECT_o valide un cycle (n) ; SYNC_VALID_o, s'il y a
+		--     SYNC, au cycle suivant (n + 1, celui de la reprise RECOVER_COMMITTED) :
+		--     l'état imposé l'emporte sur les retraits de ce cycle. Les champs non
+		--     restaurés de SYNC_FRAME_o reprennent ceux de C ; SYNC_COPILE_o.hp_valid =
+		--     '1' au démarrage seulement. Retour au repos au cycle n + 2, quand la tête
+		--     reflète la reprise.
+		--
+		--  5. État visible : DR_o ; LIMITS_o, limites effectives (LIM_DSP + r,
+		--     LIM_RSP - r, LIM_CSP + r, LIM_HP) ; FPC_o, FCODE_o ; HALTED_o,
+		--     HALT_CAUSE_o, EXIT_CODE_o. Une fois arrêtée, l'unité ne fait plus rien
+		--     et HOLD_RETIRE_o reste à '1'.
 		--------------------------------------------------------------------------------
 
 

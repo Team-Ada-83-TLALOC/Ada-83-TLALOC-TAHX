@@ -79,6 +79,7 @@ $A R_ROB.vhd				|| exit 1
 $A R_ROB_rtl.vhd			|| exit 1
 
 $A S_SYSTEM_UNIT.vhd			|| exit 1
+$A S_SYSTEM_UNIT_rtl.vhd		|| exit 1
 
 #	SOMMET
 

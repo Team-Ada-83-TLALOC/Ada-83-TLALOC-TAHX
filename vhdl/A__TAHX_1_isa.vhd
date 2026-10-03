@@ -176,6 +176,8 @@ is                              ----------
    constant HALT_EXIT           : halt_cause_t := "010";                -- TRAP 0 (EXIT) de vecteur nul
    constant HALT_DOUBLE_FAULT   : halt_cause_t := "011";                -- faute ou service vectorisé avec DR = 1
    constant HALT_NULL_VECTOR    : halt_cause_t := "100";                -- faute ou interruption de vecteur nul
+   constant HALT_DELIVERY       : halt_cause_t := "101";                -- livraison impossible (VTB, FSCR,
+                                                                        --  réserve de RSP, bloc de démarrage)
 
    --------------------------------------------------------------------
    -- Bloc de démarrage (spéc., « Plateforme TAHX ») : format du bloc de CTX_RESTORE, suivi de
