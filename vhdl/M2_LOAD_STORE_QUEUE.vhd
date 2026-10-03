@@ -42,6 +42,71 @@ use work.EXEC_TYPES.all;
 		--  Faute 132 : notée dans la fin d'exécution du chargement, ou du rangement au
 		--  moment où le cache refuse l'adresse (contrôle avant le retrait, pour que la
 		--  faute reste précise).
+		--
+		--  CONTRAT, PREMIÈRE ÉTAPE (le cœur)
+		--
+		--  Actifs : réservation MEMORY, EXEC_i voies 0 .. MEMORY_LANES - 1, cache de
+		--  données, RESULT_o, retrait, reprise, DRAINED_o, ENTRY_COUNT_o. Inactifs, à
+		--  écrire avec RENAME_DISPATCH (cache de pile) et COMPLEX_UNIT (instructions de
+		--  bloc) : réservation COMPLEX ignorée, voie COMPLEX de EXEC_i et RANGE_i
+		--  ignorés, STACK_XFER_i ignoré (STACK_XFER_READY_o = '1'), STACK_LOOKUP_o,
+		--  STACK_INVALIDATE_o, READ_TAGS_o à zéro, WRITERS_IN_FLIGHT_o = '0'. Une
+		--  machine dont le renommage ne tient pas de cache de pile fonctionne déjà avec
+		--  cette étape.
+		--
+		--  1. Réservation. Au front où MEMORY_INSERT_VALID_i = '1', chaque instruction
+		--     du bloc reçoit une entrée (sauf si une reprise du même cycle l'abandonne).
+		--     Capacités, état seul : MEMORY_CAPACITY_o = min( 8, libres ),
+		--     COMPLEX_CAPACITY_o = min( 8, libres - MEMORY_CAPACITY_o ) : leur somme ne
+		--     dépasse jamais la place libre. Famille B avec address_known : l'adresse
+		--     effective est connue dès la réservation ; famille C avec address_known :
+		--     l'adresse de la cellule pointeur.
+		--
+		--  2. Adresses et données : EXEC_i( voie ) valide complète l'entrée de rob_index
+		--     (contrat d'ADDRESS_UNIT : adresse effective, ou cellule pointeur pour la
+		--     famille C ; donnée d'un rangement ou de CHK).
+		--
+		--  3. Sémantique : celle de l'exécution séquentielle (spéc., « Mémoire » et
+		--     familles B, C) ; la LSQ peut réordonner, transférer et faire attendre,
+		--     pourvu que chaque résultat soit celui de l'ordre du programme :
+		--       Lx ( -- v )         M[EA], étendu selon MODE (01 signe, 11 zéros) ;
+		--       Sx                  écrit au retrait les SZ octets de poids faible ;
+		--       famille C           EA = M64[cellule pointeur] + ofs (non signé 0..255),
+		--                           modulo 2^64 ;
+		--       LIVA ( -- @ )       M64[cellule pointeur] + ofs, sans autre accès ;
+		--       CHKt, CHKIt         FST := M[A], LST := M[A + taille] (MODE) ; faute 131
+		--                           si v < FST ou v > LST (signé sur 64 bits), sinon
+		--                           fin d'exécution sans résultat (v reste au sommet).
+		--     Faute 132 : un octet invalide dans un accès (cellule pointeur, donnée,
+		--     borne), constaté par le cache ; pour un rangement, par un sondage avant sa
+		--     fin d'exécution. Une faute de la cellule pointeur ou d'une borne arrête
+		--     l'instruction (132 avant 131).
+		--
+		--  4. Ordre prudent (annexe, mécanisme 2) : un accès en lecture (chargement,
+		--     cellule pointeur, borne) part quand tous les rangements plus anciens ont
+		--     leur adresse effective. Le plus jeune des rangements plus anciens qui
+		--     recouvrent ses octets décide : s'il les couvre tous et que sa donnée est
+		--     connue, transfert ; s'il ne les couvre qu'en partie, l'accès attend qu'il
+		--     soit écrit dans le cache ; s'il n'y en a pas, lecture du cache.
+		--
+		--  5. Rangements : fin d'exécution (sans résultat) quand adresse, donnée et
+		--     sondage sont acquis, ou faute 132. Au retrait (RETIRE_i, is_store), le
+		--     rangement est validé : il ne sera plus abandonné ; il est écrit dans le
+		--     cache, les validés dans l'ordre, puis son entrée est libérée. DRAINED_o =
+		--     '1' quand aucun rangement validé n'attend.
+		--
+		--  6. Résultats sur RESULT_o, au plus un par voie et par cycle, à une latence
+		--     que le contrat ne fixe pas : chargement et LIVA (destination, valeur), ou
+		--     faute 132 ; rangement et CHK (fin d'exécution seule), ou faute 131 / 132.
+		--     completion : rob_index, fault ; taken, target, mispredicted à zéro.
+		--     Une instruction ne rend qu'un résultat, puis libère son entrée (sauf un
+		--     rangement, qui attend son retrait).
+		--
+		--  7. Reprise : au front où RECOVERY_i est valide, les entrées abandonnées
+		--     (ROB_TYPES.ABANDONED) disparaissent, sauf les rangements validés ; une
+		--     instruction abandonnée ne paraît jamais sur RESULT_o, pas même au cycle
+		--     de la reprise. Les réponses du cache encore attendues pour elles sont
+		--     reçues et ignorées. RESET_i vide la file.
 		--------------------------------------------------------------------------------
 
 

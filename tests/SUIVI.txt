@@ -63,7 +63,10 @@ N1   R_ROB                       ROB                       ok     OK 160001   20
 N1   M1_ADDRESS_UNIT             ADDRESS_UNIT              ok     OK 90001    2026-10-02  adresse, donnée des rangements et CHK ;
                                                                                           famille C : cellule pointeur
 N1   M3_DATA_CACHE               DATA_CACHE                ---    ---
-N1   M2_LOAD_STORE_QUEUE         LOAD_STORE_QUEUE          ---    ---
+N1   M2_LOAD_STORE_QUEUE         LOAD_STORE_QUEUE          1/2    OK 40909    2026-10-02  première étape (cœur) : référence
+                                                                                          séquentielle, cache de données :
+                                                                                          commun/MODELE_CACHE_DONNEES ;
+                                                                                          cache de pile et blocs à venir
 N1   K1b_RENAME_DISPATCH         RENAME_DISPATCH           ---    ---
 N1   L5_COMPLEX_UNIT             COMPLEX_UNIT              ---    ---
 N1   S_SYSTEM_UNIT               SYSTEM_UNIT               ---    ---
@@ -92,6 +95,12 @@ concernée quand on l'écrira, puis à rayer ici.
                    (RENAME_TYPES) ; au plus ROB_SIZE instructions de la tête à la dernière.
                    (ROB) ALLOC_COUNT_i <= FREE_o ; rien d'alloué au cycle d'une reprise
                    (le ROB l'ignore) ; done = '1' pour ce qui n'a rien à exécuter.
+  LSQ, 2e étape    avec RENAME_DISPATCH : STACK_XFER (SPILL, FILL), STACK_LOOKUP,
+                   STACK_INVALIDATE, WRITERS_IN_FLIGHT, lecture de registres, réveil ;
+                   avec COMPLEX_UNIT : réservation COMPLEX (LINK, UNLINK, UNLINKR,
+                   barrières de bloc), voie COMPLEX de EXEC_i, RANGE_i.
+  DATA_CACHE       (LSQ) sondage (probe) : validité seule, sans effet ; une requête voit
+                   les écritures acceptées à un front antérieur, quel que soit le port.
   SYSTEM_UNIT      (ROB) une redirection à la fois : attendre RECOVERY_o avant la suivante ;
                    retire_head = '1' seulement pour une tête terminée, sans faute (TRAP,
                    RTX, EXC_RAISE exécutés).

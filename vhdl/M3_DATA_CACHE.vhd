@@ -26,6 +26,22 @@ use work.EXEC_TYPES.all;
 		--  réponses d'un port arrivent dans l'ordre de ses requêtes.
 		--  Faute : une adresse invalide (spéc. : détection propre à la réalisation)
 		--  rend fault = '1', sans remplir de ligne ni écrire.
+		--
+		--  Requêtes (mem_request_t), acceptées au front où valid = READY_o = '1' :
+		--    lecture    write = '0', probe = '0' : rdata = les size octets dès
+		--               address, en bits de poids faible ; fault si l'un est invalide ;
+		--    écriture   write = '1' : écrit les size octets de poids faible de wdata ;
+		--               une réponse (fault) ; rien n'est écrit si un octet est invalide ;
+		--    sondage    probe = '1', write = '0' : fault seulement, aucune donnée, aucun
+		--               effet (ni ligne remplie, ni mise à jour du remplacement). La
+		--               validité ne dépendant que de l'adresse (spéc., « Mémoire » : un
+		--               accès vaut pour tous ses octets, lecture ou écriture), le cache
+		--               peut répondre sans consulter ses étiquettes ni la mémoire ; la
+		--               LSQ s'en sert pour rendre précise la faute 132 d'un rangement,
+		--               qui ne s'écrit qu'au retrait.
+		--  Une réponse par requête acceptée, dans l'ordre des requêtes de son port.
+		--  Ordre entre ports : une requête voit l'effet de toutes les écritures
+		--  acceptées à un front antérieur, quel que soit leur port.
 		--------------------------------------------------------------------------------
 
 
