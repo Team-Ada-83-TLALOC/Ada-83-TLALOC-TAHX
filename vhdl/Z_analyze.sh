@@ -63,6 +63,7 @@ $A L4_FLOAT_UNIT_rtl.vhd		|| exit 1
 $A L5a_FEXP_UNIT.vhd			|| exit 1
 $A L5a_FEXP_UNIT_rtl.vhd		|| exit 1
 $A L5_COMPLEX_UNIT.vhd			|| exit 1
+$A L5_COMPLEX_UNIT_rtl.vhd		|| exit 1
 
 #	MEMOIRE DE DONNEES ET REGISTRES
 

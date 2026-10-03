@@ -78,15 +78,21 @@ use work.EXEC_TYPES.all;
 		--
 		--  4. Blocs, à la tête, après LSQ_DRAINED_i : sources ( @dst len @src -- ),
 		--     ( @dst len -- ) pour BLKNOT, ( @a len @b -- eq ) pour BLKCMP,
-		--     ( @g lg @d ld -- r ) pour LEXCMP. Étapes : RANGE_o un cycle (intervalles lu
-		--     et écrit) ; sondage de tous les octets des intervalles (faute 132 avant
-		--     toute écriture) ; STACK_MAINT_o MAINT_WRITEBACK_RANGE pour chaque
-		--     intervalle lu ou écrit (attente de STACK_MAINT_DONE_i) ; accès octet par
-		--     octet sur MEM_xxx ; MAINT_INVALIDATE_RANGE de l'intervalle écrit ; résultat.
-		--     BLKCMP : 1 si les len octets sont égaux (len = 0 : 1). LEXCMP : composants de
-		--     SZ octets (petit-boutistes), signés (C8..CB) ou non (CC..CE) ; le premier
-		--     composant différent sur min( lg, ld ) / SZ décide (-1 ou +1), sinon
-		--     signe( lg - ld ) (comparaison non signée).
+		--     ( @g lg @d ld -- r ) pour LEXCMP ; len non signé. Étapes : RANGE_o un cycle
+		--     (intervalles lu et écrit) ; sondage de tous les octets des intervalles (faute
+		--     132 avant toute écriture ; BLKCMP sonde ses deux intervalles, comme tx_run) ;
+		--     STACK_MAINT_o MAINT_WRITEBACK_RANGE pour chaque intervalle lu ou écrit
+		--     (attente de STACK_MAINT_DONE_i) ; accès sur MEM_xxx ; MAINT_INVALIDATE_RANGE
+		--     de l'intervalle écrit ; résultat.
+		--       BLKMOV, BLKAND, BLKOU, BLKOUX : octet k, k croissant : [dst+k] := [src+k]
+		--                  (op [dst+k]) ; sans recouvrement (spéc.) ; BLKNOT : xor 1.
+		--       BLKCMP     1 si les len octets sont égaux (len = 0 : 1), sinon 0.
+		--       LEXCMP     comme tx_run : lg, ld signés ; tant que lg > 0 et ld > 0 : un
+		--                  composant de SZ octets à g puis à d (petit-boutistes, signés
+		--                  C8..CB, non signés CC..CE ; SZ = 2^( op mod 4 )), le premier
+		--                  différent décide (-1 ou +1) ; g, d += SZ, lg, ld -= SZ ; sinon
+		--                  signe( lg - ld ). Pas de sondage : faute 132 au premier octet
+		--                  invalide lu, rien n'étant écrit.
 		--     Un bloc qui écrit (BLKMOV, BLKAND, BLKOU, BLKOUX, BLKNOT) ne s'interrompt
 		--     pas : HEAD_ATOMIC_o = '1' de son début à son retrait ou à son abandon ; il ne
 		--     commence ses accès qu'après un cycle de HEAD_ATOMIC_o = '1' avec
