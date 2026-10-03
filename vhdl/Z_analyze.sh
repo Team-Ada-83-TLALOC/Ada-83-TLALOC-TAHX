@@ -5,7 +5,7 @@ STD=${1:-08}
 
 #	Fichiers qui reposent sur un paquetage de VHDL-2008 : sautés en 93c.
 #	(Seule liste du dépôt : tests/V0_CABLAGE la relit.)
-VHDL2008_SEULEMENT="L4__float64_pkg.vhd L4_FLOAT_UNIT_rtl.vhd"
+VHDL2008_SEULEMENT="L4__float64_pkg.vhd L4_FLOAT_UNIT_rtl.vhd L5a_FEXP_UNIT_rtl.vhd"
 
 analyse ()
 {
@@ -60,6 +60,8 @@ $A L3_BRANCH_UNIT_rtl.vhd		|| exit 1
 $A L4_FLOAT_UNIT.vhd			|| exit 1
 $A L4__float64_pkg.vhd		|| exit 1
 $A L4_FLOAT_UNIT_rtl.vhd		|| exit 1
+$A L5a_FEXP_UNIT.vhd			|| exit 1
+$A L5a_FEXP_UNIT_rtl.vhd		|| exit 1
 $A L5_COMPLEX_UNIT.vhd			|| exit 1
 
 #	MEMOIRE DE DONNEES ET REGISTRES

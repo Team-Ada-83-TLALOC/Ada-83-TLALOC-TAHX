@@ -82,6 +82,7 @@ is				---------
 
    signal head_status		: head_status_t;
    signal hold_retire		: std_logic;
+   signal head_atomic		: std_logic;
    signal sys_redirect		: system_redirect_t;
    signal sys_req			: sys_request_t;
    signal sys_rsp			: sys_response_t;
@@ -558,6 +559,8 @@ U_COMPLEX :
       STACK_MAINT_DONE_i	=> maint_done,
       FRAME_UPDATE_o	=> frame_update,
       SYS_REQ_o		=> sys_req,
+      HEAD_ATOMIC_o		=> head_atomic,
+      SYSTEM_HOLD_i		=> hold_retire,
       SYS_RSP_i		=> sys_rsp,
       COMMITTED_COPILE_o	=> committed_copile,
       SYNC_VALID_i		=> sync_valid,
@@ -673,6 +676,7 @@ U_SYSTEM :
     RESET_i		=> RESET_i,
     BOOT_BLOCK_i		=> BOOT_BLOCK_i,
     HEAD_STATUS_i		=> head_status,
+    HEAD_ATOMIC_i		=> head_atomic,
     HOLD_RETIRE_o		=> hold_retire,
     REDIRECT_o		=> sys_redirect,
     SYS_REQ_i		=> sys_req,

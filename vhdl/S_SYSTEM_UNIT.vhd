@@ -71,9 +71,13 @@ use work.BACKEND_TYPES.all;
 		--  1. Une séquence à la fois. Au repos, par priorité : HALT_REQ_i (arrêt
 		--     HALT_REQUEST) ; tête du ROB terminée en faute ; SYS_REQ_i ; interruption.
 		--     HOLD_RETIRE_o = '1' pendant toute séquence, et au repos dès qu'une
-		--     interruption est à livrer (DR = 0, code pendant non masqué). Une
-		--     interruption est livrée avant l'instruction de tête, quand il y en a une
-		--     et qu'elle ne porte pas de faute : PC suivant = son pc. Une SYS_REQ_i reçue
+		--     interruption est à livrer (DR = 0, code pendant non masqué,
+		--     HEAD_ATOMIC_i = '0'). Une interruption est livrée avant l'instruction de
+		--     tête, quand il y en a une et qu'elle ne porte pas de faute : PC suivant =
+		--     son pc. HEAD_ATOMIC_i = '1' (COMPLEX_UNIT : une instruction de bloc écrit
+		--     en tête) suspend la livraison et la tenue du retrait : le bloc, qui ne
+		--     s'interrompt pas (spéc.), se retire, puis l'interruption est livrée avant
+		--     l'instruction suivante. Une SYS_REQ_i reçue
 		--     hors du repos est ignorée (l'instruction sera abandonnée par la reprise de
 		--     la séquence en cours).
 		--
@@ -156,6 +160,7 @@ is                              -----------
 		-----------------------
 
       HEAD_STATUS_i		:in  head_status_t;
+      HEAD_ATOMIC_i		:in  std_logic;				-- COMPLEX : bloc en cours à la tête
       HOLD_RETIRE_o		:out std_logic;
       REDIRECT_o		:out system_redirect_t;
 

@@ -74,6 +74,7 @@ of T_S_SYSTEM_UNIT_tb is
    signal head			: head_status_t := ( valid => '0', rob_index => ( others => '0' ), pc => ( others => '0' ),
 					      boundary => '1', done => '0', fault => NO_FAULT, serializing => '0' );
    signal hold			: std_logic;
+   signal head_atomic		: std_logic := '0';
    signal redirect		: system_redirect_t;
    signal sys_req		: sys_request_t := ( valid => '0', rob_index => ( others => '0' ), op => x"00",
 						 val => ( others => '0' ), operand => ( others => '0' ) );
@@ -111,7 +112,7 @@ begin
    DUT : entity work.SYSTEM_UNIT
       port map (
          CLK_i => clk, RESET_i => reset, BOOT_BLOCK_i => boot_block,
-         HEAD_STATUS_i => head, HOLD_RETIRE_o => hold, REDIRECT_o => redirect,
+         HEAD_STATUS_i => head, HEAD_ATOMIC_i => head_atomic, HOLD_RETIRE_o => hold, REDIRECT_o => redirect,
          SYS_REQ_i => sys_req, SYS_RSP_o => sys_rsp,
          COMMITTED_FRAME_i => c_frame, COMMITTED_COPILE_i => c_copile,
          SYNC_VALID_o => sync_valid, SYNC_FRAME_o => sync_frame, SYNC_COPILE_o => sync_copile,
@@ -178,6 +179,8 @@ begin
       variable done_fault	: natural := 0;
       variable events		: natural := 0;
       variable h_new		: boolean := false;			-- tête apparue ce cycle
+      variable h_atomic		: boolean := false;			-- bloc en cours (HEAD_ATOMIC_i)
+      variable n_atomic		: natural := 0;
       variable dr_by_fault	: boolean := false;			-- DR = 1 par une faute : EXC_RAISE
       variable next_pc		: address_t;
       type addr_list_t		is array( 0 to 127 ) of address_t;
@@ -623,6 +626,7 @@ begin
                   h_wait := h_wait - 1;
                else
                   NEXT_HEAD( next_pc ); h_new := true; done_in := -1;
+                  h_atomic := h_kind = H_NORMAL and RAND < 0.15;		-- un bloc qui écrit en tête
                   rob_seq := rob_seq + 1;
                   if h_kind = H_SERIAL then
                      sys_req <= ( valid => '1', rob_index => to_unsigned( rob_seq mod ROB_SIZE, ROB_INDEX_BITS ),
@@ -643,6 +647,7 @@ begin
                head.fault <= ( valid => '1', code => to_unsigned( done_fault, 8 ) );
             end if;
             c_frame <= m_frame; c_copile <= m_copile;
+            head_atomic <= B( h_atomic and h_kind = H_NORMAL );
 
 		-- interruptions : une requête naît parfois sous une instruction ordinaire
             if not busy and cool = 0 and h_kind = H_NORMAL and m_dr = '0' and RAND < 0.2 then
@@ -653,7 +658,7 @@ begin
             for i in 0 to IRQ_COUNT - 1 loop
                if deliverable < 0 and irq_pending( i ) = '1' and m_imask( i ) = '0' then deliverable := i; end if;
             end loop;
-            if m_dr = '1' then deliverable := -1; end if;
+            if m_dr = '1' or ( h_atomic and h_kind = H_NORMAL ) then deliverable := -1; end if;
 
 		-- au repos : état visible, retrait tenu
             if not busy and cool = 0 and halted = '0' then
@@ -811,7 +816,8 @@ begin
                pq_n := pq_n + 1;
             end if;
             if h_kind = H_NORMAL and hold = '0' and not busy and cool = 0 then	-- retrait
-               h_kind := H_NONE; next_pc := h_pc + 4; h_wait := RAND_INT( 1 );
+               if h_atomic and irq_pending /= ( irq_pending'range => '0' ) then n_atomic := n_atomic + 1; end if;
+               h_kind := H_NONE; next_pc := h_pc + 4; h_wait := RAND_INT( 1 ); h_atomic := false;
                if RAND < 0.3 and m_frame.dsp + 8 < LDSP then m_frame.dsp := m_frame.dsp + 8; end if;
                if RAND < 0.2 and m_frame.rsp - 8 > LRSP + 256 then m_frame.rsp := m_frame.rsp - 8; end if;
                if RAND < 0.06 then m_frame.rsp := ADR( LRSP + 8 * RAND_INT( 1 ) ); end if;		-- 134 au prochain push
@@ -832,10 +838,11 @@ begin
              & " ; réponses en faute 132 " & integer'image( n_132 ) & ", 134 " & integer'image( n_134 ) & ", 137 "
              & integer'image( n_137 ) & " ; SYNC " & integer'image( n_syncs ) & " ; arrêts : EXIT "
              & integer'image( n_halts( 2 ) ) & ", double faute " & integer'image( n_halts( 3 ) ) & ", vecteur nul "
-             & integer'image( n_halts( 4 ) ) & ", livraison " & integer'image( n_halts( 5 ) ) severity note;
+             & integer'image( n_halts( 4 ) ) & ", livraison " & integer'image( n_halts( 5 ) )
+             & " ; blocs retirés malgré une interruption pendante " & integer'image( n_atomic ) severity note;
       CHECK( c, n_faults > 100 and n_irq > 50 and n_save > 50 and n_restore > 50 and n_imask > 50 and n_rtx > 20
                 and n_exc > 50 and n_132 > 10 and n_134 > 0 and n_137 > 20 and n_halts( 2 ) > 10 and n_halts( 3 ) > 0
-                and n_halts( 5 ) > 0,
+                and n_halts( 5 ) > 0 and n_atomic > 20,
              "le tirage a exercé fautes, interruptions, services, réponses en faute et arrêts" );
       running <= false;
       FINISH( c, "T_S_SYSTEM_UNIT_tb" );

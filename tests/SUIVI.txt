@@ -73,7 +73,11 @@ N1   M2_LOAD_STORE_QUEUE         LOAD_STORE_QUEUE          1/2    OK 40909    20
                                                                                           commun/MODELE_CACHE_DONNEES ;
                                                                                           cache de pile et blocs à venir
 N1   K1b_RENAME_DISPATCH         RENAME_DISPATCH           ---    ---
-N1   L5_COMPLEX_UNIT             COMPLEX_UNIT              ---    ---
+N1   L5a_FEXP_UNIT               FEXP_UNIT                 ok     OK 452      2026-10-02  VHDL-2008 (FLOAT64_PKG) ; arrêt
+                                                                                          anticipé exact ; référence Python
+                                                                                          contrôlée par la boucle complète
+N1   L5_COMPLEX_UNIT             COMPLEX_UNIT              ---    ---                     contrat de la 1re étape écrit ;
+                                                                                          architecture et banc à venir
 N1   S_SYSTEM_UNIT               SYSTEM_UNIT               ok     OK 14244    2026-10-02  séquenceur ; modèle de la V8 (fautes,
                                                                                           déroutements, interruptions) ; 40 vies
 N3   V_TAHX_1_structure          TAHX_1                    ok     ---                     trace de retrait de tx_run à définir
@@ -108,11 +112,16 @@ concernée quand on l'écrira, puis à rayer ici.
                    de l'état retiré ; STACK_MAINT n'écrit que des valeurs retirées, puis
                    STACK_MAINT_DONE ; les instructions sérialisantes n'ont pas d'effet de
                    pile propre hors du résultat de CTX_SAVE et SET_IMASK (SYNC fait le reste).
+                   (COMPLEX_UNIT) MAINT_WRITEBACK_RANGE et MAINT_INVALIDATE_RANGE sur des
+                   intervalles quelconques : sans effet hors de la tranche tenue en registres.
   COMPLEX_UNIT     (SYSTEM_UNIT) SYS_REQ valide un cycle, quand l'instruction sérialisante est
                    émise en tête ; après SYS_RSP : fin d'exécution de l'instruction, avec le
                    résultat si result_valid, ou la faute ; une instruction abandonnée oublie
                    sa requête (SYSTEM_UNIT ignore une SYS_REQ hors du repos).
-  LSQ, 2e étape    avec RENAME_DISPATCH : STACK_XFER (SPILL, FILL), STACK_LOOKUP,
+  LSQ, 2e étape    IMPÉRATIF avant tout assemblage où COMPLEX_UNIT exécute des blocs :
+                   RANGE_i (intervalle écrit d'un bloc en tête) retient les chargements plus
+                   jeunes qui le touchent, sans quoi ils peuvent lire une valeur périmée.
+                   avec RENAME_DISPATCH : STACK_XFER (SPILL, FILL), STACK_LOOKUP,
                    STACK_INVALIDATE, WRITERS_IN_FLIGHT, lecture de registres, réveil ;
                    avec COMPLEX_UNIT : réservation COMPLEX (LINK, UNLINK, UNLINKR,
                    barrières de bloc), voie COMPLEX de EXEC_i, RANGE_i.

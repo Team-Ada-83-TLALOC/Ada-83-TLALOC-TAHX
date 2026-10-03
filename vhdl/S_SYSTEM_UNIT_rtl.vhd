@@ -221,12 +221,12 @@ begin
       end if;
    end process;
 
-   TENUE : process( state, dr, imask, IRQ_PENDING_i )
+   TENUE : process( state, dr, imask, IRQ_PENDING_i, HEAD_ATOMIC_i )
    begin
       HOLD_RETIRE_o <= '0';
       if state /= S_IDLE then
          HOLD_RETIRE_o <= '1';
-      elsif dr = '0' and IRQ_PICK( IRQ_PENDING_i, imask ) >= 0 then
+      elsif dr = '0' and HEAD_ATOMIC_i = '0' and IRQ_PICK( IRQ_PENDING_i, imask ) >= 0 then
          HOLD_RETIRE_o <= '1';						-- interruption à livrer
       end if;
    end process;
@@ -338,7 +338,7 @@ begin
                         seq <= Q_NONE;
                         RESPOND( 137, false, ( others => '0' ) );		-- TRAP non attribué
                      end if;
-                  elsif dr = '0' and k >= 0 and HEAD_STATUS_i.valid = '1' then
+                  elsif dr = '0' and k >= 0 and HEAD_STATUS_i.valid = '1' and HEAD_ATOMIC_i = '0' then
                      if COMMITTED_FRAME_i.rsp - 8 < lim.lim_rsp - RESERVE_RSP then
                         HALT( HALT_DELIVERY );					-- réserve de RSP dépassée
                      else

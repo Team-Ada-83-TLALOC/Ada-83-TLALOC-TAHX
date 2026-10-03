@@ -1,0 +1,1991 @@
+
+ /----------------------------------------------------------------------------\
+ |                                                                            |
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |                                                                            |
+ |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |                                                                            |
+ |  Permission to use, copy, modify, and/or distribute this software for any  |
+ |  purpose with or without fee is hereby granted, provided that the above    |
+ |  copyright notice and this permission notice appear in all copies.         |
+ |                                                                            |
+ |  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |
+ |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |
+ |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |
+ |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |
+ |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |
+ |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |
+ |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |
+ |                                                                            |
+ \----------------------------------------------------------------------------/
+
+ Yosys 0.33 (git sha1 2584903a060)
+
+
+-- Running command `
+  ghdl --std=08 FETCH_BYTE_QUEUE BANKED;
+  prep -top FETCH_BYTE_QUEUE;
+  opt;
+  stat -width;
+  synth -top FETCH_BYTE_QUEUE -noabc;
+  dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/lib/sg13cmos5l_stdcell_typ_1p20V_25C.lib;
+  abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/lib/sg13cmos5l_stdcell_typ_1p20V_25C.lib;
+  clean;
+  stat -liberty /home/vmo/IHP-Open-PDK/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/lib/sg13cmos5l_stdcell_typ_1p20V_25C.lib;
+' --
+
+1. Executing GHDL.
+Importing module FETCH_BYTE_QUEUE.
+
+2. Executing PREP pass.
+
+2.1. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1.1. Analyzing design hierarchy..
+Top module:  \FETCH_BYTE_QUEUE
+
+2.1.2. Analyzing design hierarchy..
+Top module:  \FETCH_BYTE_QUEUE
+Removed 0 unused modules.
+
+2.2. Executing PROC pass (convert processes to netlists).
+
+2.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+2.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+2.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+2.2.4. Executing PROC_INIT pass (extract init attributes).
+
+2.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+2.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+2.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+2.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+2.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+2.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+2.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+2.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+<suppressed ~66 debug messages>
+
+2.3. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+2.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+Removed 0 unused cells and 359 unused wires.
+<suppressed ~1 debug messages>
+
+2.5. Executing CHECK pass (checking for obvious problems).
+Checking module FETCH_BYTE_QUEUE...
+Found and reported 0 problems.
+
+2.6. Executing OPT pass (performing simple optimizations).
+
+2.6.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+2.6.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+<suppressed ~378 debug messages>
+Removed a total of 126 cells.
+
+2.6.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \FETCH_BYTE_QUEUE..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~618 debug messages>
+
+2.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \FETCH_BYTE_QUEUE.
+    New ctrl vector for $pmux cell \2800: $auto$ghdl.cc:806:import_module$631
+    New ctrl vector for $pmux cell \2802: $auto$ghdl.cc:806:import_module$632
+    New ctrl vector for $pmux cell \2804: $auto$ghdl.cc:806:import_module$633
+    New ctrl vector for $pmux cell \2806: $auto$opt_reduce.cc:134:opt_pmux$1028
+    New ctrl vector for $pmux cell \2832: $auto$ghdl.cc:806:import_module$643
+    New ctrl vector for $pmux cell \2834: $auto$ghdl.cc:806:import_module$644
+    New ctrl vector for $pmux cell \2836: $auto$ghdl.cc:806:import_module$645
+    New ctrl vector for $pmux cell \2838: $auto$opt_reduce.cc:134:opt_pmux$1030
+    New ctrl vector for $pmux cell \2864: $auto$ghdl.cc:806:import_module$655
+    New ctrl vector for $pmux cell \2866: $auto$ghdl.cc:806:import_module$656
+    New ctrl vector for $pmux cell \2868: $auto$ghdl.cc:806:import_module$657
+    New ctrl vector for $pmux cell \2870: $auto$opt_reduce.cc:134:opt_pmux$1032
+    New ctrl vector for $pmux cell \2896: $auto$ghdl.cc:806:import_module$667
+    New ctrl vector for $pmux cell \2898: $auto$ghdl.cc:806:import_module$668
+    New ctrl vector for $pmux cell \2900: $auto$ghdl.cc:806:import_module$669
+    New ctrl vector for $pmux cell \2902: $auto$opt_reduce.cc:134:opt_pmux$1034
+    New ctrl vector for $pmux cell \2928: $auto$ghdl.cc:806:import_module$679
+    New ctrl vector for $pmux cell \2930: $auto$ghdl.cc:806:import_module$680
+    New ctrl vector for $pmux cell \2932: $auto$ghdl.cc:806:import_module$681
+    New ctrl vector for $pmux cell \2934: $auto$opt_reduce.cc:134:opt_pmux$1036
+    New ctrl vector for $pmux cell \2960: $auto$ghdl.cc:806:import_module$691
+    New ctrl vector for $pmux cell \2962: $auto$ghdl.cc:806:import_module$692
+    New ctrl vector for $pmux cell \2964: $auto$ghdl.cc:806:import_module$693
+    New ctrl vector for $pmux cell \2966: $auto$opt_reduce.cc:134:opt_pmux$1038
+    New ctrl vector for $pmux cell \2992: $auto$ghdl.cc:806:import_module$703
+    New ctrl vector for $pmux cell \2994: $auto$ghdl.cc:806:import_module$704
+    New ctrl vector for $pmux cell \2996: $auto$ghdl.cc:806:import_module$705
+    New ctrl vector for $pmux cell \2998: $auto$opt_reduce.cc:134:opt_pmux$1040
+    New ctrl vector for $pmux cell \3024: $auto$ghdl.cc:806:import_module$715
+    New ctrl vector for $pmux cell \3026: $auto$ghdl.cc:806:import_module$716
+    New ctrl vector for $pmux cell \3028: $auto$ghdl.cc:806:import_module$717
+    New ctrl vector for $pmux cell \3030: $auto$opt_reduce.cc:134:opt_pmux$1042
+    New ctrl vector for $pmux cell \3056: $auto$ghdl.cc:806:import_module$727
+    New ctrl vector for $pmux cell \3058: $auto$ghdl.cc:806:import_module$728
+    New ctrl vector for $pmux cell \3060: $auto$ghdl.cc:806:import_module$729
+    New ctrl vector for $pmux cell \3062: $auto$opt_reduce.cc:134:opt_pmux$1044
+    New ctrl vector for $pmux cell \3088: $auto$ghdl.cc:806:import_module$739
+    New ctrl vector for $pmux cell \3090: $auto$ghdl.cc:806:import_module$740
+    New ctrl vector for $pmux cell \3092: $auto$ghdl.cc:806:import_module$741
+    New ctrl vector for $pmux cell \3094: $auto$opt_reduce.cc:134:opt_pmux$1046
+    New ctrl vector for $pmux cell \3120: $auto$ghdl.cc:806:import_module$751
+    New ctrl vector for $pmux cell \3122: $auto$ghdl.cc:806:import_module$752
+    New ctrl vector for $pmux cell \3124: $auto$ghdl.cc:806:import_module$753
+    New ctrl vector for $pmux cell \3126: $auto$opt_reduce.cc:134:opt_pmux$1048
+    New ctrl vector for $pmux cell \3152: $auto$ghdl.cc:806:import_module$763
+    New ctrl vector for $pmux cell \3154: $auto$ghdl.cc:806:import_module$764
+    New ctrl vector for $pmux cell \3156: $auto$ghdl.cc:806:import_module$765
+    New ctrl vector for $pmux cell \3158: $auto$opt_reduce.cc:134:opt_pmux$1050
+    New ctrl vector for $pmux cell \3184: $auto$ghdl.cc:806:import_module$775
+    New ctrl vector for $pmux cell \3186: $auto$ghdl.cc:806:import_module$776
+    New ctrl vector for $pmux cell \3188: $auto$ghdl.cc:806:import_module$777
+    New ctrl vector for $pmux cell \3190: $auto$opt_reduce.cc:134:opt_pmux$1052
+    New ctrl vector for $pmux cell \3216: $auto$ghdl.cc:806:import_module$787
+    New ctrl vector for $pmux cell \3218: $auto$ghdl.cc:806:import_module$788
+    New ctrl vector for $pmux cell \3220: $auto$ghdl.cc:806:import_module$789
+    New ctrl vector for $pmux cell \3222: $auto$opt_reduce.cc:134:opt_pmux$1054
+    New ctrl vector for $pmux cell \3248: $auto$ghdl.cc:806:import_module$799
+    New ctrl vector for $pmux cell \3250: $auto$ghdl.cc:806:import_module$800
+    New ctrl vector for $pmux cell \3252: $auto$ghdl.cc:806:import_module$801
+    New ctrl vector for $pmux cell \3254: $auto$opt_reduce.cc:134:opt_pmux$1056
+    New ctrl vector for $pmux cell \3280: $auto$ghdl.cc:806:import_module$811
+    New ctrl vector for $pmux cell \3282: $auto$ghdl.cc:806:import_module$812
+    New ctrl vector for $pmux cell \3284: $auto$ghdl.cc:806:import_module$813
+    New ctrl vector for $pmux cell \3286: $auto$opt_reduce.cc:134:opt_pmux$1058
+    New ctrl vector for $pmux cell \3312: $auto$ghdl.cc:806:import_module$823
+    New ctrl vector for $pmux cell \3314: $auto$ghdl.cc:806:import_module$824
+    New ctrl vector for $pmux cell \3316: $auto$ghdl.cc:806:import_module$825
+    New ctrl vector for $pmux cell \3318: $auto$opt_reduce.cc:134:opt_pmux$1060
+    New ctrl vector for $pmux cell \3344: $auto$ghdl.cc:806:import_module$835
+    New ctrl vector for $pmux cell \3346: $auto$ghdl.cc:806:import_module$836
+    New ctrl vector for $pmux cell \3348: $auto$ghdl.cc:806:import_module$837
+    New ctrl vector for $pmux cell \3350: $auto$opt_reduce.cc:134:opt_pmux$1062
+    New ctrl vector for $pmux cell \3376: $auto$ghdl.cc:806:import_module$847
+    New ctrl vector for $pmux cell \3378: $auto$ghdl.cc:806:import_module$848
+    New ctrl vector for $pmux cell \3380: $auto$ghdl.cc:806:import_module$849
+    New ctrl vector for $pmux cell \3382: $auto$opt_reduce.cc:134:opt_pmux$1064
+    New ctrl vector for $pmux cell \3408: $auto$ghdl.cc:806:import_module$859
+    New ctrl vector for $pmux cell \3410: $auto$ghdl.cc:806:import_module$860
+    New ctrl vector for $pmux cell \3412: $auto$ghdl.cc:806:import_module$861
+    New ctrl vector for $pmux cell \3414: $auto$opt_reduce.cc:134:opt_pmux$1066
+    New ctrl vector for $pmux cell \3440: $auto$ghdl.cc:806:import_module$871
+    New ctrl vector for $pmux cell \3442: $auto$ghdl.cc:806:import_module$872
+    New ctrl vector for $pmux cell \3444: $auto$ghdl.cc:806:import_module$873
+    New ctrl vector for $pmux cell \3446: $auto$opt_reduce.cc:134:opt_pmux$1068
+    New ctrl vector for $pmux cell \3472: $auto$ghdl.cc:806:import_module$883
+    New ctrl vector for $pmux cell \3474: $auto$ghdl.cc:806:import_module$884
+    New ctrl vector for $pmux cell \3476: $auto$ghdl.cc:806:import_module$885
+    New ctrl vector for $pmux cell \3478: $auto$opt_reduce.cc:134:opt_pmux$1070
+    New ctrl vector for $pmux cell \3504: $auto$ghdl.cc:806:import_module$895
+    New ctrl vector for $pmux cell \3506: $auto$ghdl.cc:806:import_module$896
+    New ctrl vector for $pmux cell \3508: $auto$ghdl.cc:806:import_module$897
+    New ctrl vector for $pmux cell \3510: $auto$opt_reduce.cc:134:opt_pmux$1072
+    New ctrl vector for $pmux cell \3536: $auto$ghdl.cc:806:import_module$907
+    New ctrl vector for $pmux cell \3538: $auto$ghdl.cc:806:import_module$908
+    New ctrl vector for $pmux cell \3540: $auto$ghdl.cc:806:import_module$909
+    New ctrl vector for $pmux cell \3542: $auto$opt_reduce.cc:134:opt_pmux$1074
+    New ctrl vector for $pmux cell \3568: $auto$ghdl.cc:806:import_module$919
+    New ctrl vector for $pmux cell \3570: $auto$ghdl.cc:806:import_module$920
+    New ctrl vector for $pmux cell \3572: $auto$ghdl.cc:806:import_module$921
+    New ctrl vector for $pmux cell \3574: $auto$opt_reduce.cc:134:opt_pmux$1076
+    New ctrl vector for $pmux cell \3600: $auto$ghdl.cc:806:import_module$931
+    New ctrl vector for $pmux cell \3602: $auto$ghdl.cc:806:import_module$932
+    New ctrl vector for $pmux cell \3604: $auto$ghdl.cc:806:import_module$933
+    New ctrl vector for $pmux cell \3606: $auto$opt_reduce.cc:134:opt_pmux$1078
+    New ctrl vector for $pmux cell \3632: $auto$ghdl.cc:806:import_module$943
+    New ctrl vector for $pmux cell \3634: $auto$ghdl.cc:806:import_module$944
+    New ctrl vector for $pmux cell \3636: $auto$ghdl.cc:806:import_module$945
+    New ctrl vector for $pmux cell \3638: $auto$opt_reduce.cc:134:opt_pmux$1080
+    New ctrl vector for $pmux cell \3664: $auto$ghdl.cc:806:import_module$955
+    New ctrl vector for $pmux cell \3666: $auto$ghdl.cc:806:import_module$956
+    New ctrl vector for $pmux cell \3668: $auto$ghdl.cc:806:import_module$957
+    New ctrl vector for $pmux cell \3670: $auto$opt_reduce.cc:134:opt_pmux$1082
+    New ctrl vector for $pmux cell \3696: $auto$ghdl.cc:806:import_module$967
+    New ctrl vector for $pmux cell \3698: $auto$ghdl.cc:806:import_module$968
+    New ctrl vector for $pmux cell \3700: $auto$ghdl.cc:806:import_module$969
+    New ctrl vector for $pmux cell \3702: $auto$opt_reduce.cc:134:opt_pmux$1084
+    New ctrl vector for $pmux cell \3728: $auto$ghdl.cc:806:import_module$979
+    New ctrl vector for $pmux cell \3730: $auto$ghdl.cc:806:import_module$980
+    New ctrl vector for $pmux cell \3732: $auto$ghdl.cc:806:import_module$981
+    New ctrl vector for $pmux cell \3734: $auto$opt_reduce.cc:134:opt_pmux$1086
+    New ctrl vector for $pmux cell \3760: $auto$ghdl.cc:806:import_module$991
+    New ctrl vector for $pmux cell \3762: $auto$ghdl.cc:806:import_module$992
+    New ctrl vector for $pmux cell \3764: $auto$ghdl.cc:806:import_module$993
+    New ctrl vector for $pmux cell \3766: $auto$opt_reduce.cc:134:opt_pmux$1088
+    New ctrl vector for $pmux cell \3792: $auto$ghdl.cc:806:import_module$1003
+    New ctrl vector for $pmux cell \3794: $auto$ghdl.cc:806:import_module$1004
+    New ctrl vector for $pmux cell \3796: $auto$ghdl.cc:806:import_module$1005
+    New ctrl vector for $pmux cell \3798: $auto$opt_reduce.cc:134:opt_pmux$1090
+  Optimizing cells in module \FETCH_BYTE_QUEUE.
+Performed a total of 128 changes.
+
+2.6.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+<suppressed ~186 debug messages>
+Removed a total of 62 cells.
+
+2.6.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+Removed 0 unused cells and 188 unused wires.
+<suppressed ~1 debug messages>
+
+2.6.7. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+2.6.8. Rerunning OPT passes. (Maybe there is more to do..)
+
+2.6.9. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \FETCH_BYTE_QUEUE..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~655 debug messages>
+
+2.6.10. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \FETCH_BYTE_QUEUE.
+Performed a total of 0 changes.
+
+2.6.11. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+2.6.12. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+2.6.13. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+2.6.14. Finished OPT passes. (There is nothing left to do.)
+
+2.7. Executing WREDUCE pass (reducing word size of cells).
+Removed top 24 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\2770 ($div).
+Removed top 25 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\2770 ($div).
+Removed top 24 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\29 ($div).
+Removed top 25 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\29 ($div).
+Removed top 25 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\10 ($add).
+Removed top 24 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\10 ($add).
+Removed top 25 bits (of 32) from port Y of cell FETCH_BYTE_QUEUE.\10 ($add).
+Removed top 1 bits (of 8) from port B of cell FETCH_BYTE_QUEUE.\10 ($add).
+Removed top 23 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\17 ($le).
+Removed top 24 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\17 ($le).
+Converting cell FETCH_BYTE_QUEUE.\17 ($le) from signed to unsigned.
+Removed top 1 bits (of 9) from port A of cell FETCH_BYTE_QUEUE.\17 ($le).
+Removed top 1 bits (of 8) from port B of cell FETCH_BYTE_QUEUE.\17 ($le).
+Removed top 31 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\33 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\33 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\33 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\33 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\56 ($eq).
+Removed top 30 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\65 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\65 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\65 ($lt) from signed to unsigned.
+Removed top 1 bits (of 2) from port A of cell FETCH_BYTE_QUEUE.\65 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\65 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\88 ($eq).
+Removed top 29 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\97 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\97 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\97 ($lt) from signed to unsigned.
+Removed top 1 bits (of 3) from port A of cell FETCH_BYTE_QUEUE.\97 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\97 ($lt).
+Removed top 30 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\103 ($add).
+Removed top 31 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\103 ($add).
+Removed top 30 bits (of 32) from port Y of cell FETCH_BYTE_QUEUE.\103 ($add).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\120 ($eq).
+Removed top 29 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\129 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\129 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\129 ($lt) from signed to unsigned.
+Removed top 1 bits (of 3) from port A of cell FETCH_BYTE_QUEUE.\129 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\129 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\152 ($eq).
+Removed top 28 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\161 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\161 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\161 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell FETCH_BYTE_QUEUE.\161 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\161 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\184 ($eq).
+Removed top 28 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\193 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\193 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\193 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell FETCH_BYTE_QUEUE.\193 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\193 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\216 ($eq).
+Removed top 28 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\225 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\225 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\225 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell FETCH_BYTE_QUEUE.\225 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\225 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\248 ($eq).
+Removed top 28 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\257 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\257 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\257 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell FETCH_BYTE_QUEUE.\257 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\257 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\280 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\289 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\289 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\289 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\289 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\289 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\312 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\321 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\321 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\321 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\321 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\321 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\344 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\353 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\353 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\353 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\353 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\353 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\376 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\385 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\385 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\385 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\385 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\385 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\408 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\417 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\417 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\417 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\417 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\417 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\440 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\449 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\449 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\449 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\449 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\449 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\472 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\481 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\481 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\481 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\481 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\481 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\504 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\513 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\513 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\513 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\513 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\513 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\536 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\545 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\545 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\545 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\545 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\545 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\568 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\577 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\577 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\577 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\577 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\577 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\600 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\609 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\609 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\609 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\609 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\609 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\632 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\641 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\641 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\641 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\641 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\641 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\664 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\673 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\673 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\673 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\673 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\673 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\696 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\705 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\705 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\705 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\705 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\705 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\728 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\737 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\737 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\737 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\737 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\737 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\760 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\769 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\769 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\769 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\769 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\769 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\792 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\801 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\801 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\801 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\801 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\801 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\824 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\833 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\833 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\833 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\833 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\833 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\856 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\865 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\865 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\865 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\865 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\865 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\888 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\897 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\897 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\897 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\897 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\897 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\920 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\929 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\929 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\929 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\929 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\929 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\952 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\961 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\961 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\961 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\961 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\961 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\984 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\993 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\993 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\993 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\993 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\993 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\1016 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\1025 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\1025 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\1025 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\1025 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\1025 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\1048 ($eq).
+Removed top 23 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\1763 ($gt).
+Removed top 25 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\1763 ($gt).
+Converting cell FETCH_BYTE_QUEUE.\1763 ($gt) from signed to unsigned.
+Removed top 1 bits (of 9) from port A of cell FETCH_BYTE_QUEUE.\1763 ($gt).
+Removed top 1 bits (of 7) from port B of cell FETCH_BYTE_QUEUE.\1763 ($gt).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2098 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2102 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2106 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2110 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2114 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2118 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2122 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2126 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2130 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2134 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2138 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2142 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2146 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2150 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2154 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2158 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2162 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2166 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2170 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2174 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2178 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2182 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2186 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2190 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2194 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2198 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2202 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2206 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2210 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2214 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2218 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2222 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2226 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2230 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2234 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2238 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2242 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2246 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2250 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2254 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2258 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2262 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2266 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2270 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2274 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2278 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2282 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2286 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2290 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2294 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2298 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2302 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2306 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2310 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2314 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2318 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2322 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2326 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2330 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2334 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2338 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2342 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2346 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2350 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2354 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2358 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2362 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2366 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2370 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2374 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2378 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2382 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2386 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2390 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2394 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2398 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2402 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2406 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2410 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2414 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2418 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2422 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2426 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2430 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2434 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2438 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2442 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2446 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2450 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2454 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2458 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2462 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2466 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2470 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2474 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2478 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2482 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2486 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2490 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2494 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2498 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2502 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2506 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2510 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2514 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2518 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2522 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2526 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2530 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2534 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2538 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2542 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2546 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2550 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2554 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2558 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2562 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2566 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2570 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2574 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2578 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2582 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2586 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2590 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2594 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2598 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2602 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2606 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2610 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2614 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2618 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2622 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2626 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2630 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2634 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2638 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2642 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2646 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2650 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2654 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2658 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2662 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2666 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2670 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2674 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2678 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2682 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2686 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2690 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2694 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2698 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2702 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2706 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2710 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2714 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2718 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2722 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2726 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2730 ($mux).
+Removed top 1 bits (of 9) from mux cell FETCH_BYTE_QUEUE.\2734 ($mux).
+Removed top 25 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\2757 ($gt).
+Removed top 23 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\2757 ($gt).
+Converting cell FETCH_BYTE_QUEUE.\2757 ($gt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell FETCH_BYTE_QUEUE.\2757 ($gt).
+Removed top 1 bits (of 9) from port B of cell FETCH_BYTE_QUEUE.\2757 ($gt).
+Removed top 25 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\2774 ($gt).
+Removed top 31 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\2774 ($gt).
+Converting cell FETCH_BYTE_QUEUE.\2774 ($gt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell FETCH_BYTE_QUEUE.\2774 ($gt).
+Removed top 31 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\2777 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\2777 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\2777 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\2777 ($lt).
+Removed top 30 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\2783 ($add).
+Removed top 31 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\2783 ($add).
+Removed top 30 bits (of 32) from port Y of cell FETCH_BYTE_QUEUE.\2783 ($add).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\2793 ($eq).
+Removed top 30 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\2809 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\2809 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\2809 ($lt) from signed to unsigned.
+Removed top 1 bits (of 2) from port A of cell FETCH_BYTE_QUEUE.\2809 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\2809 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\2825 ($eq).
+Removed top 29 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\2841 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\2841 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\2841 ($lt) from signed to unsigned.
+Removed top 1 bits (of 3) from port A of cell FETCH_BYTE_QUEUE.\2841 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\2841 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\2857 ($eq).
+Removed top 29 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\2873 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\2873 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\2873 ($lt) from signed to unsigned.
+Removed top 1 bits (of 3) from port A of cell FETCH_BYTE_QUEUE.\2873 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\2873 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\2889 ($eq).
+Removed top 28 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\2905 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\2905 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\2905 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell FETCH_BYTE_QUEUE.\2905 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\2905 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\2921 ($eq).
+Removed top 28 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\2937 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\2937 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\2937 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell FETCH_BYTE_QUEUE.\2937 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\2937 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\2953 ($eq).
+Removed top 28 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\2969 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\2969 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\2969 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell FETCH_BYTE_QUEUE.\2969 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\2969 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\2985 ($eq).
+Removed top 28 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3001 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3001 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3001 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell FETCH_BYTE_QUEUE.\3001 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3001 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3017 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3033 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3033 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3033 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\3033 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3033 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3049 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3065 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3065 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3065 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\3065 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3065 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3081 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3097 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3097 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3097 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\3097 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3097 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3113 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3129 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3129 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3129 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\3129 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3129 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3145 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3161 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3161 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3161 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\3161 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3161 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3177 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3193 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3193 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3193 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\3193 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3193 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3209 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3225 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3225 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3225 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\3225 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3225 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3241 ($eq).
+Removed top 27 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3257 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3257 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3257 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell FETCH_BYTE_QUEUE.\3257 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3257 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3273 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3289 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3289 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3289 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3289 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3289 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3305 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3321 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3321 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3321 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3321 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3321 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3337 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3353 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3353 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3353 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3353 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3353 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3369 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3385 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3385 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3385 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3385 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3385 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3401 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3417 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3417 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3417 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3417 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3417 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3433 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3449 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3449 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3449 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3449 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3449 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3465 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3481 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3481 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3481 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3481 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3481 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3497 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3513 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3513 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3513 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3513 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3513 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3529 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3545 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3545 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3545 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3545 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3545 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3561 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3577 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3577 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3577 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3577 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3577 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3593 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3609 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3609 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3609 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3609 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3609 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3625 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3641 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3641 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3641 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3641 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3641 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3657 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3673 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3673 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3673 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3673 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3673 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3689 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3705 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3705 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3705 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3705 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3705 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3721 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3737 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3737 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3737 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3737 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3737 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3753 ($eq).
+Removed top 26 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3769 ($lt).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3769 ($lt).
+Converting cell FETCH_BYTE_QUEUE.\3769 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell FETCH_BYTE_QUEUE.\3769 ($lt).
+Removed top 1 bits (of 6) from port B of cell FETCH_BYTE_QUEUE.\3769 ($lt).
+Removed top 1 bits (of 2) from port B of cell FETCH_BYTE_QUEUE.\3785 ($eq).
+Removed top 24 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3804 ($sub).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3804 ($sub).
+Removed top 24 bits (of 32) from port Y of cell FETCH_BYTE_QUEUE.\3804 ($sub).
+Removed top 25 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3808 ($add).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3808 ($add).
+Removed top 25 bits (of 32) from port Y of cell FETCH_BYTE_QUEUE.\3808 ($add).
+Removed top 24 bits (of 32) from port A of cell FETCH_BYTE_QUEUE.\3813 ($add).
+Removed top 26 bits (of 32) from port B of cell FETCH_BYTE_QUEUE.\3813 ($add).
+Removed top 24 bits (of 32) from port Y of cell FETCH_BYTE_QUEUE.\3813 ($add).
+Removed top 58 bits (of 64) from port B of cell FETCH_BYTE_QUEUE.\3824 ($add).
+Removed top 30 bits (of 32) from wire FETCH_BYTE_QUEUE.$auto$ghdl.cc:806:import_module$1000.
+Removed top 24 bits (of 32) from wire FETCH_BYTE_QUEUE.$auto$ghdl.cc:806:import_module$1011.
+Removed top 25 bits (of 32) from wire FETCH_BYTE_QUEUE.$auto$ghdl.cc:806:import_module$1012.
+Removed top 24 bits (of 32) from wire FETCH_BYTE_QUEUE.$auto$ghdl.cc:806:import_module$1013.
+Removed top 30 bits (of 32) from wire FETCH_BYTE_QUEUE.$auto$ghdl.cc:806:import_module$106.
+Removed top 7 bits (of 9) from wire FETCH_BYTE_QUEUE.$auto$ghdl.cc:806:import_module$994.
+
+2.8. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+Removed 0 unused cells and 6 unused wires.
+<suppressed ~1 debug messages>
+
+2.9. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+2.10. Executing OPT pass (performing simple optimizations).
+
+2.10.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+2.10.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+2.10.3. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+2.10.4. Finished fast OPT passes.
+
+2.11. Printing statistics.
+
+=== FETCH_BYTE_QUEUE ===
+
+   Number of wires:                548
+   Number of wire bits:           9620
+   Number of public wires:          37
+   Number of public wire bits:    5415
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                870
+     $add                            6
+     $and                            2
+     $dff                            4
+     $div                            2
+     $eq                           130
+     $gt                             3
+     $le                             1
+     $logic_not                     66
+     $lt                            64
+     $mux                          526
+     $or                             1
+     $pmux                          32
+     $reduce_or                     32
+     $sub                            1
+
+2.12. Executing CHECK pass (checking for obvious problems).
+Checking module FETCH_BYTE_QUEUE...
+Found and reported 0 problems.
+
+3. Executing OPT pass (performing simple optimizations).
+
+3.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+<suppressed ~8 debug messages>
+
+3.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+3.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \FETCH_BYTE_QUEUE..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~655 debug messages>
+
+3.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \FETCH_BYTE_QUEUE.
+Performed a total of 0 changes.
+
+3.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+3.6. Executing OPT_DFF pass (perform DFF optimizations).
+Adding EN signal on \3881 ($dff) from module FETCH_BYTE_QUEUE (D = $auto$ghdl.cc:806:import_module$1018, Q = \head_pc).
+Adding SRST signal on \3880 ($dff) from module FETCH_BYTE_QUEUE (D = $auto$ghdl.cc:806:import_module$1013, Q = \count, rval = 8'00000000).
+Adding SRST signal on \3879 ($dff) from module FETCH_BYTE_QUEUE (D = $auto$ghdl.cc:806:import_module$1012, Q = \head, rval = 7'0000000).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [286:279] }, Q = \banks [1124:1116]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [286:279] }, Q = \banks [1133:1125]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [286:279] }, Q = \banks [1142:1134]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [277:270] }, Q = \banks [1088:1080]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [277:270] }, Q = \banks [1097:1089]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [277:270] }, Q = \banks [1106:1098]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [268:261] }, Q = \banks [1052:1044]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [268:261] }, Q = \banks [1061:1053]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [268:261] }, Q = \banks [1070:1062]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [259:252] }, Q = \banks [1016:1008]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [259:252] }, Q = \banks [1025:1017]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [259:252] }, Q = \banks [1034:1026]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [250:243] }, Q = \banks [980:972]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [250:243] }, Q = \banks [989:981]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [250:243] }, Q = \banks [998:990]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [241:234] }, Q = \banks [944:936]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [241:234] }, Q = \banks [953:945]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [241:234] }, Q = \banks [962:954]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [232:225] }, Q = \banks [908:900]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [232:225] }, Q = \banks [917:909]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [232:225] }, Q = \banks [926:918]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [223:216] }, Q = \banks [872:864]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [223:216] }, Q = \banks [881:873]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [223:216] }, Q = \banks [890:882]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [214:207] }, Q = \banks [836:828]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [214:207] }, Q = \banks [845:837]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [214:207] }, Q = \banks [854:846]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [205:198] }, Q = \banks [800:792]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [205:198] }, Q = \banks [809:801]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [205:198] }, Q = \banks [818:810]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [196:189] }, Q = \banks [764:756]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [196:189] }, Q = \banks [773:765]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [196:189] }, Q = \banks [782:774]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [187:180] }, Q = \banks [728:720]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [187:180] }, Q = \banks [737:729]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [187:180] }, Q = \banks [746:738]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [178:171] }, Q = \banks [692:684]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [178:171] }, Q = \banks [701:693]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [178:171] }, Q = \banks [710:702]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [169:162] }, Q = \banks [656:648]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [169:162] }, Q = \banks [665:657]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [169:162] }, Q = \banks [674:666]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [160:153] }, Q = \banks [620:612]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [160:153] }, Q = \banks [629:621]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [160:153] }, Q = \banks [638:630]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [151:144] }, Q = \banks [584:576]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [151:144] }, Q = \banks [593:585]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [151:144] }, Q = \banks [602:594]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [142:135] }, Q = \banks [548:540]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [142:135] }, Q = \banks [557:549]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [142:135] }, Q = \banks [566:558]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [133:126] }, Q = \banks [512:504]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [133:126] }, Q = \banks [521:513]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [133:126] }, Q = \banks [530:522]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [124:117] }, Q = \banks [476:468]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [124:117] }, Q = \banks [485:477]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [124:117] }, Q = \banks [494:486]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [115:108] }, Q = \banks [440:432]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [115:108] }, Q = \banks [449:441]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [115:108] }, Q = \banks [458:450]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [106:99] }, Q = \banks [404:396]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [106:99] }, Q = \banks [413:405]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [106:99] }, Q = \banks [422:414]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [97:90] }, Q = \banks [368:360]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [97:90] }, Q = \banks [377:369]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [97:90] }, Q = \banks [386:378]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [88:81] }, Q = \banks [332:324]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [88:81] }, Q = \banks [341:333]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [88:81] }, Q = \banks [350:342]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [79:72] }, Q = \banks [296:288]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [79:72] }, Q = \banks [305:297]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [79:72] }, Q = \banks [314:306]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [70:63] }, Q = \banks [260:252]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [70:63] }, Q = \banks [269:261]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [70:63] }, Q = \banks [278:270]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [61:54] }, Q = \banks [224:216]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [61:54] }, Q = \banks [233:225]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [61:54] }, Q = \banks [242:234]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [52:45] }, Q = \banks [188:180]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [52:45] }, Q = \banks [197:189]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [52:45] }, Q = \banks [206:198]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [43:36] }, Q = \banks [152:144]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [43:36] }, Q = \banks [161:153]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [43:36] }, Q = \banks [170:162]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [34:27] }, Q = \banks [116:108]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [34:27] }, Q = \banks [125:117]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [34:27] }, Q = \banks [134:126]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [25:18] }, Q = \banks [80:72]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [25:18] }, Q = \banks [89:81]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [25:18] }, Q = \banks [98:90]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [16:9] }, Q = \banks [44:36]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [16:9] }, Q = \banks [53:45]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [16:9] }, Q = \banks [62:54]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [7:0] }, Q = \banks [8:0]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [7:0] }, Q = \banks [17:9]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [7:0] }, Q = \banks [26:18]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [106:99] }, Q = \banks [431:423]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [196:189] }, Q = \banks [791:783]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [205:198] }, Q = \banks [827:819]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [34:27] }, Q = \banks [143:135]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [115:108] }, Q = \banks [467:459]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [124:117] }, Q = \banks [503:495]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [133:126] }, Q = \banks [539:531]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [142:135] }, Q = \banks [575:567]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [151:144] }, Q = \banks [611:603]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [160:153] }, Q = \banks [647:639]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [169:162] }, Q = \banks [683:675]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [178:171] }, Q = \banks [719:711]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [187:180] }, Q = \banks [755:747]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [214:207] }, Q = \banks [863:855]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [223:216] }, Q = \banks [899:891]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [232:225] }, Q = \banks [935:927]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [241:234] }, Q = \banks [971:963]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [250:243] }, Q = \banks [1007:999]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [259:252] }, Q = \banks [1043:1035]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [268:261] }, Q = \banks [1079:1071]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [277:270] }, Q = \banks [1115:1107]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [286:279] }, Q = \banks [1151:1143]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [7:0] }, Q = \banks [35:27]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [16:9] }, Q = \banks [71:63]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [25:18] }, Q = \banks [107:99]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [43:36] }, Q = \banks [179:171]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [52:45] }, Q = \banks [215:207]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [61:54] }, Q = \banks [251:243]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [70:63] }, Q = \banks [287:279]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [79:72] }, Q = \banks [323:315]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [88:81] }, Q = \banks [359:351]).
+Adding EN signal on \3866 ($dff) from module FETCH_BYTE_QUEUE (D = { \FETCH_FAULT_i \wr5 [97:90] }, Q = \banks [395:387]).
+
+3.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+Removed 135 unused cells and 142 unused wires.
+<suppressed ~138 debug messages>
+
+3.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+3.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \FETCH_BYTE_QUEUE..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~588 debug messages>
+
+3.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \FETCH_BYTE_QUEUE.
+Performed a total of 0 changes.
+
+3.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+<suppressed ~381 debug messages>
+Removed a total of 127 cells.
+
+3.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+Removed 0 unused cells and 127 unused wires.
+<suppressed ~1 debug messages>
+
+3.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+3.16. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.17. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \FETCH_BYTE_QUEUE..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~588 debug messages>
+
+3.18. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \FETCH_BYTE_QUEUE.
+Performed a total of 0 changes.
+
+3.19. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+3.20. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.21. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+3.22. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+3.23. Finished OPT passes. (There is nothing left to do.)
+
+4. Printing statistics.
+
+=== FETCH_BYTE_QUEUE ===
+
+   Number of wires:                573
+   Number of wire bits:           6180
+   Number of public wires:          37
+   Number of public wire bits:    5415
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:               1023
+     $add_2                          2
+     $add_64                         1
+     $add_7                          2
+     $add_8                          1
+     $and_1                          2
+     $dffe_64                        1
+     $dffe_9                       128
+     $eq_2                         130
+     $gt_6                           1
+     $gt_8                           2
+     $le_8                           1
+     $logic_not_2                   64
+     $logic_not_8                    2
+     $lt_5                          64
+     $mux_1                          2
+     $mux_2                         66
+     $mux_6                          4
+     $mux_64                         1
+     $mux_8                        160
+     $mux_9                        160
+     $not_1                         33
+     $or_1                           1
+     $pmux_9                        32
+     $reduce_and_3                 128
+     $reduce_or_3                   32
+     $sdff_7                         1
+     $sdff_8                         1
+     $sub_8                          1
+
+5. Executing SYNTH pass.
+
+5.1. Executing HIERARCHY pass (managing design hierarchy).
+
+5.1.1. Analyzing design hierarchy..
+Top module:  \FETCH_BYTE_QUEUE
+
+5.1.2. Analyzing design hierarchy..
+Top module:  \FETCH_BYTE_QUEUE
+Removed 0 unused modules.
+
+5.2. Executing PROC pass (convert processes to netlists).
+
+5.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+5.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+5.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+5.2.4. Executing PROC_INIT pass (extract init attributes).
+
+5.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+5.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+5.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+5.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+5.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+5.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+5.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+5.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+5.3. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+5.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+5.5. Executing CHECK pass (checking for obvious problems).
+Checking module FETCH_BYTE_QUEUE...
+Found and reported 0 problems.
+
+5.6. Executing OPT pass (performing simple optimizations).
+
+5.6.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+5.6.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+5.6.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \FETCH_BYTE_QUEUE..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~588 debug messages>
+
+5.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \FETCH_BYTE_QUEUE.
+Performed a total of 0 changes.
+
+5.6.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+5.6.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+5.6.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+5.6.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+5.6.9. Finished OPT passes. (There is nothing left to do.)
+
+5.7. Executing FSM pass (extract and optimize FSM).
+
+5.7.1. Executing FSM_DETECT pass (finding FSMs in design).
+
+5.7.2. Executing FSM_EXTRACT pass (extracting FSM from design).
+
+5.7.3. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+5.7.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+5.7.5. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+5.7.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
+
+5.7.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
+
+5.7.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
+
+5.8. Executing OPT pass (performing simple optimizations).
+
+5.8.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+5.8.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+5.8.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \FETCH_BYTE_QUEUE..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~588 debug messages>
+
+5.8.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \FETCH_BYTE_QUEUE.
+Performed a total of 0 changes.
+
+5.8.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+5.8.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+5.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+5.8.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+5.8.9. Finished OPT passes. (There is nothing left to do.)
+
+5.9. Executing WREDUCE pass (reducing word size of cells).
+
+5.10. Executing PEEPOPT pass (run peephole optimizers).
+
+5.11. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+5.12. Executing ALUMACC pass (create $alu and $macc cells).
+Extracting $alu and $macc cells in module FETCH_BYTE_QUEUE:
+  creating $macc model for \10 ($add).
+  creating $macc model for \103 ($add).
+  creating $macc model for \2783 ($add).
+  creating $macc model for \3804 ($sub).
+  creating $macc model for \3808 ($add).
+  creating $macc model for \3813 ($add).
+  creating $macc model for \3824 ($add).
+  creating $alu model for $macc \3824.
+  creating $alu model for $macc \3813.
+  creating $alu model for $macc \3808.
+  creating $alu model for $macc \3804.
+  creating $alu model for $macc \2783.
+  creating $alu model for $macc \103.
+  creating $alu model for $macc \10.
+  creating $alu model for \1025 ($lt): new $alu
+  creating $alu model for \129 ($lt): new $alu
+  creating $alu model for \161 ($lt): new $alu
+  creating $alu model for \17 ($le): new $alu
+  creating $alu model for \1763 ($gt): new $alu
+  creating $alu model for \193 ($lt): new $alu
+  creating $alu model for \225 ($lt): new $alu
+  creating $alu model for \257 ($lt): new $alu
+  creating $alu model for \2757 ($gt): new $alu
+  creating $alu model for \2774 ($gt): new $alu
+  creating $alu model for \2777 ($lt): new $alu
+  creating $alu model for \2809 ($lt): new $alu
+  creating $alu model for \2841 ($lt): new $alu
+  creating $alu model for \2873 ($lt): new $alu
+  creating $alu model for \289 ($lt): new $alu
+  creating $alu model for \2905 ($lt): new $alu
+  creating $alu model for \2937 ($lt): new $alu
+  creating $alu model for \2969 ($lt): new $alu
+  creating $alu model for \3001 ($lt): new $alu
+  creating $alu model for \3033 ($lt): new $alu
+  creating $alu model for \3065 ($lt): new $alu
+  creating $alu model for \3097 ($lt): new $alu
+  creating $alu model for \3129 ($lt): new $alu
+  creating $alu model for \3161 ($lt): new $alu
+  creating $alu model for \3193 ($lt): new $alu
+  creating $alu model for \321 ($lt): new $alu
+  creating $alu model for \3225 ($lt): new $alu
+  creating $alu model for \3257 ($lt): new $alu
+  creating $alu model for \3289 ($lt): new $alu
+  creating $alu model for \33 ($lt): new $alu
+  creating $alu model for \3321 ($lt): new $alu
+  creating $alu model for \3353 ($lt): new $alu
+  creating $alu model for \3385 ($lt): new $alu
+  creating $alu model for \3417 ($lt): new $alu
+  creating $alu model for \3449 ($lt): new $alu
+  creating $alu model for \3481 ($lt): new $alu
+  creating $alu model for \3513 ($lt): new $alu
+  creating $alu model for \353 ($lt): new $alu
+  creating $alu model for \3545 ($lt): new $alu
+  creating $alu model for \3577 ($lt): new $alu
+  creating $alu model for \3609 ($lt): new $alu
+  creating $alu model for \3641 ($lt): new $alu
+  creating $alu model for \3673 ($lt): new $alu
+  creating $alu model for \3705 ($lt): new $alu
+  creating $alu model for \3737 ($lt): new $alu
+  creating $alu model for \3769 ($lt): new $alu
+  creating $alu model for \385 ($lt): new $alu
+  creating $alu model for \417 ($lt): new $alu
+  creating $alu model for \449 ($lt): new $alu
+  creating $alu model for \481 ($lt): new $alu
+  creating $alu model for \513 ($lt): new $alu
+  creating $alu model for \545 ($lt): new $alu
+  creating $alu model for \577 ($lt): new $alu
+  creating $alu model for \609 ($lt): new $alu
+  creating $alu model for \641 ($lt): new $alu
+  creating $alu model for \65 ($lt): new $alu
+  creating $alu model for \673 ($lt): new $alu
+  creating $alu model for \705 ($lt): new $alu
+  creating $alu model for \737 ($lt): new $alu
+  creating $alu model for \769 ($lt): new $alu
+  creating $alu model for \801 ($lt): new $alu
+  creating $alu model for \833 ($lt): new $alu
+  creating $alu model for \865 ($lt): new $alu
+  creating $alu model for \897 ($lt): new $alu
+  creating $alu model for \929 ($lt): new $alu
+  creating $alu model for \961 ($lt): new $alu
+  creating $alu model for \97 ($lt): new $alu
+  creating $alu model for \993 ($lt): new $alu
+  creating $alu cell for \993: $auto$alumacc.cc:485:replace_alu$1884
+  creating $alu cell for \97: $auto$alumacc.cc:485:replace_alu$1889
+  creating $alu cell for \961: $auto$alumacc.cc:485:replace_alu$1894
+  creating $alu cell for \929: $auto$alumacc.cc:485:replace_alu$1899
+  creating $alu cell for \897: $auto$alumacc.cc:485:replace_alu$1904
+  creating $alu cell for \865: $auto$alumacc.cc:485:replace_alu$1909
+  creating $alu cell for \833: $auto$alumacc.cc:485:replace_alu$1914
+  creating $alu cell for \801: $auto$alumacc.cc:485:replace_alu$1919
+  creating $alu cell for \769: $auto$alumacc.cc:485:replace_alu$1924
+  creating $alu cell for \737: $auto$alumacc.cc:485:replace_alu$1929
+  creating $alu cell for \705: $auto$alumacc.cc:485:replace_alu$1934
+  creating $alu cell for \673: $auto$alumacc.cc:485:replace_alu$1939
+  creating $alu cell for \65: $auto$alumacc.cc:485:replace_alu$1944
+  creating $alu cell for \641: $auto$alumacc.cc:485:replace_alu$1949
+  creating $alu cell for \609: $auto$alumacc.cc:485:replace_alu$1954
+  creating $alu cell for \577: $auto$alumacc.cc:485:replace_alu$1959
+  creating $alu cell for \545: $auto$alumacc.cc:485:replace_alu$1964
+  creating $alu cell for \513: $auto$alumacc.cc:485:replace_alu$1969
+  creating $alu cell for \481: $auto$alumacc.cc:485:replace_alu$1974
+  creating $alu cell for \449: $auto$alumacc.cc:485:replace_alu$1979
+  creating $alu cell for \417: $auto$alumacc.cc:485:replace_alu$1984
+  creating $alu cell for \385: $auto$alumacc.cc:485:replace_alu$1989
+  creating $alu cell for \3769: $auto$alumacc.cc:485:replace_alu$1994
+  creating $alu cell for \3737: $auto$alumacc.cc:485:replace_alu$1999
+  creating $alu cell for \3705: $auto$alumacc.cc:485:replace_alu$2004
+  creating $alu cell for \3673: $auto$alumacc.cc:485:replace_alu$2009
+  creating $alu cell for \3641: $auto$alumacc.cc:485:replace_alu$2014
+  creating $alu cell for \3609: $auto$alumacc.cc:485:replace_alu$2019
+  creating $alu cell for \3577: $auto$alumacc.cc:485:replace_alu$2024
+  creating $alu cell for \3545: $auto$alumacc.cc:485:replace_alu$2029
+  creating $alu cell for \353: $auto$alumacc.cc:485:replace_alu$2034
+  creating $alu cell for \3513: $auto$alumacc.cc:485:replace_alu$2039
+  creating $alu cell for \3481: $auto$alumacc.cc:485:replace_alu$2044
+  creating $alu cell for \3449: $auto$alumacc.cc:485:replace_alu$2049
+  creating $alu cell for \3417: $auto$alumacc.cc:485:replace_alu$2054
+  creating $alu cell for \3385: $auto$alumacc.cc:485:replace_alu$2059
+  creating $alu cell for \3353: $auto$alumacc.cc:485:replace_alu$2064
+  creating $alu cell for \3321: $auto$alumacc.cc:485:replace_alu$2069
+  creating $alu cell for \33: $auto$alumacc.cc:485:replace_alu$2074
+  creating $alu cell for \3289: $auto$alumacc.cc:485:replace_alu$2079
+  creating $alu cell for \3257: $auto$alumacc.cc:485:replace_alu$2084
+  creating $alu cell for \3225: $auto$alumacc.cc:485:replace_alu$2089
+  creating $alu cell for \321: $auto$alumacc.cc:485:replace_alu$2094
+  creating $alu cell for \3193: $auto$alumacc.cc:485:replace_alu$2099
+  creating $alu cell for \3161: $auto$alumacc.cc:485:replace_alu$2104
+  creating $alu cell for \3129: $auto$alumacc.cc:485:replace_alu$2109
+  creating $alu cell for \3097: $auto$alumacc.cc:485:replace_alu$2114
+  creating $alu cell for \3065: $auto$alumacc.cc:485:replace_alu$2119
+  creating $alu cell for \3033: $auto$alumacc.cc:485:replace_alu$2124
+  creating $alu cell for \3001: $auto$alumacc.cc:485:replace_alu$2129
+  creating $alu cell for \2969: $auto$alumacc.cc:485:replace_alu$2134
+  creating $alu cell for \2937: $auto$alumacc.cc:485:replace_alu$2139
+  creating $alu cell for \2905: $auto$alumacc.cc:485:replace_alu$2144
+  creating $alu cell for \289: $auto$alumacc.cc:485:replace_alu$2149
+  creating $alu cell for \2873: $auto$alumacc.cc:485:replace_alu$2154
+  creating $alu cell for \2841: $auto$alumacc.cc:485:replace_alu$2159
+  creating $alu cell for \2809: $auto$alumacc.cc:485:replace_alu$2164
+  creating $alu cell for \2777: $auto$alumacc.cc:485:replace_alu$2169
+  creating $alu cell for \2774: $auto$alumacc.cc:485:replace_alu$2174
+  creating $alu cell for \2757: $auto$alumacc.cc:485:replace_alu$2179
+  creating $alu cell for \257: $auto$alumacc.cc:485:replace_alu$2190
+  creating $alu cell for \225: $auto$alumacc.cc:485:replace_alu$2195
+  creating $alu cell for \193: $auto$alumacc.cc:485:replace_alu$2200
+  creating $alu cell for \1763: $auto$alumacc.cc:485:replace_alu$2205
+  creating $alu cell for \17: $auto$alumacc.cc:485:replace_alu$2210
+  creating $alu cell for \161: $auto$alumacc.cc:485:replace_alu$2223
+  creating $alu cell for \129: $auto$alumacc.cc:485:replace_alu$2228
+  creating $alu cell for \1025: $auto$alumacc.cc:485:replace_alu$2233
+  creating $alu cell for \10: $auto$alumacc.cc:485:replace_alu$2238
+  creating $alu cell for \103: $auto$alumacc.cc:485:replace_alu$2241
+  creating $alu cell for \2783: $auto$alumacc.cc:485:replace_alu$2244
+  creating $alu cell for \3804: $auto$alumacc.cc:485:replace_alu$2247
+  creating $alu cell for \3808: $auto$alumacc.cc:485:replace_alu$2250
+  creating $alu cell for \3813: $auto$alumacc.cc:485:replace_alu$2253
+  creating $alu cell for \3824: $auto$alumacc.cc:485:replace_alu$2256
+  created 75 $alu and 0 $macc cells.
+
+5.13. Executing SHARE pass (SAT-based resource sharing).
+
+5.14. Executing OPT pass (performing simple optimizations).
+
+5.14.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+<suppressed ~66 debug messages>
+
+5.14.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+5.14.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \FETCH_BYTE_QUEUE..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~588 debug messages>
+
+5.14.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \FETCH_BYTE_QUEUE.
+Performed a total of 0 changes.
+
+5.14.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+5.14.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+5.14.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+Removed 66 unused cells and 134 unused wires.
+<suppressed ~67 debug messages>
+
+5.14.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+5.14.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+5.14.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \FETCH_BYTE_QUEUE..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~588 debug messages>
+
+5.14.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \FETCH_BYTE_QUEUE.
+Performed a total of 0 changes.
+
+5.14.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+5.14.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+5.14.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+5.14.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+5.14.16. Finished OPT passes. (There is nothing left to do.)
+
+5.15. Executing MEMORY pass.
+
+5.15.1. Executing OPT_MEM pass (optimize memories).
+Performed a total of 0 transformations.
+
+5.15.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
+Performed a total of 0 transformations.
+
+5.15.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
+
+5.15.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
+
+5.15.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+
+5.15.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+5.15.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
+
+5.15.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
+Performed a total of 0 transformations.
+
+5.15.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+5.15.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+5.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+5.17. Executing OPT pass (performing simple optimizations).
+
+5.17.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+<suppressed ~42 debug messages>
+
+5.17.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+<suppressed ~156 debug messages>
+Removed a total of 52 cells.
+
+5.17.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+5.17.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+Removed 10 unused cells and 74 unused wires.
+<suppressed ~11 debug messages>
+
+5.17.5. Finished fast OPT passes.
+
+5.18. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
+
+5.19. Executing OPT pass (performing simple optimizations).
+
+5.19.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+5.19.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+5.19.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \FETCH_BYTE_QUEUE..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~584 debug messages>
+
+5.19.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \FETCH_BYTE_QUEUE.
+Performed a total of 0 changes.
+
+5.19.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+Removed a total of 0 cells.
+
+5.19.6. Executing OPT_SHARE pass.
+
+5.19.7. Executing OPT_DFF pass (perform DFF optimizations).
+
+5.19.8. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+
+5.19.9. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+
+5.19.10. Finished OPT passes. (There is nothing left to do.)
+
+5.20. Executing TECHMAP pass (map to technology primitives).
+
+5.20.1. Executing Verilog-2005 frontend: /usr/bin/../share/yosys/techmap.v
+Parsing Verilog input from `/usr/bin/../share/yosys/techmap.v' to AST representation.
+Generating RTLIL representation for module `\_90_simplemap_bool_ops'.
+Generating RTLIL representation for module `\_90_simplemap_reduce_ops'.
+Generating RTLIL representation for module `\_90_simplemap_logic_ops'.
+Generating RTLIL representation for module `\_90_simplemap_compare_ops'.
+Generating RTLIL representation for module `\_90_simplemap_various'.
+Generating RTLIL representation for module `\_90_simplemap_registers'.
+Generating RTLIL representation for module `\_90_shift_ops_shr_shl_sshl_sshr'.
+Generating RTLIL representation for module `\_90_shift_shiftx'.
+Generating RTLIL representation for module `\_90_fa'.
+Generating RTLIL representation for module `\_90_lcu'.
+Generating RTLIL representation for module `\_90_alu'.
+Generating RTLIL representation for module `\_90_macc'.
+Generating RTLIL representation for module `\_90_alumacc'.
+Generating RTLIL representation for module `\$__div_mod_u'.
+Generating RTLIL representation for module `\$__div_mod_trunc'.
+Generating RTLIL representation for module `\_90_div'.
+Generating RTLIL representation for module `\_90_mod'.
+Generating RTLIL representation for module `\$__div_mod_floor'.
+Generating RTLIL representation for module `\_90_divfloor'.
+Generating RTLIL representation for module `\_90_modfloor'.
+Generating RTLIL representation for module `\_90_pow'.
+Generating RTLIL representation for module `\_90_pmux'.
+Generating RTLIL representation for module `\_90_demux'.
+Generating RTLIL representation for module `\_90_lut'.
+Successfully finished Verilog frontend.
+
+5.20.2. Continuing TECHMAP pass.
+Using extmapper simplemap for cells of type $dffe.
+Using extmapper simplemap for cells of type $reduce_and.
+Using extmapper simplemap for cells of type $not.
+Using template $paramod$b18e16801adf491a64caa0542270798e5d4ac6b6\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $or.
+Using extmapper simplemap for cells of type $reduce_or.
+Using template $paramod$175e67c02b86e96b1288b9dc100122520d7240d8\_90_alu for cells of type $alu.
+Using template $paramod$03eba0cdd46566f6651a3011e0b5671fa6b5e494\_90_alu for cells of type $alu.
+Using template $paramod$dbcdc7e8aa1a4080cea2deda6fdc8772064f4d90\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $mux.
+Using extmapper simplemap for cells of type $logic_not.
+Using extmapper simplemap for cells of type $eq.
+Using template $paramod$200cf4763a5dd97104da97c2740bc6396db7fa25\_90_pmux for cells of type $pmux.
+Using template $paramod$78e969f2586efcf3a5b0b0440bcca0db83d5cca2\_90_alu for cells of type $alu.
+Using template $paramod$740b056ede97228d3eae64ea2fdc81f0a33e0fe7\_90_alu for cells of type $alu.
+Using template $paramod$7af24cf7f572852703f08ef7a936c59efa2c57af\_90_alu for cells of type $alu.
+Using template $paramod$150d098cb9cca1819459bc5073194c8c53d2862d\_90_alu for cells of type $alu.
+Using template $paramod$f85408ed1aa3d09e465edae8a7bf590332ae9f7b\_90_alu for cells of type $alu.
+Using template $paramod$1a3a0c35c4a4896fbfd612699525c057298e72d2\_90_alu for cells of type $alu.
+Using template $paramod$7e708ae28ab761f11d0fb59d3ffc72f6a4baf5d9\_90_alu for cells of type $alu.
+Using template $paramod$79fc7abbb3333dbd5736999d565fd903198fb1eb\_90_alu for cells of type $alu.
+Using template $paramod$83dd457849c736323edf2edb15923eb27f99c683\_90_alu for cells of type $alu.
+Using template $paramod$adbaf76fa5a3091a329503792521395f8ff4d1a4\_90_alu for cells of type $alu.
+Using template $paramod$6b90a16b6f3b57b9c9d958838204f952a01dc262\_90_alu for cells of type $alu.
+Using template $paramod$3ac6e4268d0279df14823f25676acf685165517e\_90_alu for cells of type $alu.
+Using template $paramod$dfca81329cbbac01700318224209a5f2318c7128\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $and.
+Using template $paramod$d1615bf4e5e328245ffd1550e5fe105901cda77b\_90_alu for cells of type $alu.
+Using template $paramod$32efbfac1c4dc57230cf86180788fdfd12e3b511\_90_alu for cells of type $alu.
+Using template $paramod$2ab0ff81670440372478bad90d3da37d43208ad1\_90_alu for cells of type $alu.
+Using template $paramod$672a140277c71df8314410f22acc08d55222c3c7\_90_alu for cells of type $alu.
+Using template $paramod$c4905825bb8ecc38b98eb4167e8b007447af7884\_90_alu for cells of type $alu.
+Using template $paramod$e598a152554f0e84fd1ae44a5db9971b90dff028\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $sdff.
+Using extmapper simplemap for cells of type $xor.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000101 for cells of type $lcu.
+Using extmapper simplemap for cells of type $pos.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000010 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000111 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000011 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000100 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000001000 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000001 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000110 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000001000000 for cells of type $lcu.
+No more expansions possible.
+<suppressed ~4791 debug messages>
+
+5.21. Executing OPT pass (performing simple optimizations).
+
+5.21.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module FETCH_BYTE_QUEUE.
+<suppressed ~2164 debug messages>
+
+5.21.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\FETCH_BYTE_QUEUE'.
+<suppressed ~1899 debug messages>
+Removed a total of 633 cells.
+
+5.21.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+5.21.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \FETCH_BYTE_QUEUE..
+Removed 262 unused cells and 3983 unused wires.
+<suppressed ~263 debug messages>
+
+5.21.5. Finished fast OPT passes.
+
+5.22. Executing HIERARCHY pass (managing design hierarchy).
+
+5.22.1. Analyzing design hierarchy..
+Top module:  \FETCH_BYTE_QUEUE
+
+5.22.2. Analyzing design hierarchy..
+Top module:  \FETCH_BYTE_QUEUE
+Removed 0 unused modules.
+
+5.23. Printing statistics.
+
+=== FETCH_BYTE_QUEUE ===
+
+   Number of wires:               2000
+   Number of wire bits:          11225
+   Number of public wires:         517
+   Number of public wire bits:    8967
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:               7421
+     $_AND_                       1433
+     $_DFFE_PN_                     64
+     $_DFFE_PP_                   1152
+     $_MUX_                       3224
+     $_NOT_                        390
+     $_OR_                        1015
+     $_SDFF_PP0_                    15
+     $_XOR_                        128
+
+5.24. Executing CHECK pass (checking for obvious problems).
+Checking module FETCH_BYTE_QUEUE...
+Found and reported 0 problems.
+
+6. Executing DFFLIBMAP pass (mapping DFF cells to sequential cells from liberty file).
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_2' - skipping.
+  cell sg13cmos5l_dfrbpq_1 (noninv, pins=4, area=48.99) is a direct match for cell type $_DFF_PN0_.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13cmos5l_sdfrbpq_2' - skipping.
+  final dff cell mappings:
+    unmapped dff cell: $_DFF_N_
+    unmapped dff cell: $_DFF_P_
+    unmapped dff cell: $_DFF_NN0_
+    unmapped dff cell: $_DFF_NN1_
+    unmapped dff cell: $_DFF_NP0_
+    unmapped dff cell: $_DFF_NP1_
+    \sg13cmos5l_dfrbpq_1 _DFF_PN0_ (.CLK( C), .D( D), .Q( Q), .RESET_B( R));
+    unmapped dff cell: $_DFF_PN1_
+    unmapped dff cell: $_DFF_PP0_
+    unmapped dff cell: $_DFF_PP1_
+    unmapped dff cell: $_DFFSR_NNN_
+    unmapped dff cell: $_DFFSR_NNP_
+    unmapped dff cell: $_DFFSR_NPN_
+    unmapped dff cell: $_DFFSR_NPP_
+    unmapped dff cell: $_DFFSR_PNN_
+    unmapped dff cell: $_DFFSR_PNP_
+    unmapped dff cell: $_DFFSR_PPN_
+    unmapped dff cell: $_DFFSR_PPP_
+
+6.1. Executing DFFLEGALIZE pass (convert FFs to types supported by the target).
+Mapping DFF cells in module `\FETCH_BYTE_QUEUE':
+  mapped 1231 $_DFF_PN0_ cells to \sg13cmos5l_dfrbpq_1 cells.
+
+7. Executing ABC pass (technology mapping using ABC).
+
+7.1. Extracting gate netlist of module `\FETCH_BYTE_QUEUE' to `<abc-temp-dir>/input.blif'..
+Extracted 7421 gates and 8991 wires to a netlist network with 1568 inputs and 1527 outputs.
+
+7.1.1. Executing ABC.
+Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
+ABC: ABC command line: "source <abc-temp-dir>/abc.script".
+ABC: 
+ABC: + read_blif <abc-temp-dir>/input.blif 
+ABC: + read_lib -w /home/vmo/IHP-Open-PDK/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/lib/sg13cmos5l_stdcell_typ_1p20V_25C.lib 
+ABC: Parsing finished successfully.  Parsing time =     0.01 sec
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13cmos5l_antennanp" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13cmos5l_decap_4" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13cmos5l_decap_8" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_dfrbp_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_dfrbp_2".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_dfrbpq_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_dfrbpq_2".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_dlhq_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_dlhr_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_dlhrq_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_dllr_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_dllrq_1".
+ABC: Scl_LibertyReadGenlib() skipped three-state cell "sg13cmos5l_ebufn_2".
+ABC: Scl_LibertyReadGenlib() skipped three-state cell "sg13cmos5l_ebufn_4".
+ABC: Scl_LibertyReadGenlib() skipped three-state cell "sg13cmos5l_ebufn_8".
+ABC: Scl_LibertyReadGenlib() skipped three-state cell "sg13cmos5l_einvn_2".
+ABC: Scl_LibertyReadGenlib() skipped three-state cell "sg13cmos5l_einvn_4".
+ABC: Scl_LibertyReadGenlib() skipped three-state cell "sg13cmos5l_einvn_8".
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13cmos5l_fill_1" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13cmos5l_fill_2" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13cmos5l_fill_4" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13cmos5l_fill_8" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13cmos5l_lgcp_1" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_sdfbbp_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_sdfrbp_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_sdfrbp_2".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_sdfrbpq_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13cmos5l_sdfrbpq_2".
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13cmos5l_sighold" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13cmos5l_slgcp_1" due to dont_use attribute.
+ABC: Library "sg13cmos5l_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13cmos5l/libs.ref/sg13cmos5l_stdcell/lib/sg13cmos5l_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
+ABC: Memory =    2.86 MB. Time =     0.01 sec
+ABC: + strash 
+ABC: + &get -n 
+ABC: + &fraig -x 
+ABC: + &put 
+ABC: + scorr 
+ABC: Warning: The network is combinational (run "fraig" or "fraig_sweep").
+ABC: + dc2 
+ABC: + dretime 
+ABC: + strash 
+ABC: + &get -n 
+ABC: + &dch -f 
+ABC: + &nf 
+ABC: + &put 
+ABC: + write_blif <abc-temp-dir>/output.blif 
+
+7.1.2. Re-integrating ABC results.
+ABC RESULTS:   sg13cmos5l_or3_1 cells:        2
+ABC RESULTS:   sg13cmos5l_mux4_1 cells:       96
+ABC RESULTS:   sg13cmos5l_nand3b_1 cells:        2
+ABC RESULTS:   sg13cmos5l_and4_1 cells:        8
+ABC RESULTS:   sg13cmos5l_a21o_1 cells:       37
+ABC RESULTS:   sg13cmos5l_nor4_1 cells:        6
+ABC RESULTS:   sg13cmos5l_a221oi_1 cells:        1
+ABC RESULTS:   sg13cmos5l_nand4_1 cells:        7
+ABC RESULTS:   sg13cmos5l_or2_1 cells:       15
+ABC RESULTS:   sg13cmos5l_nand2b_1 cells:       12
+ABC RESULTS:   sg13cmos5l_nand3_1 cells:       12
+ABC RESULTS:   sg13cmos5l_o21ai_1 cells:      461
+ABC RESULTS:   sg13cmos5l_xor2_1 cells:       53
+ABC RESULTS:   sg13cmos5l_and3_1 cells:        9
+ABC RESULTS:   sg13cmos5l_a21oi_1 cells:      473
+ABC RESULTS:   sg13cmos5l_inv_1 cells:       51
+ABC RESULTS:   sg13cmos5l_xnor2_1 cells:       56
+ABC RESULTS:   sg13cmos5l_nor2b_1 cells:       50
+ABC RESULTS:   sg13cmos5l_a22oi_1 cells:      598
+ABC RESULTS:   sg13cmos5l_nand2_1 cells:      861
+ABC RESULTS:   sg13cmos5l_mux2_1 cells:     3015
+ABC RESULTS:   sg13cmos5l_nor2_1 cells:      461
+ABC RESULTS:   sg13cmos5l_and2_1 cells:      237
+ABC RESULTS:   sg13cmos5l_nor3_1 cells:       46
+ABC RESULTS:        internal signals:     5896
+ABC RESULTS:           input signals:     1568
+ABC RESULTS:          output signals:     1527
+Removing temp directory.
+Removed 0 unused cells and 5001 unused wires.
+
+8. Printing statistics.
+
+=== FETCH_BYTE_QUEUE ===
+
+   Number of wires:               6367
+   Number of wire bits:          11386
+   Number of public wires:          94
+   Number of public wire bits:    5113
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:               7800
+     sg13cmos5l_a21o_1              37
+     sg13cmos5l_a21oi_1            473
+     sg13cmos5l_a221oi_1             1
+     sg13cmos5l_a22oi_1            598
+     sg13cmos5l_and2_1             237
+     sg13cmos5l_and3_1               9
+     sg13cmos5l_and4_1               8
+     sg13cmos5l_dfrbpq_1          1231
+     sg13cmos5l_inv_1               51
+     sg13cmos5l_mux2_1            3015
+     sg13cmos5l_mux4_1              96
+     sg13cmos5l_nand2_1            861
+     sg13cmos5l_nand2b_1            12
+     sg13cmos5l_nand3_1             12
+     sg13cmos5l_nand3b_1             2
+     sg13cmos5l_nand4_1              7
+     sg13cmos5l_nor2_1             461
+     sg13cmos5l_nor2b_1             50
+     sg13cmos5l_nor3_1              46
+     sg13cmos5l_nor4_1               6
+     sg13cmos5l_o21ai_1            461
+     sg13cmos5l_or2_1               15
+     sg13cmos5l_or3_1                2
+     sg13cmos5l_xnor2_1             56
+     sg13cmos5l_xor2_1              53
+
+   Chip area for module '\FETCH_BYTE_QUEUE': 149364.205200
+
+Warnings: 4 unique messages, 36 total
+End of script. Logfile hash: 77521807a5, CPU: user 2.49s system 0.03s, MEM: 60.78 MB peak
+Yosys 0.33 (git sha1 2584903a060)
+Time spent: 38% 1x abc (1 sec), 18% 41x opt_expr (0 sec), ...

@@ -46,6 +46,58 @@ use work.EXEC_TYPES.all;
 		--     par la file : opérandes lus, puis effet confié à SYSTEM_UNIT (SYS_REQ_o) ;
 		--     le résultat éventuel (CTX_SAVE, SET_IMASK) revient par SYS_RSP_i et part
 		--     sur RESULT_o.
+		--
+		--  CONTRAT, PREMIÈRE ÉTAPE
+		--
+		--  Actifs : instructions sérialisantes, CO_VAR, HEAP_ALLOC, FEXP, BLKMOV, BLKCMP,
+		--  BLKAND, BLKOU, BLKOUX, BLKNOT, LEXCMPx, ULEXCMPx. À écrire avec RENAME_DISPATCH
+		--  (seconde étape) : LINK, UNLINK, UNLINKR, EXC_MACH (fin d'exécution en faute
+		--  137 d'ici là), LSQ_EXEC_o et FRAME_UPDATE_o (inactifs). CO_VAR et HEAP_ALLOC
+		--  sont exécutées à la tête du ROB, sans exécution spéculative.
+		--
+		--  1. Une instruction à la fois : ISSUE_READY_o = '1' quand l'unité est libre.
+		--     Opérandes lus au cycle qui suit la prise (sources dans l'ordre de la
+		--     notation de pile, contournement d'abord), comme INTEGER_UNIT. Résultat sur
+		--     RESULT_o( 0 ) pendant un cycle, plus tard (latence hors contrat). L'unité
+		--     se libère au résultat ; une instruction exécutée à la tête attend en plus
+		--     son retrait (RETIRE_i) ou son abandon.
+		--
+		--  2. Sérialisantes (TRAP, RTX, EXC_RAISE) : SYS_REQ_o valide un cycle (op, val
+		--     = canon.val, operand = source( 0 ) s'il y en a une) ; à SYS_RSP_i : résultat
+		--     (destination) si result_valid, faute si fault.valid, sinon fin d'exécution
+		--     seule.
+		--
+		--  3. À la tête (rob_index = ROB_HEAD_i) ; sur l'état retiré, n non signé,
+		--     taille = 8 * ceil( n / 8 ), dépassement de 2^64 compris dans la faute :
+		--       CO_VAR     ( n -- @ )  @ = CSP ; CSP + taille > LIMITS_i.lim_csp : 135 ;
+		--       HEAP_ALLOC ( n -- @ )  @ = HP - taille ; < LIMITS_i.lim_hp : 136 ;
+		--     (LIMITS_i : limites effectives, réserves comprises). CSP et HP sont tenus
+		--     en deux exemplaires : modifiés à l'exécution, retenus au retrait de
+		--     l'instruction, rétablis à son abandon. COMMITTED_COPILE_o : l'état retiré ;
+		--     SYNC_VALID_i impose CFP, CSP (et HP si hp_valid) aux deux exemplaires.
+		--
+		--  4. Blocs, à la tête, après LSQ_DRAINED_i : sources ( @dst len @src -- ),
+		--     ( @dst len -- ) pour BLKNOT, ( @a len @b -- eq ) pour BLKCMP,
+		--     ( @g lg @d ld -- r ) pour LEXCMP. Étapes : RANGE_o un cycle (intervalles lu
+		--     et écrit) ; sondage de tous les octets des intervalles (faute 132 avant
+		--     toute écriture) ; STACK_MAINT_o MAINT_WRITEBACK_RANGE pour chaque
+		--     intervalle lu ou écrit (attente de STACK_MAINT_DONE_i) ; accès octet par
+		--     octet sur MEM_xxx ; MAINT_INVALIDATE_RANGE de l'intervalle écrit ; résultat.
+		--     BLKCMP : 1 si les len octets sont égaux (len = 0 : 1). LEXCMP : composants de
+		--     SZ octets (petit-boutistes), signés (C8..CB) ou non (CC..CE) ; le premier
+		--     composant différent sur min( lg, ld ) / SZ décide (-1 ou +1), sinon
+		--     signe( lg - ld ) (comparaison non signée).
+		--     Un bloc qui écrit (BLKMOV, BLKAND, BLKOU, BLKOUX, BLKNOT) ne s'interrompt
+		--     pas : HEAD_ATOMIC_o = '1' de son début à son retrait ou à son abandon ; il ne
+		--     commence ses accès qu'après un cycle de HEAD_ATOMIC_o = '1' avec
+		--     SYSTEM_HOLD_i = '0' (SYSTEM_UNIT au repos et engagée à ne pas livrer
+		--     d'interruption) ; sinon HEAD_ATOMIC_o retombe et l'unité attend.
+		--
+		--  5. FEXP ( x n -- x**n ) : entité FEXP_UNIT (VHDL-2008, FLOAT64_PKG), dont
+		--     l'en-tête porte le contrat ; ni attente de la tête ni accès mémoire.
+		--
+		--  6. Reprise : l'instruction abandonnée (ROB_TYPES.ABANDONED) est oubliée, CSP
+		--     et HP reviennent à l'état retiré ; elle ne paraît jamais sur RESULT_o.
 		--------------------------------------------------------------------------------
 
 
@@ -115,6 +167,8 @@ is				------------
 		--------------------------------------------------------------------------------
 
       SYS_REQ_o		:out sys_request_t;
+      HEAD_ATOMIC_o		:out std_logic;				-- bloc en cours à la tête : pas d'interruption
+      SYSTEM_HOLD_i		:in  std_logic;				-- HOLD_RETIRE de SYSTEM_UNIT
       SYS_RSP_i		:in  sys_response_t;
 
       COMMITTED_COPILE_o	:out copile_state_t;
