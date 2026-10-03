@@ -65,6 +65,7 @@ $A L5_COMPLEX_UNIT.vhd			|| exit 1
 #	MEMOIRE DE DONNEES ET REGISTRES
 
 $A M1_ADDRESS_UNIT.vhd			|| exit 1
+$A M1_ADDRESS_UNIT_rtl.vhd		|| exit 1
 $A M2_LOAD_STORE_QUEUE.vhd		|| exit 1
 $A M3_DATA_CACHE.vhd			|| exit 1
 $A P_PHYSICAL_REGISTER_FILE.vhd		|| exit 1

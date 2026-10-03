@@ -27,6 +27,22 @@ use work.EXEC_TYPES.all;
 		--  Additions modulo 2^64 (spéc., « Mémoire ») ; aucune faute ici : les accès
 		--  invalides sont constatés par la LSQ (faute 132).
 		--  Pas de résultat sur le bus : la LSQ rend chargements et fins d'exécution.
+		--
+		--  Contrat. Pour chaque instruction (classe MEMORY), EXEC_o( voie ) porte :
+		--    rob_index ;
+		--    address   = address si address_known = '1' (le renommage l'a calculée),
+		--                sinon source( 0 ) + val étendu en signe (disp ; 0 en FMT 00) ;
+		--                pour la famille C, c'est l'adresse de la cellule pointeur : la
+		--                LSQ lit le pointeur et ajoute ofs ;
+		--    data      rangement (MODE = 10) : la source au sommet, source( source_count
+		--                - 1 ) ; CHK, CHKI (FMT = 11, MODE 01 ou 11) : source( 0 ) = v ;
+		--                chargement, LIVA : non défini.
+		--  Sources dans l'ordre de la notation de pile : Sx 1111 ( @ v -- ) a @ en
+		--  source( 0 ) et v en source( 1 ).
+		--  Temps, contournement, reprise : comme INTEGER_UNIT (prise au front t, voie =
+		--  rang dans le bloc, opérandes lus pendant ]t, t+1], EXEC_o( voie ) valide
+		--  pendant ]t+1, t+2] ; une instruction abandonnée ne paraît jamais sur EXEC_o,
+		--  pas même au cycle de la reprise). ISSUE_READY_o reste à '1'.
 		--------------------------------------------------------------------------------
 
 
