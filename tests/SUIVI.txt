@@ -56,6 +56,9 @@ N2   I_INSTRUCTION_UNIT          INSTRUCTION_UNIT          ok     OK 96638    20
 N2   M_N2_MEMOIRE                ADDRESS_UNIT, LSQ,        ok     OK 33656    2026-10-02  côté mémoire : référence séquentielle,
                                  DATA_CACHE                                               relecture finale par le port de
                                                                                           SYSTEM_UNIT
+N3   N3_TAHX_1                   TAHX_1 (machine entière)  ok     OK 5        2026-10-02  DIS_BONJOUR : sortie, code de sortie,
+                                                                                          2200 instructions, comme tx_run ;
+                                                                                          services vectorisés (handlers HX)
 N1   K2b_BACKEND_DISPATCH        BACKEND_DISPATCH          ok     OK 60001    2026-10-02  combinatoire ; transfert atomique
                                                                                           (VALID seulement si tout passe)
 N1   L3_BRANCH_UNIT              BRANCH_UNIT               ok     OK 90001    2026-10-02  mispredicted : adresse suivante
@@ -126,3 +129,9 @@ concernée quand on l'écrira, puis à rayer ici.
   2026-10-02  tx_run (eXecutor) : BLKAND, BLKOU, BLKOUX, BLKNOT écrivent octet par octet et
               fautent au premier octet invalide, après avoir écrit les précédents : faute
               132 non précise. COMPLEX_UNIT valide tout l'intervalle avant d'écrire.
+  2026-10-02  Assemblage N3 : (1) les unités au repos laissent completion.valid quelconque :
+              le sommet ne transmet une fin d'exécution au ROB que si valid = '1' ;
+              (2) boucle combinatoire RENAME_READY (BACKEND) <-> bloc renommé : le bloc
+              présenté ne dépend plus de RENAME_READY ; (3) un DUP ou un OVER retiré avant
+              son FILL rendait l'âge du FILL faux (interblocage) : le FILL porte
+              completes et termine l'instruction.

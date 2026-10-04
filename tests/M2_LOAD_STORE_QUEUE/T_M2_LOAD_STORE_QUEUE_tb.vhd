@@ -326,12 +326,12 @@ begin
             if RAND < 0.3 then
                prf( to_integer( e.tag2 ) ) <= e.st_data; e.done := true;		-- déjà réveillé
                xf( 0 ) := ( valid => '1', kind => XFER_SPILL, address => to_unsigned( DATA_BASE + a, 64 ), tag => e.tag2,
-                            rob_index => ROB( next_seq ), committed => '0', ready => '1' );
+                            rob_index => ROB( next_seq ), committed => '0', ready => '1', completes => '0' );
             else
                e.produce_at := now + 1 + RAND_INT( 10 );
                if RAND < 0.2 then e.produce_at := now; end if;			-- réveil au cycle même du SPILL
                xf( 0 ) := ( valid => '1', kind => XFER_SPILL, address => to_unsigned( DATA_BASE + a, 64 ), tag => e.tag2,
-                            rob_index => ROB( next_seq ), committed => '0', ready => '0' );
+                            rob_index => ROB( next_seq ), committed => '0', ready => '0', completes => '0' );
             end if;
             if not poisoned then
                for bt in 0 to 7 loop spec( a + bt ) := e.st_data( 8 * bt + 7 downto 8 * bt ); end loop;
@@ -346,8 +346,9 @@ begin
                   n_pop_fwd := n_pop_fwd + 1; exit;
                end if;
             end loop;
+            e.ptr := RAND < 0.5;							-- (ici : completes)
             xf( 0 ) := ( valid => '1', kind => XFER_FILL, address => to_unsigned( DATA_BASE + a, 64 ), tag => e.tag2,
-                         rob_index => ROB( next_seq ), committed => '0', ready => '0' );
+                         rob_index => ROB( next_seq ), committed => '0', ready => '0', completes => B( e.ptr ) );
             n_pop := n_pop + 1;
          else									-- barrière (BLKMOV en tête)
             e.kind := K_BAR;
@@ -636,7 +637,7 @@ begin
          ins_count <= to_unsigned( nb, ins_count'length );
          ins_valid <= B( nb > 0 );
          xf := ( others => ( valid => '0', kind => XFER_SPILL, address => ( others => '0' ), tag => ( others => '0' ),
-                             rob_index => ( others => '0' ), committed => '0', ready => '0' ) );
+                             rob_index => ( others => '0' ), committed => '0', ready => '0', completes => '0' ) );
          ncpx := 0;
          if generating and xfer_ready = '1' and RAND < 0.35 and next_seq + 1 - head_seq < ROB_SIZE - 8 then
             u := RAND;
@@ -704,14 +705,16 @@ begin
 
 		-- résultats
          for l in 0 to MEMORY_LANES - 1 loop
-            if results( l ).valid = '1' and results( l ).completion.valid = '0' then	-- FILL
-               found := -1;
+            found := -1;								-- FILL : un dépilement en attente de ce registre
+            if results( l ).valid = '1' and results( l ).destination_valid = '1' then
                for sq2 in head_seq to next_seq - 1 loop
                   x := sq2 mod WIN;
                   if q( x ).live and q( x ).kind = K_POP and not q( x ).done and q( x ).tag2 = results( l ).destination then
                      found := sq2;
                   end if;
                end loop;
+            end if;
+            if results( l ).valid = '1' and ( found >= 0 or results( l ).completion.valid = '0' ) then	-- FILL
                if found < 0 then
                   CHECK( c, false, "cycle " & integer'image( now ) & " : FILL d'aucun dépilement en attente" );
                elsif rec.valid = '1' and ( rec.kind = RECOVER_COMMITTED or found > keep ) then
@@ -719,7 +722,9 @@ begin
                else
                   x := found mod WIN;
                   if q( x ).checked then
-                     if results( l ).destination_valid = '1' and results( l ).value = q( x ).exp_value then
+                     if results( l ).destination_valid = '1' and results( l ).value = q( x ).exp_value
+                        and results( l ).completion.valid = B( q( x ).ptr )
+                        and ( not q( x ).ptr or results( l ).completion.rob_index = ROB( found ) ) then
                         CHECK_PASSED( c );
                      else
                         CHECK( c, false, "cycle " & integer'image( now ) & ", FILL de l'instruction " & integer'image( found ),

@@ -78,6 +78,7 @@ of LOAD_STORE_QUEUE is		---
 			  data_ready	: boolean;			-- SPILL : registre réveillé
 			  wlen		: address_t;			-- barrière : longueur écrite (ea : base)
 			  ptr_store	: boolean;			-- rangement par pointeur : STACK_INVALIDATE
+			  completes	: boolean;			-- FILL : termine son instruction
 			end record;
    type entry_array_t		is array( 0 to DEPTH_G - 1 ) of entry_t;
 
@@ -344,8 +345,9 @@ begin
                rs.value := e( i ).value;
                rs.completion.valid := '1';
                rs.completion.rob_index := e( i ).rob_index;
-               if e( i ).kind = K_FILL then					-- FILL : valeur seule
-                  rs.completion.valid := '0'; rs.destination_valid := '1';
+               if e( i ).kind = K_FILL then					-- FILL : valeur ; fin si completes
+                  rs.destination_valid := '1';
+                  if not e( i ).completes then rs.completion.valid := '0'; end if;
                elsif e( i ).fault /= 0 then
                   rs.completion.fault := ( valid => '1', code => to_unsigned( e( i ).fault, 8 ) );
                elsif e( i ).kind = K_LOAD or e( i ).kind = K_LIVA then
@@ -421,6 +423,7 @@ begin
          v( idx ).probed := false; v( idx ).busy := false; v( idx ).ready := false; v( idx ).fault := 0;
          v( idx ).reported := false; v( idx ).committed := false; v( idx ).cseq := 0;
          v( idx ).data_ready := false; v( idx ).wlen := ( others => '0' ); v( idx ).ptr_store := false;
+         v( idx ).completes := false;
       end procedure;
 
       -- une valeur lue (cache ou transfert) fait avancer l'entrée
@@ -699,6 +702,7 @@ begin
                   else
                      v( slot ).kind := K_FILL;
                      v( slot ).tag := STACK_XFER_i( x ).tag;
+                     v( slot ).completes := STACK_XFER_i( x ).completes = '1';
                   end if;
                   free( slot ) := '0';
                end if;

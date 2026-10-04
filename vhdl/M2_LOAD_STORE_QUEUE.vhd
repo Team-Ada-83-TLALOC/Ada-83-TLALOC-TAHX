@@ -120,8 +120,9 @@ use work.EXEC_TYPES.all;
 		--     FILL : chargement de 8 octets à address dans le registre tag, d'âge
 		--     rob_index (il voit les rangements et SPILL plus anciens, pas ceux de son
 		--     instruction) ; résultat sur RESULT_o : destination tag, value, avec
-		--     completion.valid = '0' (le ROB n'attend pas un FILL) ; une adresse
-		--     invalide rend 0 (sans faute) ; abandonné avec rob_index.
+		--     completion.valid = completes (un DUP ou un OVER n'a que ce FILL à
+		--     attendre ; sinon le ROB n'attend pas un FILL) ; une adresse invalide rend
+		--     0 (sans faute) ; abandonné avec rob_index.
 		--
 		--  9. STACK_INVALIDATE_o( 0 ) : au front où un rangement dont l'adresse n'était
 		--     pas connue à la réservation (rangement par pointeur) est écrit dans le

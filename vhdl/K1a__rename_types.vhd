@@ -154,6 +154,8 @@ is                              ------------
 			  rob_index	: rob_index_t;		-- instruction qui a causé l'échange
 			  committed	: std_logic;
 			  ready		: std_logic;		-- SPILL : registre déjà réveillé
+			  completes	: std_logic;		-- FILL : son résultat termine l'instruction
+								--  (DUP, OVER : rien d'autre à exécuter)
 			end record;
 
    type stack_xfer_bus_t		is array( 0 to STACK_XFER_WIDTH - 1 ) of stack_xfer_t;

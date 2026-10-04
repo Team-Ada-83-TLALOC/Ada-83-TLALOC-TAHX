@@ -195,6 +195,7 @@ begin
 			  tag		: physical_tag_t;
 			  val		: word64_t;
 			  seq		: natural;
+			  completes	: boolean;			-- termine son instruction (DUP, OVER)
 			end record;
       type pend_array_t		is array( 0 to 255 ) of pend_t;
       variable fills		: pend_array_t;
@@ -586,6 +587,7 @@ begin
                pv( to_integer( fills( i ).tag ) ) := fills( i ).val; pvalid( to_integer( fills( i ).tag ) ) := '1';
                wk( nwk ) := ( valid => '1', tag => fills( i ).tag ); nwk := nwk + 1;
                fills( i ).valid := false;
+               if fills( i ).completes then q( fills( i ).seq mod WIN ).done := true; last_progress := now; end if;
             end if;
          end loop;
          inv := ( others => ( valid => '0', address => ( others => '0' ), rob_index => ( others => '0' ) ) );
@@ -628,7 +630,14 @@ begin
          wait for 1 ns;
 
 		-- le renommage : instructions renommées, échanges
-         if ren_valid = '1' then
+         if ren_valid = '1' and ren_ready = '0' then				-- présenté, pas pris
+            ok := dec_take = 0 and alloc_valid = '0';
+            for xx in 0 to STACK_XFER_WIDTH - 1 loop ok := ok and xfer( xx ).valid = '0'; end loop;
+            if ok then CHECK_PASSED( c ); else
+               CHECK( c, false, "cycle " & integer'image( now ) & " : bloc non pris, mais prise, allocation ou échange" );
+            end if;
+         end if;
+         if ren_valid = '1' and ren_ready = '1' then
             k := to_integer( ren_count );
             if k /= to_integer( dec_take ) or k /= to_integer( alloc_count ) or alloc_valid = '0' or k > n then
                CHECK( c, false, "cycle " & integer'image( now ) & " : prise, allocation et bloc renommé incohérents" );
@@ -646,7 +655,8 @@ begin
                            and alloc_block( i ).is_store = B( q( x ).is_store )
                            and alloc_block( i ).is_control = B( q( x ).control )
                            and ( not q( x ).control or alloc_block( i ).checkpoint_valid = '1' )
-                           and alloc_block( i ).done = B( not q( x ).exec_need and q( x ).kind /= K_STORE )
+                           and ( q( x ).kind = K_DUP or q( x ).kind = K_OVER		-- (vu avec les échanges)
+                                 or alloc_block( i ).done = B( not q( x ).exec_need and q( x ).kind /= K_STORE ) )
                            and ( not q( x ).addr_known or ( ren_block( i ).address_known = '1' and ren_block( i ).address = q( x ).addr ) );
                      for j in 0 to 3 loop						-- source prête : sa valeur est là
                         if j < q( x ).nsrc and ren_block( i ).source_ready( j ) = '1' then
@@ -674,7 +684,8 @@ begin
                   q( x ).ckpt := alloc_block( i ).checkpoint;
                   if q( x ).dest then pvalid( to_integer( ren_block( i ).destination ) ) := '0'; end if;
                   if q( x ).fault /= 0 then q( x ).done := true; end if;
-                  if not q( x ).exec_need and q( x ).fault = 0 then q( x ).done := true; end if;
+                  if not q( x ).exec_need and q( x ).fault = 0 and alloc_block( i ).done = '1' then q( x ).done := true; end if;
+                  q( x ).spills_seen := 0;						-- (ici : FILL terminal vu)
                   last_progress := now;
                end if;
             end loop;
@@ -703,7 +714,9 @@ begin
                                  for f2 in fills'range loop
                                     if not fills( f2 ).valid then
                                        fills( f2 ) := ( valid => true, at => now + 1 + RAND_INT( 5 ), tag => xfer( xx ).tag,
-                                                        val => q( x ).rval( j ), seq => sq );
+                                                        val => q( x ).rval( j ), seq => sq,
+                                                        completes => xfer( xx ).completes = '1' );
+                                       if xfer( xx ).completes = '1' then q( x ).spills_seen := 1; end if;
                                        exit;
                                     end if;
                                  end loop;
@@ -717,6 +730,17 @@ begin
                         exit found_ins;
                      end if;
                   end loop;
+               end if;
+            end loop;
+            -- DUP, OVER : non terminés à l'allocation si et seulement si un FILL les termine
+            for i in 0 to DECODE_WIDTH - 1 loop
+               if i < k then
+                  x := ( take_seq + i ) mod WIN;
+                  if ( q( x ).kind = K_DUP or q( x ).kind = K_OVER ) and q( x ).fault = 0 then
+                     if ( alloc_block( i ).done = '0' ) = ( q( x ).spills_seen = 1 ) then CHECK_PASSED( c ); else
+                        CHECK( c, false, "cycle " & integer'image( now ) & " : DUP/OVER, done et FILL terminal incohérents" );
+                     end if;
+                  end if;
                end if;
             end loop;
             take_seq := take_seq + k; rob_t := rob_t + k;

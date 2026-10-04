@@ -71,13 +71,17 @@ use work.RENAME_TYPES.all;
 		--  stack_cache_hit = '0', tout accès direct passe par la LSQ, et
 		--  WRITERS_IN_FLIGHT_i est ignoré (le renommage suit lui-même ses écrivains).
 		--
-		--  1. Prise. Chaque cycle, le plus long préfixe k du bloc décodé (k au plus
-		--     DECODE_COUNT_i) tel que : k <= ROB_FREE_i ; RENAME_READY_i = '1' ; les
+		--  1. Prise. Chaque cycle, le bloc présenté est le plus long préfixe k du bloc
+		--     décodé (k au plus DECODE_COUNT_i) tel que : k <= ROB_FREE_i ; les
 		--     échanges du préfixe tiennent dans STACK_XFER_WIDTH et STACK_XFER_READY_i =
 		--     '1' s'il y en a ; registres libres et points de reprise suffisants ; aucun
 		--     UNLINK en attente de FRAME_UPDATE_i avant. Rien au cycle d'une reprise
-		--     (RECOVERY_i) ni d'une SYNC. DECODE_TAKE_o = k ; bloc renommé, allocation
-		--     (index ROB_TAIL_i + rang) et échanges partent ensemble, ou rien.
+		--     (RECOVERY_i) ni d'une SYNC. Le bloc présenté (RENAME_VALID_o,
+		--     RENAME_BLOCK_o, RENAME_COUNT_o) ne dépend pas de RENAME_READY_i, qui en
+		--     dépend (BACKEND_DISPATCH : pas de boucle combinatoire) ; il part si
+		--     RENAME_READY_i = '1' : alors seulement DECODE_TAKE_o = k, l'allocation
+		--     (ROB_ALLOC_VALID_o, index ROB_TAIL_i + rang) et les échanges sont
+		--     valides ; sinon DECODE_TAKE_o = 0 et rien n'est alloué ni échangé.
 		--
 		--  2. Pile data, cellule par adresse (convention de la spéc. : push DSP += 8,
 		--     M64[DSP] := v). Un push donne à la cellule un registre neuf (destination)
@@ -86,7 +90,10 @@ use work.RENAME_TYPES.all;
 		--     vol ; sinon un FILL (adresse, registre neuf, rob_index), dont le registre
 		--     devient la source. DUP, OVER : les cellules neuves reprennent le registre
 		--     recopié (et leur SPILL) ; DROP dépile sans source ; KEEP_TOP lit le sommet
-		--     sans le dépiler. Sources dans l'ordre de la notation de pile.
+		--     sans le dépiler. Un DUP ou un OVER qui lance un FILL n'est pas terminé à
+		--     l'allocation (done = '0') : son FILL porte completes = '1', et son résultat
+		--     le termine. Une instruction n'est ainsi jamais retirée avant ses FILL (les
+		--     autres lisent le registre du FILL en source). Sources dans l'ordre de la notation de pile.
 		--     Correspondances : au plus STACK_CACHE_WORDS cellules ; au-delà, la plus
 		--     ancienne est oubliée (la mémoire a sa valeur). Un rangement direct (lvl
 		--     0..14) de 8 octets alignés dans une cellule connue lui donne le registre

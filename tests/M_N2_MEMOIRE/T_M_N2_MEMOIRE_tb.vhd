@@ -150,7 +150,7 @@ begin
                                       write_length => ( others => '0' ) ),
          STACK_XFER_i => ( others => ( valid => '0', kind => stack_xfer_kind_t'low, address => ( others => '0' ),
                                        tag => ( others => '0' ), rob_index => ( others => '0' ), committed => '0',
-                                       ready => '0' ) ),
+                                       ready => '0', completes => '0' ) ),
          STACK_XFER_READY_o => xfer_ready,
          STACK_LOOKUP_o => lookup,
          STACK_LOOKUP_i => ( others => ( valid => '0', hit => '0', tag => ( others => '0' ) ) ),

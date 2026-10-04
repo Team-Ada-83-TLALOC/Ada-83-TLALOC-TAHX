@@ -344,7 +344,7 @@ begin
       begin
          if t_nx < STACK_XFER_WIDTH then
             t_xf( t_nx ) := ( valid => '1', kind => kind, address => a, tag => r, rob_index => rob,
-                              committed => '0', ready => rdy );
+                              committed => '0', ready => rdy, completes => '0' );
             t_nx := t_nx + 1;
          else
             ok := false;
@@ -412,7 +412,7 @@ begin
       nrops := 0;
       ntaken := 0; nx := 0; seq := seq_next; fst := fstall;
       xf := ( others => ( valid => '0', kind => XFER_SPILL, address => ( others => '0' ), tag => ( others => '0' ),
-                          rob_index => ( others => '0' ), committed => '0', ready => '0' ) );
+                          rob_index => ( others => '0' ), committed => '0', ready => '0', completes => '0' ) );
       nwr := 0;
       for i in 0 to NWRIT - 1 loop
          if writers( i ).valid then nwr := nwr + 1; end if;
@@ -440,7 +440,7 @@ begin
                       pred => NO_PREDICTION, checkpoint_valid => '0', checkpoint => ( others => '0' ) );
       end loop;
 
-      if RECOVERY_i.valid = '0' and SYNC_VALID_i = '0' and RENAME_READY_i = '1' and not waiting and not fstall then
+      if RECOVERY_i.valid = '0' and SYNC_VALID_i = '0' and not waiting and not fstall then
          for i in 0 to DECODE_WIDTH - 1 loop
             exit when i >= to_integer( DECODE_COUNT_i ) or i >= to_integer( ROB_FREE_i );
             slot := DECODE_BLOCK_i( i );
@@ -612,7 +612,16 @@ begin
                for j in 0 to MAX_SOURCE_COUNT - 1 loop
                   if j < inf.nsrc then ri.source_ready( j ) := READY_OF( ri.source( j ) ); end if;
                end loop;
-               if e.issue_class = ISSUE_NONE then al.done := '1'; else ri.execute_required := '1'; end if;
+               if e.issue_class = ISSUE_NONE then
+                  al.done := '1';
+                  for x in 0 to STACK_XFER_WIDTH - 1 loop			-- DUP, OVER : un FILL les termine
+                     if x < nx and xf( x ).rob_index = rob and xf( x ).kind = XFER_FILL and xf( x ).valid = '1' then
+                        xf( x ).completes := '1'; al.done := '0';
+                     end if;
+                  end loop;
+               else
+                  ri.execute_required := '1';
+               end if;
                inf.hist := ( dsp => f.dsp, rsp => f.rsp, dlvl => dl, dval => dv );
                inf.writer := is_wblock;
                if is_ptr_store or is_wblock then
@@ -649,10 +658,19 @@ begin
       p_wait <= wt; p_fstall <= fst;
       if not wt then p_wait_rob <= ( others => '0' ); p_wait_lvl <= 0; end if;
 
-      DECODE_TAKE_o <= to_unsigned( k, DECODE_TAKE_o'length );
+      -- le bloc présenté ne dépend pas de RENAME_READY_i ; le transfert, si
       RENAME_VALID_o <= B( k > 0 ); RENAME_BLOCK_o <= rb; RENAME_COUNT_o <= to_unsigned( k, RENAME_COUNT_o'length );
-      ROB_ALLOC_VALID_o <= B( k > 0 ); ROB_ALLOC_BLOCK_o <= ab; ROB_ALLOC_COUNT_o <= to_unsigned( k, ROB_ALLOC_COUNT_o'length );
-      STACK_XFER_o <= xf;
+      ROB_ALLOC_BLOCK_o <= ab; ROB_ALLOC_COUNT_o <= to_unsigned( k, ROB_ALLOC_COUNT_o'length );
+      if RENAME_READY_i = '1' then
+         DECODE_TAKE_o <= to_unsigned( k, DECODE_TAKE_o'length );
+         ROB_ALLOC_VALID_o <= B( k > 0 );
+         STACK_XFER_o <= xf;
+      else
+         DECODE_TAKE_o <= ( others => '0' );
+         ROB_ALLOC_VALID_o <= '0';
+         for x in xf'range loop xf( x ).valid := '0'; end loop;
+         STACK_XFER_o <= xf;
+      end if;
       STALLED_o <= B( k = 0 and DECODE_COUNT_i /= 0 );
    end process;
 
@@ -775,8 +793,8 @@ begin
             hd := r_head; tl := r_tail; wr := writers; ck := ckpts;
             al := allocated; rd := ready; pr := producing; rdr := readers; mc := mapcnt; qu := quar;
 
-            -- le bloc renommé (pris : le plan ne propose rien sans pouvoir le donner)
-            if p_k > 0 then
+            -- le bloc renommé, s'il est pris
+            if p_k > 0 and RENAME_READY_i = '1' then
                fs := p_frame; shadow <= p_shadow; shadow_n <= p_shadow_n;
                for j in 0 to UPD - 1 loop
                   if j < p_ndops then

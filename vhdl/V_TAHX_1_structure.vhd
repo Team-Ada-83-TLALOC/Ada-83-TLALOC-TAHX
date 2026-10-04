@@ -154,7 +154,14 @@ BUS_RESULTATS :
   for  i in 0 to RESULT_PORTS - 1  generate
       wakeup( i ).valid	<= results( i ).valid and results( i ).destination_valid;
       wakeup( i ).tag	<= results( i ).destination;
-      completions( i )	<= results( i ).completion;
+      -- completion n'a de sens que si valid = '1' (une unité au repos peut y laisser
+      -- n'importe quoi ; un FILL de la LSQ a valid = '1' et completion.valid = '0')
+      completions( i )	<= ( valid => results( i ).valid and results( i ).completion.valid,
+			     rob_index => results( i ).completion.rob_index,
+			     fault => results( i ).completion.fault,
+			     taken => results( i ).completion.taken,
+			     target => results( i ).completion.target,
+			     mispredicted => results( i ).completion.mispredicted );
   end generate;
 
    mem_cap		<= min_capacity( mem_iq_cap, mem_lsq_cap );

@@ -34,8 +34,8 @@ use work.TAHX_1_ISA.all;
 		--      unités fonctionnelles ────┘ ── SYS_REQ ─────────┘
 		--      (INTEGER, MUL_DIV, MEMORY + LSQ, BRANCH, FLOAT, COMPLEX), fichier de registres physiques
 		--
-		--  Restent à définir : unités fonctionnelles, LSQ et cache de données, fichier de registres
-		--  physiques, échanges du cache de pile avec la mémoire, arbitrage mémoire (LSQ / SYSTEM_UNIT).
+		--  Toutes les pièces ont leur architecture (renommage : étape R1, écriture immédiate) ;
+		--  le test N3_TAHX_1 exécute DIS_BONJOUR comme tx_run (sortie, code, instructions).
 		--------------------------------------------------------------------------------
 
 
