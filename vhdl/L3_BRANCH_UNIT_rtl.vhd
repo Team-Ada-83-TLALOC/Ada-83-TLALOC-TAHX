@@ -87,6 +87,10 @@ of BRANCH_UNIT is		---
       r.destination_valid := '0';
       r.destination := ins.destination;
       r.value := ( others => '0' );
+      if op = OP_CALL or op = OP_CALLI then					-- adresse de retour
+         r.destination_valid := ins.destination_valid;
+         r.value := std_logic_vector( fall );
+      end if;
       r.completion := ( valid => '1', rob_index => ins.rob_index, fault => NO_FAULT,
                         taken => '0', target => tgt, mispredicted => '0' );
       if taken then

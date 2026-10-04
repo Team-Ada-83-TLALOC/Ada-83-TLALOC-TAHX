@@ -113,15 +113,29 @@ concernée quand on l'écrira, puis à rayer ici.
                    de l'état retiré ; STACK_MAINT n'écrit que des valeurs retirées, puis
                    STACK_MAINT_DONE ; les instructions sérialisantes n'ont pas d'effet de
                    pile propre hors du résultat de CTX_SAVE et SET_IMASK (SYNC fait le reste).
-                   (COMPLEX_UNIT, 2e étape) LINK, UNLINK, UNLINKR, EXC_MACH : DISPLAY et DSP,
-                   FRAME_UPDATE, DSP et RSP pour EXC_MACH, CFP spéculatif.
+                   (COMPLEX_UNIT, 2e étape) voir COMPLEX_UNIT ci-dessous.
                    (COMPLEX_UNIT) MAINT_WRITEBACK_RANGE et MAINT_INVALIDATE_RANGE sur des
                    intervalles quelconques : sans effet hors de la tranche tenue en registres.
-  COMPLEX_UNIT     (SYSTEM_UNIT) SYS_REQ valide un cycle, quand l'instruction sérialisante est
+  COMPLEX_UNIT     (RENAME_DISPATCH R1, 2e étape) à la tête : LINK (lvl > 0) rend address
+                   (ancien DISPLAY[lvl]) dans sa destination ; M64[CSP] := CFP ; CFP := CSP ;
+                   CSP += 8 (135). UNLINK : CFP := M64[CFP] ; UNLINKR : CSP := CFP d'abord ;
+                   FRAME_UPDATE (rob_index, lvl, source( 0 )) pour tout UNLINK et UNLINKR.
+                   EXC_MACH : écrit DSP, RSP (COMMITTED_FRAME de RENAME, entrée à ajouter),
+                   CFP, CSP, lvl + 1 en address + 16 .. + 48, puis MAINT_INVALIDATE_RANGE.
+                   RANGE_o pour leurs écritures (chargements plus jeunes).
+                   (SYSTEM_UNIT) SYS_REQ valide un cycle, quand l'instruction sérialisante est
                    émise en tête ; après SYS_RSP : fin d'exécution de l'instruction, avec le
                    résultat si result_valid, ou la faute ; une instruction abandonnée oublie
                    sa requête (SYSTEM_UNIT ignore une SYS_REQ hors du repos).
-  LSQ, 2e étape    IMPÉRATIF avant tout assemblage où COMPLEX_UNIT exécute des blocs :
+  LSQ, 2e étape    (RENAME_DISPATCH R1) LSQ_DEPTH 128. SPILL : rangement à l'adresse, donnée
+                   du registre (lue au plus 2 cycles après son réveil), écrit après le
+                   retrait de rob_index ; plus ancien que toute instruction plus jeune pour
+                   l'ordre prudent, transféré aux chargements et FILL plus jeunes. FILL :
+                   chargement de 8 octets ordonné à rob_index, résultat sur RESULT_o avec
+                   destination et completion.valid = '0'. STACK_INVALIDATE_o pour chaque
+                   rangement par pointeur (adresse inconnue à la réservation) retiré.
+                   STACK_XFER_READY_o : place pour STACK_XFER_WIDTH échanges.
+                   IMPÉRATIF avant tout assemblage où COMPLEX_UNIT exécute des blocs :
                    RANGE_i (intervalle écrit d'un bloc en tête) retient les chargements plus
                    jeunes qui le touchent, sans quoi ils peuvent lire une valeur périmée.
                    avec RENAME_DISPATCH : STACK_XFER (SPILL, FILL), STACK_LOOKUP,

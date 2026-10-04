@@ -59,6 +59,99 @@ use work.RENAME_TYPES.all;
 		--      STACK_INVALIDATE_i ; une écriture de bloc le fait par STACK_MAINT_i ;
 		--    - DISPLAY après UNLINK : pile d'ombre des FP sauvés par LINK ; si elle est
 		--      vide, le renommage attend FRAME_UPDATE_i de l'unité COMPLEX.
+		--
+		--  CONTRAT, ÉTAPE R1 : ÉCRITURE IMMÉDIATE
+		--
+		--  Toute cellule empilée (pile data et pile des retours) est aussi rangée en
+		--  mémoire : un SPILL attaché à son instruction, écrit au retrait par la LSQ.
+		--  La mémoire (ou un SPILL encore dans la LSQ, qui le transfère) contient donc
+		--  toujours toute cellule ; les registres ne font qu'accélérer les dépilements.
+		--  Le cache de pile en écriture différée (STACK_LOOKUP, accès directs servis
+		--  par les registres) est l'étape R2 : en R1, STACK_LOOKUP_o est inactif,
+		--  stack_cache_hit = '0', tout accès direct passe par la LSQ, et
+		--  WRITERS_IN_FLIGHT_i est ignoré (le renommage suit lui-même ses écrivains).
+		--
+		--  1. Prise. Chaque cycle, le plus long préfixe k du bloc décodé (k au plus
+		--     DECODE_COUNT_i) tel que : k <= ROB_FREE_i ; RENAME_READY_i = '1' ; les
+		--     échanges du préfixe tiennent dans STACK_XFER_WIDTH et STACK_XFER_READY_i =
+		--     '1' s'il y en a ; registres libres et points de reprise suffisants ; aucun
+		--     UNLINK en attente de FRAME_UPDATE_i avant. Rien au cycle d'une reprise
+		--     (RECOVERY_i) ni d'une SYNC. DECODE_TAKE_o = k ; bloc renommé, allocation
+		--     (index ROB_TAIL_i + rang) et échanges partent ensemble, ou rien.
+		--
+		--  2. Pile data, cellule par adresse (convention de la spéc. : push DSP += 8,
+		--     M64[DSP] := v). Un push donne à la cellule un registre neuf (destination)
+		--     et un SPILL (adresse, registre, rob_index, committed = '0'). Un pop prend
+		--     le registre de la cellule s'il est connu et qu'aucun écrivain n'est en
+		--     vol ; sinon un FILL (adresse, registre neuf, rob_index), dont le registre
+		--     devient la source. DUP, OVER : les cellules neuves reprennent le registre
+		--     recopié (et leur SPILL) ; DROP dépile sans source ; KEEP_TOP lit le sommet
+		--     sans le dépiler. Sources dans l'ordre de la notation de pile.
+		--     Correspondances : au plus STACK_CACHE_WORDS cellules ; au-delà, la plus
+		--     ancienne est oubliée (la mémoire a sa valeur). Un rangement direct (lvl
+		--     0..14) dans une cellule connue lui donne le registre de sa donnée.
+		--     Écrivains en vol : rangements par pointeur (lvl 1111, famille C), de leur
+		--     renommage à leur STACK_INVALIDATE_i (la LSQ l'émet au retrait, avec
+		--     l'adresse : la cellule est oubliée si son registre vient d'une instruction
+		--     plus ancienne) ; blocs qui écrivent et EXC_MACH, jusqu'à leur retrait (ils
+		--     invalident par STACK_MAINT_i) ; tous, jusqu'à leur abandon.
+		--
+		--  3. Pile des retours (aucune cohérence avec les accès du programme, spéc.
+		--     « Piles ») : CALL, CALLI : RSP -= 8, la cellule M64[RSP] prend le registre
+		--     de destination de l'instruction (adresse de retour, écrite par
+		--     BRANCH_UNIT), SPILL. RTD n : DSP -= n ; source( 0 ) = registre de M64[RSP]
+		--     (ou FILL) ; RSP += 8. Au plus 32 cellules connues.
+		--
+		--  4. Frame. DISPLAY[lvl] + disp : adresse des accès lvl 0..14 (cellule
+		--     pointeur pour la famille C), address_known = '1'. LINK lvl, alloc (lvl >
+		--     0) : push d'une cellule dont le registre est la destination du LINK
+		--     (address = ancien DISPLAY[lvl], que COMPLEX_UNIT y écrit), DISPLAY[lvl] :=
+		--     DSP, pile d'ombre ; puis DSP += 8 * ceil( alloc / 8 ). UNLINK, UNLINKR lvl
+		--     : DSP := DISPLAY[lvl] ; pop (source( 0 )) ; DISPLAY[lvl] := sommet de la
+		--     pile d'ombre si son niveau est lvl, sinon attente de FRAME_UPDATE_i
+		--     (rob_index de l'UNLINK). EXC_MACH : address = DISPLAY[lvl] + ctx.
+		--     Sérialisantes (option B de SYSTEM_UNIT) : TRAP 16 et 18 dépilent 1 et
+		--     empilent 1 (destination) ; TRAP 0 et 17 lisent le sommet sans le
+		--     dépiler ; les autres n'ont pas d'effet propre (SYNC fait le reste).
+		--
+		--  5. Fautes 133, 134, au renommage : DSP final > LIMITS_i.lim_dsp, RSP final <
+		--     LIMITS_i.lim_rsp (limites effectives). L'instruction est allouée en
+		--     faute, done = '1', sans aucun effet (état, registres, échanges) et sans
+		--     exécution ; de même pour une faute venue du décodage.
+		--
+		--  6. Allocation : pc, len, op, faute, done ('1' : rien à exécuter, ou faute),
+		--     serializing, is_store (rangements, famille C comprise), is_control, pred,
+		--     point de reprise.
+		--
+		--  7. Points de reprise : un par instruction de contrôle (is_control), au plus
+		--     2^CHECKPOINT_BITS en vol ; ils gardent l'état de frame après
+		--     l'instruction. Libérés à son retrait ou à son abandon.
+		--
+		--  8. Reprise (RECOVERY_i) : état de frame du point de reprise
+		--     (RECOVER_CHECKPOINT) ou retiré (RECOVER_COMMITTED) ; toutes les
+		--     correspondances de cellules et la pile d'ombre sont oubliées (l'écriture
+		--     immédiate le permet : les dépilements suivants font des FILL) ; les
+		--     écrivains, points de reprise et registres des instructions abandonnées
+		--     sont rendus. SYNC_VALID_i (au cycle d'une reprise) : l'état de frame
+		--     imposé devient spéculatif et retiré, et l'emporte sur les retraits du
+		--     même cycle.
+		--
+		--  9. Retrait (RETIRE_COUNT_i) : l'état retiré avance (historique : état de
+		--     frame après chaque instruction) ; COMMITTED_FRAME_o le donne. La
+		--     destination d'une instruction retirée fait partie de l'état retiré.
+		--
+		--  10. Registres : un registre est rendu quand aucune cellule ne le tient plus,
+		--     que son producteur est retiré ou abandonné, et que ses lecteurs (sources,
+		--     SPILL) le sont aussi ; il n'est réattribué que 4 cycles plus tard (la LSQ
+		--     lit la donnée d'un SPILL au plus 2 cycles après son réveil).
+		--     FREE_PHYSICAL_COUNT_o : registres libres. Bits « prêt » : '0' à
+		--     l'attribution, '1' au réveil (WAKEUP_i) ; source_ready reflète tous les
+		--     réveils des cycles précédant l'insertion.
+		--
+		--  11. Maintenance : la mémoire étant à jour au retrait (SPILL dans la LSQ),
+		--     MAINT_WRITEBACK_RANGE et MAINT_WRITEBACK_ALL sont faites aussitôt
+		--     (STACK_MAINT_DONE_o au cycle suivant ; le demandeur attend LSQ_DRAINED) ;
+		--     MAINT_INVALIDATE_RANGE oublie les cellules de l'intervalle.
 		--------------------------------------------------------------------------------
 
 

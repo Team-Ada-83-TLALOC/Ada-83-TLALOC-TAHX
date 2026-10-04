@@ -81,12 +81,16 @@ of T_L3_BRANCH_UNIT_tb is
 			  bypassed	: boolean;			-- source 0 servie par BYPASS_i
 			  tag		: physical_tag_t;
 			  value		: word64_t;
+			  ret_valid	: std_logic;			-- CALL, CALLI : adresse de retour
+			  ret_tag		: physical_tag_t;
+			  ret		: address_t;
 			end record;
    type stage_t		is array( 0 to LANES - 1 ) of expect_t;
 
    constant NO_EXPECT		: expect_t := ( valid => false, seq => 0, taken => '0', target => ( others => '0' ),
 					    mispredicted => '0', bypassed => false, tag => ( others => '0' ),
-					    value => ( others => '0' ) );
+					    value => ( others => '0' ), ret_valid => '0', ret_tag => ( others => '0' ),
+					    ret => ( others => '0' ) );
 
    function B( v : boolean ) return std_logic is
    begin
@@ -289,9 +293,12 @@ begin
                pred_next := fall;
             end if;
 
+            blk( i ).destination_valid := B( ( kind = 6 or kind = 7 ) and RAND < 0.9 );
+            blk( i ).destination := NEW_TAG;
             issued( i ) := ( valid => true, seq => next_seq, taken => B( is_taken ), target => tgt,
                              mispredicted => B( tgt /= pred_next ), bypassed => false, tag => NEW_TAG,
-                             value => bval );
+                             value => bval, ret_valid => blk( i ).destination_valid,
+                             ret_tag => blk( i ).destination, ret => fall );
             for s in 0 to MAX_SOURCE_COUNT - 1 loop
                blk( i ).source( s ) := NEW_TAG;
                prf( to_integer( blk( i ).source( s ) ) ) <= std_logic_vector( to_unsigned( RAND_INT( 1000 ), 64 ) );
@@ -361,7 +368,9 @@ begin
          if issue_ready = '1' then CHECK_PASSED( c ); else CHECK( c, false, "ISSUE_READY_o = '0'" ); end if;
          for i in 0 to LANES - 1 loop
             if stage_result( i ).valid and not SQUASHED( stage_result( i ), rec, keep_seq ) then
-               if result( i ).valid = '1' and result( i ).destination_valid = '0'
+               if result( i ).valid = '1' and result( i ).destination_valid = stage_result( i ).ret_valid
+                  and ( stage_result( i ).ret_valid = '0' or ( result( i ).destination = stage_result( i ).ret_tag
+                                                               and result( i ).value = std_logic_vector( stage_result( i ).ret ) ) )
                   and result( i ).completion.valid = '1'
                   and result( i ).completion.rob_index = ROB( stage_result( i ).seq )
                   and result( i ).completion.fault.valid = '0'
