@@ -51,6 +51,7 @@ of T_L5_COMPLEX_UNIT_tb is
    constant SEED_1		: positive	:= 1610;
    constant SEED_2		: positive	:= 1789;
    constant REGISTERS		: positive	:= 2 ** PHYSICAL_TAG_BITS;
+   constant COP		: natural	:= DATA_BASE + DATA_SIZE - 1024;	-- co-pile : le dernier Kio
 
    type word_array_t		is array( 0 to REGISTERS - 1 ) of word64_t;
 
@@ -88,6 +89,8 @@ of T_L5_COMPLEX_UNIT_tb is
    signal sync_copile		: copile_state_t := ( cfp => ( others => '0' ), csp => ( others => '0' ),
 						      hp => ( others => '0' ), hp_valid => '0' );
    signal limits		: limits_t;
+   signal c_frame		: frame_state_t := ( dsp => ( others => '0' ), rsp => ( others => '0' ),
+						  display => ( others => ( others => '0' ) ) );
    signal prf			: word_array_t := ( others => ( others => '0' ) );
 
    function B( v : boolean ) return std_logic is
@@ -111,7 +114,8 @@ begin
          LSQ_EXEC_o => lsq_exec, RANGE_o => rng, LSQ_DRAINED_i => drained,
          MEM_REQ_o => mreq( 0 ), MEM_READY_i => mready( 0 ), MEM_RSP_i => mrsp( 0 ),
          STACK_MAINT_o => maint, STACK_MAINT_DONE_i => maint_done, FRAME_UPDATE_o => fupd,
-         SYS_REQ_o => sys_req, HEAD_ATOMIC_o => atomic, SYSTEM_HOLD_i => sys_hold, SYS_RSP_i => sys_rsp,
+         SYS_REQ_o => sys_req, HEAD_ATOMIC_o => atomic, SYSTEM_HOLD_i => sys_hold, COMMITTED_FRAME_i => c_frame,
+         SYS_RSP_i => sys_rsp,
          COMMITTED_COPILE_o => c_copile, SYNC_VALID_i => sync_valid, SYNC_COPILE_i => sync_copile,
          DR_i => '0', LIMITS_i => limits );
 
@@ -155,7 +159,7 @@ begin
       variable lim_csp, lim_hp	: address_t;
 
       -- l'instruction en cours et son issue attendue
-      type kind_t		is ( K_SERIAL, K_FEXP, K_COVAR, K_HEAP, K_STAGE2, K_BLOCK );
+      type kind_t		is ( K_SERIAL, K_FEXP, K_COVAR, K_HEAP, K_FRAME, K_BLOCK );
       variable kind		: kind_t;
       variable op		: opcode_t;
       variable opd		: operand_array_t;
@@ -167,6 +171,12 @@ begin
       variable at_head		: boolean;
       variable writing		: boolean;
       variable new_csp, new_hp	: address_t;
+      variable new_cfp		: address_t;
+      variable lvl		: natural;
+      variable exp_addr		: word64_t;				-- address de l'instruction
+      variable fr_dsp, fr_rsp	: word64_t;				-- COMMITTED_FRAME_i pour EXC_MACH
+      variable fupd_seen	: boolean;
+      variable n_link, n_unlink, n_excm, n_fupd, n_late, n_link135 : natural := 0;
       variable wr_base, wr_len	: natural;				-- intervalle écrit (décalages)
       variable abandon_at	: integer;				-- cycle de l'abandon, -1 : aucun
       variable hold_case	: boolean;
@@ -254,6 +264,11 @@ begin
          end if;
       end function;
 
+      function BYTE_OF( w : word64_t; i : natural ) return byte_t is
+      begin
+         return w( 8 * i + 7 downto 8 * i );
+      end function;
+
       function ADDR_OF( o : integer ) return word64_t is
       begin
          return std_logic_vector( to_signed( DATA_BASE + o, 64 ) );
@@ -274,13 +289,13 @@ begin
                           is_control => '0', conditional => '0', taken => '0', target => ( others => '0' ),
                           ghist => ( others => '0' ) );
       end loop;
-      lim_csp := to_unsigned( 16#900000#, 64 ); lim_hp := to_unsigned( 16#600000#, 64 );
+      lim_csp := to_unsigned( DATA_BASE + DATA_SIZE - 8, 64 ); lim_hp := to_unsigned( 16#600000#, 64 );
       limits <= ( lim_dsp => ( others => '0' ), lim_rsp => ( others => '0' ), lim_csp => lim_csp, lim_hp => lim_hp );
       wait until falling_edge( clk );
       wait until falling_edge( clk );
       reset <= '0';
       -- état de départ par SYNC
-      csp_c := to_unsigned( 16#800000#, 64 ); hp_c := to_unsigned( 16#700000#, 64 ); cfp := to_unsigned( 16#7FFF00#, 64 );
+      csp_c := to_unsigned( COP + 64, 64 ); hp_c := to_unsigned( 16#700000#, 64 ); cfp := to_unsigned( COP, 64 );
       sync_copile <= ( cfp => cfp, csp => csp_c, hp => hp_c, hp_valid => '1' ); sync_valid <= '1';
       wait until falling_edge( clk );
       sync_valid <= '0';
@@ -289,9 +304,10 @@ begin
          seq := seq + 1;
 
 		-- une SYNC de temps en temps, entre deux instructions
-         if RAND < 0.03 then
-            csp_c := to_unsigned( 16#800000# + 8 * RAND_INT( 1000 ), 64 );
-            cfp := csp_c - 64;
+         if RAND < 0.05 or csp_c > lim_csp or cfp < COP or cfp > lim_csp then
+            csp_c := to_unsigned( COP + 64 + 8 * RAND_INT( 40 ), 64 );
+            if RAND < 0.45 then csp_c := lim_csp - 8 * RAND_INT( 1 ); end if;	-- au ras de LIM_CSP
+            cfp := csp_c - 8 * ( 1 + RAND_INT( 7 ) );
             if RAND < 0.5 then hp_c := to_unsigned( 16#700000# - 8 * RAND_INT( 1000 ), 64 ); end if;
             sync_copile <= ( cfp => cfp, csp => csp_c, hp => hp_c, hp_valid => '1' ); sync_valid <= '1';
             wait until falling_edge( clk );
@@ -306,7 +322,8 @@ begin
          opd := ( others => ( others => '0' ) ); nsrc := 0;
          exp_fault := 0; exp_value := ( others => '0' ); exp_dest := false;
          at_head := false; writing := false; wr_len := 0; wr_base := 0;
-         new_csp := csp_c; new_hp := hp_c;
+         new_csp := csp_c; new_hp := hp_c; new_cfp := cfp; exp_addr := ( others => '0' );
+         fr_dsp := ( others => '0' ); fr_rsp := ( others => '0' ); lvl := 0;
          if u < 0.12 then
             kind := K_SERIAL;
             case RAND_INT( 2 ) is
@@ -356,9 +373,59 @@ begin
                new_hp := hp_c - ( ( a + 7 ) / 8 ) * 8;
                exp_value := std_logic_vector( new_hp ); exp_dest := true;
             end if;
-         elsif u < 0.45 then
-            kind := K_STAGE2; exp_fault := 137;
-            case RAND_INT( 2 ) is when 0 => op := x"44"; when 1 => op := x"F8"; when others => op := x"45"; end case;
+         elsif u < 0.57 then
+            kind := K_FRAME; at_head := true;
+            lvl := RAND_INT( 14 );
+            case RAND_INT( 3 ) is
+               when 0 =>								-- LINK lvl, alloc
+                  op := x"44"; writing := true;
+                  exp_addr := RAND_WORD;						-- ancien DISPLAY[lvl]
+                  if csp_c + 8 > lim_csp then
+                     exp_fault := 135; n_link135 := n_link135 + 1;
+                  else
+                     o0 := to_integer( csp_c ) - DATA_BASE;
+                     if not VALIDB( o0, 8 ) then
+                        exp_fault := 132;
+                     else
+                        for bt in 0 to 7 loop ref( o0 + bt ) := BYTE_OF( std_logic_vector( cfp ), bt ); end loop;
+                        wr_base := o0; wr_len := 8;
+                        new_cfp := csp_c; new_csp := csp_c + 8;
+                        exp_dest := lvl /= 0; exp_value := exp_addr;
+                     end if;
+                  end if;
+                  n_link := n_link + 1;
+               when 1 | 2 =>							-- UNLINK, UNLINKR lvl
+                  if RAND < 0.5 then op := x"F8"; else op := x"F9"; end if;
+                  lvl := 1 + RAND_INT( 13 ); nsrc := 1; opd( 0 ) := RAND_WORD;	-- FP sauvé
+                  o0 := to_integer( cfp ) - DATA_BASE;
+                  if cfp < DATA_BASE or not VALIDB( o0, 8 ) then
+                     exp_fault := 132;
+                  else
+                     if op = x"F9" then new_csp := cfp; end if;
+                     new_cfp := ( others => '0' );
+                     for bt in 0 to 7 loop new_cfp( 8 * bt + 7 downto 8 * bt ) := unsigned( ref( o0 + bt ) ); end loop;
+                  end if;
+                  n_unlink := n_unlink + 1;
+               when others =>							-- EXC_MACH lvl, ctx
+                  op := x"45"; writing := true;
+                  o0 := 256 + RAND_INT( DATA_SIZE - 1024 - 256 - 64 );
+                  if RAND < 0.08 then o0 := DATA_SIZE - 30; end if;			-- à cheval : 132
+                  exp_addr := ADDR_OF( o0 );
+                  fr_dsp := RAND_WORD; fr_rsp := RAND_WORD;
+                  if not VALIDB( o0 + 16, 40 ) then
+                     exp_fault := 132;
+                  else
+                     for bt in 0 to 7 loop
+                        ref( o0 + 16 + bt ) := fr_dsp( 8 * bt + 7 downto 8 * bt );
+                        ref( o0 + 24 + bt ) := fr_rsp( 8 * bt + 7 downto 8 * bt );
+                        ref( o0 + 32 + bt ) := BYTE_OF( std_logic_vector( cfp ), bt );
+                        ref( o0 + 40 + bt ) := BYTE_OF( std_logic_vector( csp_c ), bt );
+                        ref( o0 + 48 + bt ) := BYTE_OF( std_logic_vector( to_unsigned( lvl + 1, 64 ) ), bt );
+                     end loop;
+                     wr_base := o0 + 16; wr_len := 40;
+                  end if;
+                  n_excm := n_excm + 1;
+            end case;
          else
             kind := K_BLOCK; at_head := true;
             u := RAND;
@@ -452,6 +519,11 @@ begin
          blk( 0 ).slot.canon := CANON_NOP; blk( 0 ).slot.canon.op := op;
          blk( 0 ).slot.canon.val := to_signed( RAND_INT( 255 ), 32 );
          blk( 0 ).rob_index := ROB( seq ); blk( 0 ).source_count := nsrc;
+         blk( 0 ).slot.canon.lvl := to_unsigned( lvl, 4 );
+         blk( 0 ).address := unsigned( exp_addr ); blk( 0 ).address_known := B( kind = K_FRAME );
+         blk( 0 ).destination_valid := B( not ( kind = K_FRAME and op = x"44" and lvl = 0 ) );
+         c_frame.dsp <= unsigned( fr_dsp ); c_frame.rsp <= unsigned( fr_rsp );
+         fupd_seen := false;
          tagc := ( tagc + 1 ) mod REGISTERS; blk( 0 ).destination := to_unsigned( tagc, PHYSICAL_TAG_BITS );
          iss_block <= blk; iss_count <= to_unsigned( 1, iss_count'length ); iss_valid <= '1';
          rob_head <= ROB( seq - 1 );
@@ -516,10 +588,23 @@ begin
             if rng.valid = '1' then
                range_seen := true;
                if writing and exp_fault = 0 then
-                  ok := rng.write_valid = '1' and rng.write_base = unsigned( opd( 0 ) )
-                        and rng.write_length = unsigned( opd( 1 ) );
+                  if kind = K_FRAME then
+                     ok := rng.write_valid = '1' and rng.write_base = to_unsigned( DATA_BASE + wr_base, 64 )
+                           and rng.write_length = to_unsigned( wr_len, 64 );
+                  else
+                     ok := rng.write_valid = '1' and rng.write_base = unsigned( opd( 0 ) )
+                           and rng.write_length = unsigned( opd( 1 ) );
+                  end if;
                   if ok then CHECK_PASSED( c ); else CHECK( c, false, "RANGE_o, instruction " & integer'image( inst ) ); end if;
                end if;
+            end if;
+            if fupd.valid = '1' then
+               ok := kind = K_FRAME and ( op = x"F8" or op = x"F9" ) and not fupd_seen and fupd.rob_index = ROB( seq )
+                     and fupd.lvl = to_unsigned( lvl, 4 ) and fupd.value = unsigned( opd( 0 ) );
+               if ok then CHECK_PASSED( c ); n_fupd := n_fupd + 1; else
+                  CHECK( c, false, "FRAME_UPDATE_o, instruction " & integer'image( inst ) );
+               end if;
+               fupd_seen := true;
             end if;
             if atomic = '1' then
                atomic_seen := true;
@@ -600,6 +685,17 @@ begin
                   wait until falling_edge( clk );
                   recovery <= NO_RECOVERY;
                   exit;
+               elsif at_head and kind /= K_SERIAL and not writing and RAND < 0.12 then
+                  -- terminée en tête mais pas retirée : SYSTEM_UNIT livre une interruption
+                  -- avant elle (RECOVER_COMMITTED) ; CFP, CSP, HP reviennent en arrière
+                  wait until falling_edge( clk );
+                  recovery <= ( valid => '1', kind => RECOVER_COMMITTED, keep_last => ( others => '0' ),
+                                checkpoint => ( others => '0' ), new_pc => ( others => '0' ),
+                                ghist => ( others => '0' ), ras_ptr => ( others => '0' ) );
+                  wait until falling_edge( clk );
+                  recovery <= NO_RECOVERY;
+                  n_late := n_late + 1;
+                  exit;
                elsif at_head and kind /= K_SERIAL then
                   for d in 0 to RAND_INT( 2 ) loop wait until falling_edge( clk ); end loop;
                   retire( 0 ) <= ( valid => '1', rob_index => ROB( seq ), pc => ( others => '0' ), is_store => '0',
@@ -607,7 +703,7 @@ begin
                                    ghist => ( others => '0' ) );
                   wait until falling_edge( clk );
                   retire( 0 ).valid <= '0';
-                  csp_c := new_csp; hp_c := new_hp;
+                  csp_c := new_csp; hp_c := new_hp; cfp := new_cfp;
                   exit;
                else
                   exit;
@@ -630,7 +726,10 @@ begin
          if ok then CHECK_PASSED( c ); else
             CHECK( c, false, "instruction " & integer'image( inst ) & " : état retiré ou HEAD_ATOMIC_o après la fin" );
          end if;
-         if kind = K_BLOCK then
+         if kind = K_FRAME and ( op = x"F8" or op = x"F9" ) and done_i and not fupd_seen then
+            CHECK( c, false, "instruction " & integer'image( inst ) & " : UNLINK sans FRAME_UPDATE_o" );
+         end if;
+         if kind = K_BLOCK or kind = K_FRAME then
             ok := true;
             for i in 0 to DATA_SIZE - 1 loop
                if memory( i ) /= ref( i ) then ok := false; end if;
@@ -638,7 +737,7 @@ begin
             if ok then CHECK_PASSED( c ); else
                CHECK( c, false, "instruction " & integer'image( inst ) & " op " & to_hstring( op ) & " : mémoire" );
             end if;
-            if not range_seen and not gone then CHECK( c, false, "instruction " & integer'image( inst ) & " : RANGE_o absent" ); end if;
+            if not range_seen and not gone and ( kind = K_BLOCK or ( writing and exp_fault /= 135 ) ) then CHECK( c, false, "instruction " & integer'image( inst ) & " : RANGE_o absent" ); end if;
             if writing and exp_fault = 0 and wr_len > 0 and not inval_ok and not gone then
                CHECK( c, false, "instruction " & integer'image( inst ) & " : intervalle écrit non invalidé" );
             end if;
@@ -648,13 +747,19 @@ begin
       running <= false;
       report "graines " & integer'image( SEED_1 ) & ", " & integer'image( SEED_2 ) & " ; sérialisantes "
              & integer'image( n_by_kind( 0 ) ) & ", FEXP " & integer'image( n_by_kind( 1 ) ) & ", CO_VAR "
-             & integer'image( n_by_kind( 2 ) ) & ", HEAP_ALLOC " & integer'image( n_by_kind( 3 ) ) & ", 2e étape "
+             & integer'image( n_by_kind( 2 ) ) & ", HEAP_ALLOC " & integer'image( n_by_kind( 3 ) ) & ", frame (LINK " & integer'image( n_link )
+             & ", UNLINK " & integer'image( n_unlink ) & ", EXC_MACH " & integer'image( n_excm ) & ", FRAME_UPDATE "
+             & integer'image( n_fupd ) & ") "
              & integer'image( n_by_kind( 4 ) ) & ", blocs " & integer'image( n_by_kind( 5 ) ) & " ; fautes "
              & integer'image( n_faults ) & " (132 " & integer'image( n_132 ) & ", 135 " & integer'image( n_135 )
              & ", 136 " & integer'image( n_136 ) & ") ; abandons " & integer'image( n_abandon ) & ", dont SYSTEM_UNIT en séquence "
              & integer'image( n_hold ) & ", laissant une réponse en route " & integer'image( n_stale )
              & " ; cache : lectures " & integer'image( reads ) & ", écritures "
              & integer'image( writes ) & ", sondages " & integer'image( probes ) severity note;
+      report "abandons après le résultat " & integer'image( n_late ) & ", LINK en faute 135 " & integer'image( n_link135 )
+             severity note;
+      CHECK( c, n_link > 50 and n_unlink > 50 and n_excm > 50 and n_fupd > 40 and n_late > 50 and n_link135 > 10,
+             "le tirage a exercé le groupe frame" );
       CHECK( c, n_by_kind( 5 ) > 1000 and n_132 > 50 and n_135 > 10 and n_136 > 10 and n_abandon > 100 and n_hold > 50 and n_stale > 20,
              "le tirage a exercé blocs, fautes, abandons et SYSTEM_UNIT en séquence" );
       FINISH( c, "T_L5_COMPLEX_UNIT_tb" );

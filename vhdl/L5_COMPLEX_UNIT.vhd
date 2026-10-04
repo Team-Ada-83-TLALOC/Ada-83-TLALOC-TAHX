@@ -49,11 +49,11 @@ use work.EXEC_TYPES.all;
 		--
 		--  CONTRAT, PREMIÈRE ÉTAPE
 		--
-		--  Actifs : instructions sérialisantes, CO_VAR, HEAP_ALLOC, FEXP, BLKMOV, BLKCMP,
-		--  BLKAND, BLKOU, BLKOUX, BLKNOT, LEXCMPx, ULEXCMPx. À écrire avec RENAME_DISPATCH
-		--  (seconde étape) : LINK, UNLINK, UNLINKR, EXC_MACH (fin d'exécution en faute
-		--  137 d'ici là), LSQ_EXEC_o et FRAME_UPDATE_o (inactifs). CO_VAR et HEAP_ALLOC
-		--  sont exécutées à la tête du ROB, sans exécution spéculative.
+		--  Première étape : instructions sérialisantes, CO_VAR, HEAP_ALLOC, FEXP, BLKMOV,
+		--  BLKCMP, BLKAND, BLKOU, BLKOUX, BLKNOT, LEXCMPx, ULEXCMPx ; seconde étape : LINK,
+		--  UNLINK, UNLINKR, EXC_MACH (point 7). LSQ_EXEC_o reste inactif : COMPLEX_UNIT
+		--  accède à la mémoire par son propre port. CO_VAR, HEAP_ALLOC et le groupe
+		--  frame sont exécutés à la tête du ROB, sans exécution spéculative.
 		--
 		--  1. Une instruction à la fois : ISSUE_READY_o = '1' quand l'unité est libre.
 		--     Opérandes lus au cycle qui suit la prise (sources dans l'ordre de la
@@ -102,8 +102,28 @@ use work.EXEC_TYPES.all;
 		--  5. FEXP ( x n -- x**n ) : entité FEXP_UNIT (VHDL-2008, FLOAT64_PKG), dont
 		--     l'en-tête porte le contrat ; ni attente de la tête ni accès mémoire.
 		--
-		--  6. Reprise : l'instruction abandonnée (ROB_TYPES.ABANDONED) est oubliée, CSP
-		--     et HP reviennent à l'état retiré ; elle ne paraît jamais sur RESULT_o.
+		--  6. Reprise : l'instruction abandonnée (ROB_TYPES.ABANDONED) est oubliée, CFP,
+		--     CSP et HP reviennent à l'état retiré ; elle ne paraît jamais sur RESULT_o.
+		--
+		--  7. Frame, à la tête, après LSQ_DRAINED_i ; CFP est tenu en deux exemplaires
+		--     comme CSP et HP (point 3) :
+		--       LINK lvl, alloc  CSP + 8 > LIMITS_i.lim_csp : faute 135, rien n'est écrit ;
+		--                  sinon, comme un bloc qui écrit (HEAD_ATOMIC_o, RANGE_o de
+		--                  l'intervalle [CSP, CSP + 8), sondage, maintenance) : M64[CSP] :=
+		--                  CFP ; CFP := CSP ; CSP += 8. Résultat : address (l'ancien
+		--                  DISPLAY[lvl], que fournit le renommage) si lvl > 0, sinon fin
+		--                  d'exécution seule (DSP et DISPLAY sont l'affaire du renommage).
+		--       UNLINK lvl, UNLINKR lvl  FRAME_UPDATE_o un cycle (rob_index, lvl, value =
+		--                  source( 0 ), le FP sauvé), dès les opérandes lus, sans attendre
+		--                  la tête ; puis à la tête : UNLINK : CFP := M64[CFP] ; UNLINKR : CSP
+		--                  := CFP, puis CFP := M64[ancien CFP] ; faute 132 si la lecture est
+		--                  invalide ; fin d'exécution seule.
+		--       EXC_MACH lvl, ctx  base = address (DISPLAY[lvl] + ctx, du renommage) ;
+		--                  comme un bloc qui écrit, intervalle [base + 16, base + 56) :
+		--                  M64[base+16] := COMMITTED_FRAME_i.dsp, M64[base+24] := .rsp,
+		--                  M64[base+32] := CFP, M64[base+40] := CSP, M64[base+48] := lvl + 1 ;
+		--                  MAINT_INVALIDATE_RANGE ; fin d'exécution seule. À la tête, l'état
+		--                  retiré du renommage est celui d'avant l'instruction.
 		--------------------------------------------------------------------------------
 
 
@@ -175,6 +195,7 @@ is				------------
       SYS_REQ_o		:out sys_request_t;
       HEAD_ATOMIC_o		:out std_logic;				-- bloc en cours à la tête : pas d'interruption
       SYSTEM_HOLD_i		:in  std_logic;				-- HOLD_RETIRE de SYSTEM_UNIT
+      COMMITTED_FRAME_i	:in  frame_state_t;			-- RENAME : DSP, RSP pour EXC_MACH
       SYS_RSP_i		:in  sys_response_t;
 
       COMMITTED_COPILE_o	:out copile_state_t;

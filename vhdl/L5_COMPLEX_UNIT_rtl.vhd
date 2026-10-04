@@ -38,10 +38,16 @@ of COMPLEX_UNIT is		---
    constant OP_BLKOU		: opcode_t := x"3D";
    constant OP_BLKOUX		: opcode_t := x"3E";
    constant OP_BLKNOT		: opcode_t := x"3F";
+   constant OP_LINK16		: opcode_t := x"44";
+   constant OP_LINK24		: opcode_t := x"48";
+   constant OP_EXCM16		: opcode_t := x"45";
+   constant OP_EXCM24		: opcode_t := x"49";
+   constant OP_UNLINK		: opcode_t := x"F8";
+   constant OP_UNLINKR		: opcode_t := x"F9";
    constant OP_RTX		: opcode_t := x"FF";
    constant OP_EXC_RAISE	: opcode_t := x"FE";
 
-   type state_t		is ( S_IDLE, S_READ, S_SYS, S_SYS_WAIT, S_FEXP_START, S_FEXP, S_HEAD, S_DRAIN, S_ATOMIC, S_HOLD_WAIT,
+   type state_t		is ( S_IDLE, S_READ, S_SYS, S_SYS_WAIT, S_FEXP_START, S_FEXP, S_FUPD, S_HEAD, S_DRAIN, S_ATOMIC, S_HOLD_WAIT, S_FSTEP, S_FSTEP_WAIT,
 				     S_RANGE, S_PROBE, S_PROBE_WAIT, S_MAINT, S_ACC, S_ACC_WAIT, S_INVAL, S_RESULT,
 				     S_RETIRE_WAIT, S_FLUSH );
    type range_t		is record
@@ -59,7 +65,11 @@ of COMPLEX_UNIT is		---
    signal at_head		: boolean;					-- attend son retrait
 
    -- co-pile et tas : exemplaires retiré et spéculatif
-   signal cfp			: address_t;
+   signal cfp_c, cfp_s		: address_t;
+   signal frame_c		: frame_state_t;				-- EXC_MACH : DSP, RSP retirés
+   signal fin_value		: word64_t;					-- résultat après l'invalidation
+   signal fin_dest		: boolean;
+   signal fstep		: natural range 0 to 7;			-- accès du groupe frame
    signal csp_c, csp_s		: address_t;
    signal hp_c, hp_s		: address_t;
 
@@ -84,9 +94,31 @@ of COMPLEX_UNIT is		---
    signal fexp_start, fexp_abort, fexp_busy, fexp_done : std_logic;
    signal fexp_r		: word64_t;
 
+   function IS_LINK( op : opcode_t ) return boolean is
+   begin
+      return op = OP_LINK16 or op = OP_LINK24;
+   end function;
+
+   function IS_EXCM( op : opcode_t ) return boolean is
+   begin
+      return op = OP_EXCM16 or op = OP_EXCM24;
+   end function;
+
+   function IS_UNLINK( op : opcode_t ) return boolean is
+   begin
+      return op = OP_UNLINK or op = OP_UNLINKR;
+   end function;
+
+   function IS_FRAME( op : opcode_t ) return boolean is
+   begin
+      return IS_LINK( op ) or IS_EXCM( op ) or IS_UNLINK( op );
+   end function;
+
+   -- écrit la mémoire : HEAD_ATOMIC_o, sondage préalable (LINK, EXC_MACH compris)
    function IS_WRITING_BLOCK( op : opcode_t ) return boolean is
    begin
-      return op = OP_BLKMOV or op = OP_BLKAND or op = OP_BLKOU or op = OP_BLKOUX or op = OP_BLKNOT;
+      return op = OP_BLKMOV or op = OP_BLKAND or op = OP_BLKOU or op = OP_BLKOUX or op = OP_BLKNOT
+             or IS_LINK( op ) or IS_EXCM( op );
    end function;
 
    function IS_BLOCK( op : opcode_t ) return boolean is
@@ -137,11 +169,13 @@ begin
    READ_TAGS_o( 0 )	<= instr.source;
    HEAD_ATOMIC_o	<= atomic;
    MEM_REQ_o		<= req;
-   COMMITTED_COPILE_o	<= ( cfp => cfp, csp => csp_c, hp => hp_c, hp_valid => '0' );
+   COMMITTED_COPILE_o	<= ( cfp => cfp_c, csp => csp_c, hp => hp_c, hp_valid => '0' );
    LSQ_EXEC_o		<= ( valid => '0', rob_index => ( others => '0' ), address => ( others => '0' ),
 			   data => ( others => '0' ) );				-- 2e étape
-   FRAME_UPDATE_o	<= ( valid => '0', rob_index => ( others => '0' ), lvl => ( others => '0' ),
-			   value => ( others => '0' ) );				-- 2e étape
+   FRAME_UPDATE_o	<= ( valid => '1', rob_index => instr.rob_index, lvl => instr.slot.canon.lvl,
+			     value => unsigned( opd( 0 ) ) ) when state = S_FUPD		-- UNLINK : FP sauvé
+			   else ( valid => '0', rob_index => instr.rob_index, lvl => instr.slot.canon.lvl,
+			     value => unsigned( opd( 0 ) ) );
    fexp_start		<= '1' when state = S_FEXP_START else '0';
 
    SORTIE : process( state, instr, res_value, res_fault, res_dest, RECOVERY_i, ROB_HEAD_i )
@@ -227,12 +261,13 @@ begin
          fexp_abort <= '0';
          if RESET_i = '1' then
             state <= S_IDLE; atomic <= '0'; req <= NO_MEM_REQUEST; inflight <= false;
-            cfp <= ( others => '0' ); csp_c <= ( others => '0' ); csp_s <= ( others => '0' );
+            cfp_c <= ( others => '0' ); cfp_s <= ( others => '0' );
+            csp_c <= ( others => '0' ); csp_s <= ( others => '0' );
             hp_c <= ( others => '0' ); hp_s <= ( others => '0' );
          else
             -- resynchronisation (SYSTEM_UNIT, au cycle d'une reprise)
             if SYNC_VALID_i = '1' then
-               cfp <= SYNC_COPILE_i.cfp;
+               cfp_c <= SYNC_COPILE_i.cfp; cfp_s <= SYNC_COPILE_i.cfp;
                csp_c <= SYNC_COPILE_i.csp; csp_s <= SYNC_COPILE_i.csp;
                if SYNC_COPILE_i.hp_valid = '1' then hp_c <= SYNC_COPILE_i.hp; hp_s <= SYNC_COPILE_i.hp; end if;
             end if;
@@ -247,7 +282,7 @@ begin
 
             if state /= S_IDLE and state /= S_FLUSH and ABANDONED( instr.rob_index, RECOVERY_i, ROB_HEAD_i ) then
                -- abandon : oubli, état retiré ; une réponse encore en route est attendue
-               csp_s <= csp_c; hp_s <= hp_c; atomic <= '0'; fexp_abort <= '1';
+               csp_s <= csp_c; hp_s <= hp_c; cfp_s <= cfp_c; atomic <= '0'; fexp_abort <= '1';
                if req.valid = '1' and MEM_READY_i = '1' then
                   state <= S_FLUSH;						-- acceptée ce cycle
                elsif req.valid = '1' then
@@ -285,12 +320,15 @@ begin
                         state <= S_SYS;
                      elsif op = OP_FEXP then
                         state <= S_FEXP_START;				-- opérandes rangés au cycle suivant
-                     elsif op = OP_CO_VAR or op = OP_HEAP_ALLOC or IS_BLOCK( op ) then
+                     elsif op = OP_CO_VAR or op = OP_HEAP_ALLOC or IS_BLOCK( op ) or IS_FRAME( op ) then
                         at_head <= true;
-                        state <= S_HEAD;
-                     else								-- LINK, UNLINK, UNLINKR, EXC_MACH : 2e étape
+                        if IS_UNLINK( op ) then state <= S_FUPD; else state <= S_HEAD; end if;
+                     else
                         FINISH( ( others => '0' ), 137, false );
                      end if;
+
+                  when S_FUPD =>							-- FRAME_UPDATE_o, sans attendre la tête
+                     state <= S_HEAD;
 
                   when S_SYS =>							-- SYS_REQ_o
                      state <= S_SYS_WAIT;
@@ -330,7 +368,27 @@ begin
                               hp_s <= hp_s - sz65( 63 downto 0 );
                               FINISH( std_logic_vector( hp_s - sz65( 63 downto 0 ) ), 0, true );
                            end if;
+                        elsif IS_FRAME( op ) then					-- groupe frame : un intervalle
+                           nranges <= 1; fin_value <= ( others => '0' ); fin_dest <= false;
+                           if IS_LINK( op ) then
+                              if csp_s + 8 > LIMITS_i.lim_csp then
+                                 FINISH( ( others => '0' ), 135, false );
+                              else
+                                 ranges( 0 ) <= ( base => csp_s, length => to_unsigned( 8, 64 ) ); write_range <= 0;
+                                 fin_value <= std_logic_vector( instr.address );	-- ancien DISPLAY[lvl]
+                                 fin_dest <= instr.slot.canon.lvl /= 0;
+                                 state <= S_DRAIN;
+                              end if;
+                           elsif IS_EXCM( op ) then
+                              frame_c <= COMMITTED_FRAME_i;
+                              ranges( 0 ) <= ( base => instr.address + 16, length => to_unsigned( 40, 64 ) ); write_range <= 0;
+                              state <= S_DRAIN;
+                           else								-- UNLINK, UNLINKR : lecture de M64[CFP]
+                              ranges( 0 ) <= ( base => cfp_s, length => to_unsigned( 8, 64 ) ); write_range <= -1;
+                              state <= S_DRAIN;
+                           end if;
                         else								-- bloc : ses intervalles
+                           fin_value <= ( others => '0' ); fin_dest <= false;
                            write_range <= -1;
                            if IS_LEX( op ) then
                               sz := SZ_OF( op );
@@ -377,8 +435,8 @@ begin
 
                   when S_RANGE =>							-- RANGE_o ; sondage
                      ri <= 0; roff <= ( others => '0' );
-                     if IS_LEX( instr.slot.canon.op ) then
-                        state <= S_MAINT;						-- LEXCMP : pas de sondage
+                     if IS_LEX( instr.slot.canon.op ) or IS_UNLINK( instr.slot.canon.op ) then
+                        state <= S_MAINT;						-- lectures seules : pas de sondage
                      else
                         state <= S_PROBE;
                      end if;
@@ -413,7 +471,8 @@ begin
 
                   when S_MAINT =>							-- réécriture de chaque intervalle
                      if ri >= nranges then
-                        k <= ( others => '0' ); sub <= 0; state <= S_ACC;
+                        k <= ( others => '0' ); sub <= 0; fstep <= 0;
+                        if IS_FRAME( instr.slot.canon.op ) then state <= S_FSTEP; else state <= S_ACC; end if;
                      elsif ranges( ri ).length = 0 then
                         ri <= ri + 1;
                      elsif STACK_MAINT_DONE_i = '1' then
@@ -512,9 +571,43 @@ begin
                         end if;
                      end if;
 
+                  when S_FSTEP =>							-- groupe frame : un mot de 8 octets
+                     op := instr.slot.canon.op;
+                     if IS_LINK( op ) then
+                        MEM_ACCESS( csp_s, 3, true, std_logic_vector( cfp_s ) );
+                     elsif IS_EXCM( op ) then
+                        case fstep is
+                           when 0 => MEM_ACCESS( ranges( 0 ).base, 3, true, std_logic_vector( frame_c.dsp ) );
+                           when 1 => MEM_ACCESS( ranges( 0 ).base + 8, 3, true, std_logic_vector( frame_c.rsp ) );
+                           when 2 => MEM_ACCESS( ranges( 0 ).base + 16, 3, true, std_logic_vector( cfp_s ) );
+                           when 3 => MEM_ACCESS( ranges( 0 ).base + 24, 3, true, std_logic_vector( csp_s ) );
+                           when others => MEM_ACCESS( ranges( 0 ).base + 32, 3, true,
+                                                      std_logic_vector( resize( instr.slot.canon.lvl, 64 ) + 1 ) );
+                        end case;
+                     else
+                        MEM_ACCESS( cfp_s, 3, false, ( others => '0' ) );
+                     end if;
+                     state <= S_FSTEP_WAIT;
+
+                  when S_FSTEP_WAIT =>
+                     if MEM_RSP_i.valid = '1' then
+                        op := instr.slot.canon.op;
+                        if MEM_RSP_i.fault = '1' then
+                           FINISH( ( others => '0' ), 132, false );
+                        elsif IS_LINK( op ) then					-- CFP := CSP ; CSP += 8
+                           cfp_s <= csp_s; csp_s <= csp_s + 8; state <= S_INVAL;
+                        elsif IS_EXCM( op ) then
+                           if fstep = 4 then state <= S_INVAL; else fstep <= fstep + 1; state <= S_FSTEP; end if;
+                        elsif op = OP_UNLINKR then					-- CSP := CFP ; CFP := M64[CFP]
+                           csp_s <= cfp_s; cfp_s <= unsigned( MEM_RSP_i.rdata ); FINISH( ( others => '0' ), 0, false );
+                        else								-- UNLINK : CFP := M64[CFP]
+                           cfp_s <= unsigned( MEM_RSP_i.rdata ); FINISH( ( others => '0' ), 0, false );
+                        end if;
+                     end if;
+
                   when S_INVAL =>							-- invalidation de l'intervalle écrit
                      if STACK_MAINT_DONE_i = '1' or ranges( write_range ).length = 0 then
-                        FINISH( ( others => '0' ), 0, false );
+                        FINISH( fin_value, 0, fin_dest );
                      end if;
 
                   when S_RESULT =>
@@ -523,7 +616,7 @@ begin
                   when S_RETIRE_WAIT =>						-- le retrait retient CSP, HP
                      for r in 0 to RETIRE_WIDTH - 1 loop
                         if RETIRE_i( r ).valid = '1' and RETIRE_i( r ).rob_index = instr.rob_index then
-                           csp_c <= csp_s; hp_c <= hp_s; atomic <= '0'; state <= S_IDLE;
+                           csp_c <= csp_s; hp_c <= hp_s; cfp_c <= cfp_s; atomic <= '0'; state <= S_IDLE;
                         end if;
                      end loop;
 

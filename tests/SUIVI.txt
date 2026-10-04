@@ -75,9 +75,9 @@ N1   K1b_RENAME_DISPATCH         RENAME_DISPATCH           ---    ---
 N1   L5a_FEXP_UNIT               FEXP_UNIT                 ok     OK 452      2026-10-02  VHDL-2008 (FLOAT64_PKG) ; arrêt
                                                                                           anticipé exact ; référence Python
                                                                                           contrôlée par la boucle complète
-N1   L5_COMPLEX_UNIT             COMPLEX_UNIT              1/2    OK 8202     2026-10-02  1re étape : sérialisantes, CO_VAR,
-                                                                                          HEAP_ALLOC, FEXP, blocs ; frame
-                                                                                          (LINK, UNLINK, EXC_MACH) à venir
+N1   L5_COMPLEX_UNIT             COMPLEX_UNIT              2/2    OK 8569     2026-10-02  2e étape : LINK, UNLINK, UNLINKR,
+                                                                                          EXC_MACH à la tête ; CFP spéculatif ;
+                                                                                          co-pile dans la zone du banc
 N1   S_SYSTEM_UNIT               SYSTEM_UNIT               ok     OK 14244    2026-10-02  séquenceur ; modèle de la V8 (fautes,
                                                                                           déroutements, interruptions) ; 40 vies
 N3   V_TAHX_1_structure          TAHX_1                    ok     ---                     trace de retrait de tx_run à définir
@@ -115,18 +115,6 @@ concernée quand on l'écrira, puis à rayer ici.
                    (COMPLEX_UNIT, 2e étape) voir COMPLEX_UNIT ci-dessous.
                    (COMPLEX_UNIT) MAINT_WRITEBACK_RANGE et MAINT_INVALIDATE_RANGE sur des
                    intervalles quelconques : sans effet hors de la tranche tenue en registres.
-  COMPLEX_UNIT     (RENAME_DISPATCH R1, 2e étape) à la tête : LINK (lvl > 0) rend address
-                   (ancien DISPLAY[lvl]) dans sa destination ; M64[CSP] := CFP ; CFP := CSP ;
-                   CSP += 8 (135). UNLINK : CFP := M64[CFP] ; UNLINKR : CSP := CFP d'abord ;
-                   FRAME_UPDATE (rob_index, lvl, source( 0 )) pour tout UNLINK et UNLINKR.
-                   EXC_MACH : écrit DSP, RSP (COMMITTED_FRAME de RENAME, entrée à ajouter),
-                   CFP, CSP, lvl + 1 en address + 16 .. + 48, puis MAINT_INVALIDATE_RANGE.
-                   RANGE_o (intervalle écrit) pour LINK et EXC_MACH, comme pour les blocs : la
-                   LSQ en tient une barrière jusqu'au retrait.
-                   (SYSTEM_UNIT) SYS_REQ valide un cycle, quand l'instruction sérialisante est
-                   émise en tête ; après SYS_RSP : fin d'exécution de l'instruction, avec le
-                   résultat si result_valid, ou la faute ; une instruction abandonnée oublie
-                   sa requête (SYSTEM_UNIT ignore une SYS_REQ hors du repos).
   LSQ, étape R2    avec le renommage R2 : STACK_LOOKUP, WRITERS_IN_FLIGHT.
   plateforme       (DATA_CACHE) la mémoire de données ne refuse aucune écriture dans
                    [VALID_BASE_G, VALID_LIMIT_G) : les écritures sont postées.

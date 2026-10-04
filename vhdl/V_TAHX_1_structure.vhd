@@ -561,6 +561,7 @@ U_COMPLEX :
       SYS_REQ_o		=> sys_req,
       HEAD_ATOMIC_o		=> head_atomic,
       SYSTEM_HOLD_i		=> hold_retire,
+      COMMITTED_FRAME_i	=> committed_frame,
       SYS_RSP_i		=> sys_rsp,
       COMMITTED_COPILE_o	=> committed_copile,
       SYNC_VALID_i		=> sync_valid,
