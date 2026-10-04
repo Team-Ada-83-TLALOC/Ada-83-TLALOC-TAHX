@@ -141,7 +141,8 @@ is                              ------------
 		--          résultats de la LSQ, avec completion.valid = '0'.
 		--------------------------------------------------------------------------------
 
-   constant STACK_XFER_WIDTH		: positive	:= 2;			-- échanges par cycle
+   constant STACK_XFER_WIDTH		: positive	:= 6;			-- échanges par cycle : une instruction
+									--  tient en un cycle (4 FILL + 1 SPILL)
 
    type stack_xfer_kind_t		is ( XFER_SPILL, XFER_FILL );
 

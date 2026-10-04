@@ -89,7 +89,8 @@ use work.RENAME_TYPES.all;
 		--     sans le dépiler. Sources dans l'ordre de la notation de pile.
 		--     Correspondances : au plus STACK_CACHE_WORDS cellules ; au-delà, la plus
 		--     ancienne est oubliée (la mémoire a sa valeur). Un rangement direct (lvl
-		--     0..14) dans une cellule connue lui donne le registre de sa donnée.
+		--     0..14) de 8 octets alignés dans une cellule connue lui donne le registre
+		--     de sa donnée ; un rangement direct partiel qui la recouvre la fait oublier.
 		--     Écrivains en vol : rangements par pointeur (lvl 1111, famille C), de leur
 		--     renommage à leur STACK_INVALIDATE_i (la LSQ l'émet quand elle écrit le
 		--     rangement, après son retrait, avec l'adresse : la cellule est oubliée si
@@ -117,7 +118,9 @@ use work.RENAME_TYPES.all;
 		--  5. Fautes 133, 134, au renommage : DSP final > LIMITS_i.lim_dsp, RSP final <
 		--     LIMITS_i.lim_rsp (limites effectives). L'instruction est allouée en
 		--     faute, done = '1', sans aucun effet (état, registres, échanges) et sans
-		--     exécution ; de même pour une faute venue du décodage.
+		--     exécution ; de même pour une faute venue du décodage (UOP_ILLEGAL : 137,
+		--     UOP_FETCH_FAULT : 132). Le renommage s'arrête ensuite jusqu'à la reprise
+		--     (les instructions suivantes seraient abandonnées à la livraison).
 		--
 		--  6. Allocation : pc, len, op, faute, done ('1' : rien à exécuter, ou faute),
 		--     serializing, is_store (rangements, famille C comprise), is_control, pred,
@@ -141,8 +144,9 @@ use work.RENAME_TYPES.all;
 		--     destination d'une instruction retirée fait partie de l'état retiré.
 		--
 		--  10. Registres : un registre est rendu quand aucune cellule ne le tient plus,
-		--     que son producteur est retiré ou abandonné, et que ses lecteurs (sources,
-		--     SPILL) le sont aussi ; il n'est réattribué que 4 cycles plus tard (la LSQ
+		--     que son producteur est retiré ou abandonné, et que tous ses lecteurs
+		--     (comptés, pas seulement le dernier ; le SPILL est celui du producteur) le
+		--     sont aussi ; il n'est réattribué que 4 cycles plus tard (la LSQ
 		--     lit la donnée d'un SPILL au plus 2 cycles après son réveil).
 		--     FREE_PHYSICAL_COUNT_o : registres libres. Bits « prêt » : '0' à
 		--     l'attribution, '1' au réveil (WAKEUP_i) ; source_ready reflète tous les
@@ -150,7 +154,8 @@ use work.RENAME_TYPES.all;
 		--
 		--  11. Maintenance : la mémoire étant à jour au retrait (SPILL dans la LSQ),
 		--     MAINT_WRITEBACK_RANGE et MAINT_WRITEBACK_ALL sont faites aussitôt
-		--     (STACK_MAINT_DONE_o au cycle suivant ; le demandeur attend LSQ_DRAINED) ;
+		--     (STACK_MAINT_DONE_o au cycle qui suit chaque cycle de STACK_MAINT_i valide ;
+		--     une demande vue deux fois est sans effet ; le demandeur attend LSQ_DRAINED) ;
 		--     MAINT_INVALIDATE_RANGE oublie les cellules de l'intervalle.
 		--------------------------------------------------------------------------------
 

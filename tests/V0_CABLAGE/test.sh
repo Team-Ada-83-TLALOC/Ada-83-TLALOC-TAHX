@@ -31,7 +31,7 @@ comm -23 "$W/entites.txt" "$W/realisees.txt" \
 R=$(( $(wc -l < "$W/realisees.txt") - 1 ))
 E=$(wc -l < "$W/vides.vhd")
 
-ghdl -a --std=08 --workdir="$W/08" "$W/vides.vhd"					|| { echo "TEST V0_CABLAGE : ECHEC (architectures vides)"; exit 1; }
+[ "$E" -eq 0 ] || ghdl -a --std=08 --workdir="$W/08" "$W/vides.vhd"					|| { echo "TEST V0_CABLAGE : ECHEC (architectures vides)"; exit 1; }
 ( cd "$W/08" && ghdl -e --std=08 TAHX_1 STRUCTURE )					|| { echo "TEST V0_CABLAGE : ECHEC (élaboration du sommet)"; exit 1; }
 
 echo "TEST V0_CABLAGE : OK ($N analyses ; élaboration : $R pièce(s) réelle(s), $E vide(s))"

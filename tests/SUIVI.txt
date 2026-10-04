@@ -71,7 +71,9 @@ N1   M3_DATA_CACHE               DATA_CACHE                ok     OK 10079    20
 N1   M2_LOAD_STORE_QUEUE         LOAD_STORE_QUEUE          2/2    OK 57319    2026-10-02  2e étape (renommage R1) : SPILL, FILL,
                                                                                           barrières COMPLEX, invalidations ;
                                                                                           banc à 32 entrées (sommet : 128)
-N1   K1b_RENAME_DISPATCH         RENAME_DISPATCH           ---    ---
+N1   K1b_RENAME_DISPATCH         RENAME_DISPATCH           R1     OK 45454    2026-10-02  étape R1 (écriture immédiate) ; référence
+                                                                                          séquentielle de la machine à pile ;
+                                                                                          contrôle de fuite des registres
 N1   L5a_FEXP_UNIT               FEXP_UNIT                 ok     OK 452      2026-10-02  VHDL-2008 (FLOAT64_PKG) ; arrêt
                                                                                           anticipé exact ; référence Python
                                                                                           contrôlée par la boucle complète
@@ -100,21 +102,8 @@ Obligations envers les pièces à écrire
 Posées par les contrats des pièces déjà écrites ; à reprendre dans le contrat de la pièce
 concernée quand on l'écrira, puis à rayer ici.
 
-  RENAME_DISPATCH  (ISSUE_QUEUE) source_ready reflète tous les réveils des cycles
-                   précédant l'insertion ; sources dans l'ordre de la notation de pile
-                   (RENAME_TYPES) ; au plus ROB_SIZE instructions de la tête à la dernière.
-                   (ROB) ALLOC_COUNT_i <= FREE_o ; rien d'alloué au cycle d'une reprise
-                   (le ROB l'ignore) ; done = '1' pour ce qui n'a rien à exécuter.
-                   (SYSTEM_UNIT) à toute reprise RECOVER_COMMITTED, revenir à l'état retiré ;
-                   l'état imposé par SYNC_VALID (au cycle de cette reprise) l'emporte sur
-                   les retraits du même cycle ; la destination d'une instruction
-                   sérialisante retirée par retire_head (CTX_SAVE, SET_IMASK) fait partie
-                   de l'état retiré ; STACK_MAINT n'écrit que des valeurs retirées, puis
-                   STACK_MAINT_DONE ; les instructions sérialisantes n'ont pas d'effet de
-                   pile propre hors du résultat de CTX_SAVE et SET_IMASK (SYNC fait le reste).
-                   (COMPLEX_UNIT, 2e étape) voir COMPLEX_UNIT ci-dessous.
-                   (COMPLEX_UNIT) MAINT_WRITEBACK_RANGE et MAINT_INVALIDATE_RANGE sur des
-                   intervalles quelconques : sans effet hors de la tranche tenue en registres.
+  RENAME, étape R2 cache de pile en écriture différée (performance : supprime le SPILL de chaque
+                   cellule empilée) ; avec la LSQ R2 : STACK_LOOKUP, WRITERS_IN_FLIGHT.
   LSQ, étape R2    avec le renommage R2 : STACK_LOOKUP, WRITERS_IN_FLIGHT.
   plateforme       (DATA_CACHE) la mémoire de données ne refuse aucune écriture dans
                    [VALID_BASE_G, VALID_LIMIT_G) : les écritures sont postées.
