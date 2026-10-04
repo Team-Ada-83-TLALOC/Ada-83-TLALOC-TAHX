@@ -43,21 +43,18 @@ use work.EXEC_TYPES.all;
 		--  moment où le cache refuse l'adresse (contrôle avant le retrait, pour que la
 		--  faute reste précise).
 		--
-		--  CONTRAT, PREMIÈRE ÉTAPE (le cœur)
+		--  CONTRAT, SECONDE ÉTAPE (renommage R1 : écriture immédiate)
 		--
-		--  Actifs : réservation MEMORY, EXEC_i voies 0 .. MEMORY_LANES - 1, cache de
-		--  données, RESULT_o, retrait, reprise, DRAINED_o, ENTRY_COUNT_o. Inactifs, à
-		--  écrire avec RENAME_DISPATCH (cache de pile) et COMPLEX_UNIT (instructions de
-		--  bloc) : réservation COMPLEX ignorée, voie COMPLEX de EXEC_i et RANGE_i
-		--  ignorés, STACK_XFER_i ignoré (STACK_XFER_READY_o = '1'), STACK_LOOKUP_o,
-		--  STACK_INVALIDATE_o, READ_TAGS_o à zéro, WRITERS_IN_FLIGHT_o = '0'. Une
-		--  machine dont le renommage ne tient pas de cache de pile fonctionne déjà avec
-		--  cette étape.
+		--  Points 1 à 7 : le cœur (première étape) ; points 8 à 11 : échanges avec le
+		--  renommage et barrières de COMPLEX_UNIT. Restent inactifs (étape R2 du
+		--  renommage) : STACK_LOOKUP_o à zéro, WRITERS_IN_FLIGHT_o = '0' ; la voie
+		--  COMPLEX de EXEC_i est ignorée (COMPLEX_UNIT accède par son propre port).
 		--
 		--  1. Réservation. Au front où MEMORY_INSERT_VALID_i = '1', chaque instruction
 		--     du bloc reçoit une entrée (sauf si une reprise du même cycle l'abandonne).
-		--     Capacités, état seul : MEMORY_CAPACITY_o = min( 8, libres ),
-		--     COMPLEX_CAPACITY_o = min( 8, libres - MEMORY_CAPACITY_o ) : leur somme ne
+		--     Capacités, état seul, deux entrées étant réservées aux échanges (point
+		--     8) : MEMORY_CAPACITY_o = min( 8, libres - 2 ), COMPLEX_CAPACITY_o =
+		--     min( 8, libres - 2 - MEMORY_CAPACITY_o ) (0 si négatif) : leur somme ne
 		--     dépasse jamais la place libre. Famille B avec address_known : l'adresse
 		--     effective est connue dès la réservation ; famille C avec address_known :
 		--     l'adresse de la cellule pointeur.
@@ -107,6 +104,42 @@ use work.EXEC_TYPES.all;
 		--     instruction abandonnée ne paraît jamais sur RESULT_o, pas même au cycle
 		--     de la reprise. Les réponses du cache encore attendues pour elles sont
 		--     reçues et ignorées. RESET_i vide la file.
+		--
+		--  8. Échanges (STACK_XFER_i), pris au front où ils sont valides ;
+		--     STACK_XFER_READY_o = '1' quand au moins STACK_XFER_WIDTH entrées sont
+		--     libres (état seul). Un échange dont l'instruction est abandonnée par une
+		--     reprise du même cycle est ignoré.
+		--     SPILL : rangement de 8 octets à address, de la donnée du registre tag ;
+		--     son âge est celui de rob_index (l'instruction qui a empilé) : il compte
+		--     pour l'ordre prudent et le transfert comme un rangement de cette
+		--     instruction, jamais pour elle-même. La donnée est lue (READ_TAGS_o) au
+		--     plus tard 2 cycles après le réveil du registre (WAKEUP_i ; ready = '1' :
+		--     déjà réveillé). Validé au retrait de rob_index (toute instruction
+		--     retirée, pas seulement un rangement), ou dès sa prise si committed = '1' ;
+		--     écrit ensuite comme un rangement validé ; abandonné avec rob_index.
+		--     FILL : chargement de 8 octets à address dans le registre tag, d'âge
+		--     rob_index (il voit les rangements et SPILL plus anciens, pas ceux de son
+		--     instruction) ; résultat sur RESULT_o : destination tag, value, avec
+		--     completion.valid = '0' (le ROB n'attend pas un FILL) ; une adresse
+		--     invalide rend 0 (sans faute) ; abandonné avec rob_index.
+		--
+		--  9. STACK_INVALIDATE_o( 0 ) : au front où un rangement dont l'adresse n'était
+		--     pas connue à la réservation (rangement par pointeur) est écrit dans le
+		--     cache, son adresse effective et son rob_index, pendant ce cycle. Aucun
+		--     autre rangement ni SPILL n'en émet.
+		--
+		--  10. Barrières : une instruction de la réservation COMPLEX qui écrit la
+		--     mémoire (BLKMOV, BLKAND, BLKOU, BLKOUX, BLKNOT, LINK, EXC_MACH) reçoit une
+		--     entrée. Jusqu'à RANGE_i de son rob_index, elle compte comme un rangement
+		--     plus ancien d'adresse inconnue : aucune lecture plus jeune (chargement,
+		--     cellule pointeur, borne, FILL) ne part. Ensuite, une lecture plus jeune qui
+		--     recouvre l'intervalle écrit (write_valid ; vide si write_length = 0)
+		--     attend la fin de la barrière, sans transfert ; les autres partent. La
+		--     barrière finit au retrait ou à l'abandon de son instruction. Les autres
+		--     instructions COMPLEX ne reçoivent pas d'entrée.
+		--
+		--  11. DRAINED_o = '1' quand aucun rangement ni SPILL validé n'attend d'être
+		--     écrit.
 		--------------------------------------------------------------------------------
 
 

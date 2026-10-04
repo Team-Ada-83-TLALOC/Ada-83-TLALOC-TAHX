@@ -98,7 +98,7 @@ is				----------
 		-- au renommage (address_known) ou à l'exécution (lsq_exec_t).
 		--------------------------------------------------------------------------------
 
-   constant LSQ_DEPTH			: positive	:= 32;
+   constant LSQ_DEPTH			: positive	:= 128;		-- R1 : un SPILL par cellule empilée
    constant LSQ_EXEC_PORTS		: positive	:= MEMORY_LANES + COMPLEX_LANES;	-- 3
 
 		-- address : adresse effective (famille B), adresse de la cellule pointeur

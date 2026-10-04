@@ -68,10 +68,9 @@ N1   M1_ADDRESS_UNIT             ADDRESS_UNIT              ok     OK 90001    20
 N1   M3_DATA_CACHE               DATA_CACHE                ok     OK 10079    2026-10-02  une requête à la fois ; validité par
                                                                                           règle d'adresse (VALID_BASE_G,
                                                                                           VALID_LIMIT_G) ; relecture finale
-N1   M2_LOAD_STORE_QUEUE         LOAD_STORE_QUEUE          1/2    OK 40909    2026-10-02  première étape (cœur) : référence
-                                                                                          séquentielle, cache de données :
-                                                                                          commun/MODELE_CACHE_DONNEES ;
-                                                                                          cache de pile et blocs à venir
+N1   M2_LOAD_STORE_QUEUE         LOAD_STORE_QUEUE          2/2    OK 57319    2026-10-02  2e étape (renommage R1) : SPILL, FILL,
+                                                                                          barrières COMPLEX, invalidations ;
+                                                                                          banc à 32 entrées (sommet : 128)
 N1   K1b_RENAME_DISPATCH         RENAME_DISPATCH           ---    ---
 N1   L5a_FEXP_UNIT               FEXP_UNIT                 ok     OK 452      2026-10-02  VHDL-2008 (FLOAT64_PKG) ; arrêt
                                                                                           anticipé exact ; référence Python
@@ -122,26 +121,13 @@ concernée quand on l'écrira, puis à rayer ici.
                    FRAME_UPDATE (rob_index, lvl, source( 0 )) pour tout UNLINK et UNLINKR.
                    EXC_MACH : écrit DSP, RSP (COMMITTED_FRAME de RENAME, entrée à ajouter),
                    CFP, CSP, lvl + 1 en address + 16 .. + 48, puis MAINT_INVALIDATE_RANGE.
-                   RANGE_o pour leurs écritures (chargements plus jeunes).
+                   RANGE_o (intervalle écrit) pour LINK et EXC_MACH, comme pour les blocs : la
+                   LSQ en tient une barrière jusqu'au retrait.
                    (SYSTEM_UNIT) SYS_REQ valide un cycle, quand l'instruction sérialisante est
                    émise en tête ; après SYS_RSP : fin d'exécution de l'instruction, avec le
                    résultat si result_valid, ou la faute ; une instruction abandonnée oublie
                    sa requête (SYSTEM_UNIT ignore une SYS_REQ hors du repos).
-  LSQ, 2e étape    (RENAME_DISPATCH R1) LSQ_DEPTH 128. SPILL : rangement à l'adresse, donnée
-                   du registre (lue au plus 2 cycles après son réveil), écrit après le
-                   retrait de rob_index ; plus ancien que toute instruction plus jeune pour
-                   l'ordre prudent, transféré aux chargements et FILL plus jeunes. FILL :
-                   chargement de 8 octets ordonné à rob_index, résultat sur RESULT_o avec
-                   destination et completion.valid = '0'. STACK_INVALIDATE_o pour chaque
-                   rangement par pointeur (adresse inconnue à la réservation) retiré.
-                   STACK_XFER_READY_o : place pour STACK_XFER_WIDTH échanges.
-                   IMPÉRATIF avant tout assemblage où COMPLEX_UNIT exécute des blocs :
-                   RANGE_i (intervalle écrit d'un bloc en tête) retient les chargements plus
-                   jeunes qui le touchent, sans quoi ils peuvent lire une valeur périmée.
-                   avec RENAME_DISPATCH : STACK_XFER (SPILL, FILL), STACK_LOOKUP,
-                   STACK_INVALIDATE, WRITERS_IN_FLIGHT, lecture de registres, réveil ;
-                   avec COMPLEX_UNIT : réservation COMPLEX (LINK, UNLINK, UNLINKR,
-                   barrières de bloc), voie COMPLEX de EXEC_i, RANGE_i.
+  LSQ, étape R2    avec le renommage R2 : STACK_LOOKUP, WRITERS_IN_FLIGHT.
   plateforme       (DATA_CACHE) la mémoire de données ne refuse aucune écriture dans
                    [VALID_BASE_G, VALID_LIMIT_G) : les écritures sont postées.
 

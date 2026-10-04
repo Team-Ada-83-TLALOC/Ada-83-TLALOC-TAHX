@@ -44,6 +44,7 @@ architecture			TEST
 of T_M_N2_MEMOIRE_tb is
 
    constant PERIOD		: time		:= 10 ns;
+   constant DEPTH		: positive	:= 32;				-- profondeur de la LSQ du banc
    constant CYCLES		: positive	:= 30000;
    constant DRAIN_MAX		: positive	:= 5000;
    constant STALL_MAX		: positive	:= 1500;
@@ -98,7 +99,7 @@ of T_M_N2_MEMOIRE_tb is
    signal dc_ready		: std_logic_vector( 0 to MEMORY_LANES - 1 );
    signal dc_rsp		: mem_response_bus_t( 0 to MEMORY_LANES - 1 );
    signal drained		: std_logic;
-   signal entries		: natural range 0 to LSQ_DEPTH;
+   signal entries		: natural range 0 to DEPTH;
    signal dc_req_all		: mem_request_bus_t( 0 to 2 );
    signal dc_ready_all		: std_logic_vector( 0 to 2 );
    signal dc_rsp_all		: mem_response_bus_t( 0 to 2 );
@@ -136,6 +137,7 @@ of T_M_N2_MEMOIRE_tb is
 begin
 
    DUT : entity work.LOAD_STORE_QUEUE
+      generic map ( DEPTH_G => DEPTH )				-- le sommet : LSQ_DEPTH
       port map (
          CLK_i => clk, RESET_i => reset,
          MEMORY_INSERT_VALID_i => ins_valid, MEMORY_INSERT_BLOCK_i => ins_block, MEMORY_INSERT_COUNT_i => ins_count,
@@ -147,7 +149,8 @@ begin
                                       write_valid => '0', write_base => ( others => '0' ),
                                       write_length => ( others => '0' ) ),
          STACK_XFER_i => ( others => ( valid => '0', kind => stack_xfer_kind_t'low, address => ( others => '0' ),
-                                       tag => ( others => '0' ), rob_index => ( others => '0' ), committed => '0' ) ),
+                                       tag => ( others => '0' ), rob_index => ( others => '0' ), committed => '0',
+                                       ready => '0' ) ),
          STACK_XFER_READY_o => xfer_ready,
          STACK_LOOKUP_o => lookup,
          STACK_LOOKUP_i => ( others => ( valid => '0', hit => '0', tag => ( others => '0' ) ) ),
@@ -734,8 +737,10 @@ begin
                end if;
             end if;
          end loop;
-         if mem_cap = to_unsigned( minimum( 8, LSQ_DEPTH - entries ), mem_cap'length )
-            and cpx_cap = to_unsigned( minimum( 8, LSQ_DEPTH - entries - to_integer( mem_cap ) ), cpx_cap'length ) then
+         -- deux entrées réservées aux échanges
+         if mem_cap = to_unsigned( minimum( 8, maximum( 0, DEPTH - entries - STACK_XFER_WIDTH ) ), mem_cap'length )
+            and cpx_cap = to_unsigned( minimum( 8, maximum( 0, DEPTH - entries - STACK_XFER_WIDTH - to_integer( mem_cap ) ) ),
+                                       cpx_cap'length ) then
             CHECK_PASSED( c );
          else
             CHECK( c, false, "cycle " & integer'image( now ) & " : capacités" );

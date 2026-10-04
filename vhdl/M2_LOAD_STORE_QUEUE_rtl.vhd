@@ -42,7 +42,7 @@ of LOAD_STORE_QUEUE is		---
    constant PORTS		: positive := MEMORY_LANES;
    constant FIFO_DEPTH		: positive := 16;
 
-   type kind_t			is ( K_LOAD, K_STORE, K_LIVA, K_CHK );
+   type kind_t			is ( K_LOAD, K_STORE, K_LIVA, K_CHK, K_SPILL, K_FILL, K_BARRIER );
    type purpose_t		is ( P_NONE, P_PTR, P_DATA, P_FST, P_LST, P_PROBE, P_WRITE );
 
    type entry_t		is record
@@ -74,6 +74,10 @@ of LOAD_STORE_QUEUE is		---
 			  committed	: boolean;			-- rangement retiré
 			  cseq		: natural;			-- ordre de validation
 			  gen		: natural range 0 to 255;	-- génération de l'entrée
+			  data_tag	: physical_tag_t;		-- SPILL : registre de la donnée
+			  data_ready	: boolean;			-- SPILL : registre réveillé
+			  wlen		: address_t;			-- barrière : longueur écrite (ea : base)
+			  ptr_store	: boolean;			-- rangement par pointeur : STACK_INVALIDATE
 			end record;
    type entry_array_t		is array( 0 to DEPTH_G - 1 ) of entry_t;
 
@@ -109,6 +113,9 @@ of LOAD_STORE_QUEUE is		---
    signal port_purpose		: purpose_t;				-- (port 0 : écriture validée)
    signal lane_pick		: lane_pick_t;				-- résultats présentés
    signal free_count		: natural range 0 to DEPTH_G;
+   constant CAPTURES		: positive := MEMORY_LANES * MAX_SOURCE_COUNT;	-- lectures de SPILL par cycle
+   type capture_pick_t		is array( 0 to CAPTURES - 1 ) of integer range -1 to DEPTH_G - 1;
+   signal capture_pick		: capture_pick_t;
 
 		--------------------------------------------------------------------------------
 		-- Outils
@@ -171,6 +178,7 @@ begin
       variable first_port	: natural;
       variable off		: natural;
       variable cnt		: natural;
+      variable cp		: capture_pick_t;
    begin
       for i in 0 to DEPTH_G - 1 loop
          p( i ) := ( step => S_WAIT, purpose => P_NONE, address => ( others => '0' ), sz => 0, fwd => ( others => '0' ) );
@@ -186,7 +194,8 @@ begin
                   when K_CHK   => if not e( i ).fst_done then pur := P_FST; addr := e( i ).ea;
                                   elsif not e( i ).lst_done then pur := P_LST; addr := e( i ).ea + 2 ** e( i ).sz;
                                   end if;
-                  when K_LIVA  => null;
+                  when K_FILL  => pur := P_DATA; addr := e( i ).ea; szr := 3;
+                  when others  => null;						-- LIVA, SPILL, barrière
                end case;
             end if;
 
@@ -197,7 +206,14 @@ begin
                blocked := false;
                decider := -1; best_key := 0;
                for j in 0 to DEPTH_G - 1 loop
-                  if j /= i and e( j ).valid = '1' and e( j ).kind = K_STORE then
+                  if j /= i and e( j ).valid = '1' and e( j ).kind = K_BARRIER then
+                     k := AGE_KEY( e( j ), ROB_HEAD_i );
+                     if k < key and ( not e( j ).ea_known			-- barrière plus ancienne
+                                      or ( e( j ).wlen /= 0 and addr < e( j ).ea + e( j ).wlen
+                                           and e( j ).ea < addr + 2 ** szr ) ) then
+                        blocked := true;					-- intervalle inconnu, ou recouvert
+                     end if;
+                  elsif j /= i and e( j ).valid = '1' and ( e( j ).kind = K_STORE or e( j ).kind = K_SPILL ) then
                      k := AGE_KEY( e( j ), ROB_HEAD_i );
                      if k < key then						-- rangement plus ancien
                         if not e( j ).ea_known then
@@ -228,7 +244,7 @@ begin
       taken := ( others => '0' );
       best := -1; best_key := 0;
       for i in 0 to DEPTH_G - 1 loop
-         if e( i ).valid = '1' and e( i ).committed and not e( i ).busy
+         if e( i ).valid = '1' and e( i ).committed and not e( i ).busy and e( i ).data_known
             and ( best < 0 or e( i ).cseq < best_key ) then
             best := i; best_key := e( i ).cseq;
          end if;
@@ -270,6 +286,16 @@ begin
       end loop;
       lane_pick <= lp;
 
+      cp := ( others => -1 );
+      cnt := 0;
+      for i in 0 to DEPTH_G - 1 loop
+         if cnt < CAPTURES and e( i ).valid = '1' and e( i ).kind = K_SPILL and e( i ).data_ready
+            and not e( i ).data_known then
+            cp( cnt ) := i; cnt := cnt + 1;
+         end if;
+      end loop;
+      capture_pick <= cp;
+
       cnt := 0;
       for i in 0 to DEPTH_G - 1 loop
          if e( i ).valid = '0' then cnt := cnt + 1; end if;
@@ -281,7 +307,8 @@ begin
 		-- Sorties
 		--------------------------------------------------------------------------------
 
-   SORTIES : process( e, plan, port_pick, port_purpose, lane_pick, free_count, RECOVERY_i, ROB_HEAD_i )
+   SORTIES : process( e, plan, port_pick, port_purpose, lane_pick, free_count, RECOVERY_i, ROB_HEAD_i, capture_pick,
+                      DCACHE_READY_i )
       variable rq	: mem_request_t;
       variable rs	: exec_result_t;
       variable i	: natural;
@@ -317,7 +344,9 @@ begin
                rs.value := e( i ).value;
                rs.completion.valid := '1';
                rs.completion.rob_index := e( i ).rob_index;
-               if e( i ).fault /= 0 then
+               if e( i ).kind = K_FILL then					-- FILL : valeur seule
+                  rs.completion.valid := '0'; rs.destination_valid := '1';
+               elsif e( i ).fault /= 0 then
                   rs.completion.fault := ( valid => '1', code => to_unsigned( e( i ).fault, 8 ) );
                elsif e( i ).kind = K_LOAD or e( i ).kind = K_LIVA then
                   rs.destination_valid := '1';
@@ -327,9 +356,29 @@ begin
          RESULT_o( l ) <= rs;
       end loop;
 
-      mc := MIN( 8, free_count );
+      -- deux entrées réservées aux échanges
+      if free_count >= STACK_XFER_WIDTH then mc := MIN( 8, free_count - STACK_XFER_WIDTH ); else mc := 0; end if;
       MEMORY_CAPACITY_o <= to_unsigned( mc, MEMORY_CAPACITY_o'length );
-      COMPLEX_CAPACITY_o <= to_unsigned( MIN( 8, free_count - mc ), COMPLEX_CAPACITY_o'length );
+      if free_count >= STACK_XFER_WIDTH + mc then
+         COMPLEX_CAPACITY_o <= to_unsigned( MIN( 8, free_count - STACK_XFER_WIDTH - mc ), COMPLEX_CAPACITY_o'length );
+      else
+         COMPLEX_CAPACITY_o <= ( others => '0' );
+      end if;
+      if free_count >= STACK_XFER_WIDTH then STACK_XFER_READY_o <= '1'; else STACK_XFER_READY_o <= '0'; end if;
+      for c in 0 to CAPTURES - 1 loop						-- données de SPILL
+         if capture_pick( c ) >= 0 then
+            READ_TAGS_o( c / MAX_SOURCE_COUNT )( c mod MAX_SOURCE_COUNT ) <= e( capture_pick( c ) ).data_tag;
+         else
+            READ_TAGS_o( c / MAX_SOURCE_COUNT )( c mod MAX_SOURCE_COUNT ) <= ( others => '0' );
+         end if;
+      end loop;
+      -- rangement par pointeur écrit ce cycle : STACK_INVALIDATE_o( 0 )
+      STACK_INVALIDATE_o <= ( others => ( valid => '0', address => ( others => '0' ), rob_index => ( others => '0' ) ) );
+      if port_pick( 0 ) >= 0 and port_purpose = P_WRITE and DCACHE_READY_i( 0 ) = '1'
+         and e( port_pick( 0 ) ).ptr_store then
+         STACK_INVALIDATE_o( 0 ) <= ( valid => '1', address => e( port_pick( 0 ) ).ea,
+                                      rob_index => e( port_pick( 0 ) ).rob_index );
+      end if;
       ENTRY_COUNT_o <= DEPTH_G - free_count;
       drained := '1';
       for j in 0 to DEPTH_G - 1 loop
@@ -338,12 +387,9 @@ begin
       DRAINED_o <= drained;
    end process;
 
-   -- première étape : cache de pile et instructions de bloc inactifs
-   STACK_XFER_READY_o	<= '1';
+   -- étape R2 du renommage : cache de pile en écriture différée
    WRITERS_IN_FLIGHT_o	<= '0';
    STACK_LOOKUP_o	<= ( others => ( valid => '0', address => ( others => '0' ), rob_index => ( others => '0' ) ) );
-   STACK_INVALIDATE_o	<= ( others => ( valid => '0', address => ( others => '0' ), rob_index => ( others => '0' ) ) );
-   READ_TAGS_o		<= ( others => ( others => ( others => '0' ) ) );
 
 		--------------------------------------------------------------------------------
 		-- Au front
@@ -361,9 +407,29 @@ begin
       variable ins		: renamed_instruction_t;
       variable free		: std_logic_vector( 0 to DEPTH_G - 1 );
 
+      -- une entrée neuve, champs remis à zéro
+      procedure NEW_ENTRY( idx : natural; rob : rob_index_t ) is
+      begin
+         v( idx ) := e( idx );
+         v( idx ).valid := '1';
+         v( idx ).gen := ( e( idx ).gen + 1 ) mod 256;
+         v( idx ).rob_index := rob;
+         v( idx ).kind := K_LOAD; v( idx ).fam_c := false; v( idx ).sz := 3; v( idx ).sgn := false;
+         v( idx ).ofs := 0; v( idx ).tag := ( others => '0' );
+         v( idx ).cell_known := false; v( idx ).ea_known := false; v( idx ).ptr_done := false;
+         v( idx ).data_known := false; v( idx ).fst_done := false; v( idx ).lst_done := false;
+         v( idx ).probed := false; v( idx ).busy := false; v( idx ).ready := false; v( idx ).fault := 0;
+         v( idx ).reported := false; v( idx ).committed := false; v( idx ).cseq := 0;
+         v( idx ).data_ready := false; v( idx ).wlen := ( others => '0' ); v( idx ).ptr_store := false;
+      end procedure;
+
       -- une valeur lue (cache ou transfert) fait avancer l'entrée
       procedure TAKE_READ( idx : natural; pur : purpose_t; raw : word64_t; flt : boolean ) is
       begin
+         if flt and v( idx ).kind = K_FILL then
+            v( idx ).value := ( others => '0' ); v( idx ).ready := true;	-- FILL : 0, sans faute
+            return;
+         end if;
          if flt then
             v( idx ).fault := 132; v( idx ).ready := true;
             return;
@@ -453,7 +519,8 @@ begin
             for l in 0 to MEMORY_LANES - 1 loop
                if EXEC_i( l ).valid = '1' then
                   for j in 0 to DEPTH_G - 1 loop
-                     if v( j ).valid = '1' and not v( j ).committed and v( j ).rob_index = EXEC_i( l ).rob_index then
+                     if v( j ).valid = '1' and not v( j ).committed and v( j ).rob_index = EXEC_i( l ).rob_index
+                        and v( j ).kind /= K_SPILL and v( j ).kind /= K_FILL and v( j ).kind /= K_BARRIER then
                         if v( j ).fam_c then
                            v( j ).cell := EXEC_i( l ).address; v( j ).cell_known := true;
                         else
@@ -466,6 +533,35 @@ begin
                   end loop;
                end if;
             end loop;
+
+            -- SPILL : données capturées, réveils
+            for cpt in 0 to CAPTURES - 1 loop
+               if capture_pick( cpt ) >= 0 then
+                  i := capture_pick( cpt );
+                  if v( i ).valid = '1' and v( i ).kind = K_SPILL then
+                     v( i ).data := READ_DATA_i( cpt / MAX_SOURCE_COUNT )( cpt mod MAX_SOURCE_COUNT );
+                     v( i ).data_known := true;
+                  end if;
+               end if;
+            end loop;
+            for j in 0 to DEPTH_G - 1 loop
+               if v( j ).valid = '1' and v( j ).kind = K_SPILL and not v( j ).data_ready then
+                  for w in WAKEUP_i'range loop
+                     if WAKEUP_i( w ).valid = '1' and WAKEUP_i( w ).tag = v( j ).data_tag then v( j ).data_ready := true; end if;
+                  end loop;
+               end if;
+            end loop;
+
+            -- barrières : intervalle écrit
+            if RANGE_i.valid = '1' then
+               for j in 0 to DEPTH_G - 1 loop
+                  if v( j ).valid = '1' and v( j ).kind = K_BARRIER and v( j ).rob_index = RANGE_i.rob_index then
+                     v( j ).ea := RANGE_i.write_base; v( j ).ea_known := true;
+                     if RANGE_i.write_valid = '1' then v( j ).wlen := RANGE_i.write_length;
+                     else v( j ).wlen := ( others => '0' ); end if;
+                  end if;
+               end loop;
+            end if;
 
             -- fins acquises : rangement, CHK
             for j in 0 to DEPTH_G - 1 loop
@@ -498,11 +594,14 @@ begin
 
             -- retrait des rangements : validés
             for r in 0 to RETIRE_WIDTH - 1 loop
-               if RETIRE_i( r ).valid = '1' and RETIRE_i( r ).is_store = '1' then
+               if RETIRE_i( r ).valid = '1' then
                   for j in 0 to DEPTH_G - 1 loop
-                     if v( j ).valid = '1' and not v( j ).committed and v( j ).kind = K_STORE
-                        and v( j ).rob_index = RETIRE_i( r ).rob_index then
-                        v( j ).committed := true; v( j ).cseq := cs; cs := cs + 1;
+                     if v( j ).valid = '1' and not v( j ).committed and v( j ).rob_index = RETIRE_i( r ).rob_index then
+                        if ( v( j ).kind = K_STORE and RETIRE_i( r ).is_store = '1' ) or v( j ).kind = K_SPILL then
+                           v( j ).committed := true; v( j ).cseq := cs; cs := cs + 1;
+                        elsif v( j ).kind = K_BARRIER then
+                           v( j ).valid := '0';					-- fin de la barrière
+                        end if;
                      end if;
                   end loop;
                end if;
@@ -518,12 +617,12 @@ begin
                end loop;
             end if;
 
-            -- réservations (dans les entrées libres au début du cycle)
+            -- réservations, barrières et échanges, dans les entrées libres au début du cycle
+            for j in 0 to DEPTH_G - 1 loop
+               free( j ) := not e( j ).valid;
+            end loop;
+            slot := 0;
             if MEMORY_INSERT_VALID_i = '1' then
-               for j in 0 to DEPTH_G - 1 loop
-                  free( j ) := not e( j ).valid;
-               end loop;
-               slot := 0;
                for b in 0 to RENAME_WIDTH - 1 loop
                   if b < MEMORY_INSERT_COUNT_i then
                      ins := MEMORY_INSERT_BLOCK_i( b );
@@ -533,10 +632,7 @@ begin
                      -- pragma translate_on
                      if not ABANDONED( ins.rob_index, RECOVERY_i, ROB_HEAD_i ) then
                         op := ins.slot.canon.op;
-                        v( slot ) := e( slot );
-                        v( slot ).valid := '1';
-                        v( slot ).gen := ( e( slot ).gen + 1 ) mod 256;
-                        v( slot ).rob_index := ins.rob_index;
+                        NEW_ENTRY( slot, ins.rob_index );
                         v( slot ).fam_c := op( 7 downto 6 ) = "10";
                         v( slot ).sz := to_integer( unsigned( op( 1 downto 0 ) ) );
                         v( slot ).sgn := op( 5 downto 4 ) = "01";
@@ -547,7 +643,7 @@ begin
                         elsif op( 3 downto 2 ) = "11" then v( slot ).kind := K_CHK;
                         else v( slot ).kind := K_LOAD;
                         end if;
-                        v( slot ).cell_known := false; v( slot ).ea_known := false;
+                        v( slot ).ptr_store := v( slot ).kind = K_STORE and ( v( slot ).fam_c or ins.address_known = '0' );
                         if ins.address_known = '1' then
                            if v( slot ).fam_c then
                               v( slot ).cell := ins.address; v( slot ).cell_known := true;
@@ -555,15 +651,58 @@ begin
                               v( slot ).ea := ins.address; v( slot ).ea_known := true;
                            end if;
                         end if;
-                        v( slot ).ptr_done := false; v( slot ).data_known := false;
-                        v( slot ).fst_done := false; v( slot ).lst_done := false; v( slot ).probed := false;
-                        v( slot ).busy := false; v( slot ).ready := false; v( slot ).fault := 0;
-                        v( slot ).reported := false; v( slot ).committed := false; v( slot ).cseq := 0;
                      end if;
                      free( slot ) := '0';
                   end if;
                end loop;
             end if;
+            if COMPLEX_INSERT_VALID_i = '1' then					-- barrières : COMPLEX qui écrit
+               for b in 0 to RENAME_WIDTH - 1 loop
+                  if b < COMPLEX_INSERT_COUNT_i then
+                     ins := COMPLEX_INSERT_BLOCK_i( b );
+                     op := ins.slot.canon.op;
+                     if ( op = x"34" or op = x"3C" or op = x"3D" or op = x"3E" or op = x"3F" or op = x"44"
+                          or op = x"48" or op = x"45" or op = x"49" )
+                        and not ABANDONED( ins.rob_index, RECOVERY_i, ROB_HEAD_i ) then
+                        while slot < DEPTH_G and free( slot ) = '0' loop slot := slot + 1; end loop;
+                        -- pragma translate_off
+                        assert slot < DEPTH_G report "LSQ : barrière au-delà de la capacité" severity failure;
+                        -- pragma translate_on
+                        NEW_ENTRY( slot, ins.rob_index );
+                        v( slot ).kind := K_BARRIER;
+                        free( slot ) := '0';
+                     end if;
+                  end if;
+               end loop;
+            end if;
+            for x in 0 to STACK_XFER_WIDTH - 1 loop					-- échanges
+               if STACK_XFER_i( x ).valid = '1' and not ABANDONED( STACK_XFER_i( x ).rob_index, RECOVERY_i, ROB_HEAD_i ) then
+                  while slot < DEPTH_G and free( slot ) = '0' loop slot := slot + 1; end loop;
+                  -- pragma translate_off
+                  assert slot < DEPTH_G report "LSQ : échange au-delà de la capacité" severity failure;
+                  -- pragma translate_on
+                  NEW_ENTRY( slot, STACK_XFER_i( x ).rob_index );
+                  v( slot ).sz := 3;
+                  v( slot ).ea := STACK_XFER_i( x ).address; v( slot ).ea_known := true;
+                  if STACK_XFER_i( x ).kind = XFER_SPILL then
+                     v( slot ).kind := K_SPILL;
+                     v( slot ).data_tag := STACK_XFER_i( x ).tag;
+                     v( slot ).data_ready := STACK_XFER_i( x ).ready = '1';
+                     for w in WAKEUP_i'range loop
+                        if WAKEUP_i( w ).valid = '1' and WAKEUP_i( w ).tag = STACK_XFER_i( x ).tag then
+                           v( slot ).data_ready := true;
+                        end if;
+                     end loop;
+                     if STACK_XFER_i( x ).committed = '1' then
+                        v( slot ).committed := true; v( slot ).cseq := cs; cs := cs + 1;
+                     end if;
+                  else
+                     v( slot ).kind := K_FILL;
+                     v( slot ).tag := STACK_XFER_i( x ).tag;
+                  end if;
+                  free( slot ) := '0';
+               end if;
+            end loop;
 
             e <= v; fifo <= f; fhead <= fh; fcount <= fc; next_cseq <= cs;
          end if;

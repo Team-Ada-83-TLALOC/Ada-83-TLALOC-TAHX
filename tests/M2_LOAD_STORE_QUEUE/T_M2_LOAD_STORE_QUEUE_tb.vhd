@@ -46,15 +46,19 @@ architecture			TEST
 of T_M2_LOAD_STORE_QUEUE_tb is
 
    constant PERIOD		: time		:= 10 ns;
-   constant CYCLES		: positive	:= 30000;
+   constant DEPTH		: positive	:= 32;				-- profondeur de la LSQ du banc
+   constant CYCLES		: positive	:= 45000;
    constant DRAIN_MAX		: positive	:= 5000;
    constant STALL_MAX		: positive	:= 1500;
    constant SEED_1		: positive	:= 1871;
    constant SEED_2		: positive	:= 1914;
    constant WIN		: positive	:= 512;				-- numéros en vol, modulo WIN
    constant HOT		: natural	:= DATA_BASE + 8 * POINTER_WORDS;	-- zone chaude, 128 octets
+   constant STK		: natural	:= DATA_BASE + 2048;			-- zone de pile, 64 mots
+   type word_array_t		is array( 0 to 2 ** PHYSICAL_TAG_BITS - 1 ) of word64_t;
 
-   type kind_t			is ( K_LOAD, K_STORE, K_LIVA, K_CHK );
+   type kind_t			is ( K_LOAD, K_STORE, K_LIVA, K_CHK, K_PUSH, K_POP, K_BAR );
+   type bytes32_t		is array( 0 to 31 ) of byte_t;
 
    type ins_t			is record
 			  live		: boolean;			-- en vol (ni retirée, ni abandonnée)
@@ -74,6 +78,12 @@ of T_M2_LOAD_STORE_QUEUE_tb is
 			  st_addr		: natural;			-- décalage dans la zone
 			  st_size		: natural;
 			  st_data		: word64_t;
+			  ptr		: boolean;			-- rangement par pointeur : STACK_INVALIDATE
+			  tag2		: physical_tag_t;		-- PUSH : registre du SPILL ; POP : du FILL
+			  produce_at	: natural;			-- PUSH : réveil du registre
+			  bar_len		: natural;			-- barrière : intervalle écrit
+			  bar_bytes	: bytes32_t;
+			  bar_phase	: natural;			-- 0 attente, 1 écriture, 2 faite
 			end record;
    type ins_array_t		is array( 0 to WIN - 1 ) of ins_t;
 
@@ -93,13 +103,25 @@ of T_M2_LOAD_STORE_QUEUE_tb is
    signal dc_ready		: std_logic_vector( 0 to MEMORY_LANES - 1 );
    signal dc_rsp		: mem_response_bus_t( 0 to MEMORY_LANES - 1 );
    signal drained		: std_logic;
-   signal entries		: natural range 0 to LSQ_DEPTH;
+   signal entries		: natural range 0 to DEPTH;
    signal memory		: data_memory_t;
    signal reads, writes, probes : natural;
    signal xfer_ready, wif	: std_logic;
    signal lookup		: stack_lookup_request_bus_t( 0 to MEMORY_LANES - 1 );
    signal invalidate		: stack_invalidate_bus_t( 0 to MEMORY_LANES - 1 );
    signal read_tags		: read_tags_bus_t( 0 to MEMORY_LANES - 1 );
+   signal read_data		: read_data_bus_t( 0 to MEMORY_LANES - 1 );
+   signal prf			: word_array_t := ( others => ( others => '0' ) );
+   signal xfer			: stack_xfer_bus_t;
+   signal wakeup		: wakeup_bus_t( 0 to RESULT_PORTS - 1 ) := ( others => ( valid => '0', tag => ( others => '0' ) ) );
+   signal rng			: memory_range_t;
+   signal cpx_valid		: std_logic := '0';
+   signal cpx_block		: renamed_block_t;
+   signal cpx_count		: dispatch_count_t := ( others => '0' );
+   signal all_req		: mem_request_bus_t( 0 to MEMORY_LANES );	-- port MEMORY_LANES : COMPLEX joué
+   signal all_ready		: std_logic_vector( 0 to MEMORY_LANES );
+   signal all_rsp		: mem_response_bus_t( 0 to MEMORY_LANES );
+   signal tb_req		: mem_request_t := NO_MEM_REQUEST;
 
    constant NO_EXEC		: lsq_exec_t := ( valid => '0', rob_index => ( others => '0' ), address => ( others => '0' ),
 					  data => ( others => '0' ) );
@@ -112,34 +134,45 @@ of T_M2_LOAD_STORE_QUEUE_tb is
 begin
 
    DUT : entity work.LOAD_STORE_QUEUE
+      generic map ( DEPTH_G => DEPTH )				-- le sommet : LSQ_DEPTH
       port map (
          CLK_i => clk, RESET_i => reset,
          MEMORY_INSERT_VALID_i => ins_valid, MEMORY_INSERT_BLOCK_i => ins_block, MEMORY_INSERT_COUNT_i => ins_count,
          MEMORY_CAPACITY_o => mem_cap,
-         COMPLEX_INSERT_VALID_i => '0', COMPLEX_INSERT_BLOCK_i => ins_block, COMPLEX_INSERT_COUNT_i => ( others => '0' ),
+         COMPLEX_INSERT_VALID_i => cpx_valid, COMPLEX_INSERT_BLOCK_i => cpx_block, COMPLEX_INSERT_COUNT_i => cpx_count,
          COMPLEX_CAPACITY_o => cpx_cap,
-         EXEC_i => exec, RANGE_i => ( valid => '0', rob_index => ( others => '0' ), read_valid => '0',
-                                      read_base => ( others => '0' ), read_length => ( others => '0' ),
-                                      write_valid => '0', write_base => ( others => '0' ),
-                                      write_length => ( others => '0' ) ),
-         STACK_XFER_i => ( others => ( valid => '0', kind => stack_xfer_kind_t'low, address => ( others => '0' ),
-                                       tag => ( others => '0' ), rob_index => ( others => '0' ), committed => '0' ) ),
+         EXEC_i => exec, RANGE_i => rng,
+         STACK_XFER_i => xfer,
          STACK_XFER_READY_o => xfer_ready,
          STACK_LOOKUP_o => lookup,
          STACK_LOOKUP_i => ( others => ( valid => '0', hit => '0', tag => ( others => '0' ) ) ),
          STACK_INVALIDATE_o => invalidate, WRITERS_IN_FLIGHT_o => wif,
-         READ_TAGS_o => read_tags, READ_DATA_i => ( others => ( others => ( others => '0' ) ) ),
-         WAKEUP_i => ( others => ( valid => '0', tag => ( others => '0' ) ) ),
+         READ_TAGS_o => read_tags, READ_DATA_i => read_data,
+         WAKEUP_i => wakeup,
          RESULT_o => results,
          ROB_HEAD_i => rob_head, RETIRE_i => retire, RECOVERY_i => recovery,
          DCACHE_REQ_o => dc_req, DCACHE_READY_i => dc_ready, DCACHE_RSP_i => dc_rsp,
          DRAINED_o => drained, ENTRY_COUNT_o => entries );
 
+   all_req( 0 to MEMORY_LANES - 1 ) <= dc_req;
+   all_req( MEMORY_LANES ) <= tb_req;
+   dc_ready <= all_ready( 0 to MEMORY_LANES - 1 );
+   dc_rsp <= all_rsp( 0 to MEMORY_LANES - 1 );
+
    CACHE : entity work.MODELE_CACHE_DONNEES
-      generic map ( PORTS_G => MEMORY_LANES, LATENCY_MIN_G => 1, LATENCY_MAX_G => 8, READY_PROB_G => 0.8,
+      generic map ( PORTS_G => MEMORY_LANES + 1, LATENCY_MIN_G => 1, LATENCY_MAX_G => 8, READY_PROB_G => 0.8,
                     SEED_1_G => 31, SEED_2_G => 32 )
-      port map ( CLK_i => clk, REQ_i => dc_req, READY_o => dc_ready, RSP_o => dc_rsp, MEMORY_o => memory,
+      port map ( CLK_i => clk, REQ_i => all_req, READY_o => all_ready, RSP_o => all_rsp, MEMORY_o => memory,
                  READS_o => reads, WRITES_o => writes, PROBES_o => probes );
+
+   FICHIER : process( read_tags, prf )						-- données des SPILL
+   begin
+      for ln in 0 to MEMORY_LANES - 1 loop
+         for sr in 0 to MAX_SOURCE_COUNT - 1 loop
+            read_data( ln )( sr ) <= prf( to_integer( read_tags( ln )( sr ) ) );
+         end loop;
+      end loop;
+   end process;
 
    clk <= not clk after PERIOD / 2 when running;
 
@@ -178,7 +211,25 @@ begin
       variable found		: integer;
       variable ok, generating, stalled : boolean;
       variable now		: natural := 0;
-      variable n_cover, n_partial, n_ptr_update : natural := 0;				-- recouvrements à la génération
+      variable n_cover, n_partial, n_ptr_update : natural := 0;
+      variable u		: real;
+      variable n_push, n_pop, n_pop_fwd, n_bar, n_bar_hold, n_inval, n_fill_checked : natural := 0;
+      variable xf		: stack_xfer_bus_t;
+      variable cb		: renamed_block_t;
+      variable ncpx		: natural;
+      variable wk		: wakeup_bus_t( 0 to RESULT_PORTS - 1 );
+      variable nwk		: natural;
+      variable rg		: memory_range_t;
+      type inval_t		is record
+			  address	: address_t;
+			  rob		: rob_index_t;
+			end record;
+      type inval_list_t		is array( 0 to 63 ) of inval_t;
+      variable inval		: inval_list_t;				-- invalidations attendues
+      variable ninval		: natural := 0;
+      variable tb_wait		: boolean := false;			-- écriture de barrière en vol
+      variable bar_k		: natural := 0;
+      variable treq		: mem_request_t;				-- recouvrements à la génération
       variable n_checked, n_unchecked, n_load, n_store, n_c, n_liva, n_chk, n_131, n_132, n_rec_c, n_rec_k : natural := 0;
 
       impure function RAND return real is
@@ -224,6 +275,8 @@ begin
       begin
          if u < 0.88 then							-- zone chaude, 64 octets
             return to_unsigned( HOT + 8 * RAND_INT( 7 ) + RAND_INT( 7 ), 64 );
+         elsif u < 0.93 then							-- zone de pile (SPILL, FILL)
+            return to_unsigned( STK + RAND_INT( 512 - n ), 64 );
          elsif u < 0.98 then							-- zone, hors cellules pointeurs
             return to_unsigned( HOT + RAND_INT( DATA_SIZE - 8 * POINTER_WORDS - n ), 64 );
          elsif u < 0.99 then							-- à cheval sur la fin
@@ -242,16 +295,78 @@ begin
             x := n mod WIN;
             if q( x ).live then
                if q( x ).exp_fault /= 0 then poisoned := true; end if;
-               if q( x ).kind = K_STORE and q( x ).st_ok and not poisoned then
+               if ( q( x ).kind = K_STORE or q( x ).kind = K_PUSH ) and q( x ).st_ok and not poisoned then
                   for i in 0 to q( x ).st_size - 1 loop
                      spec( q( x ).st_addr + i ) := q( x ).st_data( 8 * i + 7 downto 8 * i );
                   end loop;
+               elsif q( x ).kind = K_BAR and not poisoned then
+                  for i in 0 to q( x ).bar_len - 1 loop spec( q( x ).st_addr + i ) := q( x ).bar_bytes( i ); end loop;
                end if;
             end if;
          end loop;
       end procedure;
 
       -- une instruction : opcode, sources, résultat attendu (exécution séquentielle)
+      -- une pseudo-instruction : empilement (SPILL), dépilement (FILL) ou barrière
+      procedure GENERATE_PSEUDO( which : natural ) is
+         variable e		: ins_t;
+         variable a		: natural;
+      begin
+         e.live := true; e.done := false; e.got_fault := false; e.fam_c := false; e.ptr := false;
+         e.exp_fault := 0; e.exp_value := ( others => '0' ); e.ex_sent := true; e.ex_due := 0;
+         e.ex_addr := ( others => '0' ); e.ex_data := ( others => '0' ); e.tag := ( others => '0' );
+         e.st_ok := false; e.st_addr := 0; e.st_size := 8; e.st_data := ( others => '0' );
+         e.bar_len := 0; e.bar_phase := 0; e.produce_at := 0;
+         e.checked := not poisoned;
+         next_tag := ( next_tag + 1 ) mod 512;
+         e.tag2 := to_unsigned( next_tag, PHYSICAL_TAG_BITS );
+         a := STK - DATA_BASE + 8 * RAND_INT( 63 );
+         if which = 0 then							-- PUSH
+            e.kind := K_PUSH; e.st_ok := true; e.st_addr := a; e.st_data := RAND_WORD;
+            if RAND < 0.3 then
+               prf( to_integer( e.tag2 ) ) <= e.st_data; e.done := true;		-- déjà réveillé
+               xf( 0 ) := ( valid => '1', kind => XFER_SPILL, address => to_unsigned( DATA_BASE + a, 64 ), tag => e.tag2,
+                            rob_index => ROB( next_seq ), committed => '0', ready => '1' );
+            else
+               e.produce_at := now + 1 + RAND_INT( 10 );
+               if RAND < 0.2 then e.produce_at := now; end if;			-- réveil au cycle même du SPILL
+               xf( 0 ) := ( valid => '1', kind => XFER_SPILL, address => to_unsigned( DATA_BASE + a, 64 ), tag => e.tag2,
+                            rob_index => ROB( next_seq ), committed => '0', ready => '0' );
+            end if;
+            if not poisoned then
+               for bt in 0 to 7 loop spec( a + bt ) := e.st_data( 8 * bt + 7 downto 8 * bt ); end loop;
+            end if;
+            n_push := n_push + 1;
+         elsif which = 1 then							-- POP
+            e.kind := K_POP;
+            if RAND < 0.03 then a := DATA_SIZE - 4; end if;			-- adresse invalide : 0
+            if IN_ZONE( to_unsigned( DATA_BASE + a, 64 ), 8 ) then e.exp_value := READ_SPEC( to_unsigned( DATA_BASE + a, 64 ), 8, false ); end if;
+            for older in next_seq - 1 downto head_seq loop			-- un SPILL plus ancien en vol ?
+               if q( older mod WIN ).live and q( older mod WIN ).kind = K_PUSH and q( older mod WIN ).st_addr = a then
+                  n_pop_fwd := n_pop_fwd + 1; exit;
+               end if;
+            end loop;
+            xf( 0 ) := ( valid => '1', kind => XFER_FILL, address => to_unsigned( DATA_BASE + a, 64 ), tag => e.tag2,
+                         rob_index => ROB( next_seq ), committed => '0', ready => '0' );
+            n_pop := n_pop + 1;
+         else									-- barrière (BLKMOV en tête)
+            e.kind := K_BAR;
+            e.bar_len := RAND_INT( 24 );
+            if RAND < 0.15 then e.bar_len := 0; end if;
+            if RAND < 0.5 then e.st_addr := STK - DATA_BASE + RAND_INT( 512 - 24 );
+            else e.st_addr := HOT - DATA_BASE + RAND_INT( 128 - 24 ); end if;
+            for bt in 0 to 31 loop e.bar_bytes( bt ) := std_logic_vector( to_unsigned( RAND_INT( 255 ), 8 ) ); end loop;
+            if not poisoned then
+               for bt in 0 to e.bar_len - 1 loop spec( e.st_addr + bt ) := e.bar_bytes( bt ); end loop;
+            end if;
+            cb( 0 ).slot.canon := CANON_NOP; cb( 0 ).slot.canon.op := x"34"; cb( 0 ).rob_index := ROB( next_seq );
+            ncpx := 1;
+            n_bar := n_bar + 1;
+         end if;
+         q( next_seq mod WIN ) := e;
+         next_seq := next_seq + 1;
+      end procedure;
+
       procedure GENERATE_ONE( i : natural ) is
          variable u		: real := RAND;
          variable sz, n	: natural;
@@ -292,6 +407,7 @@ begin
             when K_STORE => op( 3 downto 2 ) := "01"; op( 5 downto 4 ) := "10";
             when K_LIVA  => op( 3 downto 2 ) := "01"; op( 5 downto 4 ) := "00";
             when K_CHK   => op( 3 downto 2 ) := "11"; if signed_mode then op( 5 downto 4 ) := "01"; else op( 5 downto 4 ) := "11"; end if;
+            when others  => null;						-- pseudo-instructions
          end case;
          op( 1 downto 0 ) := std_logic_vector( to_unsigned( sz, 2 ) );
          ofs := RAND_INT( 255 );
@@ -350,6 +466,14 @@ begin
                when K_LOAD =>
                   if IN_ZONE( ea, n ) then e.exp_value := READ_SPEC( ea, n, signed_mode ); else fault := 132; end if;
                   n_load := n_load + 1;
+                  for older in next_seq - 1 downto head_seq loop
+                     x := older mod WIN;
+                     if q( x ).live and q( x ).kind = K_BAR and q( x ).bar_len > 0
+                        and ea < to_unsigned( DATA_BASE + q( x ).st_addr + q( x ).bar_len, 64 )
+                        and to_unsigned( DATA_BASE + q( x ).st_addr, 64 ) < ea + n then
+                        n_bar_hold := n_bar_hold + 1; exit;
+                     end if;
+                  end loop;
                   -- couverture : le plus jeune rangement en vol qui recouvre ce chargement
                   if fault = 0 and not poisoned then
                      for older in next_seq - 1 downto head_seq loop
@@ -400,6 +524,7 @@ begin
                   end if;
                   e.ex_data := v;
                   n_chk := n_chk + 1;
+               when others => null;
             end case;
          elsif e.kind = K_STORE then
             e.ex_data := RAND_WORD;
@@ -407,6 +532,8 @@ begin
             e.ex_data := RAND_WORD;
          end if;
 
+         e.ptr := e.kind = K_STORE and ( e.fam_c or not known );
+         e.bar_len := 0; e.bar_phase := 0; e.produce_at := 0; e.tag2 := ( others => '0' );
          e.exp_fault := fault;
          e.checked := not poisoned;
          e.live := true; e.done := false; e.got_fault := false;
@@ -436,6 +563,7 @@ begin
                        address_known => '0', address => ( others => '0' ),
                        stack_cache_hit => '0', checkpoint_valid => '0', checkpoint => ( others => '0' ) );
       end loop;
+      cb := blk;
       for i in ret'range loop
          ret( i ) := ( valid => '0', rob_index => ( others => '0' ), pc => ( others => '0' ), is_store => '0',
                        is_control => '0', conditional => '0', taken => '0', target => ( others => '0' ),
@@ -507,6 +635,55 @@ begin
          ins_block <= blk;
          ins_count <= to_unsigned( nb, ins_count'length );
          ins_valid <= B( nb > 0 );
+         xf := ( others => ( valid => '0', kind => XFER_SPILL, address => ( others => '0' ), tag => ( others => '0' ),
+                             rob_index => ( others => '0' ), committed => '0', ready => '0' ) );
+         ncpx := 0;
+         if generating and xfer_ready = '1' and RAND < 0.35 and next_seq + 1 - head_seq < ROB_SIZE - 8 then
+            u := RAND;
+            if u < 0.45 then GENERATE_PSEUDO( 0 );
+            elsif u < 0.85 then GENERATE_PSEUDO( 1 );
+            elsif to_integer( cpx_cap ) >= 1 then GENERATE_PSEUDO( 2 );
+            end if;
+         end if;
+         xfer <= xf;
+         cpx_block <= cb; cpx_count <= to_unsigned( ncpx, cpx_count'length ); cpx_valid <= B( ncpx > 0 );
+
+		-- les producteurs des valeurs empilées : réveil (le fichier est écrit en même temps)
+         wk := ( others => ( valid => '0', tag => ( others => '0' ) ) ); nwk := 0;
+         for sq2 in head_seq to next_seq - 1 loop
+            x := sq2 mod WIN;
+            if nwk < RESULT_PORTS and q( x ).live and q( x ).kind = K_PUSH and not q( x ).done and q( x ).produce_at <= now then
+               prf( to_integer( q( x ).tag2 ) ) <= q( x ).st_data;
+               wk( nwk ) := ( valid => '1', tag => q( x ).tag2 ); nwk := nwk + 1;
+               q( x ).done := true;
+            end if;
+         end loop;
+         wakeup <= wk;
+
+		-- COMPLEX_UNIT joué : la barrière en tête, LSQ vide, émet RANGE_i puis écrit
+         rg := ( valid => '0', rob_index => ( others => '0' ), read_valid => '0', read_base => ( others => '0' ),
+                 read_length => ( others => '0' ), write_valid => '0', write_base => ( others => '0' ),
+                 write_length => ( others => '0' ) );
+         treq := NO_MEM_REQUEST;
+         x := head_seq mod WIN;
+         if head_seq < next_seq and q( x ).live and q( x ).kind = K_BAR then
+            if q( x ).bar_phase = 0 and drained = '1' and rec.valid = '0' then
+               rg := ( valid => '1', rob_index => ROB( head_seq ), read_valid => '0', read_base => ( others => '0' ),
+                       read_length => ( others => '0' ), write_valid => '1',
+                       write_base => to_unsigned( DATA_BASE + q( x ).st_addr, 64 ),
+                       write_length => to_unsigned( q( x ).bar_len, 64 ) );
+               q( x ).bar_phase := 1; bar_k := 0; tb_wait := false;
+            elsif q( x ).bar_phase = 1 then
+               if bar_k >= q( x ).bar_len and not tb_wait then
+                  q( x ).bar_phase := 2; q( x ).done := true;
+               elsif not tb_wait then
+                  treq := ( valid => '1', write => '1', probe => '0',
+                            address => to_unsigned( DATA_BASE + q( x ).st_addr + bar_k, 64 ), size => "00",
+                            wdata => x"00000000000000" & q( x ).bar_bytes( bar_k ) );
+               end if;
+            end if;
+         end if;
+         rng <= rg; tb_req <= treq;
 
 		-- ADDRESS_UNIT : adresses et données échues (jamais pour une instruction abandonnée)
          ex := ( others => NO_EXEC );
@@ -527,7 +704,33 @@ begin
 
 		-- résultats
          for l in 0 to MEMORY_LANES - 1 loop
-            if results( l ).valid = '1' then
+            if results( l ).valid = '1' and results( l ).completion.valid = '0' then	-- FILL
+               found := -1;
+               for sq2 in head_seq to next_seq - 1 loop
+                  x := sq2 mod WIN;
+                  if q( x ).live and q( x ).kind = K_POP and not q( x ).done and q( x ).tag2 = results( l ).destination then
+                     found := sq2;
+                  end if;
+               end loop;
+               if found < 0 then
+                  CHECK( c, false, "cycle " & integer'image( now ) & " : FILL d'aucun dépilement en attente" );
+               elsif rec.valid = '1' and ( rec.kind = RECOVER_COMMITTED or found > keep ) then
+                  CHECK( c, false, "cycle " & integer'image( now ) & " : FILL d'une instruction abandonnée" );
+               else
+                  x := found mod WIN;
+                  if q( x ).checked then
+                     if results( l ).destination_valid = '1' and results( l ).value = q( x ).exp_value then
+                        CHECK_PASSED( c );
+                     else
+                        CHECK( c, false, "cycle " & integer'image( now ) & ", FILL de l'instruction " & integer'image( found ),
+                               HEX( q( x ).exp_value ), HEX( results( l ).value ) );
+                     end if;
+                     n_fill_checked := n_fill_checked + 1;
+                  end if;
+                  q( x ).done := true;
+                  last_progress := now;
+               end if;
+            elsif results( l ).valid = '1' then
                found := -1;
                for sq2 in head_seq to next_seq - 1 loop
                   x := sq2 mod WIN;
@@ -576,21 +779,49 @@ begin
                end if;
             end if;
          end loop;
-         if mem_cap = to_unsigned( minimum( 8, LSQ_DEPTH - entries ), mem_cap'length )
-            and cpx_cap = to_unsigned( minimum( 8, LSQ_DEPTH - entries - to_integer( mem_cap ) ), cpx_cap'length ) then
+         -- invalidations : chacune attendue, une seule voie
+         if invalidate( 0 ).valid = '1' then
+            found := -1;
+            for i in 0 to ninval - 1 loop
+               if inval( i ).address = invalidate( 0 ).address and inval( i ).rob = invalidate( 0 ).rob_index then found := i; end if;
+            end loop;
+            if found < 0 then
+               CHECK( c, false, "cycle " & integer'image( now ) & " : STACK_INVALIDATE_o inattendue " & HEX( invalidate( 0 ).address ) );
+            else
+               CHECK_PASSED( c );
+               inval( found ) := inval( ninval - 1 ); ninval := ninval - 1; n_inval := n_inval + 1;
+            end if;
+         end if;
+         if invalidate( 1 ).valid = '1' then
+            CHECK( c, false, "cycle " & integer'image( now ) & " : STACK_INVALIDATE_o( 1 )" );
+         end if;
+         -- deux entrées réservées aux échanges
+         if mem_cap = to_unsigned( minimum( 8, maximum( 0, DEPTH - entries - STACK_XFER_WIDTH ) ), mem_cap'length )
+            and cpx_cap = to_unsigned( minimum( 8, maximum( 0, DEPTH - entries - STACK_XFER_WIDTH - to_integer( mem_cap ) ) ),
+                                       cpx_cap'length )
+            and xfer_ready = B( DEPTH - entries >= STACK_XFER_WIDTH ) then
             CHECK_PASSED( c );
          else
             CHECK( c, false, "cycle " & integer'image( now ) & " : capacités" );
          end if;
 
-		-- front : retrait, reprise
+		-- front : écriture de barrière, retrait, reprise
          wait until rising_edge( clk );
+         if treq.valid = '1' and all_ready( MEMORY_LANES ) = '1' then tb_wait := true; end if;
+         if all_rsp( MEMORY_LANES ).valid = '1' then tb_wait := false; bar_k := bar_k + 1; end if;
          for i in 0 to nret - 1 loop
             x := ( head_seq + i ) mod WIN;
-            if q( x ).kind = K_STORE and q( x ).st_ok then
+            if ( q( x ).kind = K_STORE or q( x ).kind = K_PUSH ) and q( x ).st_ok then
                for bt in 0 to q( x ).st_size - 1 loop
                   committed( q( x ).st_addr + bt ) := q( x ).st_data( 8 * bt + 7 downto 8 * bt );
                end loop;
+            end if;
+            if q( x ).kind = K_BAR then
+               for bt in 0 to q( x ).bar_len - 1 loop committed( q( x ).st_addr + bt ) := q( x ).bar_bytes( bt ); end loop;
+            end if;
+            if q( x ).kind = K_STORE and q( x ).st_ok and q( x ).ptr and ninval <= inval'high then
+               inval( ninval ) := ( address => to_unsigned( DATA_BASE + q( x ).st_addr, 64 ), rob => ROB( head_seq + i ) );
+               ninval := ninval + 1;
             end if;
             q( x ).live := false;
             last_progress := now;
@@ -622,6 +853,7 @@ begin
       if ok then CHECK_PASSED( c ); else
          CHECK( c, false, "mémoire du cache différente de la mémoire validée après vidange" );
       end if;
+      CHECK( c, ninval = 0, "toutes les invalidations attendues reçues (" & integer'image( ninval ) & " manquantes)" );
 
       running <= false;
       report "graines " & integer'image( SEED_1 ) & ", " & integer'image( SEED_2 ) & " ; résultats vérifiés "
@@ -634,7 +866,13 @@ begin
              & " ; cache : lectures "
              & integer'image( reads ) & ", écritures " & integer'image( writes ) & ", sondages " & integer'image( probes )
              severity note;
-      CHECK( c, n_checked > 5000 and n_cover > 300 and n_partial > 300 and n_131 > 100 and n_132 > 100 and n_rec_k > 50 and writes > 1000 and probes > 1000,
+      report "empilements " & integer'image( n_push ) & ", dépilements " & integer'image( n_pop ) & " (FILL vérifiés "
+             & integer'image( n_fill_checked ) & ", après un SPILL en vol " & integer'image( n_pop_fwd ) & ") ; barrières "
+             & integer'image( n_bar ) & ", chargements qui en recouvrent une " & integer'image( n_bar_hold )
+             & " ; invalidations " & integer'image( n_inval ) severity note;
+      CHECK( c, n_push > 1000 and n_pop > 800 and n_fill_checked > 400 and n_pop_fwd > 100 and n_bar > 150
+                and n_bar_hold > 30 and n_inval > 300, "le tirage a exercé SPILL, FILL, barrières et invalidations" );
+      CHECK( c, n_checked > 5000 and n_cover > 180 and n_partial > 300 and n_131 > 100 and n_132 > 100 and n_rec_k > 50 and writes > 1000 and probes > 1000,
              "le tirage a exercé chargements, rangements, fautes, reprises et le cache" );
       FINISH( c, "T_M2_LOAD_STORE_QUEUE_tb" );
       wait;

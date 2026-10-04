@@ -91,9 +91,9 @@ use work.RENAME_TYPES.all;
 		--     ancienne est oubliée (la mémoire a sa valeur). Un rangement direct (lvl
 		--     0..14) dans une cellule connue lui donne le registre de sa donnée.
 		--     Écrivains en vol : rangements par pointeur (lvl 1111, famille C), de leur
-		--     renommage à leur STACK_INVALIDATE_i (la LSQ l'émet au retrait, avec
-		--     l'adresse : la cellule est oubliée si son registre vient d'une instruction
-		--     plus ancienne) ; blocs qui écrivent et EXC_MACH, jusqu'à leur retrait (ils
+		--     renommage à leur STACK_INVALIDATE_i (la LSQ l'émet quand elle écrit le
+		--     rangement, après son retrait, avec l'adresse : la cellule est oubliée si
+		--     son registre vient d'une instruction plus ancienne) ; blocs qui écrivent et EXC_MACH, jusqu'à leur retrait (ils
 		--     invalident par STACK_MAINT_i) ; tous, jusqu'à leur abandon.
 		--
 		--  3. Pile des retours (aucune cohérence avec les accès du programme, spéc.

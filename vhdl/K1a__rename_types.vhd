@@ -152,6 +152,7 @@ is                              ------------
 			  tag		: physical_tag_t;		-- SPILL : source ; FILL : destination
 			  rob_index	: rob_index_t;		-- instruction qui a causé l'échange
 			  committed	: std_logic;
+			  ready		: std_logic;		-- SPILL : registre déjà réveillé
 			end record;
 
    type stack_xfer_bus_t		is array( 0 to STACK_XFER_WIDTH - 1 ) of stack_xfer_t;
