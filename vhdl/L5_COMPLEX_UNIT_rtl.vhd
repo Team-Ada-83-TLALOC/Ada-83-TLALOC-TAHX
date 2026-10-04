@@ -69,7 +69,7 @@ of COMPLEX_UNIT is		---
    signal frame_c		: frame_state_t;				-- EXC_MACH : DSP, RSP retirés
    signal fin_value		: word64_t;					-- résultat après l'invalidation
    signal fin_dest		: boolean;
-   signal fstep		: natural range 0 to 7;			-- accès du groupe frame
+   signal fstep		: natural range 0 to 31;			-- accès du groupe frame
    signal csp_c, csp_s		: address_t;
    signal hp_c, hp_s		: address_t;
 
@@ -381,7 +381,9 @@ begin
                               end if;
                            elsif IS_EXCM( op ) then
                               frame_c <= COMMITTED_FRAME_i;
-                              ranges( 0 ) <= ( base => instr.address + 16, length => to_unsigned( 40, 64 ) ); write_range <= 0;
+                              ranges( 0 ) <= ( base => instr.address + 16,		-- 5 mots, puis DISPLAY[0..lvl]
+                                               length => to_unsigned( 48 + 8 * to_integer( instr.slot.canon.lvl ), 64 ) );
+                              write_range <= 0;
                               state <= S_DRAIN;
                            else								-- UNLINK, UNLINKR : lecture de M64[CFP]
                               ranges( 0 ) <= ( base => cfp_s, length => to_unsigned( 8, 64 ) ); write_range <= -1;
@@ -581,6 +583,8 @@ begin
                            when 1 => MEM_ACCESS( ranges( 0 ).base + 8, 3, true, std_logic_vector( frame_c.rsp ) );
                            when 2 => MEM_ACCESS( ranges( 0 ).base + 16, 3, true, std_logic_vector( cfp_s ) );
                            when 3 => MEM_ACCESS( ranges( 0 ).base + 24, 3, true, std_logic_vector( csp_s ) );
+                           when 5 to 19 => MEM_ACCESS( ranges( 0 ).base + 40 + 8 * ( fstep - 5 ), 3, true,
+                                                       std_logic_vector( frame_c.display( fstep - 5 ) ) );
                            when others => MEM_ACCESS( ranges( 0 ).base + 32, 3, true,
                                                       std_logic_vector( resize( instr.slot.canon.lvl, 64 ) + 1 ) );
                         end case;
@@ -597,7 +601,11 @@ begin
                         elsif IS_LINK( op ) then					-- CFP := CSP ; CSP += 8
                            cfp_s <= csp_s; csp_s <= csp_s + 8; state <= S_INVAL;
                         elsif IS_EXCM( op ) then
-                           if fstep = 4 then state <= S_INVAL; else fstep <= fstep + 1; state <= S_FSTEP; end if;
+                           if fstep = 5 + to_integer( instr.slot.canon.lvl ) then	-- DISPLAY[lvl] écrit
+                              state <= S_INVAL;
+                           else
+                              fstep <= fstep + 1; state <= S_FSTEP;
+                           end if;
                         elsif op = OP_UNLINKR then					-- CSP := CFP ; CFP := M64[CFP]
                            csp_s <= cfp_s; cfp_s <= unsigned( MEM_RSP_i.rdata ); FINISH( ( others => '0' ), 0, false );
                         else								-- UNLINK : CFP := M64[CFP]

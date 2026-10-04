@@ -119,9 +119,10 @@ use work.EXEC_TYPES.all;
 		--                  := CFP, puis CFP := M64[ancien CFP] ; faute 132 si la lecture est
 		--                  invalide ; fin d'exécution seule.
 		--       EXC_MACH lvl, ctx  base = address (DISPLAY[lvl] + ctx, du renommage) ;
-		--                  comme un bloc qui écrit, intervalle [base + 16, base + 56) :
+		--                  comme un bloc qui écrit, intervalle [base + 16, base + 64 + 8 * lvl) :
 		--                  M64[base+16] := COMMITTED_FRAME_i.dsp, M64[base+24] := .rsp,
-		--                  M64[base+32] := CFP, M64[base+40] := CSP, M64[base+48] := lvl + 1 ;
+		--                  M64[base+32] := CFP, M64[base+40] := CSP, M64[base+48] := lvl + 1,
+		--                  M64[base+56 + 8*i] := COMMITTED_FRAME_i.display( i ), i = 0..lvl ;
 		--                  MAINT_INVALIDATE_RANGE ; fin d'exécution seule. À la tête, l'état
 		--                  retiré du renommage est celui d'avant l'instruction.
 		--------------------------------------------------------------------------------

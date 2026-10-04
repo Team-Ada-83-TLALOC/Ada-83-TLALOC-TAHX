@@ -135,3 +135,12 @@ concernée quand on l'écrira, puis à rayer ici.
               présenté ne dépend plus de RENAME_READY ; (3) un DUP ou un OVER retiré avant
               son FILL rendait l'âge du FILL faux (interblocage) : le FILL porte
               completes et termine l'instruction.
+  2026-10-04  N3_EXC_TEST0 (contre tx_run) : le contrat de COMPLEX_UNIT omettait, pour
+              EXC_MACH, M64[base+56 + 8*i] := DISPLAY[i], i = 0..lvl (spéc. V8) ;
+              EXC_RAISE restaurait DISPLAY depuis des mots jamais écrits (faute 132).
+              Contrat, architecture et banc de COMPLEX_UNIT corrigés.
+  2026-10-04  Tests N3 de programmes compilés (tests_TLALOC) : TLALOC.txexe exécuté par
+              tx_run (le compilateur natif demande une co-pile de 16 Gio), codi_HX,
+              fasmg ; commun/N3_PLATEFORME.vhd, commun/n3_generer.sh. Écartés pour
+              l'instant : hanoi_tower (entrée), int_io_test (fasmg), exc_test1
+              (LEX_FAULT du compilateur), string_test (services de fichiers).

@@ -174,7 +174,9 @@ begin
       variable new_cfp		: address_t;
       variable lvl		: natural;
       variable exp_addr		: word64_t;				-- address de l'instruction
-      variable fr_dsp, fr_rsp	: word64_t;				-- COMMITTED_FRAME_i pour EXC_MACH
+      variable fr_dsp, fr_rsp	: word64_t;
+      type disp_vals_t		is array( 0 to 14 ) of word64_t;
+      variable fr_disp		: disp_vals_t;				-- COMMITTED_FRAME_i pour EXC_MACH
       variable fupd_seen	: boolean;
       variable n_link, n_unlink, n_excm, n_fupd, n_late, n_link135 : natural := 0;
       variable wr_base, wr_len	: natural;				-- intervalle écrit (décalages)
@@ -412,7 +414,8 @@ begin
                   if RAND < 0.08 then o0 := DATA_SIZE - 30; end if;			-- à cheval : 132
                   exp_addr := ADDR_OF( o0 );
                   fr_dsp := RAND_WORD; fr_rsp := RAND_WORD;
-                  if not VALIDB( o0 + 16, 40 ) then
+                  for d in 0 to 14 loop fr_disp( d ) := RAND_WORD; end loop;
+                  if not VALIDB( o0 + 16, 48 + 8 * lvl ) then
                      exp_fault := 132;
                   else
                      for bt in 0 to 7 loop
@@ -422,7 +425,10 @@ begin
                         ref( o0 + 40 + bt ) := BYTE_OF( std_logic_vector( csp_c ), bt );
                         ref( o0 + 48 + bt ) := BYTE_OF( std_logic_vector( to_unsigned( lvl + 1, 64 ) ), bt );
                      end loop;
-                     wr_base := o0 + 16; wr_len := 40;
+                     for d in 0 to lvl loop						-- DISPLAY[0..lvl]
+                        for bt in 0 to 7 loop ref( o0 + 56 + 8 * d + bt ) := BYTE_OF( fr_disp( d ), bt ); end loop;
+                     end loop;
+                     wr_base := o0 + 16; wr_len := 48 + 8 * lvl;
                   end if;
                   n_excm := n_excm + 1;
             end case;
@@ -523,6 +529,7 @@ begin
          blk( 0 ).address := unsigned( exp_addr ); blk( 0 ).address_known := B( kind = K_FRAME );
          blk( 0 ).destination_valid := B( not ( kind = K_FRAME and op = x"44" and lvl = 0 ) );
          c_frame.dsp <= unsigned( fr_dsp ); c_frame.rsp <= unsigned( fr_rsp );
+         for d in 0 to 14 loop c_frame.display( d ) <= unsigned( fr_disp( d ) ); end loop;
          fupd_seen := false;
          tagc := ( tagc + 1 ) mod REGISTERS; blk( 0 ).destination := to_unsigned( tagc, PHYSICAL_TAG_BITS );
          iss_block <= blk; iss_count <= to_unsigned( 1, iss_count'length ); iss_valid <= '1';

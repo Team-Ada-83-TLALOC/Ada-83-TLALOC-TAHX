@@ -6,22 +6,22 @@
 --
 
 		--------------------------------------------------------------------------------
-		--  T_N3_TAHX_1_tb : test d'assemblage N3, programme DIS_BONJOUR (voir
+		--  T_N3_FLOAT_TEST_tb : test d'assemblage N3, programme FLOAT_TEST (voir
 		--  commun/N3_PLATEFORME.vhd ; vecteurs : generer.sh).
 		--------------------------------------------------------------------------------
 
 				--------------
-entity				T_N3_TAHX_1_tb
+entity				T_N3_FLOAT_TEST_tb
 is				--------------
-end entity			T_N3_TAHX_1_tb;
+end entity			T_N3_FLOAT_TEST_tb;
 				--------------
 
 				----
-architecture			TEST of T_N3_TAHX_1_tb
+architecture			TEST of T_N3_FLOAT_TEST_tb
 is				----
 begin
    PLATEFORME : entity work.N3_PLATEFORME
-      generic map ( NOM_G => "T_N3_TAHX_1_tb", MAX_CYCLES_G => 400000 );
+      generic map ( NOM_G => "T_N3_FLOAT_TEST_tb", MAX_CYCLES_G => 2000000 );
 end architecture		TEST;
 				----
 
