@@ -166,6 +166,8 @@ begin
    clk <= not clk after PERIOD / 2 when running;
 
    STIMULI : process
+      alias map_err is << signal .T_K1b_RENAME_DISPATCH_tb.DUT.dbg_map_err : natural >>;
+      variable map_err_seen	: boolean := false;
       variable c		: tb_counter_t := TB_COUNTER_INIT;
       variable s1, s2		: positive := SEED_1;
       variable r		: real;
@@ -221,6 +223,8 @@ begin
       variable inv		: stack_invalidate_bus_t( 0 to MEMORY_LANES - 1 );
       variable a		: natural;
       variable n_src_checked, n_fill, n_spill, n_mis, n_flt, n_unlink_wait, n_inval, n_sync, n_ckpt_rec : natural := 0;
+      variable n_served		: natural := 0;				-- chargements servis par la fenêtre
+      variable served_i		: boolean;
 
       impure function RAND return real is
       begin
@@ -338,7 +342,8 @@ begin
          elsif u < 0.40 then e.kind := K_DROP; op := x"30";
          elsif u < 0.45 then e.kind := K_DUP; op := x"31";
          elsif u < 0.49 then e.kind := K_OVER; op := x"32";
-         elsif u < 0.55 then e.kind := K_LOAD; op := x"57"; len := 3;
+         elsif u < 0.55 then e.kind := K_LOAD; op := x"57"; len := 3;		-- LQ ; parfois LB, LW, LD
+            if RAND < 0.3 then op := std_logic_vector( to_unsigned( 16#54# + RAND_INT( 2 ), 8 ) ); end if;
          elsif u < 0.60 then e.kind := K_STORE; op := x"67"; len := 3;
          elsif u < 0.62 then e.kind := K_STORE; op := x"64"; len := 3;		-- partiel (1 octet)
          elsif u < 0.66 then e.kind := K_PSTORE; op := x"67"; len := 1;		-- par pointeur
@@ -388,7 +393,14 @@ begin
             when K_LOAD =>								-- lvl 0..14 : adresse connue
                e.slot.canon.val := to_signed( 8 * ( RAND_INT( 64 ) - 32 ), 32 );
                e.addr_known := true; e.addr := f.display( lvl ) + unsigned( resize( e.slot.canon.val, 64 ) );
-               e.dest := true; PUSH( e, f, e.dval );
+               e.dval := MREAD( e.addr );						-- la valeur de la mémoire (servi
+               case op is
+                  when x"54" => e.dval := std_logic_vector( resize( signed( e.dval( 7 downto 0 ) ), 64 ) );
+                  when x"55" => e.dval := std_logic_vector( resize( signed( e.dval( 15 downto 0 ) ), 64 ) );
+                  when x"56" => e.dval := std_logic_vector( resize( signed( e.dval( 31 downto 0 ) ), 64 ) );
+                  when others => null;
+               end case;
+               e.dest := true; PUSH( e, f, e.dval );					--  par la fenêtre, ou exécuté)
             when K_STORE =>								-- lvl 0..14
                e.slot.canon.val := to_signed( 8 * ( RAND_INT( 64 ) - 48 ), 32 );
                if RAND < 0.5 then e.slot.canon.val := to_signed( 8 * ( RAND_INT( 8 ) - 8 ), 32 ); lvl := 0;
@@ -524,6 +536,11 @@ begin
       loop
          now := now + 1;
          exit when take_seq >= INSTRUCTIONS and head_seq = take_seq;
+         if map_err /= 0 and not map_err_seen then				-- comptes de correspondances
+            map_err_seen := true;
+            CHECK( c, false, "cycle " & integer'image( now ) & " : " & integer'image( map_err )
+                             & " registre(s) au compte de correspondances incohérent" );
+         end if;
          if now - last_progress > 3000 then
             CHECK( c, false, "cycle " & integer'image( now ) & " : aucun progrès (tête " & integer'image( head_seq )
                              & ", prise " & integer'image( take_seq ) & ", bloqué " & std_logic'image( stalled ) & ")" );
@@ -648,7 +665,13 @@ begin
                if i < k then
                   sq := take_seq + i; x := sq mod WIN;
                   ok := ren_block( i ).rob_index = ROB( rob_t + i ) and alloc_block( i ).valid = '1';
-                  if q( x ).fault /= 0 then
+                  served_i := q( x ).kind = K_LOAD and q( x ).fault = 0 and alloc_block( i ).done = '1'
+                              and ren_block( i ).destination_valid = '0' and ren_block( i ).stack_cache_hit = '1'
+                              and ren_block( i ).execute_required = '0' and alloc_block( i ).fault.valid = '0'
+                              and ren_block( i ).source_count = 0;
+                  if served_i then							-- servi par la fenêtre (comme DUP)
+                     q( x ).dest := false; q( x ).exec_need := false; n_served := n_served + 1;
+                  elsif q( x ).fault /= 0 then
                      ok := ok and alloc_block( i ).fault.valid = '1' and alloc_block( i ).fault.code = q( x ).fault
                            and alloc_block( i ).done = '1' and ren_block( i ).execute_required = '0';
                   else
@@ -805,7 +828,7 @@ begin
                                                   & integer'image( to_integer( free_count ) ) & ")" );
       running <= false;
       report "graines " & integer'image( SEED_1 ) & ", " & integer'image( SEED_2 ) & " ; " & integer'image( INSTRUCTIONS )
-             & " instructions ; sources vérifiées " & integer'image( n_src_checked ) & " ; FILL " & integer'image( n_fill )
+             & " instructions ; sources vérifiées " & integer'image( n_src_checked ) & " ; FILL " & integer'image( n_fill ) & " (chargements servis par la fenêtre " & integer'image( n_served ) & ")"
              & ", SPILL " & integer'image( n_spill ) & " ; reprises : mauvaise prédiction " & integer'image( n_mis )
              & ", faute " & integer'image( n_flt ) & ", SYNC " & integer'image( n_sync ) & " ; invalidations "
              & integer'image( n_inval ) severity note;

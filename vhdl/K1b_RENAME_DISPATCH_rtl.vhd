@@ -62,6 +62,12 @@ of RENAME_DISPATCH is		---
 			  wseq		: seq_t;			-- qui a donné ce registre à la cellule
 			end record;
    type cell_array_t		is array( 0 to CELLS - 1 ) of cell_t;
+   -- fenêtre circulaire de la pile data : la cellule d'adresse a occupe l'entrée
+   -- ( a / 8 ) mod CELLS ; l'entrée garde l'adresse (une entrée périmée ne répond pas)
+   function WIDX( a : address_t ) return natural is
+   begin
+      return to_integer( a( 30 downto 3 ) ) mod CELLS;			-- (bits bas : pas de débordement)
+   end function;
    type rcell_array_t		is array( 0 to RCELL_COUNT - 1 ) of cell_t;
    constant NO_CELL		: cell_t := ( valid => false, addr => ( others => '0' ), tag => ( others => '0' ), wseq => 0 );
 
@@ -135,7 +141,6 @@ of RENAME_DISPATCH is		---
    signal shadow		: shadow_t;
    signal shadow_n		: natural range 0 to SHADOW_DEPTH;
    signal dcells		: cell_array_t;
-   signal dptr			: natural range 0 to CELLS - 1;
    signal rcells		: rcell_array_t;
    signal rptr			: natural range 0 to RCELL_COUNT - 1;
    signal robinfo		: robinfo_array_t;
@@ -194,6 +199,11 @@ of RENAME_DISPATCH is		---
       return to_unsigned( n, PHYSICAL_TAG_BITS );
    end function;
 
+   -- pragma translate_off
+   -- cohérence (bancs) : registres dont le compte de correspondances diffère du nombre
+   -- d'entrées des tables qui les désignent
+   signal dbg_map_err		: natural := 0;
+   -- pragma translate_on
 begin
 
 		--------------------------------------------------------------------------------
@@ -278,6 +288,7 @@ begin
       variable alloc		: unsigned( 35 downto 0 );
       variable t		: physical_tag_t;
       variable found		: boolean;
+      variable served		: boolean;					-- chargement servi par la fenêtre
       variable tg		: physical_tag_t;
       variable addr		: address_t;
       variable dl		: integer range -1 to 14;
@@ -304,9 +315,10 @@ begin
                hit := t_dops( i ).set; r := t_dops( i ).tag; return;
             end if;
          end loop;
-         for i in 0 to CELLS - 1 loop
-            if dcells( i ).valid and dcells( i ).addr = a then hit := true; r := dcells( i ).tag; return; end if;
-         end loop;
+         if dcells( WIDX( a ) ).valid and dcells( WIDX( a ) ).addr = a then
+            hit := true; r := dcells( WIDX( a ) ).tag; return;
+         end if;
+
       end procedure;
 
       procedure RLOOKUP( a : address_t; hit : out boolean; r : out physical_tag_t ) is
@@ -476,6 +488,7 @@ begin
                      srcs => ( others => ( others => '0' ) ), ckpt_valid => false, ckpt => 0, writer => false );
             is_store := e.memory and op( 5 downto 4 ) = "10";
             is_ptr_store := is_store and ( op( 7 downto 6 ) = "10" or lvl = 15 );
+            served := false;
             is_wblock := op = x"34" or op = x"3C" or op = x"3D" or op = x"3E" or op = x"3F" or op = x"45" or op = x"49";
             dl := -1; dv := ( others => '0' );
 
@@ -558,6 +571,18 @@ begin
                   if e.lvl_use = LVL_ADDR and lvl = 15 then npop := npop + 1; end if;
                   case e.stack_action is
                      when STACK_LINEAR =>
+                        -- chargement direct de 8 octets d'une cellule de la fenêtre : son
+                        -- registre, sans exécution (comme DUP)
+                        if e.memory and op( 7 downto 6 ) = "01" and ( op( 5 downto 4 ) = "01" or op( 5 downto 4 ) = "11" )
+                           and op( 3 downto 2 ) /= "11" and op( 1 downto 0 ) = "11" and ri.address_known = '1'
+                           and ri.address( 2 downto 0 ) = "000" and npop = 0 and npush = 1
+                           and ri.address <= t_f.dsp then				-- (au-dessus de DSP : morte)
+                           LOOKUP( ri.address, found, tg );
+                           served := found;
+                        end if;
+                        if served then
+                           PUSH_CELL( tg, READY_OF( tg ) );
+                        else
                         for j in 0 to 3 loop						-- du plus profond au sommet
                            if j < npop then
                               READ_CELL( t_f.dsp - 8 * ( npop - 1 - j ), false, t ); SOURCE( t );
@@ -568,6 +593,7 @@ begin
                         end loop;
                         t_f.dsp := t_f.dsp - 8 * npop;
                         if npush > 0 then DEST( t ); PUSH_CELL( t, '0' ); end if;
+                        end if;
                      when STACK_KEEP_TOP =>
                         READ_CELL( t_f.dsp, true, t ); SOURCE( t );
                      when STACK_DROP =>
@@ -627,8 +653,9 @@ begin
                for j in 0 to MAX_SOURCE_COUNT - 1 loop
                   if j < inf.nsrc then ri.source_ready( j ) := READY_OF( ri.source( j ) ); end if;
                end loop;
-               if e.issue_class = ISSUE_NONE then
+               if e.issue_class = ISSUE_NONE or served then
                   al.done := '1';
+                  if served then ri.stack_cache_hit := '1'; end if;
                   for x in 0 to STACK_XFER_WIDTH - 1 loop			-- DUP, OVER : un FILL les termine
                      if x < nx and xf( x ).rob_index = rob and xf( x ).kind = XFER_FILL and xf( x ).valid = '1' then
                         xf( x ).completes := '1'; al.done := '0';
@@ -703,7 +730,6 @@ begin
    ETAT : process( CLK_i )
       variable fs, fc		: frame_state_t;
       variable dc		: cell_array_t;
-      variable dp		: natural range 0 to CELLS - 1;
       variable rc		: rcell_array_t;
       variable rp		: natural range 0 to RCELL_COUNT - 1;
       variable inf		: robinfo_array_t;
@@ -712,6 +738,10 @@ begin
       variable ck		: ckpt_array_t;
       variable al, rd, pr	: std_logic_vector( 0 to NTAGS - 1 );
       variable rdr, mc		: nat_tags_t;
+      -- pragma translate_off
+      variable dbg_cnt		: nat_tags_t;
+      variable dbg_err		: natural;
+      -- pragma translate_on
       variable qu		: quar_t;
       variable r		: rob_index_t;
       variable n, ti		: natural;
@@ -727,9 +757,9 @@ begin
 
       procedure FORGET_D( a : address_t ) is
       begin
-         for i in 0 to CELLS - 1 loop
-            if dc( i ).valid and dc( i ).addr = a then dc( i ).valid := false; UNMAP_TAG( dc( i ).tag ); end if;
-         end loop;
+         if dc( WIDX( a ) ).valid and dc( WIDX( a ) ).addr = a then
+            dc( WIDX( a ) ).valid := false; UNMAP_TAG( dc( WIDX( a ) ).tag );
+         end if;
       end procedure;
 
       procedure FORGET_DR( lo, hi : address_t ) is
@@ -743,11 +773,11 @@ begin
 
       procedure SET_D( a : address_t; x : physical_tag_t; s : seq_t ) is
       begin
-         FORGET_D( a );
-         if dc( dp ).valid then UNMAP_TAG( dc( dp ).tag ); end if;		-- la plus ancienne, oubliée
-         dc( dp ) := ( valid => true, addr => a, tag => x, wseq => s );
+         -- l'entrée de la cellule : son ancien occupant (la même cellule, ou une autre
+         -- sortie de la fenêtre) est oublié ; en écriture immédiate, la mémoire l'a
+         if dc( WIDX( a ) ).valid then UNMAP_TAG( dc( WIDX( a ) ).tag ); end if;
+         dc( WIDX( a ) ) := ( valid => true, addr => a, tag => x, wseq => s );
          mc( to_integer( x ) ) := mc( to_integer( x ) ) + 1;
-         dp := ( dp + 1 ) mod CELLS;
       end procedure;
 
       procedure FORGET_R( a : address_t ) is
@@ -798,7 +828,7 @@ begin
          if RESET_i = '1' then
             frame_s <= ( dsp => ( others => '0' ), rsp => ( others => '0' ), display => ( others => ( others => '0' ) ) );
             frame_c <= ( dsp => ( others => '0' ), rsp => ( others => '0' ), display => ( others => ( others => '0' ) ) );
-            shadow_n <= 0; dcells <= ( others => NO_CELL ); rcells <= ( others => NO_CELL ); dptr <= 0; rptr <= 0;
+            shadow_n <= 0; dcells <= ( others => NO_CELL ); rcells <= ( others => NO_CELL ); rptr <= 0;
             for i in 0 to ROB_SIZE - 1 loop
                robinfo( i ).valid <= false;
             end loop;
@@ -810,7 +840,7 @@ begin
             readers <= ( others => 0 ); mapcnt <= ( others => 0 ); quar <= ( others => 0 );
             maint_done <= '0';
          else
-            fs := frame_s; fc := frame_c; dc := dcells; dp := dptr; rc := rcells; rp := rptr; inf := robinfo;
+            fs := frame_s; fc := frame_c; dc := dcells; rc := rcells; rp := rptr; inf := robinfo;
             hd := r_head; tl := r_tail; wr := writers; ck := ckpts;
             al := allocated; rd := ready; pr := producing; rdr := readers; mc := mapcnt; qu := quar;
 
@@ -964,7 +994,20 @@ begin
                end if;
             end loop;
 
-            frame_s <= fs; frame_c <= fc; dcells <= dc; dptr <= dp; rcells <= rc; rptr <= rp; robinfo <= inf;
+            frame_s <= fs; frame_c <= fc; dcells <= dc; rcells <= rc; rptr <= rp; robinfo <= inf;
+            -- pragma translate_off
+            dbg_cnt := ( others => 0 ); dbg_err := 0;
+            for i in 0 to CELLS - 1 loop
+               if dc( i ).valid then dbg_cnt( to_integer( dc( i ).tag ) ) := dbg_cnt( to_integer( dc( i ).tag ) ) + 1; end if;
+            end loop;
+            for i in 0 to RCELL_COUNT - 1 loop
+               if rc( i ).valid then dbg_cnt( to_integer( rc( i ).tag ) ) := dbg_cnt( to_integer( rc( i ).tag ) ) + 1; end if;
+            end loop;
+            for t in 0 to NTAGS - 1 loop
+               if dbg_cnt( t ) /= mc( t ) then dbg_err := dbg_err + 1; end if;
+            end loop;
+            dbg_map_err <= dbg_err;
+            -- pragma translate_on
             r_head <= hd; r_tail <= tl; writers <= wr; ckpts <= ck;
             allocated <= al; ready <= rd; producing <= pr; readers <= rdr; mapcnt <= mc; quar <= qu;
          end if;

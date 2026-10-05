@@ -200,3 +200,14 @@ concernée quand on l'écrira, puis à rayer ici.
               LINK oublie les correspondances de la zone qu'il alloue (oubli par
               intervalle). Banc : rangements par pointeur au-dessus de DSP (cellules
               mortes). DIS_BONJOUR : 5922 -> 4920 cycles, IPC 0,51, FILL 1828 -> 27.
+  2026-10-05  R2a : fenêtre circulaire de 64 mots (STACK_CACHE_WORDS) au lieu de la table
+              associative ; entrée ( a / 8 ) mod 64, adresse gardée ; écriture immédiate
+              conservée. Chargements directs (B, lvl 0..14, 8 octets, alignés, au plus
+              DSP) d'une cellule de la fenêtre servis par son registre (stack_cache_hit).
+              Défaut trouvé par le banc (selon les graines) : une cellule morte au-dessus
+              de DSP, écrite par un rangement calculé, était servie par son ancien
+              registre -> service limité aux adresses au plus DSP. Banc : chargements
+              LB, LW, LD ; contrôle de cohérence des comptes de correspondances (simulation)
+              à chaque cycle ; six graines. DIS_BONJOUR : 4911 cycles (inchangé : R2a
+              valide la structure) ; 11 chargements servis ; arrêts du renommage par la
+              LSQ pleine : 2233 (cible de R2b).

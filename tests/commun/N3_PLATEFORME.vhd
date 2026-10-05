@@ -254,6 +254,10 @@ COMPTEURS :
     alias head_atomic  is << signal DUT.head_atomic : std_logic >>;
     alias retire       is << signal DUT.retire : retire_block_t >>;
     alias rob_tail     is << signal DUT.rob_tail : rob_index_t >>;
+    alias xfer_ready   is << signal DUT.stack_xfer_ready : std_logic >>;
+    alias ren_blk      is << signal DUT.rn_block : renamed_block_t >>;
+    alias ren_cnt      is << signal DUT.rn_count : decode_count_t >>;
+    variable st_xfer, st_rob, served : natural := 0;		-- arrêts : LSQ, ROB ; chargements servis
     alias lsq_exec     is << signal DUT.lsq_exec : lsq_exec_bus_t >>;
     alias results      is << signal DUT.results : exec_result_bus_t >>;
     alias lsq_wa       is << signal DUT.U_LSQ.dbg_wait_addr : natural >>;
@@ -421,7 +425,16 @@ COMPTEURS :
       if to_integer( rob_free ) < rob_min then rob_min := to_integer( rob_free ); end if;
       if alloc_valid = '1' then alloc := alloc + to_integer( alloc_count ); end if;
       if rn_valid = '1' and rn_ready = '0' then rn_block := rn_block + 1; end if;
-      if dq_count /= 0 and rn_valid = '0' then rn_starved := rn_starved + 1; end if;
+      if dq_count /= 0 and rn_valid = '0' then
+        rn_starved := rn_starved + 1;
+        if xfer_ready = '0' then st_xfer := st_xfer + 1; end if;
+        if rob_free = 0 then st_rob := st_rob + 1; end if;
+      end if;
+      if rn_valid = '1' and rn_ready = '1' then
+        for k in 0 to to_integer( ren_cnt ) - 1 loop
+          if ren_blk( k ).stack_cache_hit = '1' then served := served + 1; end if;
+        end loop;
+      end if;
       if dq_count = 0 then dq_empty := dq_empty + 1; end if;
       qv := ( int_n, mdv_n, mem_n, br_n, fp_n, cx_n, lsq_n );
       for q in qv'range loop
@@ -468,6 +481,8 @@ COMPTEURS :
     LIGNE( "PERF renommage : instructions par cycle             " & F2( real( alloc ) / real( maximum( cyc, 1 ) ) ) );
     LIGNE( "PERF cycles rn_valid and not rn_ready (dorsal)      " & integer'image( rn_block ) & " (" & PCT( rn_block, cyc ) & ")" );
     LIGNE( "PERF cycles file de décodage non vide, rien renommé " & integer'image( rn_starved ) & " (" & PCT( rn_starved, cyc ) & ")" );
+    LIGNE( "PERF   dont LSQ sans place pour les échanges / ROB plein " & integer'image( st_xfer ) & " / " & integer'image( st_rob ) );
+    LIGNE( "PERF chargements servis par la fenêtre de pile      " & integer'image( served ) );
     LIGNE( "PERF cycles file de décodage vide (frontal)         " & integer'image( dq_empty ) & " (" & PCT( dq_empty, cyc ) & ")" );
     for q in 0 to 6 loop
       LIGNE( "PERF occupation " & NOMS( q ) & " moyenne / maximum            "

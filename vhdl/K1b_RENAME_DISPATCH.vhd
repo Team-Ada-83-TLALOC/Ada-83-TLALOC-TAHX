@@ -92,6 +92,14 @@ use work.RENAME_TYPES.all;
 		--     dépilée ; sinon un FILL (adresse, registre neuf, rob_index), dont le
 		--     registre devient la source. Les écrivains en vol restent suivis pour
 		--     STACK_INVALIDATE_i (défensif : sans effet sur un programme conforme).
+		--     Fenêtre (R2a) : la cellule d'adresse a occupe l'entrée ( a / 8 ) mod
+		--     STACK_CACHE_WORDS (64) ; l'entrée garde l'adresse ; en prenant l'entrée,
+		--     une cellule oublie son ancien occupant (en écriture immédiate, la mémoire
+		--     l'a). Un chargement direct (famille B, lvl = 0..14, 8 octets, adresse
+		--     alignée, au plus DSP) d'une cellule de la fenêtre est servi par son
+		--     registre : il empile une cellule qui le reprend, comme DUP, sans
+		--     exécution (stack_cache_hit = '1', done à l'allocation). Au-dessus de DSP,
+		--     une cellule est morte : un rangement calculé a pu l'écrire.
 		--     LINK oublie toute correspondance dans la zone qu'il alloue (variables
 		--     locales) : une cellule morte (DSP redescendu sans pop) qui garderait un
 		--     registre ne redevient pas lisible sans un push qui la réécrit. DUP, OVER : les cellules neuves reprennent le registre

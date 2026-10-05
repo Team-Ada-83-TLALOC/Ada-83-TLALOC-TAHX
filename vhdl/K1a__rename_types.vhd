@@ -32,7 +32,7 @@ is                              ------------
 		-------------
 
    constant RENAME_WIDTH		: positive	:= DECODE_WIDTH;		-- 8
-   constant STACK_CACHE_WORDS		: positive	:= 128;			-- étude : +12 à +13 % d'IPC
+   constant STACK_CACHE_WORDS		: positive	:= 64;			-- fenêtre circulaire sous DSP (R2)
 
    -- BFI ( old ins lsb w ) et LEXCMP ( @g lg @d ld ) lisent quatre cellules
    constant MAX_SOURCE_COUNT		: positive	:= 4;
