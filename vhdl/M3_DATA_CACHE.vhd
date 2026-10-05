@@ -60,8 +60,12 @@ use work.EXEC_TYPES.all;
 		--
 		--  Modèle de référence (architecture RTL) : écriture différée, allocation sur
 		--  écriture, WAYS_G voies, lignes de LINE_BYTES_G octets, remplacement tournant
-		--  par ensemble ; une requête à la fois, ports servis à tour de rôle ; un accès
-		--  à cheval sur deux lignes est fait en deux parties.
+		--  par ensemble. Chemin rapide : au repos, toute requête qui touche une ligne
+		--  présente (sans être à cheval), ou d'adresse invalide, ou de sondage, est
+		--  acceptée, sur tous les ports à la fois, et reçoit sa réponse au cycle suivant
+		--  (pas deux écritures sur une même ligne, ni une écriture rapide avec une
+		--  écriture lente, au même cycle). Chemin lent : un défaut ou un accès à cheval à
+		--  la fois, en deux parties s'il le faut ; rien n'est accepté tant qu'il travaille.
 		--------------------------------------------------------------------------------
 
 

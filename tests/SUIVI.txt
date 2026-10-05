@@ -144,3 +144,7 @@ concernée quand on l'écrira, puis à rayer ici.
               fasmg ; commun/N3_PLATEFORME.vhd, commun/n3_generer.sh. Écartés pour
               l'instant : hanoi_tower (entrée), int_io_test (fasmg), exc_test1
               (LEX_FAULT du compilateur), string_test (services de fichiers).
+  2026-10-05  DATA_CACHE : chemin rapide multi-ports (succès en un cycle, réponse au
+              suivant). DIS_BONJOUR : 16190 -> 9482 cycles, IPC 0,15 -> 0,26 ; trace
+              identique. Goulots suivants : LSQ pleine (SPILL de R1), LINK en tête (47 %
+              des cycles sous HEAD_ATOMIC, chaque LINK attend la vidange de la LSQ).

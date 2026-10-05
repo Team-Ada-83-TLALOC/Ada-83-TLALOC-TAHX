@@ -12,7 +12,8 @@ use work.BACKEND_TYPES.all;
 use work.EXEC_TYPES.all;
 
 		--------------------------------------------------------------------------------
-		--  DATA_CACHE, architecture RTL : modèle de référence, une requête à la fois.
+		--  DATA_CACHE, architecture RTL : chemin rapide (succès, sur tous les ports, réponse
+		--  au cycle suivant) et chemin lent (défaut, accès à cheval : un à la fois).
 		--
 		--  LIBRE      un port est choisi à tour de rôle parmi ceux qui présentent une
 		--             requête ; READY_o( p ) = '1' pour lui seul ; la requête prise au
@@ -67,6 +68,12 @@ of DATA_CACHE is		---
    signal fill			: line_t;
    signal fill_fault		: std_logic;
 
+   -- chemin rapide : succès, adresse invalide ou sondage, sur tous les ports à la fois
+   type hit_array_t		is array( 0 to PORTS_G - 1 ) of integer range -1 to SETS * WAYS_G - 1;
+   signal fast			: std_logic_vector( 0 to PORTS_G - 1 );	-- acceptée par le chemin rapide
+   signal fast_hit		: hit_array_t;				-- sa ligne (-1 : invalide, sondage)
+   signal frsp			: mem_response_bus_t( 0 to PORTS_G - 1 );	-- réponses rapides, registrées
+
    function LINE_OF( a : address_t ) return address_t is
    begin
       return a - ( a mod LINE_BYTES_G );
@@ -88,32 +95,75 @@ begin
 		-- Choix du port (LIBRE) et sorties
 		--------------------------------------------------------------------------------
 
-   CHOIX : process( state, REQ_i, port_rr )
-      variable p : natural;
+   -- Au repos : chaque port dont la requête touche une ligne présente (sans être à
+   -- cheval), ou dont l'adresse est invalide, ou qui sonde, est accepté par le chemin
+   -- rapide (réponse au cycle suivant) ; deux écritures sur une même ligne ne le sont
+   -- pas au même cycle. Une seule autre requête (défaut, à cheval) prend le chemin lent,
+   -- qui bloque toute acceptation tant qu'il travaille.
+   CHOIX : process( state, REQ_i, port_rr, present, tags )
+      variable p, n		: natural;
+      variable h		: integer;
+      variable slow_taken	: boolean;
+      variable slow_write	: boolean;
+      variable written		: hit_array_t;
+      variable nw		: natural;
+      variable clash		: boolean;
+      variable f		: std_logic_vector( 0 to PORTS_G - 1 );
+      variable fh		: hit_array_t;
+      variable pk		: integer;
+      variable a		: address_t;
    begin
-      pick <= -1;
+      f := ( others => '0' ); fh := ( others => -1 ); pk := -1;
+      slow_taken := false; slow_write := false; nw := 0; written := ( others => -1 );
       if state = LIBRE then
          for k in 0 to PORTS_G - 1 loop
             p := ( port_rr + k ) mod PORTS_G;
             if REQ_i( p ).valid = '1' then
-               pick <= p;
-               exit;
+               a := REQ_i( p ).address;
+               n := 2 ** to_integer( REQ_i( p ).size );
+               h := -1;
+               if not VALID_ACCESS( a, n ) or REQ_i( p ).probe = '1' then
+                  f( p ) := '1';						-- faute ou sondage : sans ligne
+               elsif to_integer( a mod LINE_BYTES_G ) + n <= LINE_BYTES_G then
+                  for wy in 0 to WAYS_G - 1 loop
+                     if present( SET_OF( a ) * WAYS_G + wy ) = '1'
+                        and tags( SET_OF( a ) * WAYS_G + wy ) = LINE_OF( a ) then
+                        h := SET_OF( a ) * WAYS_G + wy;
+                     end if;
+                  end loop;
+               end if;
+               if f( p ) = '0' and h >= 0 then
+                  clash := false;
+                  for j in 0 to PORTS_G - 1 loop
+                     if j < nw and written( j ) = h then clash := true; end if;
+                  end loop;
+                  -- une écriture rapide ni sur une ligne déjà écrite ce cycle, ni à côté
+                  -- d'une écriture lente (deux écritures d'un même front, sans ordre fixé)
+                  if not ( REQ_i( p ).write = '1' and ( clash or slow_write ) ) then
+                     f( p ) := '1'; fh( p ) := h;
+                     if REQ_i( p ).write = '1' then written( nw ) := h; nw := nw + 1; end if;
+                  end if;
+               elsif f( p ) = '0' and not slow_taken and not ( REQ_i( p ).write = '1' and nw > 0 ) then
+                  pk := p; slow_taken := true;				-- défaut ou à cheval : chemin lent
+                  slow_write := REQ_i( p ).write = '1';
+               end if;
             end if;
          end loop;
       end if;
+      fast <= f; fast_hit <= fh; pick <= pk;
    end process;
 
-   PRETS : process( pick )
+   PRETS : process( pick, fast )
    begin
       for p in 0 to PORTS_G - 1 loop
-         if pick = p then READY_o( p ) <= '1'; else READY_o( p ) <= '0'; end if;
+         if pick = p or fast( p ) = '1' then READY_o( p ) <= '1'; else READY_o( p ) <= '0'; end if;
       end loop;
    end process;
 
-   REPONSES : process( state, cur_port, result, result_fault )
+   REPONSES : process( state, cur_port, result, result_fault, frsp )
    begin
       for p in 0 to PORTS_G - 1 loop
-         RSP_o( p ) <= NO_MEM_RESPONSE;
+         RSP_o( p ) <= frsp( p );
          if state = REPONSE and p = cur_port then
             RSP_o( p ) <= ( valid => '1', rdata => result, fault => result_fault );
          end if;
@@ -151,6 +201,7 @@ begin
       variable ln		: line_t;
    begin
       if rising_edge( CLK_i ) then
+         frsp <= ( others => NO_MEM_RESPONSE );				-- un cycle
          if RESET_i = '1' then
             state <= LIBRE;
             present <= ( others => '0' );
@@ -161,6 +212,34 @@ begin
             case state is
 
                when LIBRE =>
+                  -- chemin rapide : lecture ou écriture de la ligne présente, réponse au cycle suivant
+                  for p in 0 to PORTS_G - 1 loop
+                     if fast( p ) = '1' then
+                        n := 2 ** to_integer( REQ_i( p ).size );
+                        if not VALID_ACCESS( REQ_i( p ).address, n ) then
+                           frsp( p ) <= ( valid => '1', rdata => ( others => '0' ), fault => '1' );
+                        elsif REQ_i( p ).probe = '1' then
+                           frsp( p ) <= ( valid => '1', rdata => ( others => '0' ), fault => '0' );
+                        else
+                           off := to_integer( REQ_i( p ).address mod LINE_BYTES_G );
+                           if REQ_i( p ).write = '1' then
+                              ln := data( fast_hit( p ) );
+                              for i in 0 to 7 loop
+                                 if i < n then ln( off + i ) := REQ_i( p ).wdata( 8 * i + 7 downto 8 * i ); end if;
+                              end loop;
+                              data( fast_hit( p ) ) <= ln;
+                              dirty( fast_hit( p ) ) <= '1';
+                              frsp( p ) <= ( valid => '1', rdata => ( others => '0' ), fault => '0' );
+                           else
+                              r := ( others => '0' );
+                              for i in 0 to 7 loop
+                                 if i < n then r( 8 * i + 7 downto 8 * i ) := data( fast_hit( p ) )( off + i ); end if;
+                              end loop;
+                              frsp( p ) <= ( valid => '1', rdata => r, fault => '0' );
+                           end if;
+                        end if;
+                     end if;
+                  end loop;
                   if pick >= 0 then
                      cur <= REQ_i( pick );
                      cur_port <= pick;
