@@ -79,6 +79,10 @@ of RENAME_DISPATCH is		---
 			  wseq		: seq_t;
 			end record;
    type map_ops_t		is array( 0 to UPD - 1 ) of map_op_t;
+   constant MAXOPS		: positive := 8;					-- opérations sur la fenêtre par instruction
+   type op_list_t		is array( 0 to MAXOPS - 1 ) of map_op_t;
+   constant NO_OP		: map_op_t := ( set => false, addr => ( others => '0' ), hi => ( others => '0' ),
+						  tag => ( others => '0' ), wseq => 0 );
    type rmap_ops_t		is array( 0 to RUPD - 1 ) of map_op_t;
 
    type hist_t			is record
@@ -98,6 +102,8 @@ of RENAME_DISPATCH is		---
 			  ckpt_valid	: boolean;
 			  ckpt		: natural range 0 to NCKPT - 1;
 			  writer		: boolean;			-- bloc qui écrit, EXC_MACH : jusqu'au retrait
+			  nops		: natural range 0 to MAXOPS;	-- ses opérations sur la fenêtre (rejouées
+			  ops		: op_list_t;			--  au retrait : la fenêtre retirée)
 			end record;
    type robinfo_array_t		is array( 0 to ROB_SIZE - 1 ) of robinfo_t;
    type robinfo_block_t		is array( 0 to DECODE_WIDTH - 1 ) of robinfo_t;
@@ -122,6 +128,7 @@ of RENAME_DISPATCH is		---
 			  valid		: boolean;
 			  seq		: seq_t;
 			  frame		: frame_state_t;
+			  win		: cell_array_t;			-- la fenêtre après l'instruction
 			end record;
    type ckpt_array_t		is array( 0 to NCKPT - 1 ) of ckpt_t;
    type ckpt_alloc_t		is record
@@ -155,6 +162,9 @@ of RENAME_DISPATCH is		---
    signal allocated, ready	: std_logic_vector( 0 to NTAGS - 1 );
    signal producing		: std_logic_vector( 0 to NTAGS - 1 );		-- producteur en vol
    signal readers, mapcnt	: nat_tags_t;
+   signal cwin			: cell_array_t;				-- fenêtre retirée
+   signal mapcnt_c, mapcnt_k	: nat_tags_t;				-- références : fenêtre retirée, copies
+   signal mapcnt_p		: nat_tags_t;				--  installations en attente (instructions en vol)
    signal quar			: quar_t;
    signal maint_done		: std_logic;
 
@@ -448,7 +458,7 @@ begin
       info := ( others => ( valid => false, seq => 0,
                             hist => ( dsp => ( others => '0' ), rsp => ( others => '0' ), dlvl => -1, dval => ( others => '0' ) ),
                             ntag => 0, tags => ( others => ( others => '0' ) ), nsrc => 0,
-                            srcs => ( others => ( others => '0' ) ), ckpt_valid => false, ckpt => 0, writer => false ) );
+                            srcs => ( others => ( others => '0' ) ), ckpt_valid => false, ckpt => 0, writer => false, nops => 0, ops => ( others => NO_OP ) ) );
       wrs := ( others => ( valid => false, ptr => false, rob => ( others => '0' ), seq => 0 ) );
       cks := ( others => ( valid => false, id => 0, seq => 0, frame => frame_s ) );
       for i in 0 to DECODE_WIDTH - 1 loop
@@ -485,7 +495,7 @@ begin
             inf := ( valid => true, seq => seq,
                      hist => ( dsp => ( others => '0' ), rsp => ( others => '0' ), dlvl => -1, dval => ( others => '0' ) ),
                      ntag => 0, tags => ( others => ( others => '0' ) ), nsrc => 0,
-                     srcs => ( others => ( others => '0' ) ), ckpt_valid => false, ckpt => 0, writer => false );
+                     srcs => ( others => ( others => '0' ) ), ckpt_valid => false, ckpt => 0, writer => false, nops => 0, ops => ( others => NO_OP ) );
             is_store := e.memory and op( 5 downto 4 ) = "10";
             is_ptr_store := is_store and ( op( 7 downto 6 ) = "10" or lvl = 15 );
             served := false;
@@ -647,6 +657,15 @@ begin
                inf.hist := ( dsp => f.dsp, rsp => f.rsp, dlvl => -1, dval => ( others => '0' ) );
                fst := true;
             else
+               inf.nops := 0;							-- ses opérations sur la fenêtre
+               for j in 0 to UPD - 1 loop
+                  if j >= ndops and j < t_ndops then
+                     -- pragma translate_off
+                     assert inf.nops < MAXOPS report "RENAME : trop d'opérations sur la fenêtre" severity failure;
+                     -- pragma translate_on
+                     inf.ops( inf.nops ) := t_dops( j ); inf.nops := inf.nops + 1;
+                  end if;
+               end loop;
                f := t_f; sh := t_sh; shn := t_shn; dops := t_dops; ndops := t_ndops; rops := t_rops; nrops := t_nrops;
                ntaken := t_ntaken; nx := t_nx; xf := t_xf;
                ri.source_count := inf.nsrc;
@@ -738,6 +757,8 @@ begin
       variable ck		: ckpt_array_t;
       variable al, rd, pr	: std_logic_vector( 0 to NTAGS - 1 );
       variable rdr, mc		: nat_tags_t;
+      variable mcc, mck, mcp	: nat_tags_t;
+      variable cw		: cell_array_t;
       -- pragma translate_off
       variable dbg_cnt		: nat_tags_t;
       variable dbg_err		: natural;
@@ -796,9 +817,45 @@ begin
          rp := ( rp + 1 ) mod RCELL_COUNT;
       end procedure;
 
+      procedure COUNT_WIN( w : cell_array_t; d : integer ) is		-- copie : références +d
+      begin
+         for i in 0 to CELLS - 1 loop
+            if w( i ).valid then mck( to_integer( w( i ).tag ) ) := mck( to_integer( w( i ).tag ) ) + d; end if;
+         end loop;
+      end procedure;
+
+      -- une écriture en mémoire (rangement par pointeur écrit, maintenance) : la cellule est
+      -- oubliée aussi dans la fenêtre retirée et dans les copies des points de reprise, sans
+      -- quoi une reprise ressusciterait l'ancien registre
+      procedure FORGET_COPIES( lo, hi : address_t; older_than : seq_t; any_age : boolean ) is
+      begin
+         for i in 0 to CELLS - 1 loop
+            if cw( i ).valid and lo <= cw( i ).addr and cw( i ).addr <= hi
+               and ( any_age or OLDER( cw( i ).wseq, older_than ) ) then
+               cw( i ).valid := false; mcc( to_integer( cw( i ).tag ) ) := mcc( to_integer( cw( i ).tag ) ) - 1;
+            end if;
+         end loop;
+         for c in 0 to NCKPT - 1 loop
+            if ck( c ).valid then
+               for i in 0 to CELLS - 1 loop
+                  if ck( c ).win( i ).valid and lo <= ck( c ).win( i ).addr and ck( c ).win( i ).addr <= hi
+                     and ( any_age or OLDER( ck( c ).win( i ).wseq, older_than ) ) then
+                     ck( c ).win( i ).valid := false;
+                     mck( to_integer( ck( c ).win( i ).tag ) ) := mck( to_integer( ck( c ).win( i ).tag ) ) - 1;
+                  end if;
+               end loop;
+            end if;
+         end loop;
+      end procedure;
+
       -- une instruction quitte la machine (retrait ou abandon)
       procedure LEAVE( rr : rob_index_t ) is
       begin
+         for o in 0 to MAXOPS - 1 loop
+            if o < inf( to_integer( rr ) ).nops and inf( to_integer( rr ) ).ops( o ).set then
+               ti := to_integer( inf( to_integer( rr ) ).ops( o ).tag ); mcp( ti ) := mcp( ti ) - 1;
+            end if;
+         end loop;
          for j in 0 to MAXTAGS - 1 loop
             if j < inf( to_integer( rr ) ).ntag then pr( to_integer( inf( to_integer( rr ) ).tags( j ) ) ) := '0'; end if;
          end loop;
@@ -808,13 +865,54 @@ begin
                if rdr( ti ) > 0 then rdr( ti ) := rdr( ti ) - 1; end if;
             end if;
          end loop;
-         if inf( to_integer( rr ) ).ckpt_valid then ck( inf( to_integer( rr ) ).ckpt ).valid := false; end if;
+         if inf( to_integer( rr ) ).ckpt_valid and ck( inf( to_integer( rr ) ).ckpt ).valid then
+            ck( inf( to_integer( rr ) ).ckpt ).valid := false; COUNT_WIN( ck( inf( to_integer( rr ) ).ckpt ).win, -1 );
+         end if;
          if inf( to_integer( rr ) ).writer then
             for w in 0 to NWRIT - 1 loop
                if wr( w ).valid and not wr( w ).ptr and wr( w ).seq = inf( to_integer( rr ) ).seq then wr( w ).valid := false; end if;
             end loop;
          end if;
          inf( to_integer( rr ) ).valid := false;
+      end procedure;
+
+      procedure SET_C( a : address_t; x : physical_tag_t; s : seq_t ) is
+      begin
+         if cw( WIDX( a ) ).valid then
+            mcc( to_integer( cw( WIDX( a ) ).tag ) ) := mcc( to_integer( cw( WIDX( a ) ).tag ) ) - 1;
+         end if;
+         cw( WIDX( a ) ) := ( valid => true, addr => a, tag => x, wseq => s );
+         mcc( to_integer( x ) ) := mcc( to_integer( x ) ) + 1;
+      end procedure;
+
+      procedure FORGET_C( lo, hi : address_t ) is				-- les cellules de lo à hi
+      begin
+         for i in 0 to CELLS - 1 loop
+            if cw( i ).valid and lo <= cw( i ).addr and cw( i ).addr <= hi then
+               cw( i ).valid := false; mcc( to_integer( cw( i ).tag ) ) := mcc( to_integer( cw( i ).tag ) ) - 1;
+            end if;
+         end loop;
+      end procedure;
+
+      procedure APPLY_D( o : map_op_t ) is					-- une opération, fenêtre spéculative
+      begin
+         if o.set then SET_D( o.addr, o.tag, o.wseq );
+         elsif o.hi /= o.addr then FORGET_DR( o.addr, o.hi );
+         else FORGET_D( o.addr ); end if;
+      end procedure;
+
+      procedure APPLY_C( o : map_op_t ) is					-- une opération, fenêtre retirée
+      begin
+         if o.set then SET_C( o.addr, o.tag, o.wseq ); else FORGET_C( o.addr, o.hi ); end if;
+      end procedure;
+
+      procedure RESTORE_D( w : cell_array_t ) is				-- la fenêtre spéculative := w
+      begin
+         dc := w; rc := ( others => NO_CELL );
+         mc := ( others => 0 );
+         for i in 0 to CELLS - 1 loop
+            if dc( i ).valid then mc( to_integer( dc( i ).tag ) ) := mc( to_integer( dc( i ).tag ) ) + 1; end if;
+         end loop;
       end procedure;
 
       procedure CLEAR_MAPS is
@@ -838,22 +936,17 @@ begin
             seq_next <= 0; waiting <= false; fstall <= false;
             allocated <= ( others => '0' ); ready <= ( others => '1' ); producing <= ( others => '0' );
             readers <= ( others => 0 ); mapcnt <= ( others => 0 ); quar <= ( others => 0 );
+            cwin <= ( others => NO_CELL ); mapcnt_c <= ( others => 0 ); mapcnt_k <= ( others => 0 ); mapcnt_p <= ( others => 0 );
             maint_done <= '0';
          else
             fs := frame_s; fc := frame_c; dc := dcells; rc := rcells; rp := rptr; inf := robinfo;
             hd := r_head; tl := r_tail; wr := writers; ck := ckpts;
             al := allocated; rd := ready; pr := producing; rdr := readers; mc := mapcnt; qu := quar;
+            mcc := mapcnt_c; mck := mapcnt_k; mcp := mapcnt_p; cw := cwin;
 
             -- le bloc renommé, s'il est pris
             if p_k > 0 and RENAME_READY_i = '1' then
                fs := p_frame; shadow <= p_shadow; shadow_n <= p_shadow_n;
-               for j in 0 to UPD - 1 loop
-                  if j < p_ndops then
-                     if p_dops( j ).set then SET_D( p_dops( j ).addr, p_dops( j ).tag, p_dops( j ).wseq );
-                     elsif p_dops( j ).hi /= p_dops( j ).addr then FORGET_DR( p_dops( j ).addr, p_dops( j ).hi );
-                     else FORGET_D( p_dops( j ).addr ); end if;
-                  end if;
-               end loop;
                for j in 0 to RUPD - 1 loop
                   if j < p_nrops then
                      if p_rops( j ).set then SET_R( p_rops( j ).addr, p_rops( j ).tag, p_rops( j ).wseq );
@@ -869,6 +962,14 @@ begin
                for i in 0 to DECODE_WIDTH - 1 loop
                   if i < p_k then
                      r := ROB_TAIL_i + i;
+                     for j in 0 to MAXOPS - 1 loop					-- ses opérations, dans l'ordre
+                        if j < p_info( i ).nops then
+                           APPLY_D( p_info( i ).ops( j ) );
+                           if p_info( i ).ops( j ).set then				-- l'installera au retrait
+                              mcp( to_integer( p_info( i ).ops( j ).tag ) ) := mcp( to_integer( p_info( i ).ops( j ).tag ) ) + 1;
+                           end if;
+                        end if;
+                     end loop;
                      inf( to_integer( r ) ) := p_info( i );
                      for j in 0 to MAX_SOURCE_COUNT - 1 loop
                         if j < p_info( i ).nsrc then
@@ -880,8 +981,10 @@ begin
                            if not wr( w ).valid then wr( w ) := p_writers( i ); exit; end if;
                         end loop;
                      end if;
-                     if p_ckpts( i ).valid then
-                        ck( p_ckpts( i ).id ) := ( valid => true, seq => p_ckpts( i ).seq, frame => p_ckpts( i ).frame );
+                     if p_ckpts( i ).valid then					-- la fenêtre après l'instruction
+                        ck( p_ckpts( i ).id ) := ( valid => true, seq => p_ckpts( i ).seq, frame => p_ckpts( i ).frame,
+                                                   win => dc );
+                        COUNT_WIN( dc, 1 );
                      end if;
                   end if;
                end loop;
@@ -911,6 +1014,9 @@ begin
                   if inf( to_integer( r ) ).hist.dlvl >= 0 then
                      fc.display( inf( to_integer( r ) ).hist.dlvl ) := inf( to_integer( r ) ).hist.dval;
                   end if;
+                  for o in 0 to MAXOPS - 1 loop						-- la fenêtre retirée
+                     if o < inf( to_integer( r ) ).nops then APPLY_C( inf( to_integer( r ) ).ops( o ) ); end if;
+                  end loop;
                   LEAVE( r );
                   hd := hd + 1;
                end if;
@@ -934,6 +1040,8 @@ begin
                            dc( i ).valid := false; UNMAP_TAG( dc( i ).tag );
                         end if;
                      end loop;
+                     FORGET_COPIES( STACK_INVALIDATE_i( l ).address( 63 downto 3 ) & "000",
+                                    STACK_INVALIDATE_i( l ).address( 63 downto 3 ) & "000", ws, false );
                   end if;
                end if;
             end loop;
@@ -947,6 +1055,9 @@ begin
                      dc( i ).valid := false; UNMAP_TAG( dc( i ).tag );
                   end if;
                end loop;
+               if STACK_MAINT_i.length /= 0 then
+                  FORGET_COPIES( STACK_MAINT_i.base - 7, STACK_MAINT_i.base + STACK_MAINT_i.length - 1, 0, true );
+               end if;
             end if;
 
             -- reprise : frame du point de reprise ou retirée ; tout le reste est oublié
@@ -974,7 +1085,13 @@ begin
                   r := r + 1;
                end loop;
                if RECOVERY_i.kind = RECOVER_COMMITTED then tl := hd; else tl := RECOVERY_i.keep_last + 1; end if;
-               CLEAR_MAPS;
+               -- la fenêtre du point de reprise, ou la fenêtre retirée (la pile des retours,
+               -- en écriture immédiate, est oubliée)
+               if RECOVERY_i.kind = RECOVER_CHECKPOINT then
+                  RESTORE_D( ck( to_integer( RECOVERY_i.checkpoint ) ).win );
+               else
+                  RESTORE_D( cw );
+               end if;
                shadow_n <= 0; waiting <= false; fstall <= false;
             end if;
 
@@ -982,6 +1099,7 @@ begin
             if SYNC_VALID_i = '1' then
                fs := SYNC_FRAME_i; fc := SYNC_FRAME_i;
                CLEAR_MAPS;
+               cw := ( others => NO_CELL ); mcc := ( others => 0 );
                shadow_n <= 0; waiting <= false;
             end if;
 
@@ -989,7 +1107,8 @@ begin
             for t in 0 to NTAGS - 1 loop
                if qu( t ) > 0 then
                   qu( t ) := qu( t ) - 1;
-               elsif al( t ) = '1' and pr( t ) = '0' and rdr( t ) = 0 and mc( t ) = 0 then
+               elsif al( t ) = '1' and pr( t ) = '0' and rdr( t ) = 0 and mc( t ) = 0 and mcc( t ) = 0 and mck( t ) = 0
+                     and mcp( t ) = 0 then
                   al( t ) := '0'; qu( t ) := QUARANTINE;
                end if;
             end loop;
@@ -1006,10 +1125,31 @@ begin
             for t in 0 to NTAGS - 1 loop
                if dbg_cnt( t ) /= mc( t ) then dbg_err := dbg_err + 1; end if;
             end loop;
+            dbg_cnt := ( others => 0 );						-- fenêtre retirée
+            for i in 0 to CELLS - 1 loop
+               if cw( i ).valid then dbg_cnt( to_integer( cw( i ).tag ) ) := dbg_cnt( to_integer( cw( i ).tag ) ) + 1; end if;
+            end loop;
+            for t in 0 to NTAGS - 1 loop
+               if dbg_cnt( t ) /= mcc( t ) then dbg_err := dbg_err + 1; end if;
+            end loop;
+            dbg_cnt := ( others => 0 );						-- copies des points de reprise
+            for c in 0 to NCKPT - 1 loop
+               if ck( c ).valid then
+                  for i in 0 to CELLS - 1 loop
+                     if ck( c ).win( i ).valid then
+                        dbg_cnt( to_integer( ck( c ).win( i ).tag ) ) := dbg_cnt( to_integer( ck( c ).win( i ).tag ) ) + 1;
+                     end if;
+                  end loop;
+               end if;
+            end loop;
+            for t in 0 to NTAGS - 1 loop
+               if dbg_cnt( t ) /= mck( t ) then dbg_err := dbg_err + 1; end if;
+            end loop;
             dbg_map_err <= dbg_err;
             -- pragma translate_on
             r_head <= hd; r_tail <= tl; writers <= wr; ckpts <= ck;
             allocated <= al; ready <= rd; producing <= pr; readers <= rdr; mapcnt <= mc; quar <= qu;
+            cwin <= cw; mapcnt_c <= mcc; mapcnt_k <= mck; mapcnt_p <= mcp;
          end if;
       end if;
    end process;

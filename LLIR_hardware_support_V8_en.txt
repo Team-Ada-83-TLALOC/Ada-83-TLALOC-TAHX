@@ -292,6 +292,13 @@ TLALOC takes none (see [Q17]). An implementation may therefore keep the computat
 in registers without watching the computed accesses in flight (TAHX: renaming of the data
 stack). tx_run -v checks the rule.
 
+Above DSP. The contents of the data stack above DSP are undefined: no instruction
+accesses them, neither for reading nor for writing (load or store, direct or computed,
+block, EXC_MACH); UNLINK and UNLINKR do not raise DSP (DISPLAY[lvl] <= DSP). DSP therefore
+rises only through pushes and through the allocation of LINK. A computation cell that dies
+because DSP goes back below it (UNLINK, RTD n) need not be written back to memory. A
+program that breaks the rule has unspecified behaviour; tx_run -v checks it (see [Q18]).
+
 The data stack and the co-stack are ordinary memory: the program also accesses them by
 address (locals, parameters, LVA, co-stack blocks). The return stack, on the other hand,
 is read and written only by push_return and pop_return (CALL, CALLI, RTD, vectored TRAP,
@@ -1733,6 +1740,15 @@ and resets DR to 0.
 	renaming: DIS_BONJOUR 5,922 -> 4,920 cycles once this constraint is lifted, FILL 1,828
 	-> 27). The rule asks nothing of the compiler: Ada source does not address temporaries,
 	and tx_run -v checks the generated code.
+
+[Q18]	Accesses above DSP.				=> excluded (V8, Stacks section)
+	Measurement (tx_run, TLALOC compiling float_test.adb, 68 million instructions, and the
+	N3 test programs): no read and no write above DSP, no UNLINK that raises DSP. Without
+	this rule, a dead cell (DSP gone back below it without a pop) that keeps a register can
+	be exposed again by an UNLINK that raises DSP, after a computed access wrote it (the
+	renaming test bench showed it); and, with write-back, the last value of a dead cell may
+	live only in a register. With the rule, a cell that dies through the descent of DSP is
+	never written back to memory.
 
 =========================================================================================
 	OPEN QUESTIONS

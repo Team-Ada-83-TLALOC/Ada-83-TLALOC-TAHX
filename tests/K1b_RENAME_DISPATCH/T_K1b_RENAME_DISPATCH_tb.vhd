@@ -222,6 +222,7 @@ begin
       variable fu		: frame_update_t;
       variable inv		: stack_invalidate_bus_t( 0 to MEMORY_LANES - 1 );
       variable a		: natural;
+      variable d		: natural;					-- recul sous DSP (spéc. V8)
       variable n_src_checked, n_fill, n_spill, n_mis, n_flt, n_unlink_wait, n_inval, n_sync, n_ckpt_rec : natural := 0;
       variable n_served		: natural := 0;				-- chargements servis par la fenêtre
       variable served_i		: boolean;
@@ -362,6 +363,10 @@ begin
          end if;
          -- les UNLINK suivent les LINK (niveau de la pile d'ombre du banc) ; RTD les CALL
          if e.kind = K_UNLINK and shadow_lvl < 1 then e.kind := K_LI; op := x"C0"; len := 1; end if;
+         -- spéc. V8 : UNLINK ne fait pas remonter DSP (DISPLAY[lvl] <= DSP)
+         if e.kind = K_UNLINK and shadow_lvl >= 1 then
+            if fr.dsp < fr.display( shadow_lvl ) then e.kind := K_LI; op := x"C0"; len := 1; end if;
+         end if;
          if e.kind = K_RTD and f.rsp >= A64( R0 ) then e.kind := K_CALL; op := x"F2"; len := 4; end if;
          if fr.dsp < A64( S0 - 8 * 300 ) and ( e.kind = K_DROP or e.kind = K_LIN or e.kind = K_STORE or e.kind = K_PSTORE
                                              or e.kind = K_BT or e.kind = K_LEX or e.kind = K_CALLI or e.kind = K_RTD ) then
@@ -393,6 +398,11 @@ begin
             when K_LOAD =>								-- lvl 0..14 : adresse connue
                e.slot.canon.val := to_signed( 8 * ( RAND_INT( 64 ) - 32 ), 32 );
                e.addr_known := true; e.addr := f.display( lvl ) + unsigned( resize( e.slot.canon.val, 64 ) );
+               -- spéc. V8 : aucun accès au-dessus de DSP (dans la pile suivie)
+               if e.addr >= A64( SLOW ) and e.addr < A64( SLOW + 8 * SWORDS ) and e.addr > f.dsp then
+                  d := to_integer( e.addr - f.dsp ); d := 8 * ( ( d + 7 ) / 8 );
+                  e.addr := e.addr - to_unsigned( d, 64 ); e.slot.canon.val := e.slot.canon.val - to_signed( d, 32 );
+               end if;
                e.dval := MREAD( e.addr );						-- la valeur de la mémoire (servi
                case op is
                   when x"54" => e.dval := std_logic_vector( resize( signed( e.dval( 7 downto 0 ) ), 64 ) );
@@ -406,6 +416,11 @@ begin
                if RAND < 0.5 then e.slot.canon.val := to_signed( 8 * ( RAND_INT( 8 ) - 8 ), 32 ); lvl := 0;
                   e.slot.canon.lvl := "0000"; end if;
                e.addr_known := true; e.addr := f.display( lvl ) + unsigned( resize( e.slot.canon.val, 64 ) );
+               -- spéc. V8 : aucun accès au-dessus de DSP (dans la pile suivie)
+               if e.addr >= A64( SLOW ) and e.addr < A64( SLOW + 8 * SWORDS ) and e.addr > f.dsp then
+                  d := to_integer( e.addr - f.dsp ); d := 8 * ( ( d + 7 ) / 8 );
+                  e.addr := e.addr - to_unsigned( d, 64 ); e.slot.canon.val := e.slot.canon.val - to_signed( d, 32 );
+               end if;
                if op = x"64" and RAND < 0.5 then e.addr := e.addr + 3; e.slot.canon.val := e.slot.canon.val + 3; end if;
                e.is_store := true;
                POP( e, f );
@@ -421,9 +436,9 @@ begin
                e.slot.canon.lvl := "1111"; e.is_store := true;
                POP( e, f ); POP( e, f );
                v := e.src( 0 ); e.src( 0 ) := e.src( 1 ); e.src( 1 ) := v;	-- @ le plus profond
-               -- la LSQ jouée choisit l'adresse : une cellule de la pile au-dessus de DSP (morte ;
-               -- spéc. V8 : aucun accès calculé n'écrit une cellule de calcul vivante)
-               a := to_integer( f.dsp( 30 downto 0 ) ) + 8 * ( 1 + RAND_INT( 5 ) );
+               -- la LSQ jouée choisit l'adresse : hors de la pile data (spéc. V8 : aucun accès
+               -- calculé n'écrit une cellule de calcul, aucun accès au-dessus de DSP)
+               a := SLOW + 8 * SWORDS + 8 * RAND_INT( 63 );
                e.ptr_ea := a;
                MWRITE( e, A64( a ), e.src( 1 ), true );
             when K_CHK =>								-- ( v -- v ), lvl 0..14
@@ -817,12 +832,14 @@ begin
          end if;
       end loop;
 
-		-- fin : une reprise vide les tables ; tous les registres redeviennent libres
+		-- fin : une reprise et un SYNC vident les tables (la fenêtre retirée garde, sinon,
+		-- les registres des cellules vivantes) ; tous les registres redeviennent libres
       recovery <= ( valid => '1', kind => RECOVER_COMMITTED, keep_last => ( others => '0' ), checkpoint => ( others => '0' ),
                     new_pc => ( others => '0' ), ghist => ( others => '0' ), ras_ptr => ( others => '0' ) );
+      sync_frame <= fr_c; sync_valid <= '1';
       retire_count <= ( others => '0' ); dec_count <= ( others => '0' );
       wait until falling_edge( clk );
-      recovery <= NO_RECOVERY;
+      recovery <= NO_RECOVERY; sync_valid <= '0';
       for i in 1 to 10 loop wait until falling_edge( clk ); end loop;
       CHECK( c, to_integer( free_count ) = NTAGS, "tous les registres libres à la fin ("
                                                   & integer'image( to_integer( free_count ) ) & ")" );

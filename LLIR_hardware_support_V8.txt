@@ -294,6 +294,14 @@ aux temporaires d'une expression, et TLALOC n'en prend pas (voir [Q17]). Une imp
 peut donc garder les cellules de calcul en registres sans observer les accès calculés en
 vol (TAHX : renommage de la pile data). tx_run -v vérifie la règle.
 
+Au-dessus de DSP. Le contenu de la pile data au-dessus de DSP est indéfini : aucune
+instruction n'y accède, ni en lecture ni en écriture (chargement ou rangement, direct ou
+calculé, bloc, EXC_MACH) ; UNLINK et UNLINKR ne font pas remonter DSP (DISPLAY[lvl] <=
+DSP). DSP ne monte donc que par les push et par l'allocation de LINK. Une cellule de calcul
+qui meurt parce que DSP redescend sous elle (UNLINK, RTD n) n'a pas à être réécrite en
+mémoire. Un programme qui enfreint la règle a un comportement non spécifié ; tx_run -v la
+vérifie (voir [Q18]).
+
 La pile data et la co-pile sont de la mémoire ordinaire : le programme y accède aussi par
 adresse (locales, paramètres, LVA, blocs de la co-pile). La pile des retours, elle, n'est
 lue et écrite que par push_retour et pop_retour (CALL, CALLI, RTD, TRAP vectorisé,
@@ -1734,6 +1742,15 @@ l'instruction interrompue et remet DR à 0.
 	un bloc est en vol (TAHX, renommage R1 : DIS_BONJOUR 5 922 -> 4 920 cycles en levant
 	cette contrainte, FILL 1 828 -> 27). La règle ne demande rien au compilateur : le source
 	Ada n'adresse pas les temporaires, et tx_run -v vérifie le code produit.
+
+[Q18]	Accès au-dessus de DSP.				=> exclus (V8, section Piles)
+	Mesure (tx_run, TLALOC compilant float_test.adb, 68 millions d'instructions, et
+	programmes des tests N3) : aucune lecture ni écriture au-dessus de DSP, aucun UNLINK
+	qui fasse remonter DSP. Sans cette règle, une cellule morte (DSP redescendu sans pop)
+	qui garde un registre peut être ré-exposée par un UNLINK qui remonte, après qu'un accès
+	calculé l'a écrite (le banc du renommage l'a montré) ; et, en écriture différée, la
+	dernière valeur d'une cellule morte peut n'être que dans un registre. Avec la règle, une
+	cellule qui meurt par la descente de DSP n'est jamais réécrite en mémoire.
 
 =========================================================================================
 	QUESTIONS OUVERTES

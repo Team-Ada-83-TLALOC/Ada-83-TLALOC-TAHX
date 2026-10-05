@@ -100,6 +100,14 @@ use work.RENAME_TYPES.all;
 		--     registre : il empile une cellule qui le reprend, comme DUP, sans
 		--     exécution (stack_cache_hit = '1', done à l'allocation). Au-dessus de DSP,
 		--     une cellule est morte : un rangement calculé a pu l'écrire.
+		--     Copies de la fenêtre (R2b) : chaque instruction garde ses opérations sur la
+		--     fenêtre ; la fenêtre retirée les rejoue au retrait ; chaque point de reprise
+		--     garde la fenêtre d'après son instruction ; une reprise rétablit la copie de
+		--     son point (RECOVER_CHECKPOINT) ou la fenêtre retirée (RECOVER_COMMITTED),
+		--     la pile des retours étant oubliée ; SYNC oublie tout. Les invalidations
+		--     (STACK_INVALIDATE_i, maintenance) touchent toutes les copies. Un registre
+		--     n'est libre que si aucune copie ne le désigne et qu'aucune instruction en
+		--     vol ne l'installera au retrait (DUP, OVER, chargement servi).
 		--     LINK oublie toute correspondance dans la zone qu'il alloue (variables
 		--     locales) : une cellule morte (DSP redescendu sans pop) qui garderait un
 		--     registre ne redevient pas lisible sans un push qui la réécrit. DUP, OVER : les cellules neuves reprennent le registre

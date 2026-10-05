@@ -211,3 +211,14 @@ concernée quand on l'écrira, puis à rayer ici.
               à chaque cycle ; six graines. DIS_BONJOUR : 4911 cycles (inchangé : R2a
               valide la structure) ; 11 chargements servis ; arrêts du renommage par la
               LSQ pleine : 2233 (cible de R2b).
+  2026-10-05  R2b, points 1 et 2 (écriture immédiate encore) : opérations sur la fenêtre
+              gardées par instruction ; fenêtre retirée (rejouée au retrait) ; copie de
+              la fenêtre par point de reprise ; reprises qui rétablissent la copie ou la
+              fenêtre retirée ; invalidations propagées aux copies ; libération d'un
+              registre seulement si aucune copie ne le désigne et qu'aucune instruction en
+              vol ne l'installera (DUP, OVER, chargement servi). Défaut trouvé (graines 11
+              et 57) : une cellule morte écrite par un rangement calculé, puis ré-exposée
+              par un UNLINK qui fait remonter DSP -> seconde règle V8 ([Q18]) : aucun accès
+              au-dessus de DSP, UNLINK ne fait pas remonter DSP (mesure : 0 sur 68 M
+              instructions). tx_run -v la vérifie. Banc : UNLINK sous la règle, rangements
+              par pointeur hors de la pile, accès directs ramenés sous DSP ; six graines.
