@@ -160,6 +160,20 @@ of LOAD_STORE_QUEUE is		---
       return b <= a and a + na <= b + nb;
    end function;
 
+   -- la règle de validité de DATA_CACHE (mêmes génériques) : les rangements sans sondage
+   function VALID_ACCESS( a : address_t; n : natural ) return boolean is
+   begin
+      return a >= VALID_BASE_G and a <= VALID_LIMIT_G - n and VALID_LIMIT_G >= n;
+   end function;
+
+   -- pragma translate_off
+   -- mesure (bancs N3) : lectures en attente, par raison, à ce cycle
+   signal dbg_wait_addr		: natural := 0;				-- un rangement plus ancien sans adresse
+   signal dbg_wait_part		: natural := 0;				-- recouvrement partiel : attente de l'écriture
+   signal dbg_wait_bar		: natural := 0;				-- barrière plus ancienne
+   signal dbg_unk_norm		: natural := 0;				-- rangements sans adresse : ordinaires
+   signal dbg_unk_cx		: natural := 0;				--  de LINK (adresse par COMPLEX_UNIT)
+   -- pragma translate_on
 begin
 
 		--------------------------------------------------------------------------------
@@ -167,6 +181,11 @@ begin
 		--------------------------------------------------------------------------------
 
    PLANIFIER : process( e, ROB_HEAD_i )
+      -- pragma translate_off
+      variable wa, wp, wb	: natural;
+      variable un, ux		: natural;
+      variable unk		: boolean;
+      -- pragma translate_on
       variable p		: plan_array_t;
       variable addr		: address_t;
       variable pur		: purpose_t;
@@ -183,6 +202,16 @@ begin
       variable cnt		: natural;
       variable cp		: capture_pick_t;
    begin
+      -- pragma translate_off
+      wa := 0; wp := 0; wb := 0;
+      un := 0; ux := 0;
+      for i in 0 to DEPTH_G - 1 loop
+         if e( i ).valid = '1' and e( i ).kind = K_STORE and not e( i ).ea_known then
+            if e( i ).cx then ux := ux + 1; else un := un + 1; end if;
+         end if;
+      end loop;
+      dbg_unk_norm <= un; dbg_unk_cx <= ux;
+      -- pragma translate_on
       for i in 0 to DEPTH_G - 1 loop
          p( i ) := ( step => S_WAIT, purpose => P_NONE, address => ( others => '0' ), sz => 0, fwd => ( others => '0' ) );
          if e( i ).valid = '1' and not e( i ).busy and not e( i ).ready and not e( i ).committed then
@@ -207,6 +236,9 @@ begin
             elsif pur /= P_NONE then						-- lecture : ordre prudent
                key := AGE_KEY( e( i ), ROB_HEAD_i );
                blocked := false;
+               -- pragma translate_off
+               unk := false;
+               -- pragma translate_on
                decider := -1; best_key := 0;
                for j in 0 to DEPTH_G - 1 loop
                   if j /= i and e( j ).valid = '1' and e( j ).kind = K_BARRIER then
@@ -221,12 +253,22 @@ begin
                      if k < key then						-- rangement plus ancien
                         if not e( j ).ea_known then
                            blocked := true;
+                           -- pragma translate_off
+                           unk := true;
+                           -- pragma translate_on
                         elsif OVERLAP( addr, 2 ** szr, e( j ).ea, 2 ** e( j ).sz ) and ( decider < 0 or k > best_key ) then
                            decider := j; best_key := k;			-- le plus jeune qui recouvre
                         end if;
                      end if;
                   end if;
                end loop;
+               -- pragma translate_off
+               if blocked and unk then wa := wa + 1; elsif blocked then wb := wb + 1;
+               elsif decider >= 0 and not ( COVERS( e( decider ).ea, 2 ** e( decider ).sz, addr, 2 ** szr )
+                                            and e( decider ).data_known ) then
+                  if COVERS( e( decider ).ea, 2 ** e( decider ).sz, addr, 2 ** szr ) then wa := wa + 1; else wp := wp + 1; end if;
+               end if;
+               -- pragma translate_on
                if not blocked then
                   if decider < 0 then
                      p( i ) := ( step => S_ISSUE, purpose => pur, address => addr, sz => szr, fwd => ( others => '0' ) );
@@ -240,6 +282,9 @@ begin
          end if;
       end loop;
       plan <= p;
+      -- pragma translate_off
+      dbg_wait_addr <= wa; dbg_wait_part <= wp; dbg_wait_bar <= wb;
+      -- pragma translate_on
 
       -- requêtes : port 0 pour l'écriture validée la plus ancienne, sinon comme les autres
       pp := ( others => -1 );
@@ -571,6 +616,11 @@ begin
             -- fins acquises : rangement, CHK
             for j in 0 to DEPTH_G - 1 loop
                if v( j ).valid = '1' and not v( j ).ready and not v( j ).reported then
+                  -- rangement : validité décidée dès l'adresse connue (règle de DATA_CACHE)
+                  if v( j ).kind = K_STORE and v( j ).ea_known and not v( j ).probed then
+                     v( j ).probed := true;
+                     if not VALID_ACCESS( v( j ).ea, 2 ** v( j ).sz ) then v( j ).fault := 132; v( j ).ready := true; end if;
+                  end if;
                   if v( j ).kind = K_STORE and v( j ).probed and v( j ).data_known and v( j ).fault = 0 then
                      v( j ).ready := true;
                   elsif v( j ).kind = K_CHK and v( j ).fst_done and v( j ).lst_done and v( j ).data_known then

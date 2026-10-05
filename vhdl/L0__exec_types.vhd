@@ -99,6 +99,10 @@ is				----------
 		--------------------------------------------------------------------------------
 
    constant LSQ_DEPTH			: positive	:= 128;		-- R1 : un SPILL par cellule empilée
+   -- règle de validité des accès de données (plateforme ; celle de tx_run), commune à
+   -- DATA_CACHE et à la LSQ (qui en décide seule pour les rangements)
+   constant DATA_VALID_BASE		: address_t	:= x"0000000000400000";
+   constant DATA_VALID_LIMIT		: address_t	:= x"00007F0000000000";
    constant LSQ_EXEC_PORTS		: positive	:= MEMORY_LANES + COMPLEX_LANES;	-- 3
 
 		-- address : adresse effective (famille B), adresse de la cellule pointeur

@@ -253,6 +253,22 @@ COMPTEURS :
     alias head_status  is << signal DUT.head_status : head_status_t >>;
     alias head_atomic  is << signal DUT.head_atomic : std_logic >>;
     alias retire       is << signal DUT.retire : retire_block_t >>;
+    alias rob_tail     is << signal DUT.rob_tail : rob_index_t >>;
+    alias lsq_exec     is << signal DUT.lsq_exec : lsq_exec_bus_t >>;
+    alias results      is << signal DUT.results : exec_result_bus_t >>;
+    alias lsq_wa       is << signal DUT.U_LSQ.dbg_wait_addr : natural >>;
+    alias lsq_wp       is << signal DUT.U_LSQ.dbg_wait_part : natural >>;
+    alias lsq_wb       is << signal DUT.U_LSQ.dbg_wait_bar : natural >>;
+    variable sw_a, sw_p, sw_b : natural := 0;
+    alias lsq_un       is << signal DUT.U_LSQ.dbg_unk_norm : natural >>;
+    alias lsq_ux       is << signal DUT.U_LSQ.dbg_unk_cx : natural >>;
+    variable su_n, su_x : natural := 0;
+    -- accès mémoire : cycle où l'adresse arrive à la LSQ (EXEC_i), par rob
+    type at_t is array( 0 to ROB_SIZE - 1 ) of integer;
+    variable exec_at : at_t := ( others => -1 );
+    variable st_addr, st_lsq, ld_addr, ld_lsq : natural := 0;	-- en tête : avant, après l'adresse
+    variable lat_sum, lat_n : natural := 0;				-- adresse -> fin d'exécution (LSQ)
+    variable hr : natural;
     type q_t is array( 0 to 6 ) of natural;
     type sum_t is array( 0 to 6 ) of real;
     variable cyc, ret, alloc, rn_block, rn_starved, dq_empty : natural := 0;
@@ -359,9 +375,35 @@ COMPTEURS :
       wait until rising_edge( clk );
       exit when halted = '1' or not running;
       cyc := cyc + 1;
+      -- accès mémoire : allocation (marque effacée), adresse reçue, fin rendue par la LSQ
+      if alloc_valid = '1' then
+        for k in 0 to to_integer( alloc_count ) - 1 loop
+          exec_at( ( to_integer( rob_tail ) + k ) mod ROB_SIZE ) := -1;
+        end loop;
+      end if;
+      for p in results'range loop
+        if p >= RESULT_MEMORY and p < RESULT_MEMORY + MEMORY_LANES and results( p ).valid = '1'
+           and results( p ).completion.valid = '1' then
+          hr := to_integer( results( p ).completion.rob_index );
+          if exec_at( hr ) >= 0 then lat_sum := lat_sum + cyc - exec_at( hr ); lat_n := lat_n + 1; end if;
+        end if;
+      end loop;
+      for l in lsq_exec'range loop
+        if lsq_exec( l ).valid = '1' and exec_at( to_integer( lsq_exec( l ).rob_index ) ) < 0 then
+          exec_at( to_integer( lsq_exec( l ).rob_index ) ) := cyc;
+        end if;
+      end loop;
+      sw_a := sw_a + lsq_wa; sw_p := sw_p + lsq_wp; sw_b := sw_b + lsq_wb;
+      su_n := su_n + lsq_un; su_x := su_x + lsq_ux;
       if head_status.valid = '1' and head_status.done = '0' then
         stall_total := stall_total + 1;
         cls_stall( CLS( head_status.pc ) ) := cls_stall( CLS( head_status.pc ) ) + 1;
+        hr := to_integer( head_status.rob_index );
+        if CLS( head_status.pc ) = 1 then
+          if exec_at( hr ) < 0 then st_addr := st_addr + 1; else st_lsq := st_lsq + 1; end if;
+        elsif CLS( head_status.pc ) = 0 then
+          if exec_at( hr ) < 0 then ld_addr := ld_addr + 1; else ld_lsq := ld_lsq + 1; end if;
+        end if;
       end if;
       for i in retire'range loop
         if retire( i ).valid = '1' then
@@ -450,6 +492,14 @@ COMPTEURS :
                & integer'image( cls_ret( k ) ) & "  " & F2( real( cls_stall( k ) ) / real( maximum( cls_ret( k ), 1 ) ) ) );
       end if;
     end loop;
+    LIGNE( "PERF rangements en tête : avant l'adresse " & integer'image( st_addr ) & ", après (LSQ) " & integer'image( st_lsq ) );
+    LIGNE( "PERF chargements en tête : avant l'adresse " & integer'image( ld_addr ) & ", après (LSQ) " & integer'image( ld_lsq ) );
+    LIGNE( "PERF lectures en attente dans la LSQ (somme sur les cycles) : rangement plus ancien sans adresse "
+           & integer'image( sw_a ) & ", recouvrement partiel " & integer'image( sw_p ) & ", barrière " & integer'image( sw_b ) );
+    LIGNE( "PERF rangements sans adresse dans la LSQ (somme sur les cycles) : ordinaires " & integer'image( su_n )
+           & ", de LINK " & integer'image( su_x ) );
+    LIGNE( "PERF accès mémoire : adresse -> fin rendue par la LSQ, moyenne "
+           & F2( real( lat_sum ) / real( maximum( lat_n, 1 ) ) ) & " cycles (" & integer'image( lat_n ) & " accès)" );
     file_close( fp );
     perf_done <= true;
     wait;

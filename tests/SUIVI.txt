@@ -170,3 +170,13 @@ concernée quand on l'écrira, puis à rayer ici.
   2026-10-05  RENAME_DISPATCH : STACK_LOOKUP_o (inactif jusqu'à R2) par affectation
               concurrente au lieu d'un processus terminé par wait (refusé par la
               synthèse de GHDL 6) ; c'était le seul dans le RTL.
+  2026-10-05  Rangements sans sondage : la LSQ décide seule de la faute 132, dès l'adresse
+              connue, avec la règle de DATA_CACHE (génériques VALID_BASE_G, VALID_LIMIT_G ;
+              constantes communes DATA_VALID_BASE, DATA_VALID_LIMIT). DIS_BONJOUR : 6355 ->
+              6340 cycles ; sondages au cache 638 -> 266 (ceux de COMPLEX, SYSTEM).
+              Mesures : temps en tête des accès, avant et après l'adresse ; raisons d'attente
+              des lectures dans la LSQ (compteurs de simulation, translate_off).
+              DIS_BONJOUR : 207067 lectures-cycles bloquées par un rangement plus ancien sans
+              adresse ; rangements sans adresse : ordinaires 17884, de LINK 46. Un
+              rangement n'a son adresse qu'une fois sa donnée prête (ADDRESS_UNIT attend ses
+              deux sources) : l'ordre prudent sérialise lectures et FILL.

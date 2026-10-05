@@ -77,8 +77,8 @@ is				----------
       SIZE_BYTES_G		: positive	:= 32 * 1024;
       LINE_BYTES_G		: positive	:= 32;
       WAYS_G		: positive	:= 4;
-      VALID_BASE_G		: address_t	:= x"0000000000400000";	-- règle de validité
-      VALID_LIMIT_G	: address_t	:= x"00007F0000000000"	--  (tx_run)
+      VALID_BASE_G		: address_t	:= DATA_VALID_BASE;		-- règle de validité
+      VALID_LIMIT_G	: address_t	:= DATA_VALID_LIMIT		--  (tx_run)
    );
    port (
       CLK_i		:in  std_logic;

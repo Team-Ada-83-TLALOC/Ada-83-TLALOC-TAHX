@@ -136,7 +136,8 @@ of T_M2_LOAD_STORE_QUEUE_tb is
 begin
 
    DUT : entity work.LOAD_STORE_QUEUE
-      generic map ( DEPTH_G => DEPTH )				-- le sommet : LSQ_DEPTH
+      generic map ( DEPTH_G => DEPTH,				-- le sommet : LSQ_DEPTH
+                    VALID_BASE_G => to_unsigned( DATA_BASE, 64 ), VALID_LIMIT_G => to_unsigned( DATA_BASE + DATA_SIZE, 64 ) )
       port map (
          CLK_i => clk, RESET_i => reset,
          MEMORY_INSERT_VALID_i => ins_valid, MEMORY_INSERT_BLOCK_i => ins_block, MEMORY_INSERT_COUNT_i => ins_count,

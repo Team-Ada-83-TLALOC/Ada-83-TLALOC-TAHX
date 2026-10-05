@@ -75,8 +75,10 @@ use work.EXEC_TYPES.all;
 		--                           si v < FST ou v > LST (signé sur 64 bits), sinon
 		--                           fin d'exécution sans résultat (v reste au sommet).
 		--     Faute 132 : un octet invalide dans un accès (cellule pointeur, donnée,
-		--     borne), constaté par le cache ; pour un rangement, par un sondage avant sa
-		--     fin d'exécution. Une faute de la cellule pointeur ou d'une borne arrête
+		--     borne), constaté par le cache ; pour un rangement, par la LSQ elle-même dès
+		--     son adresse connue, selon la règle de DATA_CACHE (VALID_BASE_G <= adresse,
+		--     adresse + n <= VALID_LIMIT_G : les mêmes génériques, le sommet leur donne
+		--     les mêmes valeurs). Une faute de la cellule pointeur ou d'une borne arrête
 		--     l'instruction (132 avant 131).
 		--
 		--  4. Ordre prudent (annexe, mécanisme 2) : un accès en lecture (chargement,
@@ -86,8 +88,8 @@ use work.EXEC_TYPES.all;
 		--     connue, transfert ; s'il ne les couvre qu'en partie, l'accès attend qu'il
 		--     soit écrit dans le cache ; s'il n'y en a pas, lecture du cache.
 		--
-		--  5. Rangements : fin d'exécution (sans résultat) quand adresse, donnée et
-		--     sondage sont acquis, ou faute 132. Au retrait (RETIRE_i, is_store), le
+		--  5. Rangements : fin d'exécution (sans résultat) quand adresse (valide) et
+		--     donnée sont acquises, ou faute 132 (adresse invalide). Au retrait (RETIRE_i, is_store), le
 		--     rangement est validé : il ne sera plus abandonné ; il est écrit dans le
 		--     cache, les validés dans l'ordre, puis son entrée est libérée. DRAINED_o =
 		--     '1' quand aucun rangement validé n'attend.
@@ -154,7 +156,9 @@ use work.EXEC_TYPES.all;
 entity				LOAD_STORE_QUEUE
 is				----------------
    generic (
-      DEPTH_G		: positive	:= LSQ_DEPTH
+      DEPTH_G		: positive	:= LSQ_DEPTH;
+      VALID_BASE_G		: address_t	:= DATA_VALID_BASE;		-- validité des rangements :
+      VALID_LIMIT_G	: address_t	:= DATA_VALID_LIMIT		--  la règle de DATA_CACHE
    );
    port (
       CLK_i		:in  std_logic;
