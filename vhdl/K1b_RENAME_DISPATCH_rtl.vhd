@@ -68,6 +68,7 @@ of RENAME_DISPATCH is		---
    type map_op_t		is record
 			  set		: boolean;			-- true : la cellule prend tag ; false : oubliée
 			  addr		: address_t;
+			  hi		: address_t;			-- oubli : les cellules de addr à hi (sinon hi = addr)
 			  tag		: physical_tag_t;
 			  wseq		: seq_t;
 			end record;
@@ -249,7 +250,6 @@ begin
       variable t_ntaken		: natural range 0 to BLKTAGS;
       variable t_nx		: natural range 0 to STACK_XFER_WIDTH;
       variable t_xf		: stack_xfer_bus_t;
-      variable t_wt		: boolean;
       variable ok		: boolean;
       variable stop_after	: boolean;
       -- sorties
@@ -300,7 +300,7 @@ begin
       begin
          hit := false; r := ( others => '0' );
          for i in UPD - 1 downto 0 loop
-            if i < t_ndops and t_dops( i ).addr = a then
+            if i < t_ndops and t_dops( i ).addr <= a and a <= t_dops( i ).hi then
                hit := t_dops( i ).set; r := t_dops( i ).tag; return;
             end if;
          end loop;
@@ -325,7 +325,17 @@ begin
       procedure DOP( set : boolean; a : address_t; r : physical_tag_t ) is
       begin
          if t_ndops < UPD then
-            t_dops( t_ndops ) := ( set => set, addr => a, tag => r, wseq => seq ); t_ndops := t_ndops + 1;
+            t_dops( t_ndops ) := ( set => set, addr => a, hi => a, tag => r, wseq => seq ); t_ndops := t_ndops + 1;
+         else
+            ok := false;
+         end if;
+      end procedure;
+
+      procedure DFORGET_RANGE( lo, hi : address_t ) is			-- les cellules de lo à hi, oubliées
+      begin
+         if t_ndops < UPD then
+            t_dops( t_ndops ) := ( set => false, addr => lo, hi => hi, tag => ( others => '0' ), wseq => seq );
+            t_ndops := t_ndops + 1;
          else
             ok := false;
          end if;
@@ -334,7 +344,7 @@ begin
       procedure ROP( set : boolean; a : address_t; r : physical_tag_t ) is
       begin
          if t_nrops < RUPD then
-            t_rops( t_nrops ) := ( set => set, addr => a, tag => r, wseq => seq ); t_nrops := t_nrops + 1;
+            t_rops( t_nrops ) := ( set => set, addr => a, hi => a, tag => r, wseq => seq ); t_nrops := t_nrops + 1;
          else
             ok := false;
          end if;
@@ -357,8 +367,8 @@ begin
          variable x   : physical_tag_t;
       begin
          LOOKUP( a, hit, x );
-         if hit and not t_wt then
-            r := x;
+         if hit then							-- (spéc. V8 : aucun accès calculé
+            r := x;							--  n'écrit une cellule de calcul)
          else
             NEW_TAG( x );
             XFER( XFER_FILL, a, x, '0' );
@@ -406,9 +416,9 @@ begin
 
    begin
       f := frame_s; sh := shadow; shn := shadow_n;
-      dops := ( others => ( set => false, addr => ( others => '0' ), tag => ( others => '0' ), wseq => 0 ) );
+      dops := ( others => ( set => false, addr => ( others => '0' ), hi => ( others => '0' ), tag => ( others => '0' ), wseq => 0 ) );
       ndops := 0;
-      rops := ( others => ( set => false, addr => ( others => '0' ), tag => ( others => '0' ), wseq => 0 ) );
+      rops := ( others => ( set => false, addr => ( others => '0' ), hi => ( others => '0' ), tag => ( others => '0' ), wseq => 0 ) );
       nrops := 0;
       ntaken := 0; nx := 0; seq := seq_next; fst := fstall;
       xf := ( others => ( valid => '0', kind => XFER_SPILL, address => ( others => '0' ), tag => ( others => '0' ),
@@ -453,7 +463,7 @@ begin
             lvl := to_integer( slot.canon.lvl );
             -- essai sur des copies
             t_f := f; t_sh := sh; t_shn := shn; t_dops := dops; t_ndops := ndops; t_rops := rops; t_nrops := nrops;
-            t_ntaken := ntaken; t_nx := nx; t_xf := xf; t_wt := nwr > 0;
+            t_ntaken := ntaken; t_nx := nx; t_xf := xf;
             ok := true; stop_after := false; fault := 0;
             ri := ( slot => slot, rob_index => rob, issue_class => e.issue_class, source_count => 0,
                     source => ( others => ( others => '0' ) ), source_ready => ( others => '1' ),
@@ -512,6 +522,9 @@ begin
                   end if;
                   alloc := resize( unsigned( std_logic_vector( slot.canon.val ) ), 36 ) + 7;
                   alloc( 2 downto 0 ) := "000";
+                  if alloc /= 0 then						-- variables locales : aucune correspondance
+                     DFORGET_RANGE( t_f.dsp + 8, t_f.dsp + resize( alloc, 64 ) );	--  (ni ancienne,
+                  end if;								--  ni morte)
                   t_f.dsp := t_f.dsp + resize( alloc, 64 );
                elsif op = x"F8" or op = x"F9" then				-- UNLINK, UNLINKR lvl
                   t_f.dsp := f.display( lvl );
@@ -522,8 +535,8 @@ begin
 								--  LSQ, lu par COMPLEX_UNIT (sans cellule)
                   dl := lvl;
                   -- la pile d'ombre ne vaut que si la cellule est encore tenue par le registre
-                  -- que LINK lui a donné, sans écrivain en vol (spéc. : DISPLAY[lvl] := pop)
-                  if t_shn > 0 and t_sh( t_shn - 1 ).lvl = lvl and found and tg = t_sh( t_shn - 1 ).tag and not t_wt then
+                  -- que LINK lui a donné (spéc. : DISPLAY[lvl] := pop)
+                  if t_shn > 0 and t_sh( t_shn - 1 ).lvl = lvl and found and tg = t_sh( t_shn - 1 ).tag then
                      dv := t_sh( t_shn - 1 ).val; t_shn := t_shn - 1;
                      t_f.display( lvl ) := dv;
                   else
@@ -719,6 +732,15 @@ begin
          end loop;
       end procedure;
 
+      procedure FORGET_DR( lo, hi : address_t ) is
+      begin
+         for i in 0 to CELLS - 1 loop
+            if dc( i ).valid and lo <= dc( i ).addr and dc( i ).addr <= hi then
+               dc( i ).valid := false; UNMAP_TAG( dc( i ).tag );
+            end if;
+         end loop;
+      end procedure;
+
       procedure SET_D( a : address_t; x : physical_tag_t; s : seq_t ) is
       begin
          FORGET_D( a );
@@ -798,6 +820,7 @@ begin
                for j in 0 to UPD - 1 loop
                   if j < p_ndops then
                      if p_dops( j ).set then SET_D( p_dops( j ).addr, p_dops( j ).tag, p_dops( j ).wseq );
+                     elsif p_dops( j ).hi /= p_dops( j ).addr then FORGET_DR( p_dops( j ).addr, p_dops( j ).hi );
                      else FORGET_D( p_dops( j ).addr ); end if;
                   end if;
                end loop;

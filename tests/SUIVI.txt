@@ -191,3 +191,12 @@ concernée quand on l'écrira, puis à rayer ici.
               leur adresse vient d'un FILL, lui-même derrière l'ordre prudent. Cause
               première : en R1, tout dépilement passe par un FILL tant qu'un rangement par
               pointeur est en vol (règle des écrivains). Relève de R2.
+  2026-10-05  Règle V8 des cellules de calcul (spéc. FR et EN, [Q17]) : aucun accès calculé
+              (rangement par pointeur, bloc, EXC_MACH) n'écrit une cellule empilée non
+              encore dépilée. Mesure tx_run (TLALOC, 68 M instructions) : 96 027 rangements
+              par pointeur et 422 602 blocs dans la pile data, aucun sur une cellule de
+              calcul. tx_run -v vérifie la règle (dépôt eXecutor).
+              RENAME : les pops gardent leurs registres même avec des écrivains en vol ;
+              LINK oublie les correspondances de la zone qu'il alloue (oubli par
+              intervalle). Banc : rangements par pointeur au-dessus de DSP (cellules
+              mortes). DIS_BONJOUR : 5922 -> 4920 cycles, IPC 0,51, FILL 1828 -> 27.

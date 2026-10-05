@@ -281,6 +281,17 @@ The four pointers are byte addresses; each stack has its own direction and conve
 A pop with DSP = DSP0 and a pop_return with RSP = RSP0 pop an empty stack (see §4 of the
 faults section).
 
+Computation cells. A data stack cell is a computation cell from the push that writes it
+until the pop that reads it, or until DSP goes back below it without popping it (UNLINK,
+RTD n, EXC_RAISE); the cells allocated by LINK (local variables) are not computation
+cells. A computation cell is written only by the stack instructions and by direct stores
+(lvl = 0..14); no computed access writes it: family B store with lvl = 1111, family C
+store, BLKMOV, BLKAND, BLKOU, BLKOUX, BLKNOT, EXC_MACH. A program that writes it that way
+has unspecified behaviour. Ada gives no address to the temporaries of an expression, and
+TLALOC takes none (see [Q17]). An implementation may therefore keep the computation cells
+in registers without watching the computed accesses in flight (TAHX: renaming of the data
+stack). tx_run -v checks the rule.
+
 The data stack and the co-stack are ordinary memory: the program also accesses them by
 address (locals, parameters, LVA, co-stack blocks). The return stack, on the other hand,
 is read and written only by push_return and pop_return (CALL, CALLI, RTD, vectored TRAP,
@@ -1711,6 +1722,17 @@ and resets DR to 0.
 	nearest, ties away from zero, a rule now stated on the exact quotient.
 	Zero divisor: fault 128, like DIV. Non-representable result (after rounding for
 	CVTXI): fault 129.
+
+[Q17]	Computed accesses and computation cells.	=> excluded (V8, computation cells rule)
+	Measurement (tx_run, TLALOC compiling float_test.adb, 68 million instructions): 96,027
+	pointer stores and 422,602 blocks write into the data stack, none into a computation
+	cell; same result on the programs of the N3 tests. Pointers target local variables (from
+	0 to more than 255 words below DSP), the co-stack (878,296 stores) and the heap. Without
+	this rule, an implementation that keeps the computation cells in registers must send
+	every pop through memory while a pointer store or a block is in flight (TAHX, R1
+	renaming: DIS_BONJOUR 5,922 -> 4,920 cycles once this constraint is lifted, FILL 1,828
+	-> 27). The rule asks nothing of the compiler: Ada source does not address temporaries,
+	and tx_run -v checks the generated code.
 
 =========================================================================================
 	OPEN QUESTIONS

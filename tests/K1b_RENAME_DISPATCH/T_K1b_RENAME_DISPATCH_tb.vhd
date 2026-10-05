@@ -409,8 +409,9 @@ begin
                e.slot.canon.lvl := "1111"; e.is_store := true;
                POP( e, f ); POP( e, f );
                v := e.src( 0 ); e.src( 0 ) := e.src( 1 ); e.src( 1 ) := v;	-- @ le plus profond
-               -- la LSQ jouée choisit l'adresse : une cellule de la pile, souvent vivante
-               a := to_integer( f.dsp( 30 downto 0 ) ) - 8 * RAND_INT( 6 );
+               -- la LSQ jouée choisit l'adresse : une cellule de la pile au-dessus de DSP (morte ;
+               -- spéc. V8 : aucun accès calculé n'écrit une cellule de calcul vivante)
+               a := to_integer( f.dsp( 30 downto 0 ) ) + 8 * ( 1 + RAND_INT( 5 ) );
                e.ptr_ea := a;
                MWRITE( e, A64( a ), e.src( 1 ), true );
             when K_CHK =>								-- ( v -- v ), lvl 0..14

@@ -283,6 +283,17 @@ Valeurs « pile vide », fixées par le chargeur (ou par le run-time pour une t�
 Un pop avec DSP = DSP0 et un pop_retour avec RSP = RSP0 dépilent une pile vide (voir §4
 des fautes).
 
+Cellules de calcul. Une cellule de la pile data est une cellule de calcul depuis le push
+qui l'écrit jusqu'au pop qui la lit, ou jusqu'à ce que DSP redescende sous elle sans la
+dépiler (UNLINK, RTD n, EXC_RAISE) ; les cellules allouées par LINK (variables locales) n'en
+sont pas. Une cellule de calcul n'est écrite que par les instructions de pile et par les
+rangements directs (lvl = 0..14) ; aucun accès calculé ne l'écrit : rangement de famille B
+avec lvl = 1111, rangement de famille C, BLKMOV, BLKAND, BLKOU, BLKOUX, BLKNOT, EXC_MACH.
+Un programme qui l'écrit ainsi a un comportement non spécifié. Ada ne donne pas d'adresse
+aux temporaires d'une expression, et TLALOC n'en prend pas (voir [Q17]). Une implantation
+peut donc garder les cellules de calcul en registres sans observer les accès calculés en
+vol (TAHX : renommage de la pile data). tx_run -v vérifie la règle.
+
 La pile data et la co-pile sont de la mémoire ordinaire : le programme y accède aussi par
 adresse (locales, paramètres, LVA, blocs de la co-pile). La pile des retours, elle, n'est
 lue et écrite que par push_retour et pop_retour (CALL, CALLI, RTD, TRAP vectorisé,
@@ -1712,6 +1723,17 @@ l'instruction interrompue et remet DR à 0.
 	plus proche, mi-chemin à l'écart de zéro, règle désormais énoncée sur le quotient exact.
 	Diviseur nul : faute 128, comme DIV. Résultat non représentable (après arrondi pour
 	CVTXI) : faute 129.
+
+[Q17]	Accès calculés et cellules de calcul.		=> exclus (V8, règle des cellules de calcul)
+	Mesure (tx_run, TLALOC compilant float_test.adb, 68 millions d'instructions) : 96 027
+	rangements par pointeur et 422 602 blocs écrivent dans la pile data, aucun dans une
+	cellule de calcul ; même résultat sur les programmes des tests N3. Les pointeurs visent
+	les variables locales (de 0 à plus de 255 mots sous DSP), la co-pile (878 296 rangements)
+	et le tas. Sans cette règle, une implantation qui garde les cellules de calcul en
+	registres doit faire passer tout pop par la mémoire tant qu'un rangement par pointeur ou
+	un bloc est en vol (TAHX, renommage R1 : DIS_BONJOUR 5 922 -> 4 920 cycles en levant
+	cette contrainte, FILL 1 828 -> 27). La règle ne demande rien au compilateur : le source
+	Ada n'adresse pas les temporaires, et tx_run -v vérifie le code produit.
 
 =========================================================================================
 	QUESTIONS OUVERTES

@@ -86,9 +86,15 @@ use work.RENAME_TYPES.all;
 		--  2. Pile data, cellule par adresse (convention de la spéc. : push DSP += 8,
 		--     M64[DSP] := v). Un push donne à la cellule un registre neuf (destination)
 		--     et un SPILL (adresse, registre, rob_index, committed = '0'). Un pop prend
-		--     le registre de la cellule s'il est connu et qu'aucun écrivain n'est en
-		--     vol ; sinon un FILL (adresse, registre neuf, rob_index), dont le registre
-		--     devient la source. DUP, OVER : les cellules neuves reprennent le registre
+		--     le registre de la cellule s'il est connu, même si des rangements par
+		--     pointeur ou des blocs sont en vol : la spéc. V8 (règle des cellules de
+		--     calcul) exclut qu'un accès calculé écrive une cellule empilée non encore
+		--     dépilée ; sinon un FILL (adresse, registre neuf, rob_index), dont le
+		--     registre devient la source. Les écrivains en vol restent suivis pour
+		--     STACK_INVALIDATE_i (défensif : sans effet sur un programme conforme).
+		--     LINK oublie toute correspondance dans la zone qu'il alloue (variables
+		--     locales) : une cellule morte (DSP redescendu sans pop) qui garderait un
+		--     registre ne redevient pas lisible sans un push qui la réécrit. DUP, OVER : les cellules neuves reprennent le registre
 		--     recopié (et leur SPILL) ; DROP dépile sans source ; KEEP_TOP lit le sommet
 		--     sans le dépiler. Un DUP ou un OVER qui lance un FILL n'est pas terminé à
 		--     l'allocation (done = '0') : son FILL porte completes = '1', et son résultat
