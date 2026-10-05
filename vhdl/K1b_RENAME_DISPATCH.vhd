@@ -115,9 +115,11 @@ use work.RENAME_TYPES.all;
 		--     0) : push d'une cellule dont le registre est la destination du LINK
 		--     (address = ancien DISPLAY[lvl], que COMPLEX_UNIT y écrit), DISPLAY[lvl] :=
 		--     DSP, pile d'ombre ; puis DSP += 8 * ceil( alloc / 8 ). UNLINK, UNLINKR lvl
-		--     : DSP := DISPLAY[lvl] ; pop (source( 0 )) ; DISPLAY[lvl] := sommet de la
-		--     pile d'ombre si son niveau est lvl, sinon attente de FRAME_UPDATE_i
-		--     (rob_index de l'UNLINK). EXC_MACH : address = DISPLAY[lvl] + ctx.
+		--     : DSP := DISPLAY[lvl] ; pop (source( 0 )) ; une destination cachée (sans
+		--     cellule : M64[CFP], chargé par la LSQ pour COMPLEX_UNIT) ; DISPLAY[lvl] :=
+		--     sommet de la pile d'ombre si son niveau est lvl et que la cellule sauvée
+		--     est inchangée, sinon attente de FRAME_UPDATE_i (rob_index de l'UNLINK).
+		--     EXC_MACH : address = DISPLAY[lvl] + ctx.
 		--     Sérialisantes (option B de SYSTEM_UNIT) : TRAP 16 et 18 dépilent 1 et
 		--     empilent 1 (destination) ; TRAP 0 et 17 lisent le sommet sans le
 		--     dépiler ; les autres n'ont pas d'effet propre (SYNC fait le reste).

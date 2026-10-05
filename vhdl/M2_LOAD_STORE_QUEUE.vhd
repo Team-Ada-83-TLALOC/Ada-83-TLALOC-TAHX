@@ -129,8 +129,14 @@ use work.EXEC_TYPES.all;
 		--     cache, son adresse effective et son rob_index, pendant ce cycle. Aucun
 		--     autre rangement ni SPILL n'en émet.
 		--
-		--  10. Barrières : une instruction de la réservation COMPLEX qui écrit la
-		--     mémoire (BLKMOV, BLKAND, BLKOU, BLKOUX, BLKNOT, LINK, EXC_MACH) reçoit une
+		--  10. Réservations COMPLEX. LINK reçoit un rangement de 8 octets, UNLINK et
+		--     UNLINKR un chargement de 8 octets vers leur destination (registre caché
+		--     du renommage) ; COMPLEX_UNIT en donne l'adresse (et pour LINK la donnée)
+		--     par EXEC_i (voie COMPLEX) ; ils se comportent ensuite comme un rangement
+		--     (validé au retrait de LINK, sans is_store) et un chargement ordinaires,
+		--     dont ils rendent la fin d'exécution.
+		--     Barrières : une instruction de la réservation COMPLEX qui écrit la
+		--     mémoire (BLKMOV, BLKAND, BLKOU, BLKOUX, BLKNOT, EXC_MACH) reçoit une
 		--     entrée. Jusqu'à RANGE_i de son rob_index, elle compte comme un rangement
 		--     plus ancien d'adresse inconnue : aucune lecture plus jeune (chargement,
 		--     cellule pointeur, borne, FILL) ne part. Ensuite, une lecture plus jeune qui

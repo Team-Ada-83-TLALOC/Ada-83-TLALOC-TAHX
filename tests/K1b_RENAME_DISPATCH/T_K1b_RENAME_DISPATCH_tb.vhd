@@ -454,6 +454,7 @@ begin
                f.dsp := f.display( lvl );
                v := MREAD( f.dsp ); READS( e, f.dsp, v ); SRC( e, v ); f.dsp := f.dsp - 8;
                f.display( lvl ) := unsigned( v );
+               e.dest := true; e.dval := RAND_WORD;				-- registre caché (M64[CFP]), sans cellule
             when K_EXCM =>
                e.slot.canon.val := to_signed( 8 * RAND_INT( 8 ), 32 );
                e.addr_known := true; e.addr := f.display( lvl ) + unsigned( resize( e.slot.canon.val, 64 ) );

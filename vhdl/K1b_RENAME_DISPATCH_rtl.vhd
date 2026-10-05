@@ -518,6 +518,8 @@ begin
                   LOOKUP( t_f.dsp, found, tg );					-- la cellule sauvée, inchangée ?
                   READ_CELL( t_f.dsp, false, t ); SOURCE( t );
                   DOP( false, t_f.dsp, t ); t_f.dsp := t_f.dsp - 8;
+                  DEST( t );						-- registre caché : M64[CFP], chargé par la
+								--  LSQ, lu par COMPLEX_UNIT (sans cellule)
                   dl := lvl;
                   -- la pile d'ombre ne vaut que si la cellule est encore tenue par le registre
                   -- que LINK lui a donné, sans écrivain en vol (spéc. : DISPLAY[lvl] := pop)

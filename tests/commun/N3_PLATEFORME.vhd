@@ -86,6 +86,7 @@ is				----
    signal fcode		: trap_code_t;
    signal mem_ready		: boolean := false;				-- mémoire de données chargée
 
+  signal perf_done		: boolean := false;				-- compteurs écrits
 begin
 
 DUT :
@@ -380,6 +381,7 @@ COMPTEURS :
     LIGNE( "PERF cycles HOLD_RETIRE / tête sérialisante / HEAD_ATOMIC " & integer'image( hold ) & " /"
            & integer'image( serial_head ) & " /" & integer'image( atomic ) );
     file_close( fp );
+    perf_done <= true;
     wait;
   end process;
 
@@ -557,6 +559,7 @@ STIMULI :
     CHECK( c, n_prog + n_skip + 1 = exp_count, "instructions exécutées (retirées hors handlers, plus le TRAP 0)",
              integer'image( exp_count ), integer'image( n_prog + n_skip + 1 ) );
     running <= false;
+    if not perf_done then wait until perf_done for 1 us; end if;		-- les compteurs d'abord
     FINISH( c, NOM_G );
     wait;
   end process;

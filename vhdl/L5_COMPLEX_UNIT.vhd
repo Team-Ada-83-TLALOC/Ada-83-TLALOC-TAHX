@@ -105,19 +105,25 @@ use work.EXEC_TYPES.all;
 		--  6. Reprise : l'instruction abandonnée (ROB_TYPES.ABANDONED) est oubliée, CFP,
 		--     CSP et HP reviennent à l'état retiré ; elle ne paraît jamais sur RESULT_o.
 		--
-		--  7. Frame, à la tête, après LSQ_DRAINED_i ; CFP est tenu en deux exemplaires
-		--     comme CSP et HP (point 3) :
-		--       LINK lvl, alloc  CSP + 8 > LIMITS_i.lim_csp : faute 135, rien n'est écrit ;
-		--                  sinon, comme un bloc qui écrit (HEAD_ATOMIC_o, RANGE_o de
-		--                  l'intervalle [CSP, CSP + 8), sondage, maintenance) : M64[CSP] :=
-		--                  CFP ; CFP := CSP ; CSP += 8. Résultat : address (l'ancien
-		--                  DISPLAY[lvl], que fournit le renommage) si lvl > 0, sinon fin
-		--                  d'exécution seule (DSP et DISPLAY sont l'affaire du renommage).
-		--       UNLINK lvl, UNLINKR lvl  FRAME_UPDATE_o un cycle (rob_index, lvl, value =
-		--                  source( 0 ), le FP sauvé), dès les opérandes lus, sans attendre
-		--                  la tête ; puis à la tête : UNLINK : CFP := M64[CFP] ; UNLINKR : CSP
-		--                  := CFP, puis CFP := M64[ancien CFP] ; faute 132 si la lecture est
-		--                  invalide ; fin d'exécution seule.
+		--  7. Frame. CFP et CSP sont spéculatifs : un historique garde les valeurs
+		--     après chaque LINK, UNLINK, UNLINKR en vol ; le retrait de l'instruction
+		--     les rend retirées (COMMITTED_COPILE_o) ; une reprise ôte les entrées
+		--     abandonnées et rend la dernière gardée (ou l'état retiré) ; SYNC le vide.
+		--     Historique plein : l'instruction attend.
+		--       LINK lvl, alloc  hors de la tête. CSP + 8 > LIMITS_i.lim_csp : faute
+		--                  135 ; sinon LSQ_EXEC_o un cycle (address = CSP, data = CFP :
+		--                  le rangement M64[CSP] := CFP, réservé dans la LSQ, qui en rend
+		--                  la fin d'exécution) ; CFP := CSP ; CSP += 8. Résultat sans fin
+		--                  d'exécution : address (l'ancien DISPLAY[lvl], du renommage) si
+		--                  lvl > 0, sinon rien.
+		--       UNLINK lvl, UNLINKR lvl  hors de la tête. FRAME_UPDATE_o un cycle
+		--                  (rob_index, lvl, value = source( 0 ), le FP sauvé), dès les
+		--                  opérandes lus ; puis LSQ_EXEC_o un cycle (address = CFP : le
+		--                  chargement réservé dans la LSQ, vers la destination cachée,
+		--                  qui en rend la fin d'exécution) ; à son résultat sur BYPASS_i
+		--                  (même rob_index) : UNLINK : CFP := valeur ; UNLINKR : CSP :=
+		--                  CFP, puis CFP := valeur ; une fin fautive n'y change rien.
+		--     EXC_MACH, à la tête, après LSQ_DRAINED_i :
 		--       EXC_MACH lvl, ctx  base = address (DISPLAY[lvl] + ctx, du renommage) ;
 		--                  comme un bloc qui écrit, intervalle [base + 16, base + 64 + 8 * lvl) :
 		--                  M64[base+16] := COMMITTED_FRAME_i.dsp, M64[base+24] := .rsp,

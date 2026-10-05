@@ -74,6 +74,16 @@ of T_L5_COMPLEX_UNIT_tb is
    signal mreq			: mem_request_bus_t( 0 to 0 );
    signal mready		: std_logic_vector( 0 to 0 );
    signal mrsp			: mem_response_bus_t( 0 to 0 );
+   -- la LSQ jouée par le banc : écriture de LINK au retrait (port 1), chargement d'UNLINK (BYPASS_i)
+   signal creq			: mem_request_bus_t( 0 to 1 );
+   signal cready		: std_logic_vector( 0 to 1 );
+   signal crsp			: mem_response_bus_t( 0 to 1 );
+   signal lreq			: mem_request_t := NO_MEM_REQUEST;
+   constant NO_RES		: exec_result_t := ( valid => '0', destination_valid => '0', destination => ( others => '0' ),
+				     value => ( others => '0' ),
+				     completion => ( valid => '0', rob_index => ( others => '0' ), fault => NO_FAULT,
+						     taken => '0', target => ( others => '0' ), mispredicted => '0' ) );
+   signal bypass		: exec_result_bus_t( 0 to RESULT_PORTS - 1 ) := ( others => NO_RES );
    signal memory		: data_memory_t;
    signal reads, writes, probes : natural;
    signal maint		: stack_maint_t;
@@ -105,10 +115,7 @@ begin
          CLK_i => clk, RESET_i => reset,
          ISSUE_VALID_i => iss_valid, ISSUE_BLOCK_i => iss_block, ISSUE_COUNT_i => iss_count, ISSUE_READY_o => iss_ready,
          READ_TAGS_o => read_tags, READ_DATA_i => read_data,
-         BYPASS_i => ( others => ( valid => '0', destination_valid => '0', destination => ( others => '0' ),
-                                   value => ( others => '0' ),
-                                   completion => ( valid => '0', rob_index => ( others => '0' ), fault => NO_FAULT,
-                                                   taken => '0', target => ( others => '0' ), mispredicted => '0' ) ) ),
+         BYPASS_i => bypass,
          RESULT_o => results,
          ROB_HEAD_i => rob_head, RETIRE_i => retire, RECOVERY_i => recovery,
          LSQ_EXEC_o => lsq_exec, RANGE_o => rng, LSQ_DRAINED_i => drained,
@@ -120,12 +127,14 @@ begin
          DR_i => '0', LIMITS_i => limits );
 
    CACHE : entity work.MODELE_CACHE_DONNEES
-      generic map ( PORTS_G => 1, LATENCY_MIN_G => 4, LATENCY_MAX_G => 24, READY_PROB_G => 0.8,
+      generic map ( PORTS_G => 2, LATENCY_MIN_G => 4, LATENCY_MAX_G => 24, READY_PROB_G => 0.8,
                     SEED_1_G => 41, SEED_2_G => 42 )
-      port map ( CLK_i => clk, REQ_i => mreq, READY_o => mready, RSP_o => mrsp, MEMORY_o => memory,
+      port map ( CLK_i => clk, REQ_i => creq, READY_o => cready, RSP_o => crsp, MEMORY_o => memory,
                  READS_o => reads, WRITES_o => writes, PROBES_o => probes );
 
    clk <= not clk after PERIOD / 2 when running;
+   creq( 0 ) <= mreq( 0 ); creq( 1 ) <= lreq;
+   mready( 0 ) <= cready( 0 ); mrsp( 0 ) <= crsp( 0 );
 
    FICHIER : process( read_tags, prf )
    begin
@@ -172,12 +181,17 @@ begin
       variable writing		: boolean;
       variable new_csp, new_hp	: address_t;
       variable new_cfp		: address_t;
+      variable new_cfp_load	: address_t;					-- UNLINK : M64[CFP] (la LSQ jouée)
       variable lvl		: natural;
       variable exp_addr		: word64_t;				-- address de l'instruction
       variable fr_dsp, fr_rsp	: word64_t;
       type disp_vals_t		is array( 0 to 14 ) of word64_t;
       variable fr_disp		: disp_vals_t;				-- COMMITTED_FRAME_i pour EXC_MACH
       variable fupd_seen	: boolean;
+      variable spec_lsq		: boolean;					-- LINK, UNLINK, UNLINKR : hors de la tête
+      variable lx_seen		: boolean;					-- LSQ_EXEC_o reçu
+      variable lsq_due		: integer;					-- fin rendue par la LSQ jouée
+      variable link_res		: natural;					-- LINK : résultats (valeur) reçus
       variable n_link, n_unlink, n_excm, n_fupd, n_late, n_link135 : natural := 0;
       variable wr_base, wr_len	: natural;				-- intervalle écrit (décalages)
       variable abandon_at	: integer;				-- cycle de l'abandon, -1 : aucun
@@ -276,6 +290,83 @@ begin
          return std_logic_vector( to_signed( DATA_BASE + o, 64 ) );
       end function;
 
+
+      variable dq		: natural;					-- phase dirigée : rang de l'instruction
+      variable d_ok		: boolean;
+      variable dc1, ds1, dc2, ds2, dw	: address_t;
+
+      procedure D_ISSUE( dop : opcode_t; lv : natural; sq : natural ) is
+      begin
+         blk( 0 ).slot.canon := CANON_NOP; blk( 0 ).slot.canon.op := dop;
+         blk( 0 ).slot.canon.lvl := to_unsigned( lv, 4 );
+         blk( 0 ).rob_index := ROB( sq ); blk( 0 ).source_count := 0;
+         if dop = x"F8" or dop = x"F9" then blk( 0 ).source_count := 1; end if;
+         blk( 0 ).address := ( others => '0' ); blk( 0 ).address_known := '1';
+         blk( 0 ).destination_valid := B( dop /= x"44" or lv /= 0 );
+         tagc := ( tagc + 1 ) mod REGISTERS; blk( 0 ).destination := to_unsigned( tagc, PHYSICAL_TAG_BITS );
+         iss_block <= blk; iss_count <= to_unsigned( 1, iss_count'length ); iss_valid <= '1';
+         loop
+            wait until rising_edge( clk );
+            exit when iss_ready = '1';
+            wait until falling_edge( clk );
+         end loop;
+         wait until falling_edge( clk );
+         iss_valid <= '0';
+      end procedure;
+
+      -- LSQ_EXEC_o attendu (adresse, et donnée pour LINK)
+      procedure D_EXEC( a : address_t; d : address_t; with_data : boolean; what : string ) is
+         variable seen : boolean := false;
+      begin
+         for t in 0 to 30 loop
+            if lsq_exec.valid = '1' then
+               seen := true;
+               d_ok := lsq_exec.address = a and ( not with_data or lsq_exec.data = std_logic_vector( d ) );
+               if d_ok then CHECK_PASSED( c ); else
+                  CHECK( c, false, "phase dirigée : " & what, HEX( a ) & " / " & HEX( d ),
+                         HEX( lsq_exec.address ) & " / " & to_hstring( lsq_exec.data ) );
+               end if;
+               exit;
+            end if;
+            wait until falling_edge( clk );
+         end loop;
+         if not seen then CHECK( c, false, "phase dirigée : " & what & " : pas de LSQ_EXEC_o" ); end if;
+         wait until falling_edge( clk );
+      end procedure;
+
+      -- le chargement d'UNLINK, rendu sur le bus
+      procedure D_LOAD( sq : natural; v : address_t ) is
+      begin
+         for t in 0 to 2 loop wait until falling_edge( clk ); end loop;
+         bypass( 0 ) <= ( valid => '1', destination_valid => '1', destination => blk( 0 ).destination,
+                          value => std_logic_vector( v ),
+                          completion => ( valid => '1', rob_index => ROB( sq ), fault => NO_FAULT,
+                                          taken => '0', target => ( others => '0' ), mispredicted => '0' ) );
+         wait until falling_edge( clk );
+         bypass( 0 ) <= NO_RES;
+         for t in 0 to 3 loop wait until falling_edge( clk ); end loop;
+      end procedure;
+
+      -- reprise sur point : les instructions jusqu'à keep restent
+      procedure D_RECOVER( keep : natural ) is
+      begin
+         recovery <= ( valid => '1', kind => RECOVER_CHECKPOINT, keep_last => ROB( keep ),
+                       checkpoint => ( others => '0' ), new_pc => ( others => '0' ),
+                       ghist => ( others => '0' ), ras_ptr => ( others => '0' ) );
+         wait until falling_edge( clk );
+         recovery <= NO_RECOVERY;
+         wait until falling_edge( clk );
+      end procedure;
+
+      procedure D_RETIRE( sq : natural ) is
+      begin
+         retire( 0 ) <= ( valid => '1', rob_index => ROB( sq ), pc => ( others => '0' ), is_store => '0',
+                          is_control => '0', conditional => '0', taken => '0', target => ( others => '0' ),
+                          ghist => ( others => '0' ) );
+         wait until falling_edge( clk );
+         retire( 0 ).valid <= '0';
+         wait until falling_edge( clk );
+      end procedure;
    begin
       s2 := SEED_2;
       for i in blk'range loop
@@ -324,7 +415,7 @@ begin
          opd := ( others => ( others => '0' ) ); nsrc := 0;
          exp_fault := 0; exp_value := ( others => '0' ); exp_dest := false;
          at_head := false; writing := false; wr_len := 0; wr_base := 0;
-         new_csp := csp_c; new_hp := hp_c; new_cfp := cfp; exp_addr := ( others => '0' );
+         new_csp := csp_c; new_hp := hp_c; new_cfp := cfp; exp_addr := ( others => '0' ); spec_lsq := false;
          fr_dsp := ( others => '0' ); fr_rsp := ( others => '0' ); lvl := 0;
          if u < 0.12 then
             kind := K_SERIAL;
@@ -386,8 +477,9 @@ begin
                      exp_fault := 135; n_link135 := n_link135 + 1;
                   else
                      o0 := to_integer( csp_c ) - DATA_BASE;
+                     exp_dest := lvl /= 0; exp_value := exp_addr;
                      if not VALIDB( o0, 8 ) then
-                        exp_fault := 132;
+                        exp_fault := 132;					-- rendue par la LSQ
                      else
                         for bt in 0 to 7 loop ref( o0 + bt ) := BYTE_OF( std_logic_vector( cfp ), bt ); end loop;
                         wr_base := o0; wr_len := 8;
@@ -406,9 +498,10 @@ begin
                      if op = x"F9" then new_csp := cfp; end if;
                      new_cfp := ( others => '0' );
                      for bt in 0 to 7 loop new_cfp( 8 * bt + 7 downto 8 * bt ) := unsigned( ref( o0 + bt ) ); end loop;
+                     new_cfp_load := new_cfp;
                   end if;
                   n_unlink := n_unlink + 1;
-               when others =>							-- EXC_MACH lvl, ctx
+               when others =>							-- EXC_MACH lvl, ctx (en tête)
                   op := x"45"; writing := true;
                   o0 := 256 + RAND_INT( DATA_SIZE - 1024 - 256 - 64 );
                   if RAND < 0.08 then o0 := DATA_SIZE - 30; end if;			-- à cheval : 132
@@ -432,6 +525,9 @@ begin
                   end if;
                   n_excm := n_excm + 1;
             end case;
+            if op /= x"45" then							-- LINK, UNLINK, UNLINKR : hors de la tête,
+               spec_lsq := true; at_head := false; writing := false;	-- par la LSQ (jouée par le banc)
+            end if;
          else
             kind := K_BLOCK; at_head := true;
             u := RAND;
@@ -530,7 +626,7 @@ begin
          blk( 0 ).destination_valid := B( not ( kind = K_FRAME and op = x"44" and lvl = 0 ) );
          c_frame.dsp <= unsigned( fr_dsp ); c_frame.rsp <= unsigned( fr_rsp );
          for d in 0 to 14 loop c_frame.display( d ) <= unsigned( fr_disp( d ) ); end loop;
-         fupd_seen := false;
+         fupd_seen := false; lx_seen := false; lsq_due := -1; link_res := 0;
          tagc := ( tagc + 1 ) mod REGISTERS; blk( 0 ).destination := to_unsigned( tagc, PHYSICAL_TAG_BITS );
          iss_block <= blk; iss_count <= to_unsigned( 1, iss_count'length ); iss_valid <= '1';
          rob_head <= ROB( seq - 1 );
@@ -613,17 +709,54 @@ begin
                end if;
                fupd_seen := true;
             end if;
+            bypass <= ( others => NO_RES );
+            if lsq_exec.valid = '1' then
+               if op = x"44" then
+                  ok := lsq_exec.address = csp_c and lsq_exec.data = std_logic_vector( cfp );	-- M64[CSP] := CFP
+               else
+                  ok := lsq_exec.address = cfp;					-- M64[CFP]
+               end if;
+               ok := ok and spec_lsq and not lx_seen and lsq_exec.rob_index = ROB( seq ) and exp_fault /= 135;
+               if ok then CHECK_PASSED( c ); else CHECK( c, false, "LSQ_EXEC_o, instruction " & integer'image( inst ) ); end if;
+               lx_seen := true; lsq_due := now + 1 + RAND_INT( 4 );
+            end if;
+            if lsq_due = now and not gone and not done_i then			-- la LSQ rend la fin
+               if op /= x"44" then						-- UNLINK : le chargement, sur le bus
+                  bypass( RAND_INT( RESULT_PORTS - 1 ) ) <= ( valid => '1', destination_valid => B( exp_fault = 0 ),
+                     destination => blk( 0 ).destination, value => std_logic_vector( new_cfp_load ),
+                     completion => ( valid => '1', rob_index => ROB( seq ),
+                                     fault => ( valid => B( exp_fault /= 0 ), code => to_unsigned( exp_fault, 8 ) ),
+                                     taken => '0', target => ( others => '0' ), mispredicted => '0' ) );
+               end if;
+               done_i := true;
+               if exp_fault = 132 then n_132 := n_132 + 1; n_faults := n_faults + 1; end if;
+            end if;
+            if spec_lsq and mreq( 0 ).valid = '1' then
+               CHECK( c, false, "port mémoire utilisé par LINK ou UNLINK, instruction " & integer'image( inst ) );
+            end if;
             if atomic = '1' then
                atomic_seen := true;
                if not writing then CHECK( c, false, "HEAD_ATOMIC_o pour un non-écrivant, instruction " & integer'image( inst ) ); end if;
                if sys_hold = '0' then confirmed := true; end if;
             end if;
             if results( 0 ).valid = '1' then
-               if gone or done_i then
+               -- LINK : la valeur et la fin (rendue par la LSQ) arrivent dans un ordre quelconque
+               if spec_lsq and op = x"44" and exp_fault /= 135 and not gone and link_res = 0 then
+                  link_res := 1;
+                  ok := results( 0 ).completion.valid = '0' and exp_dest
+                        and results( 0 ).destination_valid = '1' and results( 0 ).value = exp_value;
+                  if ok then CHECK_PASSED( c ); else
+                     CHECK( c, false, "instruction " & integer'image( inst ) & " : valeur de LINK",
+                            HEX( exp_value ), HEX( results( 0 ).value ) );
+                  end if;
+               elsif gone or done_i then
                   CHECK( c, false, "résultat d'une instruction abandonnée ou déjà terminée, instruction " & integer'image( inst ) );
                else
                   ok := results( 0 ).completion.valid = '1' and results( 0 ).completion.rob_index = ROB( seq );
-                  if exp_fault /= 0 then
+                  if spec_lsq and exp_fault /= 135 then			-- LINK : valeur seule ; UNLINK : rien
+                     ok := op = x"44" and results( 0 ).completion.valid = '0' and exp_dest
+                           and results( 0 ).destination_valid = '1' and results( 0 ).value = exp_value;
+                  elsif exp_fault /= 0 then
                      ok := ok and results( 0 ).completion.fault.valid = '1'
                            and results( 0 ).completion.fault.code = exp_fault and results( 0 ).destination_valid = '0';
                   else
@@ -638,10 +771,12 @@ begin
                                & integer'image( to_integer( results( 0 ).completion.fault.code ) )
                                & " valeur " & HEX( results( 0 ).value ) );
                   end if;
-                  if exp_fault = 132 then n_132 := n_132 + 1; elsif exp_fault = 135 then n_135 := n_135 + 1;
-                  elsif exp_fault = 136 then n_136 := n_136 + 1; end if;
-                  if exp_fault /= 0 then n_faults := n_faults + 1; end if;
-                  done_i := true;
+                  if not spec_lsq or exp_fault = 135 then			-- (LINK, UNLINK : la LSQ rend la fin)
+                     if exp_fault = 132 then n_132 := n_132 + 1; elsif exp_fault = 135 then n_135 := n_135 + 1;
+                     elsif exp_fault = 136 then n_136 := n_136 + 1; end if;
+                     if exp_fault /= 0 then n_faults := n_faults + 1; end if;
+                     done_i := true;
+                  end if;
                end if;
             end if;
 
@@ -692,7 +827,7 @@ begin
                   wait until falling_edge( clk );
                   recovery <= NO_RECOVERY;
                   exit;
-               elsif at_head and kind /= K_SERIAL and not writing and RAND < 0.12 then
+               elsif ( ( at_head and kind /= K_SERIAL ) or spec_lsq ) and not writing and RAND < 0.12 then
                   -- terminée en tête mais pas retirée : SYSTEM_UNIT livre une interruption
                   -- avant elle (RECOVER_COMMITTED) ; CFP, CSP, HP reviennent en arrière
                   wait until falling_edge( clk );
@@ -702,14 +837,22 @@ begin
                   wait until falling_edge( clk );
                   recovery <= NO_RECOVERY;
                   n_late := n_late + 1;
+                  if spec_lsq then ref := ref_save; end if;			-- le rangement de LINK n'est pas validé
                   exit;
-               elsif at_head and kind /= K_SERIAL then
+               elsif ( at_head and kind /= K_SERIAL ) or spec_lsq then
                   for d in 0 to RAND_INT( 2 ) loop wait until falling_edge( clk ); end loop;
                   retire( 0 ) <= ( valid => '1', rob_index => ROB( seq ), pc => ( others => '0' ), is_store => '0',
                                    is_control => '0', conditional => '0', taken => '0', target => ( others => '0' ),
                                    ghist => ( others => '0' ) );
                   wait until falling_edge( clk );
                   retire( 0 ).valid <= '0';
+                  if spec_lsq and op = x"44" then					-- la LSQ écrit le rangement validé
+                     lreq <= ( valid => '1', write => '1', probe => '0', address => csp_c, size => "11",
+                               wdata => std_logic_vector( cfp ) );
+                     loop wait until rising_edge( clk ); exit when cready( 1 ) = '1'; end loop;
+                     wait until falling_edge( clk ); lreq.valid <= '0';
+                     loop wait until falling_edge( clk ); exit when crsp( 1 ).valid = '1'; end loop;
+                  end if;
                   csp_c := new_csp; hp_c := new_hp; cfp := new_cfp;
                   exit;
                else
@@ -733,6 +876,10 @@ begin
          if ok then CHECK_PASSED( c ); else
             CHECK( c, false, "instruction " & integer'image( inst ) & " : état retiré ou HEAD_ATOMIC_o après la fin" );
          end if;
+         if spec_lsq and op = x"44" and exp_dest and exp_fault /= 135 and not gone and link_res /= 1
+            and lx_seen then
+            CHECK( c, false, "instruction " & integer'image( inst ) & " : LINK sans sa valeur" );
+         end if;
          if kind = K_FRAME and ( op = x"F8" or op = x"F9" ) and done_i and not fupd_seen then
             CHECK( c, false, "instruction " & integer'image( inst ) & " : UNLINK sans FRAME_UPDATE_o" );
          end if;
@@ -750,6 +897,35 @@ begin
             end if;
          end if;
       end loop;
+
+      -- Phase dirigée : plusieurs entrées d'historique en vol, reprises qui n'en ôtent
+      -- qu'une partie (l'état spéculatif revient à la dernière entrée gardée)
+      recovery <= NO_RECOVERY; bypass <= ( others => NO_RES );
+      cfp := to_unsigned( COP + 16, 64 ); csp_c := to_unsigned( COP + 64, 64 );
+      sync_copile <= ( cfp => cfp, csp => csp_c, hp => hp_c, hp_valid => '1' ); sync_valid <= '1';
+      wait until falling_edge( clk );
+      sync_valid <= '0';
+      dq := seq + 10; rob_head <= ROB( dq - 1 );
+      wait until falling_edge( clk );
+      dc1 := csp_c; ds1 := csp_c + 8;						-- après le premier LINK
+      dc2 := ds1; ds2 := ds1 + 8;							-- après le second
+      D_ISSUE( x"44", 0, dq );     D_EXEC( csp_c, cfp, true, "LINK 1" );
+      D_ISSUE( x"44", 0, dq + 1 ); D_EXEC( ds1, dc1, true, "LINK 2 (après LINK 1)" );
+      D_ISSUE( x"F8", 1, dq + 2 ); D_EXEC( dc2, dc2, false, "UNLINK (après LINK 2)" );
+      D_LOAD( dq + 2, dc1 );							-- CFP := M64[CFP] = dc1
+      D_RECOVER( dq + 1 );							-- l'UNLINK seul est abandonné
+      D_ISSUE( x"44", 0, dq + 2 ); D_EXEC( ds2, dc2, true, "LINK après une reprise qui garde LINK 2" );
+      D_RECOVER( dq );							-- LINK 2 et ce LINK abandonnés
+      dw := to_unsigned( COP + 200, 64 );
+      D_ISSUE( x"F9", 1, dq + 1 ); D_EXEC( dc1, dc1, false, "UNLINKR après une reprise qui garde LINK 1" );
+      D_LOAD( dq + 1, dw );							-- CSP := dc1 ; CFP := dw
+      D_RETIRE( dq ); D_RETIRE( dq + 1 );
+      d_ok := c_copile.cfp = dw and c_copile.csp = dc1;
+      if d_ok then CHECK_PASSED( c ); else CHECK( c, false, "phase dirigée : état retiré après LINK, UNLINKR" ); end if;
+      D_ISSUE( x"44", 0, dq + 2 ); D_EXEC( dc1, dw, true, "LINK après UNLINKR retiré" );
+      D_RETIRE( dq + 2 );
+      d_ok := c_copile.cfp = dc1 and c_copile.csp = dc1 + 8;
+      if d_ok then CHECK_PASSED( c ); else CHECK( c, false, "phase dirigée : état retiré final" ); end if;
 
       running <= false;
       report "graines " & integer'image( SEED_1 ) & ", " & integer'image( SEED_2 ) & " ; sérialisantes "

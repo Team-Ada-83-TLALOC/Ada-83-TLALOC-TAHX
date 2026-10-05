@@ -148,3 +148,13 @@ concernée quand on l'écrira, puis à rayer ici.
               suivant). DIS_BONJOUR : 16190 -> 9482 cycles, IPC 0,15 -> 0,26 ; trace
               identique. Goulots suivants : LSQ pleine (SPILL de R1), LINK en tête (47 %
               des cycles sous HEAD_ATOMIC, chaque LINK attend la vidange de la LSQ).
+  2026-10-05  LINK, UNLINK, UNLINKR hors de la tête : CFP, CSP spéculatifs avec historique
+              (COMPLEX_UNIT) ; LINK : rangement réservé dans la LSQ ; UNLINK : chargement
+              réservé, vers une destination cachée (renommage), lu sur BYPASS_i.
+              EXC_TEST0 : 2398 -> 1159 cycles ; DIS_BONJOUR : 9482 -> 9381 (son temps en
+              tête vient des blocs : HEAD_ATOMIC 46 %). Banc de COMPLEX_UNIT : phase
+              dirigée (historique à plusieurs entrées, reprises partielles), que N3 ne
+              couvre pas. À faire : le banc de la LSQ n'exerce pas encore les réservations
+              LINK (rangement) et UNLINK (chargement).
+  2026-10-05  N3_PLATEFORME : FINISH attend perf_done (les compteurs pouvaient ne pas être
+              écrits, selon l'ordre des processus au front de l'arrêt).

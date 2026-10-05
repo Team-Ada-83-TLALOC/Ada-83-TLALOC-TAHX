@@ -79,6 +79,8 @@ of LOAD_STORE_QUEUE is		---
 			  wlen		: address_t;			-- barrière : longueur écrite (ea : base)
 			  ptr_store	: boolean;			-- rangement par pointeur : STACK_INVALIDATE
 			  completes	: boolean;			-- FILL : termine son instruction
+			  cx		: boolean;			-- réservé par COMPLEX : LINK (rangement),
+								--  UNLINK, UNLINKR (chargement)
 			end record;
    type entry_array_t		is array( 0 to DEPTH_G - 1 ) of entry_t;
 
@@ -423,7 +425,7 @@ begin
          v( idx ).probed := false; v( idx ).busy := false; v( idx ).ready := false; v( idx ).fault := 0;
          v( idx ).reported := false; v( idx ).committed := false; v( idx ).cseq := 0;
          v( idx ).data_ready := false; v( idx ).wlen := ( others => '0' ); v( idx ).ptr_store := false;
-         v( idx ).completes := false;
+         v( idx ).completes := false; v( idx ).cx := false;
       end procedure;
 
       -- une valeur lue (cache ou transfert) fait avancer l'entrée
@@ -519,7 +521,7 @@ begin
             end loop;
 
             -- adresses et données (ADDRESS_UNIT)
-            for l in 0 to MEMORY_LANES - 1 loop
+            for l in EXEC_i'range loop						-- ADDRESS_UNIT, et COMPLEX
                if EXEC_i( l ).valid = '1' then
                   for j in 0 to DEPTH_G - 1 loop
                      if v( j ).valid = '1' and not v( j ).committed and v( j ).rob_index = EXEC_i( l ).rob_index
@@ -600,7 +602,8 @@ begin
                if RETIRE_i( r ).valid = '1' then
                   for j in 0 to DEPTH_G - 1 loop
                      if v( j ).valid = '1' and not v( j ).committed and v( j ).rob_index = RETIRE_i( r ).rob_index then
-                        if ( v( j ).kind = K_STORE and RETIRE_i( r ).is_store = '1' ) or v( j ).kind = K_SPILL then
+                        if ( v( j ).kind = K_STORE and ( RETIRE_i( r ).is_store = '1' or v( j ).cx ) )
+                           or v( j ).kind = K_SPILL then
                            v( j ).committed := true; v( j ).cseq := cs; cs := cs + 1;
                         elsif v( j ).kind = K_BARRIER then
                            v( j ).valid := '0';					-- fin de la barrière
@@ -665,14 +668,21 @@ begin
                      ins := COMPLEX_INSERT_BLOCK_i( b );
                      op := ins.slot.canon.op;
                      if ( op = x"34" or op = x"3C" or op = x"3D" or op = x"3E" or op = x"3F" or op = x"44"
-                          or op = x"48" or op = x"45" or op = x"49" )
+                          or op = x"48" or op = x"45" or op = x"49" or op = OP_UNLINK or op = OP_UNLINKR )
                         and not ABANDONED( ins.rob_index, RECOVERY_i, ROB_HEAD_i ) then
                         while slot < DEPTH_G and free( slot ) = '0' loop slot := slot + 1; end loop;
                         -- pragma translate_off
-                        assert slot < DEPTH_G report "LSQ : barrière au-delà de la capacité" severity failure;
+                        assert slot < DEPTH_G report "LSQ : réservation COMPLEX au-delà de la capacité" severity failure;
                         -- pragma translate_on
                         NEW_ENTRY( slot, ins.rob_index );
-                        v( slot ).kind := K_BARRIER;
+                        if op = x"44" or op = x"48" then				-- LINK : M64[CSP] := CFP
+                           v( slot ).kind := K_STORE; v( slot ).sz := 3; v( slot ).cx := true;
+                        elsif op = OP_UNLINK or op = OP_UNLINKR then			-- M64[CFP], vers le registre caché
+                           v( slot ).kind := K_LOAD; v( slot ).sz := 3; v( slot ).cx := true;
+                           v( slot ).tag := ins.destination;
+                        else
+                           v( slot ).kind := K_BARRIER;				-- blocs qui écrivent, EXC_MACH
+                        end if;
                         free( slot ) := '0';
                      end if;
                   end if;
