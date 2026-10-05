@@ -13,6 +13,7 @@ use work.FETCH_DECODE_TYPES.all;
 use work.ROB_TYPES.all;
 use work.BACKEND_TYPES.all;
 use work.EXEC_TYPES.all;
+use work.RENAME_TYPES.all;
 use work.TB_UTILS.all;
 
 		--------------------------------------------------------------------------------
@@ -224,6 +225,165 @@ DONNEES :
 		--------------------------------------------------------------------------------
 		-- Observation, comparaison
 		--------------------------------------------------------------------------------
+		-- Compteurs de performance : signaux internes du sommet, lus à chaque cycle
+		-- (sans effet sur la machine), rendus à l'arrêt dans le journal et perf.txt
+		--------------------------------------------------------------------------------
+
+COMPTEURS :
+  process
+    alias rob_free     is << signal DUT.rob_free : rob_count_t >>;
+    alias alloc_valid  is << signal DUT.alloc_valid : std_logic >>;
+    alias alloc_count  is << signal DUT.alloc_count : decode_count_t >>;
+    alias rn_valid     is << signal DUT.rn_valid : std_logic >>;
+    alias rn_ready     is << signal DUT.rn_ready : std_logic >>;
+    alias dq_count     is << signal DUT.dq_count : decode_count_t >>;
+    alias int_n        is << signal DUT.int_n : natural range 0 to INTEGER_iQ_DEPTH >>;
+    alias mdv_n        is << signal DUT.mdv_n : natural range 0 to MULDIV_iQ_DEPTH >>;
+    alias mem_n        is << signal DUT.mem_n : natural range 0 to MEMORY_iQ_DEPTH >>;
+    alias br_n         is << signal DUT.br_n : natural range 0 to BRANCH_iQ_DEPTH >>;
+    alias fp_n         is << signal DUT.fp_n : natural range 0 to FLOAT_iQ_DEPTH >>;
+    alias cx_n         is << signal DUT.cx_n : natural range 0 to COMPLEX_iQ_DEPTH >>;
+    alias lsq_n        is << signal DUT.lsq_n : natural range 0 to LSQ_DEPTH >>;
+    alias stack_xfer   is << signal DUT.stack_xfer : stack_xfer_bus_t >>;
+    alias dc_req       is << signal DUT.dc_req : mem_request_bus_t >>;
+    alias dc_ready     is << signal DUT.dc_ready : std_logic_vector >>;
+    alias recovery     is << signal DUT.recovery : recovery_t >>;
+    alias hold_retire  is << signal DUT.hold_retire : std_logic >>;
+    alias head_status  is << signal DUT.head_status : head_status_t >>;
+    alias head_atomic  is << signal DUT.head_atomic : std_logic >>;
+    alias retire       is << signal DUT.retire : retire_block_t >>;
+    type q_t is array( 0 to 6 ) of natural;
+    type sum_t is array( 0 to 6 ) of real;
+    variable cyc, ret, alloc, rn_block, rn_starved, dq_empty : natural := 0;
+    variable rob_sum : real := 0.0;
+    variable rob_min : natural := ROB_SIZE;
+    variable qsum : sum_t := ( others => 0.0 );
+    variable qmax : q_t := ( others => 0 );
+    variable qv : q_t;
+    variable spill, fill, fill_end : natural := 0;
+    variable dc_rd, dc_wr, dc_pr, dc_wait : natural := 0;
+    type hist_t is array( 0 to 3 ) of natural;
+    variable dc_hist : hist_t := ( others => 0 );
+    variable acc : natural;
+    variable d_rd, d_wr, i_rd : natural := 0;
+    variable ctl, cond, taken, mis, commit_rec : natural := 0;
+    variable hold, serial_head, atomic : natural := 0;
+    file fp : text;
+    type noms_t is array( 0 to 6 ) of string( 1 to 3 );
+    constant NOMS : noms_t := ( "int", "mdv", "mem", "br ", "fp ", "cx ", "LSQ" );
+
+    procedure LIGNE( texte : string ) is
+      variable ll : line;
+    begin
+      report texte severity note;
+      ll := new string'( texte );
+      writeline( fp, ll );
+    end procedure;
+
+    function F2( x : real ) return string is                       -- deux décimales
+      variable n : integer := integer( x * 100.0 );
+      variable f : string( 1 to 2 );
+    begin
+      f( 1 ) := character'val( 48 + ( abs( n ) mod 100 ) / 10 );
+      f( 2 ) := character'val( 48 + abs( n ) mod 10 );
+      return integer'image( n / 100 ) & "," & f;
+    end function;
+
+    function PCT( a, b : natural ) return string is
+    begin
+      if b = 0 then return "-"; end if;
+      return F2( 100.0 * real( a ) / real( b ) ) & " %";
+    end function;
+
+  begin
+    wait until reset = '0';
+    loop
+      wait until rising_edge( clk );
+      exit when halted = '1' or not running;
+      cyc := cyc + 1;
+      for i in retire'range loop
+        if retire( i ).valid = '1' then
+          ret := ret + 1;
+          if retire( i ).is_control = '1' then ctl := ctl + 1; end if;
+          if retire( i ).conditional = '1' then cond := cond + 1; end if;
+          if retire( i ).is_control = '1' and retire( i ).taken = '1' then taken := taken + 1; end if;
+        end if;
+      end loop;
+      rob_sum := rob_sum + real( to_integer( rob_free ) );
+      if to_integer( rob_free ) < rob_min then rob_min := to_integer( rob_free ); end if;
+      if alloc_valid = '1' then alloc := alloc + to_integer( alloc_count ); end if;
+      if rn_valid = '1' and rn_ready = '0' then rn_block := rn_block + 1; end if;
+      if dq_count /= 0 and rn_valid = '0' then rn_starved := rn_starved + 1; end if;
+      if dq_count = 0 then dq_empty := dq_empty + 1; end if;
+      qv := ( int_n, mdv_n, mem_n, br_n, fp_n, cx_n, lsq_n );
+      for q in qv'range loop
+        qsum( q ) := qsum( q ) + real( qv( q ) );
+        if qv( q ) > qmax( q ) then qmax( q ) := qv( q ); end if;
+      end loop;
+      for x in stack_xfer'range loop
+        if stack_xfer( x ).valid = '1' then
+          if stack_xfer( x ).kind = XFER_SPILL then spill := spill + 1;
+          else
+            fill := fill + 1;
+            if stack_xfer( x ).completes = '1' then fill_end := fill_end + 1; end if;
+          end if;
+        end if;
+      end loop;
+      acc := 0;
+      for p in dc_req'range loop
+        if dc_req( p ).valid = '1' and dc_ready( p ) = '1' then
+          acc := acc + 1;
+          if dc_req( p ).probe = '1' then dc_pr := dc_pr + 1;
+          elsif dc_req( p ).write = '1' then dc_wr := dc_wr + 1;
+          else dc_rd := dc_rd + 1; end if;
+        elsif dc_req( p ).valid = '1' then
+          dc_wait := dc_wait + 1;
+        end if;
+      end loop;
+      dc_hist( minimum( acc, 3 ) ) := dc_hist( minimum( acc, 3 ) ) + 1;
+      if d_req = '1' and d_ready = '1' then
+        if d_write = '1' then d_wr := d_wr + 1; else d_rd := d_rd + 1; end if;
+      end if;
+      if i_req = '1' and i_ready = '1' then i_rd := i_rd + 1; end if;
+      if recovery.valid = '1' then
+        if recovery.kind = RECOVER_CHECKPOINT then mis := mis + 1; else commit_rec := commit_rec + 1; end if;
+      end if;
+      if hold_retire = '1' then hold := hold + 1; end if;
+      if head_status.valid = '1' and head_status.serializing = '1' then serial_head := serial_head + 1; end if;
+      if head_atomic = '1' then atomic := atomic + 1; end if;
+    end loop;
+    file_open( fp, "perf.txt", write_mode );
+    LIGNE( "PERF " & NOM_G & " : " & integer'image( cyc ) & " cycles, " & integer'image( ret ) & " retraits" );
+    LIGNE( "PERF IPC (retraits par cycle)                       " & F2( real( ret ) / real( maximum( cyc, 1 ) ) ) );
+    LIGNE( "PERF ROB_FREE moyen / minimum                       " & F2( rob_sum / real( maximum( cyc, 1 ) ) ) & " / "
+           & integer'image( rob_min ) & " (sur" & integer'image( ROB_SIZE ) & ")" );
+    LIGNE( "PERF renommage : instructions par cycle             " & F2( real( alloc ) / real( maximum( cyc, 1 ) ) ) );
+    LIGNE( "PERF cycles rn_valid and not rn_ready (dorsal)      " & integer'image( rn_block ) & " (" & PCT( rn_block, cyc ) & ")" );
+    LIGNE( "PERF cycles file de décodage non vide, rien renommé " & integer'image( rn_starved ) & " (" & PCT( rn_starved, cyc ) & ")" );
+    LIGNE( "PERF cycles file de décodage vide (frontal)         " & integer'image( dq_empty ) & " (" & PCT( dq_empty, cyc ) & ")" );
+    for q in 0 to 6 loop
+      LIGNE( "PERF occupation " & NOMS( q ) & " moyenne / maximum            "
+             & F2( qsum( q ) / real( maximum( cyc, 1 ) ) ) & " /" & integer'image( qmax( q ) ) );
+    end loop;
+    LIGNE( "PERF SPILL / FILL (dont FILL qui terminent)         " & integer'image( spill ) & " /" & integer'image( fill )
+           & " (" & integer'image( fill_end ) & ")" );
+    LIGNE( "PERF D-cache acceptées : lectures / écritures / sondages " & integer'image( dc_rd ) & " /" & integer'image( dc_wr )
+           & " /" & integer'image( dc_pr ) & " ; présentées non acceptées (port-cycles)" & integer'image( dc_wait ) );
+    LIGNE( "PERF D-cache requêtes acceptées par cycle : 0 :" & integer'image( dc_hist( 0 ) ) & ", 1 :" & integer'image( dc_hist( 1 ) )
+           & ", 2 :" & integer'image( dc_hist( 2 ) ) & ", 3+ :" & integer'image( dc_hist( 3 ) ) );
+    LIGNE( "PERF D-cache lignes remplies / réécrites            " & integer'image( d_rd / 4 ) & " /" & integer'image( d_wr / 4 ) );
+    LIGNE( "PERF I-cache lignes remplies                        " & integer'image( i_rd / 4 ) );
+    LIGNE( "PERF transferts retirés / conditionnels / pris      " & integer'image( ctl ) & " /" & integer'image( cond ) & " /"
+           & integer'image( taken ) );
+    LIGNE( "PERF mauvaises prédictions (reprises sur point)     " & integer'image( mis ) & " (" & PCT( mis, ctl ) & " des transferts)" );
+    LIGNE( "PERF reprises sur l'état retiré (fautes, services)  " & integer'image( commit_rec ) );
+    LIGNE( "PERF cycles HOLD_RETIRE / tête sérialisante / HEAD_ATOMIC " & integer'image( hold ) & " /"
+           & integer'image( serial_head ) & " /" & integer'image( atomic ) );
+    file_close( fp );
+    wait;
+  end process;
+
+		--------------------------------------------------------------------------------
 
 STIMULI :
   process
@@ -251,6 +411,29 @@ STIMULI :
     file fb			: char_file_t;
     type code_t			is array( 0 to HANDLERS - BASE - 1 ) of natural range 0 to 255;
     variable code			: code_t;
+    file ft			: text;
+    variable have_trace		: boolean := false;
+    variable trace_done		: boolean := false;		-- écart trouvé, ou trace finie
+    variable n_trace, n_skip, mismatch_at : natural := 0;
+    variable lt			: line;
+    variable tpc			: address_t;
+
+    -- prochaine ligne de la trace de tx_run : 16#................#
+    procedure NEXT_TRACE( pc : out address_t; ok : out boolean ) is
+      variable v : std_logic_vector( 63 downto 0 );
+      variable sub : line;
+      variable good : boolean;
+    begin
+      ok := false; pc := ( others => '0' );
+      if endfile( ft ) then return; end if;
+      readline( ft, lt );
+      if lt'length < 19 then return; end if;
+      sub := new string'( lt.all( lt'left + 3 to lt'left + 18 ) );
+      hread( sub, v, good );
+      pc := unsigned( v ); ok := good;
+      n_trace := n_trace + 1;
+    end procedure;
+    variable tok : boolean;
 
     function UPPER( x : string ) return string is
       variable r : string( x'range ) := x;
@@ -278,6 +461,8 @@ STIMULI :
       read( fb, ch ); code( k ) := character'pos( ch );
     end loop;
     file_close( fb );
+    file_open( status, ft, "trace.txt", read_mode );
+    have_trace := status = open_ok;
     file_open( status, fa, "attendu.txt", read_mode );
     CHECK( c, status = open_ok, "ouverture de attendu.txt" );
     READ_FIELD( "EXIT", hx ); exp_exit := integer'value( hx.all );
@@ -314,6 +499,24 @@ STIMULI :
             null;							-- seconde forme d'un LI D64 : une instruction
           else
             n_prog := n_prog + 1;
+            -- comparaison pas à pas avec la trace de tx_run
+            if have_trace and not trace_done then
+              NEXT_TRACE( tpc, tok );
+              if not tok then
+                trace_done := true; mismatch_at := n_prog;
+                report "trace : finie avant le retrait " & integer'image( n_prog ) severity note;
+              elsif tpc /= retire( i ).pc then
+                -- une instruction en faute est dans la trace, pas dans les retraits
+                NEXT_TRACE( tpc, tok );
+                if tok and tpc = retire( i ).pc then
+                  n_skip := n_skip + 1;
+                else
+                  trace_done := true; mismatch_at := n_prog;
+                  report "trace : premier écart au retrait " & integer'image( n_prog ) & ", attendu "
+                         & HEX( tpc ) & ", retiré " & HEX( retire( i ).pc ) severity note;
+                end if;
+              end if;
+            end if;
           end if;
           last_pc := retire( i ).pc; last_retire := now;
         end if;
@@ -343,8 +546,16 @@ STIMULI :
              integer'image( exp_exit ), integer'image( to_integer( signed( exit_code ) ) ) );
     good := UPPER( got_out.all ) = UPPER( exp_out.all );
     CHECK( c, good, "sortie du programme", exp_out.all, got_out.all );
-    CHECK( c, n_prog + 1 = exp_count, "instructions exécutées (retirées hors handlers, plus le TRAP 0)",
-             integer'image( exp_count ), integer'image( n_prog + 1 ) );
+    if have_trace then
+      good := mismatch_at = 0;
+      if good then
+        NEXT_TRACE( tpc, tok ); good := tok and endfile( ft );	-- reste le TRAP 0 final
+      end if;
+      CHECK( c, good, "retraits identiques à la trace de tx_run, pas à pas ("
+                      & integer'image( n_skip ) & " instruction(s) en faute sautée(s))" );
+    end if;
+    CHECK( c, n_prog + n_skip + 1 = exp_count, "instructions exécutées (retirées hors handlers, plus le TRAP 0)",
+             integer'image( exp_count ), integer'image( n_prog + n_skip + 1 ) );
     running <= false;
     FINISH( c, NOM_G );
     wait;

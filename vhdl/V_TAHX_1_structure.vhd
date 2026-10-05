@@ -142,6 +142,14 @@ is				---------
    signal mem_range			: memory_range_t;
    signal lsq_drained		: std_logic;
    signal dc_req			: mem_request_bus_t( 0 to DCACHE_PORTS - 1 );
+   -- occupations : observées par les compteurs du banc N3 (sans effet sur la machine)
+   signal int_n			: natural range 0 to INTEGER_iQ_DEPTH;
+   signal mdv_n			: natural range 0 to MULDIV_iQ_DEPTH;
+   signal mem_n			: natural range 0 to MEMORY_iQ_DEPTH;
+   signal br_n			: natural range 0 to BRANCH_iQ_DEPTH;
+   signal fp_n			: natural range 0 to FLOAT_iQ_DEPTH;
+   signal cx_n			: natural range 0 to COMPLEX_iQ_DEPTH;
+   signal lsq_n			: natural range 0 to LSQ_DEPTH;
    signal dc_ready			: std_logic_vector( 0 to DCACHE_PORTS - 1 );
    signal dc_rsp			: mem_response_bus_t( 0 to DCACHE_PORTS - 1 );
 
@@ -336,7 +344,7 @@ U_iQ_iNTEGER :
       ISSUE_BLOCK_o		=> int_iss_block,
       ISSUE_COUNT_o		=> int_iss_count,
       ISSUE_READY_i		=> int_iss_ready,
-      ENTRY_COUNT_o		=> open
+      ENTRY_COUNT_o		=> int_n
     );
 
 U_iQ_MULDIV :
@@ -361,7 +369,7 @@ U_iQ_MULDIV :
       ISSUE_BLOCK_o		=> mdv_iss_block,
       ISSUE_COUNT_o		=> mdv_iss_count,
       ISSUE_READY_i		=> mdv_iss_ready,
-      ENTRY_COUNT_o		=> open
+      ENTRY_COUNT_o		=> mdv_n
     );
 
 U_iQ_MEMORY :
@@ -386,7 +394,7 @@ U_iQ_MEMORY :
       ISSUE_BLOCK_o		=> mem_iss_block,
       ISSUE_COUNT_o		=> mem_iss_count,
       ISSUE_READY_i		=> mem_iss_ready,
-      ENTRY_COUNT_o		=> open
+      ENTRY_COUNT_o		=> mem_n
     );
 
 U_iQ_BRANCH :
@@ -411,7 +419,7 @@ U_iQ_BRANCH :
       ISSUE_BLOCK_o		=> br_iss_block,
       ISSUE_COUNT_o		=> br_iss_count,
       ISSUE_READY_i		=> br_iss_ready,
-      ENTRY_COUNT_o		=> open
+      ENTRY_COUNT_o		=> br_n
     );
 
 U_iQ_FLOAT :
@@ -436,7 +444,7 @@ U_iQ_FLOAT :
       ISSUE_BLOCK_o 	=> fp_iss_block,
       ISSUE_COUNT_o		=> fp_iss_count,
       ISSUE_READY_i		=> fp_iss_ready,
-      ENTRY_COUNT_o		=> open
+      ENTRY_COUNT_o		=> fp_n
     );
 
 U_iQ_COMPLEX :
@@ -460,7 +468,7 @@ U_iQ_COMPLEX :
       ISSUE_BLOCK_o		=> cx_iss_block,
       ISSUE_COUNT_o		=> cx_iss_count,
       ISSUE_READY_i		=> cx_iss_ready,
-      ENTRY_COUNT_o		=> open
+      ENTRY_COUNT_o		=> cx_n
     );
 
 		--------------------------------------------------------------------------------
@@ -635,7 +643,7 @@ U_LSQ :
       DCACHE_REQ_o		=> dc_req( DCACHE_LSQ to DCACHE_LSQ + MEMORY_LANES - 1 ),
       DCACHE_READY_i	=> dc_ready( DCACHE_LSQ to DCACHE_LSQ + MEMORY_LANES - 1 ),
       DCACHE_RSP_i		=> dc_rsp( DCACHE_LSQ to DCACHE_LSQ + MEMORY_LANES - 1 ),
-      DRAINED_o		=> lsq_drained, ENTRY_COUNT_o => open
+      DRAINED_o		=> lsq_drained, ENTRY_COUNT_o => lsq_n
     );
 
 U_DCACHE :

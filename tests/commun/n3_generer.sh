@@ -2,7 +2,8 @@
 #	Vecteurs d'un test N3_xxx : le programme compilé par TLALOC (exécuté par tx_run,
 #	puisque le compilateur natif demande une co-pile de 16 Gio), assemblé en HX par
 #	fasmg avec codi_HX, exécuté par tx_run pour la référence (sortie, code de sortie,
-#	instructions exécutées), puis la plateforme (n3_plateforme.py).
+#	instructions exécutées ; -x : la trace, pc de chaque instruction exécutée), puis la
+#	plateforme (n3_plateforme.py). tx_run doit connaître l'option -x.
 #	  n3_generer.sh <dépôt du compilateur> <dépôt eXecutor> <programme> <répertoire du test>
 #	<programme> : nom d'un source de tests_TLALOC (sans .adb), ou DIS_BONJOUR (image
 #	reprise de I_N2_INSTRUCTION_UNIT).
@@ -27,13 +28,14 @@ else
    ./fasmg "$U.HXFAS" "$T/$U.hxexe" > /dev/null
 fi
 set +e
-"$T/tx_run" -p "$T/rapport.txt" "$T/$U.hxexe" > "$T/sortie.bin"
+"$T/tx_run" -p "$T/rapport.txt" -x "$T/trace.txt" "$T/$U.hxexe" > "$T/sortie.bin"
 CODE=$?
 set -e
 N=$(grep -m1 "instructions executees" "$T/rapport.txt" | awk '{print $NF}')
 python3 "$COMMUN/n3_plateforme.py" "$T/$U.hxexe" "$T/n3_image.bin" "$DEST/vecteurs/constantes.txt"
 mkdir -p "$DEST/vecteurs"
 gzip -9 -n -c "$T/n3_image.bin" > "$DEST/vecteurs/n3_image.bin.gz"
+gzip -9 -n -c "$T/trace.txt" > "$DEST/vecteurs/trace.txt.gz"
 {
   echo "EXIT $CODE"
   echo "INSTRUCTIONS $N"
