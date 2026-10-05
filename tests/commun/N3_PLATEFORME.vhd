@@ -270,6 +270,55 @@ COMPTEURS :
     variable ctl, cond, taken, mis, commit_rec : natural := 0;
     variable hold, serial_head, atomic : natural := 0;
     file fp : text;
+    -- temps en tête par classe d'instruction (opcode lu dans l'image, au pc de la tête)
+    constant NCLS : positive := 14;
+    function CLS_NOM( k : natural ) return string is
+    begin
+      case k is
+        when 0 => return "chargements";          when 1 => return "rangements";
+        when 2 => return "CHK";                  when 3 => return "adresses (LIVA)";
+        when 4 => return "blocs qui écrivent";   when 5 => return "BLKCMP, LEXCMP";
+        when 6 => return "LINK";                 when 7 => return "UNLINK, UNLINKR";
+        when 8 => return "EXC_MACH";             when 9 => return "CO_VAR, HEAP_ALLOC";
+        when 10 => return "FEXP";                when 11 => return "services (TRAP, RTX, EXC_RAISE)";
+        when 12 => return "transferts";          when others => return "autres";
+      end case;
+    end function;
+    type cls_cnt_t is array( 0 to NCLS - 1 ) of natural;
+    variable cls_stall, cls_ret : cls_cnt_t := ( others => 0 );
+    constant IMG_BYTES : natural := 16#22000#;
+    type img_t is array( 0 to IMG_BYTES - 1 ) of natural range 0 to 255;
+    variable img : img_t := ( others => 0 );
+    type cf_t is file of character;
+    file fi : cf_t;
+    variable st : file_open_status;
+    variable chr : character;
+    variable stall_total : natural := 0;
+
+    impure function CLS( pc : address_t ) return natural is
+      variable o : natural;
+      variable op : unsigned( 7 downto 0 );
+    begin
+      if pc < to_unsigned( BASE, 64 ) or pc >= to_unsigned( BASE + IMG_BYTES, 64 ) then return NCLS - 1; end if;
+      o := img( to_integer( pc( 30 downto 0 ) ) - BASE ); op := to_unsigned( o, 8 );
+      if o = 16#44# or o = 16#48# then return 6;
+      elsif o = 16#F8# or o = 16#F9# then return 7;
+      elsif o = 16#45# or o = 16#49# then return 8;
+      elsif o = 16#38# or o = 16#39# then return 9;
+      elsif o = 16#24# then return 10;
+      elsif o = 16#F0# or o = 16#FE# or o = 16#FF# then return 11;
+      elsif ( o >= 16#E0# and o <= 16#EB# ) or o = 16#F2# or o = 16#F6# or o = 16#F7# then return 12;
+      elsif o = 16#34# or ( o >= 16#3C# and o <= 16#3F# ) then return 4;
+      elsif o = 16#35# or ( o >= 16#C8# and o <= 16#CE# ) then return 5;
+      elsif o >= 16#40# and o <= 16#BF# then				-- familles B et C
+        if op( 3 downto 2 ) = "11" then return 2;
+        elsif op( 5 downto 4 ) = "10" then return 1;
+        elsif op( 5 downto 4 ) = "00" then return 3;
+        else return 0; end if;
+      else
+        return NCLS - 1;
+      end if;
+    end function;
     type noms_t is array( 0 to 6 ) of string( 1 to 3 );
     constant NOMS : noms_t := ( "int", "mdv", "mem", "br ", "fp ", "cx ", "LSQ" );
 
@@ -297,14 +346,27 @@ COMPTEURS :
     end function;
 
   begin
+    file_open( st, fi, "n3_image.bin", read_mode );
+    if st = open_ok then
+      for k in img'range loop
+        exit when endfile( fi );
+        read( fi, chr ); img( k ) := character'pos( chr );
+      end loop;
+      file_close( fi );
+    end if;
     wait until reset = '0';
     loop
       wait until rising_edge( clk );
       exit when halted = '1' or not running;
       cyc := cyc + 1;
+      if head_status.valid = '1' and head_status.done = '0' then
+        stall_total := stall_total + 1;
+        cls_stall( CLS( head_status.pc ) ) := cls_stall( CLS( head_status.pc ) ) + 1;
+      end if;
       for i in retire'range loop
         if retire( i ).valid = '1' then
           ret := ret + 1;
+          cls_ret( CLS( retire( i ).pc ) ) := cls_ret( CLS( retire( i ).pc ) ) + 1;
           if retire( i ).is_control = '1' then ctl := ctl + 1; end if;
           if retire( i ).conditional = '1' then cond := cond + 1; end if;
           if retire( i ).is_control = '1' and retire( i ).taken = '1' then taken := taken + 1; end if;
@@ -380,6 +442,14 @@ COMPTEURS :
     LIGNE( "PERF reprises sur l'état retiré (fautes, services)  " & integer'image( commit_rec ) );
     LIGNE( "PERF cycles HOLD_RETIRE / tête sérialisante / HEAD_ATOMIC " & integer'image( hold ) & " /"
            & integer'image( serial_head ) & " /" & integer'image( atomic ) );
+    LIGNE( "PERF tête non terminée (cycles) : " & integer'image( stall_total ) & " (" & PCT( stall_total, cyc ) & ")" );
+    LIGNE( "PERF   classe : cycles en tête non terminée (part des cycles), retirées, cycles par instruction" );
+    for k in 0 to NCLS - 1 loop
+      if cls_stall( k ) > 0 or cls_ret( k ) > 0 then
+        LIGNE( "PERF   " & CLS_NOM( k ) & " : " & integer'image( cls_stall( k ) ) & "  (" & PCT( cls_stall( k ), cyc ) & ")  "
+               & integer'image( cls_ret( k ) ) & "  " & F2( real( cls_stall( k ) ) / real( maximum( cls_ret( k ), 1 ) ) ) );
+      end if;
+    end loop;
     file_close( fp );
     perf_done <= true;
     wait;

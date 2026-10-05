@@ -84,6 +84,8 @@ of T_M2_LOAD_STORE_QUEUE_tb is
 			  bar_len		: natural;			-- barrière : intervalle écrit
 			  bar_bytes	: bytes32_t;
 			  bar_phase	: natural;			-- 0 attente, 1 écriture, 2 faite
+			  cx		: boolean;			-- réservé par COMPLEX : LINK (rangement),
+								--  UNLINK (chargement) ; adresse par la voie COMPLEX
 			end record;
    type ins_array_t		is array( 0 to WIN - 1 ) of ins_t;
 
@@ -214,6 +216,7 @@ begin
       variable n_cover, n_partial, n_ptr_update : natural := 0;
       variable u		: real;
       variable n_push, n_pop, n_pop_fwd, n_bar, n_bar_hold, n_inval, n_fill_checked : natural := 0;
+      variable n_cx_store, n_cx_load : natural := 0;			-- réservations LINK, UNLINK
       variable xf		: stack_xfer_bus_t;
       variable cb		: renamed_block_t;
       variable ncpx		: natural;
@@ -316,7 +319,7 @@ begin
          e.exp_fault := 0; e.exp_value := ( others => '0' ); e.ex_sent := true; e.ex_due := 0;
          e.ex_addr := ( others => '0' ); e.ex_data := ( others => '0' ); e.tag := ( others => '0' );
          e.st_ok := false; e.st_addr := 0; e.st_size := 8; e.st_data := ( others => '0' );
-         e.bar_len := 0; e.bar_phase := 0; e.produce_at := 0;
+         e.bar_len := 0; e.bar_phase := 0; e.produce_at := 0; e.cx := false;
          e.checked := not poisoned;
          next_tag := ( next_tag + 1 ) mod 512;
          e.tag2 := to_unsigned( next_tag, PHYSICAL_TAG_BITS );
@@ -363,6 +366,50 @@ begin
             cb( 0 ).slot.canon := CANON_NOP; cb( 0 ).slot.canon.op := x"34"; cb( 0 ).rob_index := ROB( next_seq );
             ncpx := 1;
             n_bar := n_bar + 1;
+         end if;
+         q( next_seq mod WIN ) := e;
+         next_seq := next_seq + 1;
+      end procedure;
+
+      -- LINK (rangement de 8 octets) ou UNLINK (chargement de 8 octets vers sa destination),
+      -- réservé par l'interface COMPLEX ; adresse (et donnée) par la voie COMPLEX de EXEC_i
+      procedure GENERATE_CX is
+         variable e		: ins_t;
+         variable ea		: address_t;
+         variable fault	: natural := 0;
+      begin
+         e.live := true; e.done := false; e.got_fault := false; e.fam_c := false; e.ptr := false; e.cx := true;
+         e.exp_value := ( others => '0' ); e.ex_data := ( others => '0' );
+         e.st_ok := false; e.st_addr := 0; e.st_size := 8; e.st_data := ( others => '0' );
+         e.bar_len := 0; e.bar_phase := 0; e.produce_at := 0; e.tag2 := ( others => '0' );
+         next_tag := ( next_tag + 1 ) mod 512;
+         e.tag := to_unsigned( next_tag, PHYSICAL_TAG_BITS );
+         ea := DRAW_EA( 8 );
+         e.ex_addr := ea;
+         cb( 0 ).slot.canon := CANON_NOP; cb( 0 ).rob_index := ROB( next_seq );
+         cb( 0 ).destination := e.tag; cb( 0 ).destination_valid := '0';
+         if RAND < 0.5 then
+            e.kind := K_STORE; cb( 0 ).slot.canon.op := x"44";			-- LINK : M64[CSP] := CFP
+            e.ex_data := RAND_WORD;
+            if IN_ZONE( ea, 8 ) then
+               e.st_ok := true; e.st_addr := to_integer( ea( 30 downto 0 ) ) - DATA_BASE; e.st_data := e.ex_data;
+            else
+               fault := 132;
+            end if;
+            n_cx_store := n_cx_store + 1;
+         else
+            e.kind := K_LOAD; cb( 0 ).slot.canon.op := x"F8";			-- UNLINK : M64[CFP]
+            cb( 0 ).destination_valid := '1';
+            if IN_ZONE( ea, 8 ) then e.exp_value := READ_SPEC( ea, 8, true ); else fault := 132; end if;
+            n_cx_load := n_cx_load + 1;
+         end if;
+         ncpx := 1;
+         e.exp_fault := fault;
+         e.checked := not poisoned;
+         e.ex_sent := false; e.ex_due := now + 1 + RAND_INT( 12 );
+         if fault /= 0 then n_132 := n_132 + 1; poisoned := true; end if;
+         if e.kind = K_STORE and e.st_ok and e.checked then
+            for bt in 0 to 7 loop spec( e.st_addr + bt ) := e.st_data( 8 * bt + 7 downto 8 * bt ); end loop;
          end if;
          q( next_seq mod WIN ) := e;
          next_seq := next_seq + 1;
@@ -534,7 +581,7 @@ begin
          end if;
 
          e.ptr := e.kind = K_STORE and ( e.fam_c or not known );
-         e.bar_len := 0; e.bar_phase := 0; e.produce_at := 0; e.tag2 := ( others => '0' );
+         e.bar_len := 0; e.bar_phase := 0; e.produce_at := 0; e.tag2 := ( others => '0' ); e.cx := false;
          e.exp_fault := fault;
          e.checked := not poisoned;
          e.live := true; e.done := false; e.got_fault := false;
@@ -615,7 +662,7 @@ begin
                exit when not q( x ).live or not q( x ).done or q( x ).got_fault;
                exit when rec.valid = '1' and rec.kind = RECOVER_CHECKPOINT and sq > keep;
                ret( i ) := ( valid => '1', rob_index => ROB( sq ), pc => ( others => '0' ),
-                             is_store => B( q( x ).kind = K_STORE ), is_control => '0', conditional => '0',
+                             is_store => B( q( x ).kind = K_STORE and not q( x ).cx ), is_control => '0', conditional => '0',
                              taken => '0', target => ( others => '0' ), ghist => ( others => '0' ) );
                nret := i + 1;
             end loop;
@@ -643,7 +690,8 @@ begin
             u := RAND;
             if u < 0.45 then GENERATE_PSEUDO( 0 );
             elsif u < 0.85 then GENERATE_PSEUDO( 1 );
-            elsif to_integer( cpx_cap ) >= 1 then GENERATE_PSEUDO( 2 );
+            elsif to_integer( cpx_cap ) >= 1 then
+               if RAND < 0.5 then GENERATE_PSEUDO( 2 ); else GENERATE_CX; end if;
             end if;
          end if;
          xfer <= xf;
@@ -694,9 +742,17 @@ begin
             x := sq2 mod WIN;
             if q( x ).live and not q( x ).ex_sent and q( x ).ex_due <= now
                and not ( rec.valid = '1' and ( rec.kind = RECOVER_COMMITTED or sq2 > keep ) ) then
-               ex( k ) := ( valid => '1', rob_index => ROB( sq2 ), address => q( x ).ex_addr, data => q( x ).ex_data );
-               q( x ).ex_sent := true;
-               k := k + 1;
+               if q( x ).cx then						-- voie COMPLEX : une par cycle
+                  if ex( MEMORY_LANES ).valid = '0' then
+                     ex( MEMORY_LANES ) := ( valid => '1', rob_index => ROB( sq2 ), address => q( x ).ex_addr,
+                                             data => q( x ).ex_data );
+                     q( x ).ex_sent := true;
+                  end if;
+               else
+                  ex( k ) := ( valid => '1', rob_index => ROB( sq2 ), address => q( x ).ex_addr, data => q( x ).ex_data );
+                  q( x ).ex_sent := true;
+                  k := k + 1;
+               end if;
             end if;
          end loop;
          exec <= ex;
@@ -874,6 +930,7 @@ begin
       report "empilements " & integer'image( n_push ) & ", dépilements " & integer'image( n_pop ) & " (FILL vérifiés "
              & integer'image( n_fill_checked ) & ", après un SPILL en vol " & integer'image( n_pop_fwd ) & ") ; barrières "
              & integer'image( n_bar ) & ", chargements qui en recouvrent une " & integer'image( n_bar_hold )
+             & " ; réservations COMPLEX : LINK " & integer'image( n_cx_store ) & ", UNLINK " & integer'image( n_cx_load )
              & " ; invalidations " & integer'image( n_inval ) severity note;
       CHECK( c, n_push > 1000 and n_pop > 800 and n_fill_checked > 400 and n_pop_fwd > 100 and n_bar > 150
                 and n_bar_hold > 30 and n_inval > 300, "le tirage a exercé SPILL, FILL, barrières et invalidations" );

@@ -154,7 +154,12 @@ concernée quand on l'écrira, puis à rayer ici.
               EXC_TEST0 : 2398 -> 1159 cycles ; DIS_BONJOUR : 9482 -> 9381 (son temps en
               tête vient des blocs : HEAD_ATOMIC 46 %). Banc de COMPLEX_UNIT : phase
               dirigée (historique à plusieurs entrées, reprises partielles), que N3 ne
-              couvre pas. À faire : le banc de la LSQ n'exerce pas encore les réservations
-              LINK (rangement) et UNLINK (chargement).
+              couvre pas.
   2026-10-05  N3_PLATEFORME : FINISH attend perf_done (les compteurs pouvaient ne pas être
               écrits, selon l'ordre des processus au front de l'arrêt).
+  2026-10-05  Banc de la LSQ : réservations COMPLEX LINK (rangement, validé sans is_store)
+              et UNLINK (chargement vers sa destination), adresse par la voie COMPLEX.
+  2026-10-05  Compteurs N3 : temps en tête non terminée, par classe d'instruction (opcode
+              lu dans l'image au pc de la tête). DIS_BONJOUR : 2 blocs qui écrivent
+              = 46 % des cycles (2141 cycles chacun) ; EXC_TEST0 : EXC_MACH = 37 % (145
+              cycles chacun). LINK : 4 à 7 cycles en tête, UNLINK : 6.
