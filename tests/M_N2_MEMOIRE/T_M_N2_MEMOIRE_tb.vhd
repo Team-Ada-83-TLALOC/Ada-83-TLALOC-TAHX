@@ -118,6 +118,7 @@ of T_M_N2_MEMOIRE_tb is
    signal au_ready		: std_logic;
    signal au_tags		: read_tags_bus_t( 0 to MEMORY_LANES - 1 );
    signal au_data		: read_data_bus_t( 0 to MEMORY_LANES - 1 );
+   signal lsq_data		: read_data_bus_t( 0 to MEMORY_LANES - 1 );	-- lectures de la LSQ (donnée des rangements)
    signal au_exec		: lsq_exec_bus_t( 0 to MEMORY_LANES - 1 );
    type word_array_t		is array( 0 to 2 ** PHYSICAL_TAG_BITS - 1 ) of word64_t;
    signal prf			: word_array_t := ( others => ( others => '0' ) );
@@ -156,7 +157,7 @@ begin
          STACK_LOOKUP_o => lookup,
          STACK_LOOKUP_i => ( others => ( valid => '0', hit => '0', tag => ( others => '0' ) ) ),
          STACK_INVALIDATE_o => invalidate, WRITERS_IN_FLIGHT_o => wif,
-         READ_TAGS_o => read_tags, READ_DATA_i => ( others => ( others => ( others => '0' ) ) ),
+         READ_TAGS_o => read_tags, READ_DATA_i => lsq_data,
          WAKEUP_i => ( others => ( valid => '0', tag => ( others => '0' ) ) ),
          RESULT_o => results,
          ROB_HEAD_i => rob_head, RETIRE_i => retire, RECOVERY_i => recovery,
@@ -178,6 +179,19 @@ begin
 
    exec( 0 to MEMORY_LANES - 1 ) <= au_exec;
    exec( MEMORY_LANES ) <= NO_EXEC;
+
+   FICHIER_LSQ : process( read_tags, prf )
+   begin
+      for ln in 0 to MEMORY_LANES - 1 loop
+         for s in 0 to MAX_SOURCE_COUNT - 1 loop
+            if is_x( std_logic_vector( read_tags( ln )( s ) ) ) then
+               lsq_data( ln )( s ) <= ( others => 'X' );
+            else
+               lsq_data( ln )( s ) <= prf( to_integer( read_tags( ln )( s ) ) );
+            end if;
+         end loop;
+      end loop;
+   end process;
 
    FICHIER : process( au_tags, prf )
    begin
@@ -300,6 +314,7 @@ begin
       variable nb, k, sq, x	: natural;
       variable aub		: renamed_block_t;
       variable src_tag		: natural := 0;
+      variable data_tag		: natural := 0;				-- données des rangements : 256 .. 511
       variable got		: word64_t;
       variable fa		: natural;
       variable found		: integer;
@@ -549,6 +564,15 @@ begin
          end if;
          blk( i ).slot.canon.lvl := e.lvl;
          blk( i ).slot.canon.val := e.disp;
+         -- rangement : la LSQ prend sa donnée dans son registre (dernière source), écrit ici
+         blk( i ).source_count := 0;
+         if e.kind = K_STORE then
+            data_tag := ( data_tag + 1 ) mod 2 ** ( PHYSICAL_TAG_BITS - 1 );
+            blk( i ).source_count := 1;
+            blk( i ).source( 0 ) := to_unsigned( 2 ** ( PHYSICAL_TAG_BITS - 1 ) + data_tag, PHYSICAL_TAG_BITS );
+            blk( i ).source_ready( 0 ) := '1';
+            prf( 2 ** ( PHYSICAL_TAG_BITS - 1 ) + data_tag ) <= e.ex_data;
+         end if;
          e.op := op;
          e.ofs := to_integer( blk( i ).slot.canon.ofs );
 
@@ -672,7 +696,7 @@ begin
                aub( k ).address := q( x ).ex_addr;
                aub( k ).source_count := q( x ).src_n;
                for sr in 0 to MAX_SOURCE_COUNT - 1 loop
-                  src_tag := ( src_tag + 1 ) mod 2 ** PHYSICAL_TAG_BITS;
+                  src_tag := ( src_tag + 1 ) mod 2 ** ( PHYSICAL_TAG_BITS - 1 );	-- 0 .. 255
                   aub( k ).source( sr ) := to_unsigned( src_tag, PHYSICAL_TAG_BITS );
                end loop;
                prf( to_integer( aub( k ).source( 0 ) ) ) <= q( x ).src0;

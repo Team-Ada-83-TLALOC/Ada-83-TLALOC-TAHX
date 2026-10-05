@@ -81,6 +81,7 @@ of BANC_ISSUE_QUEUE is
 			  tag		: physical_source_array_t;
 			  ready		: std_logic_vector( 0 to MAX_SOURCE_COUNT - 1 );
 			  serial		: boolean;
+			  store		: boolean;			-- rangement : la dernière source (donnée) n'est pas attendue
 			  dest		: physical_tag_t;
 			  captured	: boolean;			-- une source prise au réveil du cycle d'insertion
 			end record;
@@ -136,6 +137,7 @@ begin
       variable eligible, ok, rdy : boolean;
       variable ready_i		: std_logic;
       variable n_issued, n_squashed, n_captured, n_serial, n_blocked, n_inorder_wait : natural := 0;
+      variable n_store_early	: natural := 0;
 
       impure function RAND return real is
       begin
@@ -171,8 +173,10 @@ begin
       end function;
 
       impure function ELIGIBLE_NOW( e : ins_t ) return boolean is
+         variable need : natural := e.n;
       begin
-         for s in 0 to e.n - 1 loop
+         if e.store and e.n > 0 then need := e.n - 1; end if;
+         for s in 0 to need - 1 loop
             if e.ready( s ) = '0' and not WOKEN( e.tag( s ) ) then
                return false;
             end if;
@@ -255,6 +259,7 @@ begin
             block_ins( i ).seq := next_seq;
             block_ins( i ).n := RAND_INT( MAX_SOURCE_COUNT );
             block_ins( i ).serial := RAND < 0.03;
+            block_ins( i ).store := not block_ins( i ).serial and RAND < 0.15;
             block_ins( i ).dest := NEW_TAG;
             block_ins( i ).captured := false;
             for s in 0 to MAX_SOURCE_COUNT - 1 loop
@@ -294,6 +299,8 @@ begin
             blk( i ).destination := block_ins( i ).dest;
             if block_ins( i ).serial then
                blk( i ).slot.canon.op := OP_TRAP;
+            elsif block_ins( i ).store then
+               blk( i ).slot.canon.op := x"63";					-- SQ : ( @ v -- )
             else
                blk( i ).slot.canon.op := OP_ADD;
             end if;
@@ -374,6 +381,10 @@ begin
                   inflight( nf ) := expected( i ); nf := nf + 1;
                   n_issued := n_issued + 1;
                   if expected( i ).serial then n_serial := n_serial + 1; end if;
+                  if expected( i ).store and expected( i ).n > 0
+                     and expected( i ).ready( expected( i ).n - 1 ) = '0' and not WOKEN( expected( i ).tag( expected( i ).n - 1 ) ) then
+                     n_store_early := n_store_early + 1;			-- émis sans sa donnée
+                  end if;
                   if expected( i ).captured then n_captured := n_captured + 1; end if;
                   for j in pend'range loop				-- son résultat viendra
                      if pend( j ).state = 1 and pend( j ).prod_seq = expected( i ).seq then
@@ -454,11 +465,12 @@ begin
       end loop;
 
       running <= false;
+      report NAME_G & " : rangements émis sans leur donnée " & integer'image( n_store_early ) severity note;
       report NAME_G & " : émises " & integer'image( n_issued ) & " (sérialisantes " & integer'image( n_serial )
              & ", source captée à l'insertion " & integer'image( n_captured ) & "), abandonnées "
              & integer'image( n_squashed ) & ", cycles où l'unité refuse " & integer'image( n_blocked )
              & ", cycles où l'ordre retient une prête " & integer'image( n_inorder_wait ) severity note;
-      CHECK( c, n_issued > CYCLES_G / 4 and n_serial > 20 and n_captured > 20 and n_squashed > 50,
+      CHECK( c, n_issued > CYCLES_G / 4 and n_serial > 20 and n_captured > 20 and n_squashed > 50 and n_store_early > 20,
              NAME_G & " : le tirage a exercé émission, sérialisantes, captures et reprises" );
       CHECKS_o <= c.checks;
       FAILURES_o <= c.failures;

@@ -80,6 +80,18 @@ of ISSUE_QUEUE is		---
 
    signal woken		: wake_map_t;
 
+
+   -- sources à attendre : toutes, sauf la donnée d'un rangement (la dernière, le sommet),
+   -- que la LSQ capture elle-même (familles B et C, mode 10 : SB .. SQ, SIB .. SIQ)
+   function NEEDED_SOURCES( ins : renamed_instruction_t ) return natural is
+      variable op : opcode_t := ins.slot.canon.op;
+   begin
+      if ( op( 7 downto 6 ) = "01" or op( 7 downto 6 ) = "10" ) and op( 5 downto 4 ) = "10"
+         and ins.source_count > 0 then
+         return ins.source_count - 1;
+      end if;
+      return ins.source_count;
+   end function;
 begin
 
    woken <= WAKE_MAP( WAKEUP_I );
@@ -108,7 +120,7 @@ begin
             r := WAKE( payload( e ), ready( e ), woken );
             eligible( e ) := '1';
             for s in 0 to MAX_SOURCE_COUNT - 1 loop
-               if s < payload( e ).source_count and r( s ) = '0' then
+               if s < NEEDED_SOURCES( payload( e ) ) and r( s ) = '0' then
                   eligible( e ) := '0';
                end if;
             end loop;

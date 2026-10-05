@@ -84,6 +84,7 @@ of T_M2_LOAD_STORE_QUEUE_tb is
 			  bar_len		: natural;			-- barrière : intervalle écrit
 			  bar_bytes	: bytes32_t;
 			  bar_phase	: natural;			-- 0 attente, 1 écriture, 2 faite
+			  dprod		: boolean;			-- rangement : donnée produite (registre tag2)
 			  cx		: boolean;			-- réservé par COMPLEX : LINK (rangement),
 								--  UNLINK (chargement) ; adresse par la voie COMPLEX
 			end record;
@@ -218,6 +219,7 @@ begin
       variable u		: real;
       variable n_push, n_pop, n_pop_fwd, n_bar, n_bar_hold, n_inval, n_fill_checked : natural := 0;
       variable n_cx_store, n_cx_load : natural := 0;			-- réservations LINK, UNLINK
+      variable n_store_late	: natural := 0;				-- rangements à donnée réveillée plus tard
       variable xf		: stack_xfer_bus_t;
       variable cb		: renamed_block_t;
       variable ncpx		: natural;
@@ -320,7 +322,7 @@ begin
          e.exp_fault := 0; e.exp_value := ( others => '0' ); e.ex_sent := true; e.ex_due := 0;
          e.ex_addr := ( others => '0' ); e.ex_data := ( others => '0' ); e.tag := ( others => '0' );
          e.st_ok := false; e.st_addr := 0; e.st_size := 8; e.st_data := ( others => '0' );
-         e.bar_len := 0; e.bar_phase := 0; e.produce_at := 0; e.cx := false;
+         e.bar_len := 0; e.bar_phase := 0; e.produce_at := 0; e.cx := false; e.dprod := true;
          e.checked := not poisoned;
          next_tag := ( next_tag + 1 ) mod 512;
          e.tag2 := to_unsigned( next_tag, PHYSICAL_TAG_BITS );
@@ -380,6 +382,7 @@ begin
          variable fault	: natural := 0;
       begin
          e.live := true; e.done := false; e.got_fault := false; e.fam_c := false; e.ptr := false; e.cx := true;
+         e.dprod := true;
          e.exp_value := ( others => '0' ); e.ex_data := ( others => '0' );
          e.st_ok := false; e.st_addr := 0; e.st_size := 8; e.st_data := ( others => '0' );
          e.bar_len := 0; e.bar_phase := 0; e.produce_at := 0; e.tag2 := ( others => '0' );
@@ -584,6 +587,24 @@ begin
          e.ptr := e.kind = K_STORE and ( e.fam_c or not known );
          e.bar_len := 0; e.bar_phase := 0; e.produce_at := 0; e.tag2 := ( others => '0' ); e.cx := false;
          e.exp_fault := fault;
+         -- rangement : la donnée vient d'un registre (dernière source), prêt ou réveillé plus tard ;
+         -- EXEC_i en porte aussi une copie, que la LSQ doit ignorer
+         e.dprod := true;
+         blk( i ).source_count := 0;
+         if e.kind = K_STORE then
+            next_tag := ( next_tag + 1 ) mod 512;
+            e.tag2 := to_unsigned( next_tag, PHYSICAL_TAG_BITS );
+            blk( i ).source_count := 1; blk( i ).source( 0 ) := e.tag2;
+            if RAND < 0.4 then
+               blk( i ).source_ready( 0 ) := '1';
+               prf( to_integer( e.tag2 ) ) <= e.ex_data;
+            else
+               blk( i ).source_ready( 0 ) := '0';
+               e.dprod := false; e.produce_at := now + RAND_INT( 15 );		-- (0 : réveil au cycle de l'insertion)
+               n_store_late := n_store_late + 1;
+            end if;
+            e.ex_data := not e.ex_data;						-- EXEC_i : une copie fausse, à ignorer
+         end if;
          e.checked := not poisoned;
          e.live := true; e.done := false; e.got_fault := false;
          e.ex_sent := false; e.ex_due := now + 1 + RAND_INT( 12 );
@@ -706,6 +727,11 @@ begin
                prf( to_integer( q( x ).tag2 ) ) <= q( x ).st_data;
                wk( nwk ) := ( valid => '1', tag => q( x ).tag2 ); nwk := nwk + 1;
                q( x ).done := true;
+            elsif nwk < RESULT_PORTS and q( x ).live and q( x ).kind = K_STORE and not q( x ).dprod
+                  and q( x ).produce_at <= now then				-- donnée d'un rangement
+               prf( to_integer( q( x ).tag2 ) ) <= not q( x ).ex_data;
+               wk( nwk ) := ( valid => '1', tag => q( x ).tag2 ); nwk := nwk + 1;
+               q( x ).dprod := true;
             end if;
          end loop;
          wakeup <= wk;
@@ -932,6 +958,7 @@ begin
              & integer'image( n_fill_checked ) & ", après un SPILL en vol " & integer'image( n_pop_fwd ) & ") ; barrières "
              & integer'image( n_bar ) & ", chargements qui en recouvrent une " & integer'image( n_bar_hold )
              & " ; réservations COMPLEX : LINK " & integer'image( n_cx_store ) & ", UNLINK " & integer'image( n_cx_load )
+             & " ; rangements à donnée réveillée plus tard " & integer'image( n_store_late )
              & " ; invalidations " & integer'image( n_inval ) severity note;
       CHECK( c, n_push > 1000 and n_pop > 800 and n_fill_checked > 400 and n_pop_fwd > 100 and n_bar > 150
                 and n_bar_hold > 30 and n_inval > 300, "le tirage a exercé SPILL, FILL, barrières et invalidations" );

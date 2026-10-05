@@ -88,8 +88,13 @@ use work.EXEC_TYPES.all;
 		--     connue, transfert ; s'il ne les couvre qu'en partie, l'accès attend qu'il
 		--     soit écrit dans le cache ; s'il n'y en a pas, lecture du cache.
 		--
-		--  5. Rangements : fin d'exécution (sans résultat) quand adresse (valide) et
-		--     donnée sont acquises, ou faute 132 (adresse invalide). Au retrait (RETIRE_i, is_store), le
+		--  5. Rangements : l'adresse arrive par EXEC_i (ADDRESS_UNIT les émet sans attendre
+		--     leur donnée) ; la donnée, par son registre (la dernière source de
+		--     l'instruction) : réveil (WAKEUP_i, ou source_ready à l'insertion), puis
+		--     lecture (READ_TAGS_o), comme celle d'un SPILL ; la donnée d'EXEC_i est
+		--     ignorée (sauf pour le rangement de LINK, point 10). Fin d'exécution (sans
+		--     résultat) quand adresse (valide) et donnée sont acquises, ou faute 132
+		--     (adresse invalide). Au retrait (RETIRE_i, is_store), le
 		--     rangement est validé : il ne sera plus abandonné ; il est écrit dans le
 		--     cache, les validés dans l'ordre, puis son entrée est libérée. DRAINED_o =
 		--     '1' quand aucun rangement validé n'attend.

@@ -180,3 +180,14 @@ concernée quand on l'écrira, puis à rayer ici.
               adresse ; rangements sans adresse : ordinaires 17884, de LINK 46. Un
               rangement n'a son adresse qu'une fois sa donnée prête (ADDRESS_UNIT attend ses
               deux sources) : l'ordre prudent sérialise lectures et FILL.
+  2026-10-05  Rangements : adresse et donnée séparées. ISSUE_QUEUE n'attend plus la donnée
+              d'un rangement (dernière source) ; la LSQ la capture par son registre
+              (réveil, lecture), comme celle d'un SPILL, et ignore celle d'EXEC_i (sauf
+              LINK). Bancs : ISSUE_QUEUE (rangements émis sans leur donnée), LSQ (donnée
+              par registre, copie fausse dans EXEC_i, réveil au cycle d'insertion), M_N2
+              (lecture de la LSQ reliée au fichier de registres). DIS_BONJOUR : 6340 ->
+              5922 cycles, IPC 0,42. Lectures encore bloquées (180170 lectures-cycles) :
+              tous les rangements sans adresse sont de famille B (pointeur sur la pile) ;
+              leur adresse vient d'un FILL, lui-même derrière l'ordre prudent. Cause
+              première : en R1, tout dépilement passe par un FILL tant qu'un rangement par
+              pointeur est en vol (règle des écrivains). Relève de R2.

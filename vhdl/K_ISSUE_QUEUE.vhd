@@ -21,7 +21,9 @@ use ieee.numeric_std.all;
 --     en attente qui porte son étiquette (plusieurs instructions peuvent attendre la même).
 --
 --  3. Éligibilité, combinatoire dans le cycle : toutes les sources 0 .. source_count - 1
---     prêtes (bits rangés, ou réveil du cycle), et, pour une instruction sérialisante
+--     prêtes (bits rangés, ou réveil du cycle) - pour un rangement (familles B et C,
+--     mode 10), toutes sauf la dernière, sa donnée, que la LSQ capture elle-même -,
+--     et, pour une instruction sérialisante
 --     (ISA_TABLE), rob_index = ROB_HEAD_I. L'âge est ( rob_index - ROB_HEAD_I ) modulo
 --     ROB_SIZE : les instructions de la file sont dans l'ordre du programme.
 --

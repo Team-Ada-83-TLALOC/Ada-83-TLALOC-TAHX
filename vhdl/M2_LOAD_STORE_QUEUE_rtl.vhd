@@ -74,8 +74,8 @@ of LOAD_STORE_QUEUE is		---
 			  committed	: boolean;			-- rangement retiré
 			  cseq		: natural;			-- ordre de validation
 			  gen		: natural range 0 to 255;	-- génération de l'entrée
-			  data_tag	: physical_tag_t;		-- SPILL : registre de la donnée
-			  data_ready	: boolean;			-- SPILL : registre réveillé
+			  data_tag	: physical_tag_t;		-- SPILL, rangement : registre de la donnée
+			  data_ready	: boolean;			-- SPILL, rangement : registre réveillé
 			  wlen		: address_t;			-- barrière : longueur écrite (ea : base)
 			  ptr_store	: boolean;			-- rangement par pointeur : STACK_INVALIDATE
 			  completes	: boolean;			-- FILL : termine son instruction
@@ -160,6 +160,13 @@ of LOAD_STORE_QUEUE is		---
       return b <= a and a + na <= b + nb;
    end function;
 
+   -- la donnée vient d'un registre (réveil, capture) : SPILL, rangement ordinaire
+   -- (celle d'un rangement de LINK vient de COMPLEX_UNIT, par EXEC_i)
+   function HAS_DATA_TAG( x : entry_t ) return boolean is
+   begin
+      return x.kind = K_SPILL or ( x.kind = K_STORE and not x.cx );
+   end function;
+
    -- la règle de validité de DATA_CACHE (mêmes génériques) : les rangements sans sondage
    function VALID_ACCESS( a : address_t; n : natural ) return boolean is
    begin
@@ -173,6 +180,8 @@ of LOAD_STORE_QUEUE is		---
    signal dbg_wait_bar		: natural := 0;				-- barrière plus ancienne
    signal dbg_unk_norm		: natural := 0;				-- rangements sans adresse : ordinaires
    signal dbg_unk_cx		: natural := 0;				--  de LINK (adresse par COMPLEX_UNIT)
+   signal dbg_unk_cptr		: natural := 0;				--  famille C, cellule connue, pointeur non lu
+   signal dbg_unk_ccell		: natural := 0;				--  famille C, cellule inconnue
    -- pragma translate_on
 begin
 
@@ -183,7 +192,7 @@ begin
    PLANIFIER : process( e, ROB_HEAD_i )
       -- pragma translate_off
       variable wa, wp, wb	: natural;
-      variable un, ux		: natural;
+      variable un, ux, uc, ucc	: natural;
       variable unk		: boolean;
       -- pragma translate_on
       variable p		: plan_array_t;
@@ -204,13 +213,16 @@ begin
    begin
       -- pragma translate_off
       wa := 0; wp := 0; wb := 0;
-      un := 0; ux := 0;
+      un := 0; ux := 0; uc := 0; ucc := 0;
       for i in 0 to DEPTH_G - 1 loop
          if e( i ).valid = '1' and e( i ).kind = K_STORE and not e( i ).ea_known then
-            if e( i ).cx then ux := ux + 1; else un := un + 1; end if;
+            if e( i ).cx then ux := ux + 1;
+            elsif e( i ).fam_c and e( i ).cell_known then uc := uc + 1;
+            elsif e( i ).fam_c then ucc := ucc + 1;
+            else un := un + 1; end if;
          end if;
       end loop;
-      dbg_unk_norm <= un; dbg_unk_cx <= ux;
+      dbg_unk_norm <= un; dbg_unk_cx <= ux; dbg_unk_cptr <= uc; dbg_unk_ccell <= ucc;
       -- pragma translate_on
       for i in 0 to DEPTH_G - 1 loop
          p( i ) := ( step => S_WAIT, purpose => P_NONE, address => ( others => '0' ), sz => 0, fwd => ( others => '0' ) );
@@ -337,7 +349,7 @@ begin
       cp := ( others => -1 );
       cnt := 0;
       for i in 0 to DEPTH_G - 1 loop
-         if cnt < CAPTURES and e( i ).valid = '1' and e( i ).kind = K_SPILL and e( i ).data_ready
+         if cnt < CAPTURES and e( i ).valid = '1' and HAS_DATA_TAG( e( i ) ) and e( i ).data_ready
             and not e( i ).data_known then
             cp( cnt ) := i; cnt := cnt + 1;
          end if;
@@ -576,26 +588,26 @@ begin
                         else
                            v( j ).ea := EXEC_i( l ).address; v( j ).ea_known := true;
                         end if;
-                        if v( j ).kind = K_STORE or v( j ).kind = K_CHK then
+                        if v( j ).kind = K_CHK or ( v( j ).kind = K_STORE and v( j ).cx ) then
                            v( j ).data := EXEC_i( l ).data; v( j ).data_known := true;
-                        end if;
+                        end if;							-- (rangement : donnée capturée)
                      end if;
                   end loop;
                end if;
             end loop;
 
-            -- SPILL : données capturées, réveils
+            -- SPILL, rangements : données capturées, réveils
             for cpt in 0 to CAPTURES - 1 loop
                if capture_pick( cpt ) >= 0 then
                   i := capture_pick( cpt );
-                  if v( i ).valid = '1' and v( i ).kind = K_SPILL then
+                  if v( i ).valid = '1' and HAS_DATA_TAG( v( i ) ) then
                      v( i ).data := READ_DATA_i( cpt / MAX_SOURCE_COUNT )( cpt mod MAX_SOURCE_COUNT );
                      v( i ).data_known := true;
                   end if;
                end if;
             end loop;
             for j in 0 to DEPTH_G - 1 loop
-               if v( j ).valid = '1' and v( j ).kind = K_SPILL and not v( j ).data_ready then
+               if v( j ).valid = '1' and HAS_DATA_TAG( v( j ) ) and not v( j ).data_ready then
                   for w in WAKEUP_i'range loop
                      if WAKEUP_i( w ).valid = '1' and WAKEUP_i( w ).tag = v( j ).data_tag then v( j ).data_ready := true; end if;
                   end loop;
@@ -700,6 +712,15 @@ begin
                         else v( slot ).kind := K_LOAD;
                         end if;
                         v( slot ).ptr_store := v( slot ).kind = K_STORE and ( v( slot ).fam_c or ins.address_known = '0' );
+                        if v( slot ).kind = K_STORE and ins.source_count > 0 then	-- donnée : la dernière source
+                           v( slot ).data_tag := ins.source( ins.source_count - 1 );
+                           v( slot ).data_ready := ins.source_ready( ins.source_count - 1 ) = '1';
+                           for w in WAKEUP_i'range loop
+                              if WAKEUP_i( w ).valid = '1' and WAKEUP_i( w ).tag = v( slot ).data_tag then
+                                 v( slot ).data_ready := true;
+                              end if;
+                           end loop;
+                        end if;
                         if ins.address_known = '1' then
                            if v( slot ).fam_c then
                               v( slot ).cell := ins.address; v( slot ).cell_known := true;

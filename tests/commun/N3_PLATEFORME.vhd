@@ -263,6 +263,9 @@ COMPTEURS :
     alias lsq_un       is << signal DUT.U_LSQ.dbg_unk_norm : natural >>;
     alias lsq_ux       is << signal DUT.U_LSQ.dbg_unk_cx : natural >>;
     variable su_n, su_x : natural := 0;
+    alias lsq_uc       is << signal DUT.U_LSQ.dbg_unk_cptr : natural >>;
+    alias lsq_ucc      is << signal DUT.U_LSQ.dbg_unk_ccell : natural >>;
+    variable su_c, su_cc : natural := 0;
     -- accès mémoire : cycle où l'adresse arrive à la LSQ (EXEC_i), par rob
     type at_t is array( 0 to ROB_SIZE - 1 ) of integer;
     variable exec_at : at_t := ( others => -1 );
@@ -394,7 +397,7 @@ COMPTEURS :
         end if;
       end loop;
       sw_a := sw_a + lsq_wa; sw_p := sw_p + lsq_wp; sw_b := sw_b + lsq_wb;
-      su_n := su_n + lsq_un; su_x := su_x + lsq_ux;
+      su_n := su_n + lsq_un; su_x := su_x + lsq_ux; su_c := su_c + lsq_uc; su_cc := su_cc + lsq_ucc;
       if head_status.valid = '1' and head_status.done = '0' then
         stall_total := stall_total + 1;
         cls_stall( CLS( head_status.pc ) ) := cls_stall( CLS( head_status.pc ) ) + 1;
@@ -496,7 +499,8 @@ COMPTEURS :
     LIGNE( "PERF chargements en tête : avant l'adresse " & integer'image( ld_addr ) & ", après (LSQ) " & integer'image( ld_lsq ) );
     LIGNE( "PERF lectures en attente dans la LSQ (somme sur les cycles) : rangement plus ancien sans adresse "
            & integer'image( sw_a ) & ", recouvrement partiel " & integer'image( sw_p ) & ", barrière " & integer'image( sw_b ) );
-    LIGNE( "PERF rangements sans adresse dans la LSQ (somme sur les cycles) : ordinaires " & integer'image( su_n )
+    LIGNE( "PERF rangements sans adresse dans la LSQ (somme sur les cycles) : famille B " & integer'image( su_n )
+           & ", famille C pointeur non lu " & integer'image( su_c ) & ", famille C cellule inconnue " & integer'image( su_cc )
            & ", de LINK " & integer'image( su_x ) );
     LIGNE( "PERF accès mémoire : adresse -> fin rendue par la LSQ, moyenne "
            & F2( real( lat_sum ) / real( maximum( lat_n, 1 ) ) ) & " cycles (" & integer'image( lat_n ) & " accès)" );
