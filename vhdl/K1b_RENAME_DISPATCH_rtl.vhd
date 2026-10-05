@@ -678,13 +678,10 @@ begin
 
    COMMITTED_FRAME_o	<= frame_c;
    STACK_MAINT_DONE_o	<= maint_done;
-   R2_INACTIF : process								-- STACK_LOOKUP : étape R2
-   begin
-      for l in STACK_LOOKUP_o'range loop
-         STACK_LOOKUP_o( l ) <= ( valid => '0', hit => '0', tag => ( others => '0' ) );
-      end loop;
-      wait;
-   end process;
+   -- STACK_LOOKUP : étape R2 (affectation concurrente : synthétisable)
+   R2_INACTIF : for l in STACK_LOOKUP_o'range generate
+      STACK_LOOKUP_o( l )	<= ( valid => '0', hit => '0', tag => ( others => '0' ) );
+   end generate;
 
 		--------------------------------------------------------------------------------
 		-- Au front

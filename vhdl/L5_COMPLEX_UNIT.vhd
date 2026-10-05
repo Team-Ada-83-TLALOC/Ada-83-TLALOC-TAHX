@@ -87,6 +87,10 @@ use work.EXEC_TYPES.all;
 		--       BLKMOV, BLKAND, BLKOU, BLKOUX : octet k, k croissant : [dst+k] := [src+k]
 		--                  (op [dst+k]) ; sans recouvrement (spéc.) ; BLKNOT : xor 1.
 		--       BLKCMP     1 si les len octets sont égaux (len = 0 : 1), sinon 0.
+		--       Réalisation : par mots de 8 octets tant qu'il en reste 8 (puis par octets),
+		--       pour BLKMOV, BLKNOT, BLKCMP, et pour BLKAND, BLKOU, BLKOUX si [dst] et
+		--       [src] sont égaux ou distants d'au moins 8 (sinon par octets : le résultat
+		--       reste celui de l'ordre octet par octet).
 		--       LEXCMP     comme tx_run : lg, ld signés ; tant que lg > 0 et ld > 0 : un
 		--                  composant de SZ octets à g puis à d (petit-boutistes, signés
 		--                  C8..CB, non signés CC..CE ; SZ = 2^( op mod 4 )), le premier

@@ -93,7 +93,9 @@ of COMPLEX_UNIT is		---
    signal roff		: address_t;				-- décalage dans l'intervalle
    signal k			: address_t;				-- octet, ou décalage LEXCMP
    signal sub			: natural range 0 to 2;			-- étape de l'octet k
-   signal byte_a		: byte_t;					-- octet lu ([src] ou [a])
+   signal word_a		: word64_t;					-- élément lu ([src] ou [a]) : 1 ou 8 octets
+   signal word_mode		: boolean;					-- le bloc avance par mots de 8 octets
+   signal wstep		: boolean;					-- l'élément en cours : 8 octets (sinon 1)
    signal comp_g		: word64_t;					-- composant LEXCMP lu à g
    signal lg, ld		: signed( 63 downto 0 );
    signal atomic		: std_logic;
@@ -259,6 +261,11 @@ begin
       variable cg, cd		: signed( 63 downto 0 );
       variable sz		: natural;
       variable done_acc	: boolean;
+      variable dif		: unsigned( 63 downto 0 );
+      variable step8		: boolean;
+      variable esz		: natural range 0 to 3;
+      variable w		: word64_t;
+      variable n		: natural range 0 to 8;
 
       procedure FINISH( value : word64_t; fault : natural; dest : boolean ) is
       begin
@@ -555,6 +562,12 @@ begin
                   when S_MAINT =>							-- réécriture de chaque intervalle
                      if ri >= nranges then
                         k <= ( others => '0' ); sub <= 0; fstep <= 0;
+                        -- par mots de 8 octets : BLKMOV (sans recouvrement, V8), BLKNOT, BLKCMP ;
+                        -- blocs logiques : si [dst] et [src] sont égaux ou distants d'au moins 8
+                        dif := unsigned( opd( 0 ) ) - unsigned( opd( 2 ) );
+                        word_mode <= instr.slot.canon.op = OP_BLKMOV or instr.slot.canon.op = OP_BLKNOT
+                                     or instr.slot.canon.op = OP_BLKCMP
+                                     or dif = 0 or ( dif >= 8 and dif <= unsigned'( x"FFFFFFFFFFFFFFF8" ) );
                         if IS_FRAME( instr.slot.canon.op ) then state <= S_FSTEP; else state <= S_ACC; end if;
                      elsif ranges( ri ).length = 0 then
                         ri <= ri + 1;
@@ -587,25 +600,33 @@ begin
                            FINISH( ( others => '0' ), 0, false );
                         end if;
                      else
+                        -- un élément : 8 octets en mode mot s'il en reste au moins 8, sinon 1
+                        if sub = 0 then
+                           step8 := word_mode and unsigned( opd( 1 ) ) - k >= 8;
+                           wstep <= step8;
+                        else
+                           step8 := wstep;
+                        end if;
+                        if step8 then esz := 3; else esz := 0; end if;
                         case sub is
                            when 0 =>							-- [src+k], [a+k], [dst+k] (BLKNOT)
                               if op = OP_BLKNOT or op = OP_BLKCMP then
-                                 MEM_ACCESS( unsigned( opd( 0 ) ) + k, 0, false, ( others => '0' ) );
+                                 MEM_ACCESS( unsigned( opd( 0 ) ) + k, esz, false, ( others => '0' ) );
                               else
-                                 MEM_ACCESS( unsigned( opd( 2 ) ) + k, 0, false, ( others => '0' ) );
+                                 MEM_ACCESS( unsigned( opd( 2 ) ) + k, esz, false, ( others => '0' ) );
                               end if;
                            when 1 =>							-- [dst+k], [b+k] ; ou écriture
                               if op = OP_BLKCMP then
-                                 MEM_ACCESS( unsigned( opd( 2 ) ) + k, 0, false, ( others => '0' ) );
+                                 MEM_ACCESS( unsigned( opd( 2 ) ) + k, esz, false, ( others => '0' ) );
                               elsif op = OP_BLKMOV then
-                                 MEM_ACCESS( unsigned( opd( 0 ) ) + k, 0, true, x"00000000000000" & byte_a );
-                              elsif op = OP_BLKNOT then
-                                 MEM_ACCESS( unsigned( opd( 0 ) ) + k, 0, true, x"00000000000000" & ( byte_a xor x"01" ) );
+                                 MEM_ACCESS( unsigned( opd( 0 ) ) + k, esz, true, word_a );
+                              elsif op = OP_BLKNOT then				-- chaque octet xor= 1
+                                 MEM_ACCESS( unsigned( opd( 0 ) ) + k, esz, true, word_a xor x"0101010101010101" );
                               else
-                                 MEM_ACCESS( unsigned( opd( 0 ) ) + k, 0, false, ( others => '0' ) );
+                                 MEM_ACCESS( unsigned( opd( 0 ) ) + k, esz, false, ( others => '0' ) );
                               end if;
                            when others =>						-- BLKAND, BLKOU, BLKOUX : écriture
-                              MEM_ACCESS( unsigned( opd( 0 ) ) + k, 0, true, x"00000000000000" & byte_a );
+                              MEM_ACCESS( unsigned( opd( 0 ) ) + k, esz, true, word_a );
                         end case;
                         state <= S_ACC_WAIT;
                      end if;
@@ -633,23 +654,25 @@ begin
                               end if;
                            end if;
                         else
+                           if wstep then w := MEM_RSP_i.rdata; else w := x"00000000000000" & b; end if;
+                           if wstep then n := 8; else n := 1; end if;
                            case sub is
                               when 0 =>
-                                 byte_a <= b; sub <= 1; state <= S_ACC;
+                                 word_a <= w; sub <= 1; state <= S_ACC;
                               when 1 =>
                                  if op = OP_BLKCMP then
-                                    if b /= byte_a then FINISH( ( others => '0' ), 0, true );
-                                    else k <= k + 1; sub <= 0; state <= S_ACC; end if;
+                                    if w /= word_a then FINISH( ( others => '0' ), 0, true );
+                                    else k <= k + n; sub <= 0; state <= S_ACC; end if;
                                  elsif op = OP_BLKMOV or op = OP_BLKNOT then
-                                    k <= k + 1; sub <= 0; state <= S_ACC;
+                                    k <= k + n; sub <= 0; state <= S_ACC;
                                  else							-- [dst+k] lu : l'opération
-                                    if op = OP_BLKAND then byte_a <= byte_a and b;
-                                    elsif op = OP_BLKOU then byte_a <= byte_a or b;
-                                    else byte_a <= byte_a xor b; end if;
+                                    if op = OP_BLKAND then word_a <= word_a and w;
+                                    elsif op = OP_BLKOU then word_a <= word_a or w;
+                                    else word_a <= word_a xor w; end if;
                                     sub <= 2; state <= S_ACC;
                                  end if;
                               when others =>
-                                 k <= k + 1; sub <= 0; state <= S_ACC;
+                                 k <= k + n; sub <= 0; state <= S_ACC;
                            end case;
                         end if;
                      end if;

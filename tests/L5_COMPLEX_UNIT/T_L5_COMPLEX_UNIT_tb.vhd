@@ -193,6 +193,7 @@ begin
       variable lsq_due		: integer;					-- fin rendue par la LSQ jouée
       variable link_res		: natural;					-- LINK : résultats (valeur) reçus
       variable n_link, n_unlink, n_excm, n_fupd, n_late, n_link135 : natural := 0;
+      variable n_near		: natural := 0;				-- blocs logiques à [src] proche
       variable wr_base, wr_len	: natural;				-- intervalle écrit (décalages)
       variable abandon_at	: integer;				-- cycle de l'abandon, -1 : aucun
       variable hold_case	: boolean;
@@ -585,6 +586,11 @@ begin
                if op /= x"35" and o0 >= 0 and o2 >= 0 and abs( o0 - o2 ) < len then o2 := o0 + len; end if;	-- sans recouvrement
                if o2 + len > DATA_SIZE + 3 then o2 := 256; o0 := 1024; end if;
                if op = x"35" and RAND < 0.4 then o2 := o0; end if;		-- intervalles égaux
+               -- blocs logiques : [src] proche de [dst] (de -7 à +7 octets, 0 compris) ; la
+               -- référence, octet par octet dans l'ordre, donne la sémantique attendue
+               if ( op = x"3C" or op = x"3D" or op = x"3E" ) and RAND < 0.25 and o0 >= 8 then
+                  o2 := o0 + RAND_INT( 14 ) - 7; n_near := n_near + 1;
+               end if;
                opd( 0 ) := ADDR_OF( o0 ); opd( 1 ) := W( len ); opd( 2 ) := ADDR_OF( o2 );
                if not VALIDB( o0, len ) or not VALIDB( o2, len ) then
                   exp_fault := 132;
@@ -940,6 +946,7 @@ begin
              & " ; cache : lectures " & integer'image( reads ) & ", écritures "
              & integer'image( writes ) & ", sondages " & integer'image( probes ) severity note;
       report "abandons après le résultat " & integer'image( n_late ) & ", LINK en faute 135 " & integer'image( n_link135 )
+             & ", blocs logiques à [src] proche " & integer'image( n_near )
              severity note;
       CHECK( c, n_link > 50 and n_unlink > 50 and n_excm > 50 and n_fupd > 40 and n_late > 50 and n_link135 > 10,
              "le tirage a exercé le groupe frame" );

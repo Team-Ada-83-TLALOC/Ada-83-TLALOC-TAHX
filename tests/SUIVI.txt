@@ -163,3 +163,10 @@ concernée quand on l'écrira, puis à rayer ici.
               lu dans l'image au pc de la tête). DIS_BONJOUR : 2 blocs qui écrivent
               = 46 % des cycles (2141 cycles chacun) ; EXC_TEST0 : EXC_MACH = 37 % (145
               cycles chacun). LINK : 4 à 7 cycles en tête, UNLINK : 6.
+  2026-10-05  Blocs par mots de 8 octets (COMPLEX_UNIT) ; blocs logiques à [src] proche de
+              [dst] (moins de 8 octets) restés par octets ; banc : cas [src] proche.
+              DIS_BONJOUR : 9381 -> 6355 cycles, IPC 0,27 -> 0,39 ; un bloc : 2141 -> 629
+              cycles. Restent en tête : rangements 20 %, blocs 20 %, EXC_MACH 4 %.
+  2026-10-05  RENAME_DISPATCH : STACK_LOOKUP_o (inactif jusqu'à R2) par affectation
+              concurrente au lieu d'un processus terminé par wait (refusé par la
+              synthèse de GHDL 6) ; c'était le seul dans le RTL.
