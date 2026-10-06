@@ -236,3 +236,33 @@ concernée quand on l'écrira, puis à rayer ici.
               4 (maintenance : réécriture d'un intervalle pour CTX_SAVE et les blocs),
               5 (lectures calculées des cellules en fenêtre : vérification en tête et
               réexécution). Écriture différée derrière un générique tant que 4 et 5 manquent.
+  2026-10-06  COMPLEX_UNIT : la validité des intervalles d'un bloc (et d'EXC_MACH) est
+              vérifiée par la règle de DATA_CACHE (génériques VALID_BASE_G, VALID_LIMIT_G,
+              comme la LSQ pour ses rangements), un cycle par intervalle, au lieu d'un
+              sondage par morceaux de 8 octets (un aller-retour au cache chacun). Mesure :
+              les deux BLKMOV de DIS_BONJOUR copient 292 octets chacun ; 506 cycles de
+              sondage sur 1 485 dans les blocs. Banc L5 : génériques de sa zone (fautes
+              132 vérifiées). DIS_BONJOUR : 4907 -> 4413 cycles, IPC 0,51 -> 0,56.
+              Constat : 2 339 SPILL pour 2 492 retraits, les rangements validés s'écrivant
+              un par cycle : en écriture immédiate l'IPC reste borné vers 1 (R2b 3b).
+  2026-10-06  R2b 3b : écriture différée de la fenêtre de pile (générique DEFERRED_SPILL_G,
+              désactivé par défaut ; contrat 12 du renommage ; spéc. V8 : exposition par
+              LVA, variables locales indéfinies, [Q19], [Q20]). Un push ne fait plus de
+              SPILL (cellule « sale ») ; SPILL à l'éviction d'une cellule sale et vivante,
+              au LVA à adresse connue (sa cellule), par vidage (ROB vide, SPILL validés)
+              pour un accès direct qui lirait une cellule sale en mémoire (cellule pointeur
+              de famille C, bornes de CHK, à cheval), et par MAINT_WRITEBACK_ALL/RANGE
+              (SPILL validés de la fenêtre retirée ; DONE en impulsion). COMPLEX attend la
+              LSQ vidée après sa maintenance. Défaut latent corrigé (aussi en écriture
+              immédiate) : la pile d'ombre d'UNLINK compare aussi l'écrivain de la cellule
+              (wseq), un registre libéré puis réalloué pouvant revenir dans la cellule.
+              Banc du renommage : mémoire physique écrite par les SPILL et rangements
+              (journal ordonné comme la LSQ) ; FILL, chargements exécutés, bornes de CHK,
+              cellules pointeurs et intervalles réécrits y sont comparés à la référence ;
+              LVA + LQ par pointeur, LIQ, LEXCMP réécrit en tête, WRITEBACK_ALL avant SYNC ;
+              locales empoisonnées (indéfinies). Validé : 7 graines en mode différé, 4 en
+              écriture immédiate, 10 erreurs introduites toutes détectées.
+              N3, défaut -> différé (cycles) : TAHX_1 4413 -> 3812, EXC_TEST0 1085 -> 980,
+              CHK_TEST0 15276 -> 8743 (IPC 0,86 -> 1,51), CASE_ST1 10027 -> 8164,
+              POW1 10631 -> 8640 ; traces identiques à tx_run. DIS_BONJOUR : SPILL 2339 -> 37.
+              tx_run (TLALOC, 157 compilations, 12,4 G instructions) : SPILL 6,8 G -> 29 M.

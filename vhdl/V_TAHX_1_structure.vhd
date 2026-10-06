@@ -225,6 +225,7 @@ U_DECODE_QUEUE :
 
 U_RENAME :
   entity work.RENAME_DISPATCH
+    generic map ( DEFERRED_SPILL_G => DEFERRED_SPILL_G )
     port map (
       CLK_i		=> CLK_i,
       RESET_i		=> RESET_i,

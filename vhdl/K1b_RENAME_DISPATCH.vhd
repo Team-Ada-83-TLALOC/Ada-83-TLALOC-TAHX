@@ -146,7 +146,9 @@ use work.RENAME_TYPES.all;
 		--     : DSP := DISPLAY[lvl] ; pop (source( 0 )) ; une destination cachée (sans
 		--     cellule : M64[CFP], chargé par la LSQ pour COMPLEX_UNIT) ; DISPLAY[lvl] :=
 		--     sommet de la pile d'ombre si son niveau est lvl et que la cellule sauvée
-		--     est inchangée, sinon attente de FRAME_UPDATE_i (rob_index de l'UNLINK).
+		--     est inchangée (même registre, donné par ce LINK : un registre libéré puis
+		--     réalloué peut y revenir), sinon attente de FRAME_UPDATE_i (rob_index de
+		--     l'UNLINK).
 		--     EXC_MACH : address = DISPLAY[lvl] + ctx.
 		--     Sérialisantes (option B de SYSTEM_UNIT) : TRAP 16 et 18 dépilent 1 et
 		--     empilent 1 (destination) ; TRAP 0 et 17 lisent le sommet sans le
@@ -189,17 +191,42 @@ use work.RENAME_TYPES.all;
 		--     l'attribution, '1' au réveil (WAKEUP_i) ; source_ready reflète tous les
 		--     réveils des cycles précédant l'insertion.
 		--
-		--  11. Maintenance : la mémoire étant à jour au retrait (SPILL dans la LSQ),
+		--  11. Maintenance (écriture immédiate ; différée : voir 12) : la mémoire étant à
+		--     jour au retrait (SPILL dans la LSQ),
 		--     MAINT_WRITEBACK_RANGE et MAINT_WRITEBACK_ALL sont faites aussitôt
 		--     (STACK_MAINT_DONE_o au cycle qui suit chaque cycle de STACK_MAINT_i valide ;
 		--     une demande vue deux fois est sans effet ; le demandeur attend LSQ_DRAINED) ;
 		--     MAINT_INVALIDATE_RANGE oublie les cellules de l'intervalle.
+		--
+		--  12. Écriture différée (DEFERRED_SPILL_G, R2b ; spéc. V8, section Piles) : un
+		--     push ne fait plus de SPILL, la cellule est « sale » (la mémoire n'a pas sa
+		--     valeur) ; seul un push rend une cellule sale (FILL gardé, rangement direct
+		--     de 8 octets et BFII, dont le SPILL reste, la laissent propre). SPILL :
+		--     a) à l'éviction : la cellule qui prend l'entrée d'une cellule sale et vivante
+		--        (au plus DSP) la range d'abord (SPILL de l'instruction ; son registre
+		--        compté lecteur jusqu'à son départ) ; une cellule morte n'est pas rangée ;
+		--     b) au LVA à adresse connue, de la cellule qu'il désigne (règle V8 de
+		--        l'exposition : une lecture calculée ne lit une cellule de calcul que
+		--        désignée par un LVA depuis son push) ;
+		--     c) vidage : un accès direct qui lirait en mémoire une cellule sale (cellule
+		--        pointeur de famille C, bornes de CHK, accès à cheval) attend le ROB vide,
+		--        puis ses cellules sont rangées par des SPILL validés (committed = '1')
+		--        avant lui ;
+		--     d) maintenance : MAINT_WRITEBACK_ALL et MAINT_WRITEBACK_RANGE rangent les
+		--        cellules sales et vivantes de la fenêtre retirée par des SPILL validés
+		--        (rob_index = tête), STACK_XFER_WIDTH par cycle, sans rien renommer ;
+		--        STACK_MAINT_DONE_o, une impulsion, quand il n'en reste plus.
+		--     Les cellules rangées deviennent propres là où elles ont le même registre
+		--     (fenêtres spéculative et retirée, copies des points de reprise).
 		--------------------------------------------------------------------------------
 
 
                                 ---------------
 entity                          RENAME_DISPATCH
 is                              ---------------
+   generic (
+      DEFERRED_SPILL_G	: boolean := false			-- R2b : écriture différée (contrat 12)
+   );
    port (
       CLK_i		:in  std_logic;
       RESET_i		:in  std_logic;

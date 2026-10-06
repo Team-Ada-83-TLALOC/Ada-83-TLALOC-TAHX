@@ -302,6 +302,22 @@ qui meurt parce que DSP redescend sous elle (UNLINK, RTD n) n'a pas à être ré
 mémoire. Un programme qui enfreint la règle a un comportement non spécifié ; tx_run -v la
 vérifie (voir [Q18]).
 
+Lectures calculées des cellules de calcul. Une lecture dont l'adresse est calculée
+(chargement ou CHK de famille B avec lvl = 1111, de famille C, cellule pointeur comprise
+quand lvl = 1111) ne lit une cellule de calcul que si un LVA à adresse connue (lvl = 0..14)
+a désigné cette cellule (celle qui contient l'adresse rendue) depuis le push qui l'a
+écrite ; les blocs (BLKMOV, BLKAND, BLKOU, BLKOUX, BLKNOT, BLKCMP, LEXCMP) n'y sont pas
+soumis. Un programme qui l'enfreint lit une valeur non spécifiée. Une implantation à
+écriture différée peut donc ne réécrire en mémoire une cellule de calcul qu'à son éviction,
+au LVA qui la désigne et aux réécritures que demandent les blocs et les services (TAHX :
+R2b). tx_run -v vérifie la règle (voir [Q19]).
+
+Variables locales. Les cellules allouées par LINK ont un contenu indéfini jusqu'à leur
+première écriture : LINK ne les initialise pas, et une cellule de calcul morte qui occupait
+leur place n'a pas à avoir été réécrite en mémoire (paragraphe « Au-dessus de DSP »). Lire
+une variable locale avant de l'écrire donne une valeur non spécifiée, comme en Ada pour une
+variable non initialisée (voir [Q20]).
+
 La pile data et la co-pile sont de la mémoire ordinaire : le programme y accède aussi par
 adresse (locales, paramètres, LVA, blocs de la co-pile). La pile des retours, elle, n'est
 lue et écrite que par push_retour et pop_retour (CALL, CALLI, RTD, TRAP vectorisé,
@@ -1751,6 +1767,25 @@ l'instruction interrompue et remet DR à 0.
 	calculé l'a écrite (le banc du renommage l'a montré) ; et, en écriture différée, la
 	dernière valeur d'une cellule morte peut n'être que dans un registre. Avec la règle, une
 	cellule qui meurt par la descente de DSP n'est jamais réécrite en mémoire.
+
+[Q19]	Lectures calculées des cellules de calcul.	=> règle de l'exposition par LVA (V8)
+	Mesure (tx_run, TLALOC compilant les 157 programmes de tests_TLALOC, 12,4 milliards
+	d'instructions) : 146 millions de lectures calculées lisent une cellule de calcul,
+	toutes après un LVA à adresse connue qui l'a désignée depuis son push. Réécrire au LVA la
+	seule cellule désignée suffit (float_test.adb : 7 628 réécritures, contre 2,5 millions
+	pour tout l'intervalle de l'adresse à DSP). En écriture différée, les réécritures de
+	cellules tombent de 6,8 milliards (une par push) à 29 millions : évictions 21,6 M,
+	réécritures des services 3,9 M, vidages (cellule pointeur de famille C sale) 2,3 M, LVA
+	1,2 M, BFII 0,25 M. Les programmes des tests N3 passent sur TAHX avec des traces
+	identiques à tx_run.
+
+[Q20]	Variables locales non écrites.			=> contenu indéfini (V8, section Piles)
+	En écriture différée, une cellule de calcul qui meurt sans éviction n'est pas réécrite :
+	une variable locale allouée ensuite à sa place garde en mémoire une valeur plus ancienne
+	que dans tx_run. Mesure (tx_run, TLALOC compilant float_test.adb, suivi octet par octet) :
+	7 494 lectures (LD par pointeur) de variables locales jamais écrites depuis leur
+	allocation ; aucune par FILL, accès direct ou bloc. Ce sont des lectures de variables non
+	initialisées dans TLALOC (précédent : IN_SPEC_UNIT d'EXPANDER.UTILS), à rechercher.
 
 =========================================================================================
 	QUESTIONS OUVERTES

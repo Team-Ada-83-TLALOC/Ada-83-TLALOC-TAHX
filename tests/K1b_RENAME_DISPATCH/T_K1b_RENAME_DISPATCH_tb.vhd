@@ -49,6 +49,7 @@ of T_K1b_RENAME_DISPATCH_tb is
    constant INSTRUCTIONS	: positive	:= 12000;
    constant SEED_1		: positive	:= 1515;
    constant SEED_2		: positive	:= 1610;
+   constant DEFERRED		: boolean	:= true;				-- R2b : écriture différée
    constant WIN		: positive	:= 1024;				-- instructions suivies, modulo WIN
    constant NTAGS		: positive	:= 2 ** PHYSICAL_TAG_BITS;
    constant S0		: natural	:= 16#100000#;				-- pile data : DSP0
@@ -61,9 +62,10 @@ of T_K1b_RENAME_DISPATCH_tb is
 
    type word_array_t		is array( natural range <> ) of word64_t;
    type kind_t			is ( K_LIN, K_LI, K_DROP, K_DUP, K_OVER, K_LOAD, K_STORE, K_PSTORE, K_CHK, K_LEX, K_CALL,
-				     K_CALLI, K_RTD, K_BRA, K_BT, K_LINK, K_UNLINK, K_EXCM, K_TRAP16, K_ILLEGAL );
+				     K_CALLI, K_RTD, K_BRA, K_BT, K_LINK, K_UNLINK, K_EXCM, K_TRAP16, K_ILLEGAL,
+				     K_LVA, K_PLOAD, K_CLOAD );
    type vals_t			is array( 0 to 3 ) of word64_t;
-   type addrs_t		is array( 0 to 4 ) of natural;
+   type addrs_t		is array( 0 to 9 ) of natural;
 
    type ins_t			is record
 			  kind		: kind_t;
@@ -89,10 +91,18 @@ of T_K1b_RENAME_DISPATCH_tb is
 			  ptr_ea		: integer;			-- rangement par pointeur : adresse (−1 : hors pile)
 			  frame_before	: frame_state_t;
 			  frame_after	: frame_state_t;
-			  nundo		: natural range 0 to 3;	-- écritures à défaire : adresse, ancienne valeur
+			  nundo		: natural range 0 to 10;	-- écritures à défaire : adresse, ancienne valeur
 			  uaddr		: addrs_t;
-			  uval		: word_array_t( 0 to 2 );
-			  ustack		: std_logic_vector( 0 to 2 );	-- '1' pile data, '0' pile des retours
+			  uval		: word_array_t( 0 to 9 );
+			  ustack		: std_logic_vector( 0 to 9 );	-- '1' pile data, '0' pile des retours
+			  -- lectures en mémoire (mémoire physique jouée) : adresse, taille, valeur attendue
+			  nmr		: natural range 0 to 2;
+			  mra		: addrs_t;
+			  mrn		: addrs_t;
+			  mrv		: word_array_t( 0 to 1 );
+			  mrp		: std_logic_vector( 0 to 1 );	-- '1' : valeur indéfinie (locale non écrite)
+			  wb_lo, wb_n	: natural;			-- LEXCMP : intervalle réécrit en tête
+			  wb_state	: natural range 0 to 2;	-- 0 : à réécrire, 1 : réécrit, 2 : vérifié
 			  -- après le renommage
 			  renamed		: boolean;
 			  rob		: rob_index_t;
@@ -151,6 +161,7 @@ of T_K1b_RENAME_DISPATCH_tb is
 begin
 
    DUT : entity work.RENAME_DISPATCH
+      generic map ( DEFERRED_SPILL_G => DEFERRED )
       port map (
          CLK_i => clk, RESET_i => reset,
          DECODE_BLOCK_i => dec_block, DECODE_COUNT_i => dec_count, DECODE_TAKE_o => dec_take,
@@ -200,6 +211,7 @@ begin
 			  tag		: physical_tag_t;
 			  val		: word64_t;
 			  seq		: natural;
+			  addr		: natural;			-- mot lu
 			  completes	: boolean;			-- termine son instruction (DUP, OVER)
 			end record;
       type pend_array_t		is array( 0 to 255 ) of pend_t;
@@ -231,6 +243,35 @@ begin
       variable served_i		: boolean;
       variable conv_ld, conv_st	: boolean;
       variable n_conv		: natural := 0;				-- accès directs étroits convertis
+
+      -- mémoire physique de la pile data, écrite seulement par les SPILL et les rangements :
+      -- un journal (comme la LSQ) ordonné par clé (2 * n + 2 : les écritures de l'instruction n),
+      -- versé dans pm au retrait ; ses lectures voient la clé 2 * n + 1 (avant ses écritures) ;
+      -- un SPILL validé (vidage, réécriture) va dans pm aussitôt
+      variable pm		: word_array_t( 0 to SWORDS - 1 );
+      type log_t		is record
+			  valid		: boolean;
+			  key		: natural;
+			  ord		: natural;
+			  seq		: natural;
+			  word		: natural;
+			  spill		: boolean;
+			  tag		: physical_tag_t;
+			  captured	: boolean;
+			  mask		: std_logic_vector( 7 downto 0 );
+			  data		: word64_t;
+			end record;
+      type log_array_t		is array( 0 to 1023 ) of log_t;
+      variable lg		: log_array_t;
+      variable lg_ord		: natural := 0;
+      variable n_mcheck, n_wb, n_wbcheck, n_def_spill, n_cspill : natural := 0;
+      variable sync_pend	: boolean := false;				-- SYNC après la réécriture
+      variable pload_next	: boolean := false;				-- un LQ par pointeur suit le LVA
+      variable mok		: boolean;
+      variable mw		: word64_t;
+      variable mreq		: stack_maint_t;
+      variable m_asked		: natural := 0;				-- demande du cycle précédent : 1 ALL, 2 RANGE
+      variable o		: integer;
 
       impure function RAND return real is
       begin
@@ -318,6 +359,153 @@ begin
          e.paddr( e.npush ) := to_integer( f.dsp( 30 downto 0 ) ); e.npush := e.npush + 1;
       end procedure;
 
+      -- mot de la pile data suivie (−1 : hors de la zone)
+      function TIDX( a : natural ) return integer is
+      begin
+         if a >= SLOW and a < SLOW + 8 * SWORDS then return ( a - SLOW ) / 8; end if;
+         return -1;
+      end function;
+
+      -- valeur d'une variable locale non écrite (indéfinie) : non comparée
+      function POISON( o : natural ) return word64_t is
+      begin
+         return x"DEAD0000" & std_logic_vector( to_unsigned( o, 32 ) );
+      end function;
+
+      -- indéfinie, même en partie (un octet rangé dans une locale non écrite : moitié basse)
+      function IS_UNDEF( w : word64_t ) return boolean is
+      begin
+         return w( 63 downto 32 ) = x"DEAD0000";
+      end function;
+
+      -- n octets à partir de a, petit-boutistes : référence (poison : indéfinie)
+      procedure REF_BYTES( a : natural; n : natural; v : out word64_t; p : out std_logic ) is
+         variable w : std_logic_vector( 127 downto 0 );
+         variable x0, x1 : word64_t;
+         variable b : natural;
+         variable o : integer;
+      begin
+         b := a - a mod 8; p := '0';
+         x1 := MREAD( A64( b + 8 ) ); x0 := MREAD( A64( b ) ); w := x1 & x0;
+         for j in 0 to 1 loop
+            o := TIDX( b + 8 * j );
+            if o >= 0 and ( j = 0 or a mod 8 + n > 8 ) then
+               if IS_UNDEF( mem( o ) ) then p := '1'; end if;
+            end if;
+         end loop;
+         w := std_logic_vector( shift_right( unsigned( w ), 8 * ( a mod 8 ) ) );
+         v := ( others => '0' );
+         v( 8 * n - 1 downto 0 ) := w( 8 * n - 1 downto 0 );
+      end procedure;
+
+      procedure LOG_ADD( key, seq, word : natural; spill : boolean; tag : physical_tag_t;
+                         mask : std_logic_vector( 7 downto 0 ); data : word64_t ) is
+      begin
+         for j in lg'range loop
+            if not lg( j ).valid then
+               lg( j ) := ( valid => true, key => key, ord => lg_ord, seq => seq, word => word, spill => spill, tag => tag,
+                            captured => not spill, mask => mask, data => data );
+               lg_ord := lg_ord + 1;
+               return;
+            end if;
+         end loop;
+         CHECK( c, false, "journal de la mémoire physique plein" );
+      end procedure;
+
+      -- le mot o tel qu'une lecture de clé key le voit (pm, puis le journal dans l'ordre) ;
+      -- ok = false : un SPILL dont la donnée n'est pas encore là
+      procedure MODEL_WORD( o : natural; key : natural; ok : inout boolean; v : out word64_t ) is
+         type idx_t is array( 0 to 31 ) of integer;
+         variable ix	: idx_t;
+         variable n, best : integer;
+         variable w	: word64_t;
+      begin
+         w := pm( o ); n := 0;
+         for j in lg'range loop
+            if lg( j ).valid and lg( j ).word = o and lg( j ).key <= key and n < 32 then ix( n ) := j; n := n + 1; end if;
+         end loop;
+         for t in 0 to 31 loop							-- par clé, puis par ordre d'entrée
+            exit when t >= n;
+            best := -1;
+            for u in 0 to 31 loop
+               if u < n and ix( u ) >= 0 then
+                  if best < 0 or lg( ix( u ) ).key < lg( ix( best ) ).key
+                     or ( lg( ix( u ) ).key = lg( ix( best ) ).key and lg( ix( u ) ).ord < lg( ix( best ) ).ord ) then
+                     best := u;
+                  end if;
+               end if;
+            end loop;
+            if not lg( ix( best ) ).captured then ok := false; end if;
+            for bb in 0 to 7 loop
+               if lg( ix( best ) ).mask( bb ) = '1' then w( 8 * bb + 7 downto 8 * bb ) := lg( ix( best ) ).data( 8 * bb + 7 downto 8 * bb ); end if;
+            end loop;
+            ix( best ) := -1;
+         end loop;
+         v := w;
+      end procedure;
+
+      -- n octets à partir de a vus par la mémoire physique (clé key)
+      procedure MODEL_BYTES( a, n, key : natural; ok : inout boolean; v : out word64_t ) is
+         variable w : std_logic_vector( 127 downto 0 );
+         variable x0, x1 : word64_t;
+         variable b : natural;
+      begin
+         b := a - a mod 8;
+         x0 := MREAD( A64( b ) ); x1 := MREAD( A64( b + 8 ) );			-- (hors de la zone : la référence)
+         if TIDX( b ) >= 0 then MODEL_WORD( TIDX( b ), key, ok, x0 ); end if;
+         if a mod 8 + n > 8 and TIDX( b + 8 ) >= 0 then MODEL_WORD( TIDX( b + 8 ), key, ok, x1 ); end if;
+         w := x1 & x0;
+         w := std_logic_vector( shift_right( unsigned( w ), 8 * ( a mod 8 ) ) );
+         v := ( others => '0' );
+         v( 8 * n - 1 downto 0 ) := w( 8 * n - 1 downto 0 );
+      end procedure;
+
+      -- retrait de l'instruction sq : ses écritures vont dans pm (dans l'ordre des clés)
+      procedure LOG_COMMIT( sq : natural ) is
+         variable best : integer;
+         variable w : word64_t;
+      begin
+         loop
+            best := -1;
+            for j in lg'range loop
+               if lg( j ).valid and lg( j ).seq = sq then
+                  if best < 0 or lg( j ).key < lg( best ).key or ( lg( j ).key = lg( best ).key and lg( j ).ord < lg( best ).ord ) then
+                     best := j;
+                  end if;
+               end if;
+            end loop;
+            exit when best < 0;
+            if lg( best ).spill and not lg( best ).captured and pvalid( to_integer( lg( best ).tag ) ) = '1' then
+               lg( best ).data := pv( to_integer( lg( best ).tag ) ); lg( best ).captured := true;
+            end if;
+            if not lg( best ).captured then
+               CHECK( c, false, "instruction " & integer'image( sq ) & " retirée avant la donnée de son SPILL" );
+            end if;
+            w := pm( lg( best ).word );
+            for bb in 0 to 7 loop
+               if lg( best ).mask( bb ) = '1' then w( 8 * bb + 7 downto 8 * bb ) := lg( best ).data( 8 * bb + 7 downto 8 * bb ); end if;
+            end loop;
+            pm( lg( best ).word ) := w;
+            lg( best ).valid := false;
+         end loop;
+      end procedure;
+
+      -- la référence à l'état retiré (avant l'instruction head_seq) : on défait les écritures
+      -- des instructions en vol
+      impure function REF_AT_HEAD( o : natural ) return word64_t is
+         variable v : word64_t;
+      begin
+         v := mem( o );
+         for sq2 in gen_seq - 1 downto head_seq loop
+            for j in 9 downto 0 loop
+               if j < q( sq2 mod WIN ).nundo and q( sq2 mod WIN ).ustack( j ) = '1' and q( sq2 mod WIN ).uaddr( j ) = o then
+                  v := q( sq2 mod WIN ).uval( j );
+               end if;
+            end loop;
+         end loop;
+         return v;
+      end function;
+
       ----------------------------------------------------------------------------
       -- Génération d'une instruction : son issue séquentielle
       ----------------------------------------------------------------------------
@@ -331,17 +519,23 @@ begin
          variable len	: natural;
          variable alloc	: natural;
          variable depth	: natural;
+         variable lv	: integer;
       begin
          e.kind := K_LIN; e.nsrc := 0; e.nread := 0; e.npush := 0; e.dest := false; e.dval := RAND_WORD;
          e.addr_known := false; e.addr := ( others => '0' ); e.fault := 0; e.control := false; e.mispredict := false;
          e.is_store := false; e.ptr_ea := -1; e.nundo := 0; e.renamed := false; e.done := false; e.exec_at := -1;
          e.spills_seen := 0; e.exec_need := true;
+         e.nmr := 0; e.mra := ( others => 0 ); e.mrn := ( others => 0 ); e.mrv := ( others => ( others => '0' ) );
+         e.mrp := "00"; e.wb_lo := 0; e.wb_n := 0; e.wb_state := 2;
          e.frame_before := fr; f := fr;
          lvl := RAND_INT( 14 ); len := 1;
          op := x"00";
          depth := 0;								-- profondeur au-dessus de DSP0
          if fr.dsp >= A64( S0 ) and fr.dsp < A64( S0 + 2 ** 20 ) then depth := to_integer( fr.dsp - A64( S0 ) ) / 8; end if;
-         if u < 0.16 then e.kind := K_LI; op := x"C0";
+         if pload_next then e.kind := K_PLOAD; op := x"57"; len := 3;		-- LQ par pointeur, après un LVA
+         elsif u < 0.10 then e.kind := K_LI; op := x"C0";
+         elsif u < 0.13 then e.kind := K_LVA; op := x"47"; len := 3;
+         elsif u < 0.16 then e.kind := K_CLOAD; op := x"97"; len := 4;		-- LIQ : cellule pointeur directe
          elsif u < 0.30 then e.kind := K_LIN; op := x"00";			-- ( a b -- r )
          elsif u < 0.34 then e.kind := K_LIN; op := x"03";			-- ( a -- r )
          elsif u < 0.36 then e.kind := K_LIN; op := x"18";			-- ( a b c -- r )
@@ -365,6 +559,14 @@ begin
          elsif u < 0.975 then e.kind := K_EXCM; op := x"45"; len := 3;
          elsif u < 0.99 then e.kind := K_TRAP16; op := OP_TRAP; len := 2;
          else e.kind := K_ILLEGAL; op := UOP_ILLEGAL; len := 0;
+         end if;
+         pload_next := false;
+         if ( e.kind = K_LVA or e.kind = K_CLOAD ) then				-- un DISPLAY qui soit une adresse
+            lv := -1;
+            for j in 0 to 14 loop
+               if lv < 0 and fr.display( ( lvl + j ) mod 15 )( 63 downto 31 ) = 0 then lv := ( lvl + j ) mod 15; end if;
+            end loop;
+            if lv < 0 or fr.dsp < A64( SLOW + 8 * 16 ) then e.kind := K_LI; op := x"C0"; len := 1; else lvl := lv; end if;
          end if;
          -- les UNLINK suivent les LINK (niveau de la pile d'ombre du banc) ; RTD les CALL
          if e.kind = K_UNLINK and shadow_lvl < 1 then e.kind := K_LI; op := x"C0"; len := 1; end if;
@@ -415,6 +617,9 @@ begin
                   e.addr := e.addr + to_unsigned( a, 64 ); e.slot.canon.val := e.slot.canon.val + to_signed( a, 32 );
                end if;
                e.conv_old := MREAD( e.addr( 63 downto 3 ) & "000" ); e.conv_cell := to_integer( e.addr( 30 downto 3 ) & "000" );
+               e.nmr := 1; e.mra( 0 ) := to_integer( e.addr( 30 downto 0 ) );
+               e.mrn( 0 ) := 2 ** to_integer( unsigned( op( 1 downto 0 ) ) );
+               REF_BYTES( e.mra( 0 ), e.mrn( 0 ), e.mrv( 0 ), e.mrp( 0 ) );
                e.dval := MREAD( e.addr( 63 downto 3 ) & "000" );			-- la valeur de la mémoire (servi
                a := 8 * to_integer( e.addr( 2 downto 0 ) );
                if a + 8 * 2 ** to_integer( unsigned( op( 1 downto 0 ) ) ) > 64 then	-- (base non alignée : à cheval)
@@ -462,9 +667,23 @@ begin
             when K_CHK =>								-- ( v -- v ), lvl 0..14
                e.slot.canon.val := to_signed( 8 * RAND_INT( 16 ), 32 );
                e.addr_known := true; e.addr := f.display( lvl ) + unsigned( resize( e.slot.canon.val, 64 ) );
+               -- spéc. V8 : les deux bornes au plus à DSP (dans la pile suivie)
+               if e.addr >= A64( SLOW ) and e.addr < A64( SLOW + 8 * SWORDS ) and e.addr + 8 > f.dsp then
+                  d := to_integer( e.addr + 8 - f.dsp ); d := 8 * ( ( d + 7 ) / 8 );
+                  e.addr := e.addr - to_unsigned( d, 64 ); e.slot.canon.val := e.slot.canon.val - to_signed( d, 32 );
+               end if;
+               e.nmr := 2;
+               for j in 0 to 1 loop
+                  e.mra( j ) := to_integer( e.addr( 30 downto 0 ) ) + 8 * j; e.mrn( j ) := 8;
+                  REF_BYTES( e.mra( j ), 8, e.mrv( j ), e.mrp( j ) );
+               end loop;
                v := MREAD( f.dsp ); READS( e, f.dsp, v ); SRC( e, v );
             when K_LEX =>								-- ( a b c d -- r )
                POP( e, f ); POP( e, f ); POP( e, f ); POP( e, f );
+               -- en tête : MAINT_WRITEBACK_RANGE d'un intervalle sous DSP, puis lu en mémoire
+               e.wb_n := 8 * ( 1 + RAND_INT( 7 ) ) - RAND_INT( 3 ); e.wb_lo := to_integer( f.dsp( 30 downto 0 ) ) - 8 * RAND_INT( 20 );
+               if e.wb_lo < SLOW then e.wb_lo := SLOW; end if;
+               e.wb_state := 0;
                v := e.src( 0 ); e.src( 0 ) := e.src( 3 ); e.src( 3 ) := v;
                v := e.src( 1 ); e.src( 1 ) := e.src( 2 ); e.src( 2 ) := v;
                e.dest := true; PUSH( e, f, e.dval );
@@ -494,6 +713,13 @@ begin
                e.dest := true; e.dval := std_logic_vector( f.display( lvl ) );
                PUSH( e, f, e.dval );
                f.display( lvl ) := f.dsp;
+               if alloc <= 8 * 8 then						-- locales : indéfinies
+                  for j in 1 to 8 loop
+                     if j <= ( alloc + 7 ) / 8 and TIDX( to_integer( f.dsp( 30 downto 0 ) ) + 8 * j ) >= 0 then
+                        MWRITE( e, f.dsp + 8 * j, POISON( TIDX( to_integer( f.dsp( 30 downto 0 ) ) + 8 * j ) ), true );
+                     end if;
+                  end loop;
+               end if;
                f.dsp := f.dsp + 8 * ( ( alloc + 7 ) / 8 );
             when K_UNLINK =>								-- le niveau du dernier LINK du banc
                lvl := shadow_lvl; e.slot.canon.lvl := to_unsigned( lvl, 4 );
@@ -510,6 +736,23 @@ begin
                POP( e, f ); e.dest := true; PUSH( e, f, e.dval );
             when K_ILLEGAL =>
                e.fault := 137;
+            when K_LVA =>								-- ( -- @ ), lvl 0..14 : une cellule récente
+               a := to_integer( f.dsp( 30 downto 0 ) ) - 8 * RAND_INT( 12 );
+               e.slot.canon.val := to_signed( a - to_integer( f.display( lvl )( 30 downto 0 ) ), 32 );
+               e.addr_known := true; e.addr := A64( a );
+               e.dest := true; e.dval := std_logic_vector( A64( a ) ); PUSH( e, f, e.dval );
+               pload_next := RAND < 0.7;
+            when K_PLOAD =>								-- ( @ -- v ), lvl 1111 : @ du LVA qui précède
+               e.slot.canon.lvl := "1111";
+               POP( e, f ); a := to_integer( unsigned( e.src( 0 )( 30 downto 0 ) ) );
+               e.nmr := 1; e.mra( 0 ) := a; e.mrn( 0 ) := 8; REF_BYTES( a, 8, e.mrv( 0 ), e.mrp( 0 ) );
+               e.dest := true; e.dval := e.mrv( 0 ); PUSH( e, f, e.dval );
+            when K_CLOAD =>								-- ( -- v ) : M64[ M64[DISPLAY[lvl]+disp] + ofs ]
+               a := to_integer( f.dsp( 30 downto 0 ) ) - 8 * RAND_INT( 12 );	-- cellule pointeur, sous DSP
+               e.slot.canon.val := to_signed( a - to_integer( f.display( lvl )( 30 downto 0 ) ), 32 );
+               e.addr_known := true; e.addr := A64( a );
+               e.nmr := 1; e.mra( 0 ) := a; e.mrn( 0 ) := 8; REF_BYTES( a, 8, e.mrv( 0 ), e.mrp( 0 ) );
+               e.dest := true; PUSH( e, f, e.dval );					-- (l'élément : hors de la pile)
          end case;
          -- fautes 133, 134 : aucun effet
          if e.fault = 0 and f.dsp > A64( LIM_DSP ) and f.dsp > fr.dsp then e.fault := 133; end if;
@@ -520,6 +763,7 @@ begin
             end loop;
             e.nundo := 0; e.nsrc := 0; e.nread := 0; e.npush := 0; e.dest := false; e.addr_known := false;
             e.control := false; e.mispredict := false; e.exec_need := false;
+            e.nmr := 0; e.wb_state := 2; pload_next := false;
             f := fr;
          else
             if e.kind = K_LINK then shadow_lvl := lvl; end if;
@@ -544,11 +788,14 @@ begin
          if from = head_seq then fr := fr_c; end if;
          gen_seq := from; take_seq := from;
          shadow_lvl := -1;							-- (pas d'UNLINK avant un nouveau LINK)
+         pload_next := false;
       end procedure;
 
    begin
       s2 := SEED_2;
       for i in mem'range loop mem( i ) := std_logic_vector( to_unsigned( SLOW + 8 * i, 64 ) xor x"0123456789ABCDEF" ); end loop;
+      pm := mem;
+      for j in lg'range loop lg( j ).valid := false; end loop;
       for i in rmem'range loop rmem( i ) := std_logic_vector( to_unsigned( 16#600000# + 4 * i, 64 ) ); end loop;
       fr.dsp := A64( S0 ); fr.rsp := A64( R0 );
       for l in 0 to 14 loop fr.display( l ) := A64( S0 - 8 * 64 * l ); end loop;
@@ -576,9 +823,20 @@ begin
          end if;
          if now - last_progress > 3000 then
             CHECK( c, false, "cycle " & integer'image( now ) & " : aucun progrès (tête " & integer'image( head_seq )
-                             & ", prise " & integer'image( take_seq ) & ", bloqué " & std_logic'image( stalled ) & ")" );
+                             & ", prise " & integer'image( take_seq ) & ", bloqué " & std_logic'image( stalled ) & ") ; tête "
+                             & kind_t'image( q( head_seq mod WIN ).kind ) & " renommée " & boolean'image( q( head_seq mod WIN ).renamed )
+                             & " terminée " & boolean'image( q( head_seq mod WIN ).done ) & " exec_at "
+                             & integer'image( q( head_seq mod WIN ).exec_at ) & " wb " & integer'image( q( head_seq mod WIN ).wb_state )
+                             & " nmr " & integer'image( q( head_seq mod WIN ).nmr ) & " sync_pend " & boolean'image( sync_pend ) );
             exit;
          end if;
+
+		-- LSQ jouée : la donnée d'un SPILL est prise dès que son registre est écrit
+         for j in lg'range loop
+            if lg( j ).valid and lg( j ).spill and not lg( j ).captured and pvalid( to_integer( lg( j ).tag ) ) = '1' then
+               lg( j ).data := pv( to_integer( lg( j ).tag ) ); lg( j ).captured := true;
+            end if;
+         end loop;
 
 		-- génération en avance ; file de décodage
          while gen_seq < take_seq + 16 and gen_seq < INSTRUCTIONS loop GENERATE_ONE; end loop;
@@ -605,7 +863,25 @@ begin
                      if j < q( x ).nsrc and pvalid( to_integer( q( x ).tags( j ) ) ) = '0' then ok := false; end if;
                   end loop;
                   if ok then q( x ).exec_at := now + RAND_INT( 3 ); end if;
-               elsif q( x ).exec_at <= now and nwk < RESULT_PORTS and rec.valid = '0' then
+               elsif q( x ).exec_at <= now and nwk < RESULT_PORTS and rec.valid = '0'
+                     and ( q( x ).wb_state = 2 or q( x ).kind /= K_LEX ) then
+                  -- lectures en mémoire (chargement exécuté, bornes de CHK, cellule pointeur) : la
+                  -- mémoire physique au point de l'instruction (attente si un SPILL n'a pas sa donnée)
+                  mok := true;
+                  for j in 0 to 1 loop
+                     if j < q( x ).nmr then MODEL_BYTES( q( x ).mra( j ), q( x ).mrn( j ), 2 * sq2 + 1, mok, mw ); end if;
+                  end loop;
+                  next when not mok;
+                  for j in 0 to 1 loop
+                     if j < q( x ).nmr and q( x ).mrp( j ) = '0' then
+                        MODEL_BYTES( q( x ).mra( j ), q( x ).mrn( j ), 2 * sq2 + 1, mok, mw );
+                        if mw = q( x ).mrv( j ) then CHECK_PASSED( c ); n_mcheck := n_mcheck + 1; else
+                           CHECK( c, false, "cycle " & integer'image( now ) & ", instruction " & integer'image( sq2 ) & " ("
+                                            & kind_t'image( q( x ).kind ) & ") : mémoire lue à " & HEX( A64( q( x ).mra( j ) ) ),
+                                  HEX( q( x ).mrv( j ) ), HEX( mw ) );
+                        end if;
+                     end if;
+                  end loop;
                   for j in 0 to 3 loop							-- les sources lues
                      if j < q( x ).nsrc then
                         if pv( to_integer( q( x ).tags( j ) ) ) = q( x ).src( j ) and pvalid( to_integer( q( x ).tags( j ) ) ) = '1' then
@@ -635,8 +911,20 @@ begin
          end loop;
 		-- LSQ jouée : FILL servis, invalidations
          for i in fills'range loop
-            if fills( i ).valid and fills( i ).at <= now and nwk < RESULT_PORTS then
-               pv( to_integer( fills( i ).tag ) ) := fills( i ).val; pvalid( to_integer( fills( i ).tag ) ) := '1';
+            mok := true; mw := fills( i ).val;
+            if fills( i ).valid and fills( i ).at <= now and TIDX( fills( i ).addr ) >= 0 then
+               MODEL_WORD( TIDX( fills( i ).addr ), 2 * fills( i ).seq + 1, mok, mw );	-- (avant ses écritures)
+               if IS_UNDEF( fills( i ).val ) then mw := fills( i ).val;			-- locale non écrite
+               elsif mok then
+                  if mw = fills( i ).val then CHECK_PASSED( c ); n_mcheck := n_mcheck + 1; else
+                     CHECK( c, false, "cycle " & integer'image( now ) & " : FILL de l'instruction " & integer'image( fills( i ).seq )
+                                      & " à " & HEX( A64( fills( i ).addr ) ) & " (mémoire physique)",
+                            HEX( fills( i ).val ), HEX( mw ) );
+                  end if;
+               end if;
+            end if;
+            if fills( i ).valid and fills( i ).at <= now and nwk < RESULT_PORTS and mok then
+               pv( to_integer( fills( i ).tag ) ) := mw; pvalid( to_integer( fills( i ).tag ) ) := '1';
                wk( nwk ) := ( valid => '1', tag => fills( i ).tag ); nwk := nwk + 1;
                fills( i ).valid := false;
                if fills( i ).completes then q( fills( i ).seq mod WIN ).done := true; last_progress := now; end if;
@@ -654,7 +942,8 @@ begin
 
 		-- ROB : retrait dans l'ordre ; faute en tête : reprise RECOVER_COMMITTED
          nret := 0;
-         if rec.valid = '0' then
+         mreq := ( valid => '0', kind => MAINT_WRITEBACK_ALL, base => ( others => '0' ), length => ( others => '0' ) );
+         if rec.valid = '0' and not sync_pend then
             for i in 0 to RETIRE_WIDTH - 1 loop
                sq := head_seq + i;
                exit when sq >= take_seq;
@@ -671,12 +960,49 @@ begin
                nret := i + 1;
             end loop;
             if rec.valid = '0' and nret = 0 and head_seq < take_seq and RAND < 0.002 then	-- interruption : SYNC
+               sync_pend := true;						-- après MAINT_WRITEBACK_ALL (SYSTEM_UNIT)
+            end if;
+         end if;
+         if sync_pend and rec.valid = '0' then
+            if m_asked = 1 and maint_done = '1' then
                rec := ( valid => '1', kind => RECOVER_COMMITTED, keep_last => ( others => '0' ), checkpoint => ( others => '0' ),
                         new_pc => ( others => '0' ), ghist => ( others => '0' ), ras_ptr => ( others => '0' ) );
                sync_valid <= '1'; n_sync := n_sync + 1;
                sync_frame <= fr_c;							-- même état, tables oubliées
+               sync_pend := false;
+            else
+               mreq.valid := '1';
             end if;
          end if;
+         -- LEXCMP en tête (COMPLEX_UNIT) : MAINT_WRITEBACK_RANGE de son intervalle, puis la mémoire
+         -- physique doit y avoir la valeur retirée de chaque mot vivant
+         if not sync_pend and rec.valid = '0' and head_seq < take_seq then
+            x := head_seq mod WIN;
+            if q( x ).renamed and q( x ).kind = K_LEX and q( x ).fault = 0 and q( x ).wb_state = 0 then
+               if m_asked = 2 and maint_done = '1' then
+                  q( x ).wb_state := 1;
+               else
+                  mreq := ( valid => '1', kind => MAINT_WRITEBACK_RANGE, base => A64( q( x ).wb_lo ),
+                            length => to_unsigned( q( x ).wb_n, 64 ) );
+               end if;
+            elsif q( x ).renamed and q( x ).kind = K_LEX and q( x ).fault = 0 and q( x ).wb_state = 1 then
+               a := q( x ).wb_lo - q( x ).wb_lo mod 8;
+               while a < q( x ).wb_lo + q( x ).wb_n loop
+                  o := TIDX( a );
+                  if o >= 0 and A64( a ) <= fr_c.dsp and not IS_UNDEF( REF_AT_HEAD( o ) ) then
+                     mok := true; MODEL_WORD( o, 2 * head_seq + 1, mok, mw );
+                     if mw = REF_AT_HEAD( o ) then CHECK_PASSED( c ); n_wbcheck := n_wbcheck + 1; else
+                        CHECK( c, false, "cycle " & integer'image( now ) & " : après MAINT_WRITEBACK_RANGE, mot " & HEX( A64( a ) ),
+                               HEX( REF_AT_HEAD( o ) ), HEX( mw ) );
+                     end if;
+                  end if;
+                  a := a + 8;
+               end loop;
+               q( x ).wb_state := 2;
+            end if;
+         end if;
+         maint <= mreq;
+         if mreq.valid = '0' then m_asked := 0; elsif mreq.kind = MAINT_WRITEBACK_ALL then m_asked := 1; else m_asked := 2; end if;
          retire_count <= to_unsigned( nret, retire_count'length );
          recovery <= rec;
          wait for 1 ns;
@@ -713,6 +1039,7 @@ begin
                      q( x ).dest := false; q( x ).exec_need := false; n_served := n_served + 1;
                   elsif conv_ld then							-- lecture étroite : UBFXI, SBFXI de la cellule
                      q( x ).nsrc := 1; q( x ).src( 0 ) := q( x ).conv_old; n_conv := n_conv + 1;
+                     q( x ).nmr := 0;							-- (aucune lecture en mémoire)
                      -- le champ : lsb = 8 * décalage, w = 8 * taille ; LB, LW, LD : SBFXI
                      ok := ok and ren_block( i ).slot.canon.op = x"C5"
                            and to_integer( ren_block( i ).slot.canon.val ) = 8 * ( to_integer( q( x ).addr( 30 downto 0 ) ) - q( x ).conv_cell )
@@ -756,6 +1083,17 @@ begin
                                & " adresse " & std_logic'image( ren_block( i ).address_known ) & " " & HEX( ren_block( i ).address )
                                & " rob " & integer'image( to_integer( ren_block( i ).rob_index ) ) & "/" & integer'image( rob_t + i ) );
                   end if;
+                  if q( x ).kind = K_STORE and q( x ).fault = 0 and alloc_block( i ).is_store = '1'
+                     and TIDX( to_integer( q( x ).addr( 30 downto 0 ) ) ) >= 0 then
+                     a := to_integer( q( x ).addr( 30 downto 0 ) );
+                     if q( x ).slot.canon.op = x"67" then
+                        LOG_ADD( 2 * sq + 2, sq, TIDX( a ), false, ( others => '0' ), x"FF", q( x ).src( 0 ) );
+                     else
+                        mw := ( others => '0' ); mw( 8 * ( a mod 8 ) + 7 downto 8 * ( a mod 8 ) ) := q( x ).src( 0 )( 7 downto 0 );
+                        LOG_ADD( 2 * sq + 2, sq, TIDX( a ), false, ( others => '0' ),
+                                 std_logic_vector( shift_left( to_unsigned( 1, 8 ), a mod 8 ) ), mw );
+                     end if;
+                  end if;
                   q( x ).renamed := true; q( x ).rob := ROB( rob_t + i );
                   q( x ).tags := ren_block( i ).source; q( x ).dtag := ren_block( i ).destination;
                   q( x ).ckpt := alloc_block( i ).checkpoint;
@@ -779,8 +1117,21 @@ begin
                            for j in 0 to 1 loop
                               if j < q( x ).npush and q( x ).paddr( j ) = a then ok := true; end if;
                            end loop;
+                           -- écriture différée : éviction, LVA, vidage : une cellule vivante
+                           if DEFERRED and TIDX( a ) >= 0 and A64( a ) <= q( x ).frame_before.dsp then
+                              ok := true; n_def_spill := n_def_spill + 1;
+                           end if;
                            if ok then CHECK_PASSED( c ); n_spill := n_spill + 1; else
                               CHECK( c, false, "SPILL inattendu, instruction " & integer'image( sq ) & " adresse " & HEX( xfer( xx ).address ) );
+                           end if;
+                           if TIDX( a ) >= 0 then
+                              if xfer( xx ).committed = '1' then				-- vidage : avant son instruction
+                                 n_cspill := n_cspill + 1;
+                                 if pvalid( to_integer( xfer( xx ).tag ) ) = '1' then pm( TIDX( a ) ) := pv( to_integer( xfer( xx ).tag ) );
+                                 else CHECK( c, false, "SPILL validé sans donnée, instruction " & integer'image( sq ) ); end if;
+                              else
+                                 LOG_ADD( 2 * sq + 2, sq, TIDX( a ), true, xfer( xx ).tag, x"FF", ( others => '0' ) );
+                              end if;
                            end if;
                         else
                            ok := false;
@@ -791,7 +1142,7 @@ begin
                                  for f2 in fills'range loop
                                     if not fills( f2 ).valid then
                                        fills( f2 ) := ( valid => true, at => now + 1 + RAND_INT( 5 ), tag => xfer( xx ).tag,
-                                                        val => q( x ).rval( j ), seq => sq,
+                                                        val => q( x ).rval( j ), seq => sq, addr => a,
                                                         completes => xfer( xx ).completes = '1' );
                                        if xfer( xx ).completes = '1' then q( x ).spills_seen := 1; end if;
                                        exit;
@@ -823,11 +1174,28 @@ begin
             take_seq := take_seq + k; rob_t := rob_t + k;
          end if;
 
+         -- échanges sans bloc pris : réécriture (SPILL validés de cellules vivantes retirées)
+         if not ( ren_valid = '1' and ren_ready = '1' ) then
+            for xx in 0 to STACK_XFER_WIDTH - 1 loop
+               if xfer( xx ).valid = '1' then
+                  a := to_integer( xfer( xx ).address( 30 downto 0 ) );
+                  if xfer( xx ).kind = XFER_SPILL and xfer( xx ).committed = '1' and TIDX( a ) >= 0 and A64( a ) <= fr_c.dsp
+                     and pvalid( to_integer( xfer( xx ).tag ) ) = '1' then
+                     pm( TIDX( a ) ) := pv( to_integer( xfer( xx ).tag ) ); n_wb := n_wb + 1; CHECK_PASSED( c );
+                  else
+                     CHECK( c, false, "cycle " & integer'image( now ) & " : échange hors d'un bloc pris (adresse "
+                                      & HEX( xfer( xx ).address ) & ")" );
+                  end if;
+               end if;
+            end loop;
+         end if;
+
 		-- front : retrait, reprise
          wait until rising_edge( clk );
          for i in 0 to nret - 1 loop
             x := ( head_seq + i ) mod WIN;
             fr_c := q( x ).frame_after;
+            LOG_COMMIT( head_seq + i );
             if q( x ).kind = K_PSTORE then						-- l'invalidation viendra
                for j in invs'range loop
                   if not invs( j ).valid then
@@ -847,6 +1215,9 @@ begin
             end if;
             for i in fills'range loop						-- FILL des abandonnées
                if fills( i ).valid and fills( i ).seq > keep then fills( i ).valid := false; end if;
+            end loop;
+            for j in lg'range loop						-- leurs écritures
+               if lg( j ).valid and lg( j ).seq > keep then lg( j ).valid := false; end if;
             end loop;
             if rec.kind = RECOVER_CHECKPOINT then
                rob_t := to_integer( q( keep mod WIN ).rob ) + 1; n_mis := n_mis + 1;
@@ -886,8 +1257,19 @@ begin
              & ", SPILL " & integer'image( n_spill ) & " ; reprises : mauvaise prédiction " & integer'image( n_mis )
              & ", faute " & integer'image( n_flt ) & ", SYNC " & integer'image( n_sync ) & " ; invalidations "
              & integer'image( n_inval ) severity note;
-      CHECK( c, n_src_checked > 5000 and n_fill > 300 and n_spill > 3000 and n_mis > 50 and n_flt > 20 and n_inval > 100,
-             "le tirage a exercé sources, FILL, SPILL, reprises et invalidations" );
+      report "écriture différée " & boolean'image( DEFERRED ) & " ; lectures comparées à la mémoire physique "
+             & integer'image( n_mcheck ) & ", SPILL hors push " & integer'image( n_def_spill ) & " (vidage "
+             & integer'image( n_cspill ) & "), réécrits " & integer'image( n_wb ) & ", mots vérifiés après réécriture "
+             & integer'image( n_wbcheck ) severity note;
+      if DEFERRED then
+         CHECK( c, n_src_checked > 5000 and n_fill > 300 and n_def_spill > 100 and n_cspill > 5 and n_wb > 20
+                   and n_mis > 50 and n_flt > 20 and n_inval > 100 and n_mcheck > 1000 and n_wbcheck > 100,
+                "le tirage a exercé sources, FILL, SPILL d'éviction, vidages, réécritures, reprises et invalidations" );
+      else
+         CHECK( c, n_src_checked > 5000 and n_fill > 300 and n_spill > 3000 and n_mis > 50 and n_flt > 20 and n_inval > 100
+                   and n_mcheck > 1000 and n_wbcheck > 100,
+                "le tirage a exercé sources, FILL, SPILL, reprises et invalidations" );
+      end if;
       FINISH( c, "T_K1b_RENAME_DISPATCH_tb" );
       wait;
    end process;

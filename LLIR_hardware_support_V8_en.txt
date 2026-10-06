@@ -299,6 +299,22 @@ rises only through pushes and through the allocation of LINK. A computation cell
 because DSP goes back below it (UNLINK, RTD n) need not be written back to memory. A
 program that breaks the rule has unspecified behaviour; tx_run -v checks it (see [Q18]).
 
+Computed reads of computation cells. A read whose address is computed (load or CHK of
+family B with lvl = 1111, of family C, including the pointer cell when lvl = 1111) reads a
+computation cell only if an LVA with a known address (lvl = 0..14) has designated that
+cell (the one that contains the returned address) since the push that wrote it; blocks
+(BLKMOV, BLKAND, BLKOU, BLKOUX, BLKNOT, BLKCMP, LEXCMP) are not subject to it. A program
+that breaks the rule reads an unspecified value. A write-back implementation may therefore
+write a computation cell back to memory only on its eviction, at the LVA that designates
+it, and on the write-backs that blocks and services request (TAHX: R2b). tx_run -v checks
+the rule (see [Q19]).
+
+Local variables. The cells allocated by LINK have undefined contents until their first
+write: LINK does not initialise them, and a dead computation cell that occupied their place
+need not have been written back to memory (paragraph "Above DSP"). Reading a local variable
+before writing it gives an unspecified value, as in Ada for an uninitialised variable (see
+[Q20]).
+
 The data stack and the co-stack are ordinary memory: the program also accesses them by
 address (locals, parameters, LVA, co-stack blocks). The return stack, on the other hand,
 is read and written only by push_return and pop_return (CALL, CALLI, RTD, vectored TRAP,
@@ -1749,6 +1765,24 @@ and resets DR to 0.
 	renaming test bench showed it); and, with write-back, the last value of a dead cell may
 	live only in a register. With the rule, a cell that dies through the descent of DSP is
 	never written back to memory.
+
+[Q19]	Computed reads of computation cells.		=> rule of exposure by LVA (V8)
+	Measurement (tx_run, TLALOC compiling the 157 programs of tests_TLALOC, 12.4 billion
+	instructions): 146 million computed reads read a computation cell, all of them after an
+	LVA with a known address that designated it since its push. Writing back at the LVA only
+	the designated cell is enough (float_test.adb: 7,628 write-backs, against 2.5 million for
+	the whole range from the address to DSP). With write-back, cell write-backs fall from 6.8
+	billion (one per push) to 29 million: evictions 21.6 M, service write-backs 3.9 M,
+	drains (dirty pointer cell of family C) 2.3 M, LVA 1.2 M, BFII 0.25 M. The N3 test
+	programs pass on TAHX with traces identical to tx_run.
+
+[Q20]	Unwritten local variables.			=> undefined contents (V8, Stacks section)
+	With write-back, a computation cell that dies without eviction is not written back: a
+	local variable allocated later in its place keeps in memory an older value than in
+	tx_run. Measurement (tx_run, TLALOC compiling float_test.adb, byte-by-byte tracking):
+	7,494 reads (LD through a pointer) of local variables never written since their
+	allocation; none by FILL, direct access or block. They are reads of uninitialised
+	variables in TLALOC (precedent: IN_SPEC_UNIT of EXPANDER.UTILS), to be tracked down.
 
 =========================================================================================
 	OPEN QUESTIONS

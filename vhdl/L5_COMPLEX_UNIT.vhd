@@ -79,10 +79,13 @@ use work.EXEC_TYPES.all;
 		--  4. Blocs, à la tête, après LSQ_DRAINED_i : sources ( @dst len @src -- ),
 		--     ( @dst len -- ) pour BLKNOT, ( @a len @b -- eq ) pour BLKCMP,
 		--     ( @g lg @d ld -- r ) pour LEXCMP ; len non signé. Étapes : RANGE_o un cycle
-		--     (intervalles lu et écrit) ; sondage de tous les octets des intervalles (faute
-		--     132 avant toute écriture ; BLKCMP sonde ses deux intervalles, comme tx_run) ;
+		--     (intervalles lu et écrit) ; validité de chaque intervalle, un cycle chacun, par
+		--     la règle de DATA_CACHE (VALID_BASE_G <= base, base + len <= VALID_LIMIT_G,
+		--     les mêmes génériques, comme la LSQ pour ses rangements) : faute 132 avant
+		--     toute écriture, sans sondage ; BLKCMP vérifie ses deux intervalles, comme tx_run ;
 		--     STACK_MAINT_o MAINT_WRITEBACK_RANGE pour chaque intervalle lu ou écrit
-		--     (attente de STACK_MAINT_DONE_i) ; accès sur MEM_xxx ; MAINT_INVALIDATE_RANGE
+		--     (attente de STACK_MAINT_DONE_i), puis de LSQ_DRAINED_i (les SPILL de la
+		--     réécriture sont des rangements validés) ; accès sur MEM_xxx ; MAINT_INVALIDATE_RANGE
 		--     de l'intervalle écrit ; résultat.
 		--       BLKMOV, BLKAND, BLKOU, BLKOUX : octet k, k croissant : [dst+k] := [src+k]
 		--                  (op [dst+k]) ; sans recouvrement (spéc.) ; BLKNOT : xor 1.
@@ -141,6 +144,10 @@ use work.EXEC_TYPES.all;
 				------------
 entity				COMPLEX_UNIT
 is				------------
+   generic (
+      VALID_BASE_G		: address_t	:= DATA_VALID_BASE;		-- validité des intervalles :
+      VALID_LIMIT_G	: address_t	:= DATA_VALID_LIMIT		--  la règle de DATA_CACHE
+   );
    port (
       CLK_i		:in  std_logic;
       RESET_i		:in  std_logic;

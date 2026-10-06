@@ -60,6 +60,7 @@ of RENAME_DISPATCH is		---
 			  addr		: address_t;
 			  tag		: physical_tag_t;
 			  wseq		: seq_t;			-- qui a donné ce registre à la cellule
+			  dirty		: boolean;			-- écriture différée : la mémoire n'a pas sa valeur
 			end record;
    type cell_array_t		is array( 0 to CELLS - 1 ) of cell_t;
    -- fenêtre circulaire de la pile data : la cellule d'adresse a occupe l'entrée
@@ -69,7 +70,8 @@ of RENAME_DISPATCH is		---
       return to_integer( a( 30 downto 3 ) ) mod CELLS;			-- (bits bas : pas de débordement)
    end function;
    type rcell_array_t		is array( 0 to RCELL_COUNT - 1 ) of cell_t;
-   constant NO_CELL		: cell_t := ( valid => false, addr => ( others => '0' ), tag => ( others => '0' ), wseq => 0 );
+   constant NO_CELL		: cell_t := ( valid => false, addr => ( others => '0' ), tag => ( others => '0' ), wseq => 0,
+						  dirty => false );
 
    type map_op_t		is record
 			  set		: boolean;			-- true : la cellule prend tag ; false : oubliée
@@ -77,12 +79,15 @@ of RENAME_DISPATCH is		---
 			  hi		: address_t;			-- oubli : les cellules de addr à hi (sinon hi = addr)
 			  tag		: physical_tag_t;
 			  wseq		: seq_t;
+			  dirty		: boolean;			-- la cellule prend tag sans que la mémoire l'ait
 			end record;
    type map_ops_t		is array( 0 to UPD - 1 ) of map_op_t;
    constant MAXOPS		: positive := 8;					-- opérations sur la fenêtre par instruction
    type op_list_t		is array( 0 to MAXOPS - 1 ) of map_op_t;
    constant NO_OP		: map_op_t := ( set => false, addr => ( others => '0' ), hi => ( others => '0' ),
-						  tag => ( others => '0' ), wseq => 0 );
+						  tag => ( others => '0' ), wseq => 0, dirty => false );
+   constant MAXHOLD		: positive := 4;					-- registres lus par les SPILL d'une instruction
+   type hold_list_t		is array( 0 to MAXHOLD - 1 ) of physical_tag_t;
    type rmap_ops_t		is array( 0 to RUPD - 1 ) of map_op_t;
 
    type hist_t			is record
@@ -104,6 +109,8 @@ of RENAME_DISPATCH is		---
 			  writer		: boolean;			-- bloc qui écrit, EXC_MACH : jusqu'au retrait
 			  nops		: natural range 0 to MAXOPS;	-- ses opérations sur la fenêtre (rejouées
 			  ops		: op_list_t;			--  au retrait : la fenêtre retirée)
+			  nhold		: natural range 0 to MAXHOLD;	-- registres que ses SPILL lisent (écriture
+			  holds		: hold_list_t;			--  différée : éviction, nettoyage), comptés lecteurs
 			end record;
    type robinfo_array_t		is array( 0 to ROB_SIZE - 1 ) of robinfo_t;
    type robinfo_block_t		is array( 0 to DECODE_WIDTH - 1 ) of robinfo_t;
@@ -112,7 +119,8 @@ of RENAME_DISPATCH is		---
 			  lvl		: natural range 0 to 14;
 			  val		: address_t;			-- FP sauvé par LINK
 			  tag		: physical_tag_t;		-- registre que LINK a donné à la cellule
-			end record;
+			  wseq		: seq_t;			-- LINK lui-même : un registre libéré puis
+			end record;					--  réalloué peut revenir dans la cellule
    type shadow_t		is array( 0 to SHADOW_DEPTH - 1 ) of shadow_entry_t;
 
    type writer_t		is record
@@ -187,6 +195,12 @@ of RENAME_DISPATCH is		---
    signal p_wait_lvl		: natural range 0 to 14;
    signal p_fstall		: boolean;
    signal p_free_tags		: tag_block_t;					-- registres libres, dans l'ordre
+   -- écriture différée : réécriture (maintenance) du cycle, sur la fenêtre retirée
+   type clean_list_t		is array( 0 to STACK_XFER_WIDTH - 1 ) of natural range 0 to CELLS - 1;
+   signal p_mclean		: clean_list_t;					-- entrées de cwin réécrites
+   signal p_nmclean		: natural range 0 to STACK_XFER_WIDTH;
+   signal p_mrest		: boolean;					-- il en reste après ce cycle
+   signal p_maint		: boolean;					-- demande de réécriture vue
    signal p_nfree		: natural range 0 to NTAGS;
 
    function B( v : boolean ) return std_logic is
@@ -242,7 +256,7 @@ begin
 
    PLAN : process( DECODE_BLOCK_i, DECODE_COUNT_i, ROB_TAIL_i, ROB_FREE_i, RENAME_READY_i, STACK_XFER_READY_i,
                    RECOVERY_i, SYNC_VALID_i, LIMITS_i, frame_s, shadow, shadow_n, dcells, rcells, writers, ckpts,
-                   seq_next, waiting, fstall, ready, p_free_tags, p_nfree )
+                   seq_next, waiting, fstall, ready, p_free_tags, p_nfree, r_head, r_tail, cwin, frame_c, STACK_MAINT_i )
       -- état de travail
       variable f		: frame_state_t;
       variable sh		: shadow_t;
@@ -307,6 +321,15 @@ begin
       variable dv		: address_t;
       variable cid		: integer;
       variable n_new		: natural;
+      variable hz		: boolean;					-- accès direct à une cellule sale
+      variable hlo, hhi		: address_t;
+      variable a8		: address_t;
+      variable uw		: seq_t;					-- UNLINK : écrivain de la cellule sauvée
+      variable dty		: boolean;
+      variable mnt		: boolean;					-- cycle de réécriture (maintenance)
+      variable mcl		: clean_list_t;
+      variable nmcl		: natural range 0 to STACK_XFER_WIDTH;
+      variable mrest		: boolean;
 
       -- registre neuf (attribution dans le bloc)
       procedure NEW_TAG( r : out physical_tag_t ) is
@@ -335,6 +358,40 @@ begin
 
       end procedure;
 
+      -- même chose, avec l'instruction qui a donné le registre à la cellule
+      procedure LOOKUPW( a : address_t; hit : out boolean; r : out physical_tag_t; w : out seq_t ) is
+      begin
+         hit := false; r := ( others => '0' ); w := 0;
+         for i in UPD - 1 downto 0 loop
+            if i < t_ndops and t_dops( i ).addr <= a and a <= t_dops( i ).hi then
+               hit := t_dops( i ).set; r := t_dops( i ).tag; w := t_dops( i ).wseq; return;
+            end if;
+         end loop;
+         if dcells( WIDX( a ) ).valid and dcells( WIDX( a ) ).addr = a then
+            hit := true; r := dcells( WIDX( a ) ).tag; w := dcells( WIDX( a ) ).wseq; return;
+         end if;
+      end procedure;
+
+      -- même chose, avec le bit sale
+      procedure LOOKUPD( a : address_t; hit : out boolean; r : out physical_tag_t; d : out boolean ) is
+      begin
+         hit := false; r := ( others => '0' ); d := false;
+         for i in UPD - 1 downto 0 loop
+            if i < t_ndops and t_dops( i ).addr <= a and a <= t_dops( i ).hi then
+               hit := t_dops( i ).set; r := t_dops( i ).tag; d := t_dops( i ).set and t_dops( i ).dirty; return;
+            end if;
+         end loop;
+         if dcells( WIDX( a ) ).valid and dcells( WIDX( a ) ).addr = a then
+            hit := true; r := dcells( WIDX( a ) ).tag; d := dcells( WIDX( a ) ).dirty; return;
+         end if;
+      end procedure;
+
+      -- registre lu par un SPILL de l'instruction : compté lecteur jusqu'à son départ
+      procedure HOLD( r : physical_tag_t ) is
+      begin
+         if inf.nhold < MAXHOLD then inf.holds( inf.nhold ) := r; inf.nhold := inf.nhold + 1; else ok := false; end if;
+      end procedure;
+
       impure function CELL_HIT( a : address_t ) return boolean is
          variable h : boolean;
          variable r : physical_tag_t;
@@ -356,19 +413,56 @@ begin
          end loop;
       end procedure;
 
-      procedure DOP( set : boolean; a : address_t; r : physical_tag_t ) is
+      procedure XFER( kind : stack_xfer_kind_t; a : address_t; r : physical_tag_t; rdy : std_logic );
+      impure function READY_OF( r : physical_tag_t ) return std_logic;
+
+      -- l'occupant de l'entrée de a (surcouche du bloc, puis table)
+      procedure OCCUPANT( a : address_t; v : out boolean; oa : out address_t; ot : out physical_tag_t; od : out boolean ) is
+         variable c : cell_t;
       begin
+         c := dcells( WIDX( a ) );
+         for i in 0 to UPD - 1 loop
+            if i < t_ndops then
+               if t_dops( i ).set and WIDX( t_dops( i ).addr ) = WIDX( a ) then
+                  c := ( valid => true, addr => t_dops( i ).addr, tag => t_dops( i ).tag, wseq => 0, dirty => t_dops( i ).dirty );
+               elsif not t_dops( i ).set and c.valid and t_dops( i ).addr <= c.addr and c.addr <= t_dops( i ).hi then
+                  c.valid := false;
+               end if;
+            end if;
+         end loop;
+         v := c.valid; oa := c.addr; ot := c.tag; od := c.dirty;
+      end procedure;
+
+      -- une opération sur la fenêtre ; en écriture différée, prendre l'entrée d'une autre
+      -- cellule vivante (au plus DSP) et sale la range d'abord (SPILL, son registre retenu)
+      procedure DOPD( set : boolean; a : address_t; r : physical_tag_t; dirty : boolean ) is
+         variable ov, od : boolean;
+         variable oa : address_t;
+         variable ot : physical_tag_t;
+      begin
+         if DEFERRED_SPILL_G and set then
+            OCCUPANT( a, ov, oa, ot, od );
+            if ov and od and oa /= a and oa <= t_f.dsp then
+               XFER( XFER_SPILL, oa, ot, READY_OF( ot ) ); HOLD( ot );
+            end if;
+         end if;
          if t_ndops < UPD then
-            t_dops( t_ndops ) := ( set => set, addr => a, hi => a, tag => r, wseq => seq ); t_ndops := t_ndops + 1;
+            t_dops( t_ndops ) := ( set => set, addr => a, hi => a, tag => r, wseq => seq, dirty => DEFERRED_SPILL_G and dirty );
+            t_ndops := t_ndops + 1;
          else
             ok := false;
          end if;
       end procedure;
 
+      procedure DOP( set : boolean; a : address_t; r : physical_tag_t ) is	-- cellule propre (ou oubliée)
+      begin
+         DOPD( set, a, r, false );
+      end procedure;
+
       procedure DFORGET_RANGE( lo, hi : address_t ) is			-- les cellules de lo à hi, oubliées
       begin
          if t_ndops < UPD then
-            t_dops( t_ndops ) := ( set => false, addr => lo, hi => hi, tag => ( others => '0' ), wseq => seq );
+            t_dops( t_ndops ) := ( set => false, addr => lo, hi => hi, tag => ( others => '0' ), wseq => seq, dirty => false );
             t_ndops := t_ndops + 1;
          else
             ok := false;
@@ -378,7 +472,7 @@ begin
       procedure ROP( set : boolean; a : address_t; r : physical_tag_t ) is
       begin
          if t_nrops < RUPD then
-            t_rops( t_nrops ) := ( set => set, addr => a, hi => a, tag => r, wseq => seq ); t_nrops := t_nrops + 1;
+            t_rops( t_nrops ) := ( set => set, addr => a, hi => a, tag => r, wseq => seq, dirty => false ); t_nrops := t_nrops + 1;
          else
             ok := false;
          end if;
@@ -425,8 +519,8 @@ begin
       procedure PUSH_CELL( r : physical_tag_t; rdy : std_logic ) is
       begin
          t_f.dsp := t_f.dsp + 8;
-         DOP( true, t_f.dsp, r );
-         XFER( XFER_SPILL, t_f.dsp, r, rdy );
+         DOPD( true, t_f.dsp, r, true );
+         if not DEFERRED_SPILL_G then XFER( XFER_SPILL, t_f.dsp, r, rdy ); end if;
       end procedure;
 
       -- registre neuf comme destination (pas prêt)
@@ -450,9 +544,9 @@ begin
 
    begin
       f := frame_s; sh := shadow; shn := shadow_n;
-      dops := ( others => ( set => false, addr => ( others => '0' ), hi => ( others => '0' ), tag => ( others => '0' ), wseq => 0 ) );
+      dops := ( others => NO_OP );
       ndops := 0;
-      rops := ( others => ( set => false, addr => ( others => '0' ), hi => ( others => '0' ), tag => ( others => '0' ), wseq => 0 ) );
+      rops := ( others => NO_OP );
       nrops := 0;
       ntaken := 0; nx := 0; seq := seq_next; fst := fstall;
       xf := ( others => ( valid => '0', kind => XFER_SPILL, address => ( others => '0' ), tag => ( others => '0' ),
@@ -470,7 +564,8 @@ begin
       info := ( others => ( valid => false, seq => 0,
                             hist => ( dsp => ( others => '0' ), rsp => ( others => '0' ), dlvl => -1, dval => ( others => '0' ) ),
                             ntag => 0, tags => ( others => ( others => '0' ) ), nsrc => 0,
-                            srcs => ( others => ( others => '0' ) ), ckpt_valid => false, ckpt => 0, writer => false, nops => 0, ops => ( others => NO_OP ) ) );
+                            srcs => ( others => ( others => '0' ) ), ckpt_valid => false, ckpt => 0, writer => false, nops => 0, ops => ( others => NO_OP ),
+                     nhold => 0, holds => ( others => ( others => '0' ) ) ) );
       wrs := ( others => ( valid => false, ptr => false, rob => ( others => '0' ), seq => 0 ) );
       cks := ( others => ( valid => false, id => 0, seq => 0, frame => frame_s ) );
       for i in 0 to DECODE_WIDTH - 1 loop
@@ -484,7 +579,31 @@ begin
                       pred => NO_PREDICTION, checkpoint_valid => '0', checkpoint => ( others => '0' ) );
       end loop;
 
-      if RECOVERY_i.valid = '0' and SYNC_VALID_i = '0' and not waiting and not fstall then
+      -- écriture différée : réécriture des cellules sales et vivantes de la fenêtre retirée
+      -- (MAINT_WRITEBACK_ALL, MAINT_WRITEBACK_RANGE), en SPILL validés ; rien n'est renommé
+      mnt := DEFERRED_SPILL_G and STACK_MAINT_i.valid = '1' and STACK_MAINT_i.kind /= MAINT_INVALIDATE_RANGE
+             and RECOVERY_i.valid = '0' and SYNC_VALID_i = '0';
+      nmcl := 0; mcl := ( others => 0 ); mrest := false;
+      if mnt then
+         for c in 0 to CELLS - 1 loop
+            if cwin( c ).valid and cwin( c ).dirty and cwin( c ).addr <= frame_c.dsp
+               and ( STACK_MAINT_i.kind = MAINT_WRITEBACK_ALL
+                     or ( cwin( c ).addr + 8 > STACK_MAINT_i.base
+                          and cwin( c ).addr < STACK_MAINT_i.base + STACK_MAINT_i.length ) ) then
+               if nmcl < STACK_XFER_WIDTH and STACK_XFER_READY_i = '1' then
+                  xf( nmcl ) := ( valid => '1', kind => XFER_SPILL, address => cwin( c ).addr, tag => cwin( c ).tag,
+                                  rob_index => r_head, committed => '1', ready => ready( to_integer( cwin( c ).tag ) ),
+                                  completes => '0' );
+                  mcl( nmcl ) := c; nmcl := nmcl + 1;
+               else
+                  mrest := true;
+               end if;
+            end if;
+         end loop;
+      end if;
+      p_mclean <= mcl; p_nmclean <= nmcl; p_mrest <= mrest; p_maint <= mnt;
+
+      if RECOVERY_i.valid = '0' and SYNC_VALID_i = '0' and not waiting and not fstall and not mnt then
          for i in 0 to DECODE_WIDTH - 1 loop
             exit when i >= to_integer( DECODE_COUNT_i ) or i >= to_integer( ROB_FREE_i );
             slot := DECODE_BLOCK_i( i );
@@ -507,7 +626,8 @@ begin
             inf := ( valid => true, seq => seq,
                      hist => ( dsp => ( others => '0' ), rsp => ( others => '0' ), dlvl => -1, dval => ( others => '0' ) ),
                      ntag => 0, tags => ( others => ( others => '0' ) ), nsrc => 0,
-                     srcs => ( others => ( others => '0' ) ), ckpt_valid => false, ckpt => 0, writer => false, nops => 0, ops => ( others => NO_OP ) );
+                     srcs => ( others => ( others => '0' ) ), ckpt_valid => false, ckpt => 0, writer => false, nops => 0, ops => ( others => NO_OP ),
+                     nhold => 0, holds => ( others => ( others => '0' ) ) );
             is_store := e.memory and op( 5 downto 4 ) = "10";
             is_ptr_store := is_store and ( op( 7 downto 6 ) = "10" or lvl = 15 );
             served := false; narrow := false;
@@ -522,6 +642,56 @@ begin
                   and op /= x"44" and op /= x"48" and op /= x"F8" and op /= x"F9" then
                   ri.address_known := '1';
                   ri.address := f.display( lvl ) + U64( slot.canon.val );
+               end if;
+
+               -- écriture différée : une lecture en mémoire ne doit pas trouver une cellule
+               -- sale ; LVA rend propre la cellule qu'il désigne (règle V8 de l'exposition :
+               -- une lecture calculée ne lit une cellule de calcul que désignée par un LVA)
+               if DEFERRED_SPILL_G and ri.address_known = '1' then
+                  hz := false; hlo := ri.address; hhi := ri.address;
+                  if op( 7 downto 4 ) = "0100" and op( 1 downto 0 ) = "11" and op( 3 downto 2 ) /= "00" then
+                     a8 := ri.address( 63 downto 3 ) & "000";			-- LVA
+                     LOOKUPD( a8, found, tg, dty );
+                     if found and dty and a8 <= t_f.dsp then
+                        XFER( XFER_SPILL, a8, tg, READY_OF( tg ) ); HOLD( tg ); DOP( true, a8, tg );
+                     end if;
+                  else
+                     sz := 2 ** to_integer( unsigned( op( 1 downto 0 ) ) );
+                     if op( 7 downto 6 ) = "10" then				-- famille C : la cellule pointeur
+                        hz := true; hhi := ri.address + 7;
+                     elsif op( 7 downto 6 ) = "01" and e.memory and op( 3 downto 2 ) = "11"
+                           and ( op( 5 downto 4 ) = "01" or op( 5 downto 4 ) = "11" ) then
+                        hz := true; hhi := ri.address + 2 * sz - 1;		-- CHK : les deux bornes
+                     elsif op( 7 downto 6 ) = "01" and e.memory and op( 5 downto 4 ) /= "00"
+                           and to_integer( ri.address( 2 downto 0 ) ) + sz > 8 then
+                        hz := true; hhi := ri.address + sz - 1;		-- à cheval sur deux cellules
+                     end if;							--  (dans une cellule : servi, converti)
+                     if hz then
+                        hz := false; a8 := hlo( 63 downto 3 ) & "000";
+                        for c in 0 to 2 loop
+                           if a8 <= hhi then
+                              LOOKUPD( a8, found, tg, dty );
+                              if found and dty and a8 <= t_f.dsp then hz := true; end if;
+                           end if;
+                           a8 := a8 + 8;
+                        end loop;
+                     end if;
+                     if hz then							-- vidage : le ROB vide, ses cellules
+                        exit when i /= 0 or r_head /= r_tail;			--  sont réécrites (SPILL validés)
+                        a8 := hlo( 63 downto 3 ) & "000";
+                        for c in 0 to 2 loop
+                           if a8 <= hhi then
+                              LOOKUPD( a8, found, tg, dty );
+                              if found and dty and a8 <= t_f.dsp then
+                                 XFER( XFER_SPILL, a8, tg, '1' );
+                                 if ok then t_xf( t_nx - 1 ).committed := '1'; end if;
+                                 HOLD( tg ); DOP( true, a8, tg );
+                              end if;
+                           end if;
+                           a8 := a8 + 8;
+                        end loop;
+                     end if;
+                  end if;
                end if;
 
                if op = x"F2" or op = x"33" then					-- CALL, CALLI
@@ -548,10 +718,10 @@ begin
                      ri.address_known := '1'; ri.address := f.display( lvl );	-- ancien DISPLAY[lvl]
                      DEST( t ); PUSH_CELL( t, '0' );
                      if t_shn < SHADOW_DEPTH then
-                        t_sh( t_shn ) := ( lvl => lvl, val => f.display( lvl ), tag => t ); t_shn := t_shn + 1;
+                        t_sh( t_shn ) := ( lvl => lvl, val => f.display( lvl ), tag => t, wseq => seq ); t_shn := t_shn + 1;
                      else								-- pleine : la plus ancienne est perdue
                         for j in 0 to SHADOW_DEPTH - 2 loop t_sh( j ) := t_sh( j + 1 ); end loop;
-                        t_sh( SHADOW_DEPTH - 1 ) := ( lvl => lvl, val => f.display( lvl ), tag => t );
+                        t_sh( SHADOW_DEPTH - 1 ) := ( lvl => lvl, val => f.display( lvl ), tag => t, wseq => seq );
                      end if;
                      t_f.display( lvl ) := t_f.dsp; dl := lvl; dv := t_f.dsp;
                   end if;
@@ -563,15 +733,17 @@ begin
                   t_f.dsp := t_f.dsp + resize( alloc, 64 );
                elsif op = x"F8" or op = x"F9" then				-- UNLINK, UNLINKR lvl
                   t_f.dsp := f.display( lvl );
-                  LOOKUP( t_f.dsp, found, tg );					-- la cellule sauvée, inchangée ?
+                  LOOKUPW( t_f.dsp, found, tg, uw );				-- la cellule sauvée, inchangée ?
                   READ_CELL( t_f.dsp, false, t ); SOURCE( t );
                   DOP( false, t_f.dsp, t ); t_f.dsp := t_f.dsp - 8;
                   DEST( t );						-- registre caché : M64[CFP], chargé par la
 								--  LSQ, lu par COMPLEX_UNIT (sans cellule)
                   dl := lvl;
                   -- la pile d'ombre ne vaut que si la cellule est encore tenue par le registre
-                  -- que LINK lui a donné (spéc. : DISPLAY[lvl] := pop)
-                  if t_shn > 0 and t_sh( t_shn - 1 ).lvl = lvl and found and tg = t_sh( t_shn - 1 ).tag then
+                  -- que LINK lui a donné, et par LINK lui-même (le même registre, libéré puis
+                  -- réalloué, peut y revenir) (spéc. : DISPLAY[lvl] := pop)
+                  if t_shn > 0 and t_sh( t_shn - 1 ).lvl = lvl and found and tg = t_sh( t_shn - 1 ).tag
+                     and uw = t_sh( t_shn - 1 ).wseq then
                      dv := t_sh( t_shn - 1 ).val; t_shn := t_shn - 1;
                      t_f.display( lvl ) := dv;
                   else
@@ -764,7 +936,11 @@ begin
       -- le bloc présenté ne dépend pas de RENAME_READY_i ; le transfert, si
       RENAME_VALID_o <= B( k > 0 ); RENAME_BLOCK_o <= rb; RENAME_COUNT_o <= to_unsigned( k, RENAME_COUNT_o'length );
       ROB_ALLOC_BLOCK_o <= ab; ROB_ALLOC_COUNT_o <= to_unsigned( k, ROB_ALLOC_COUNT_o'length );
-      if RENAME_READY_i = '1' then
+      if mnt then								-- réécriture : ni bloc, ni prise
+         DECODE_TAKE_o <= ( others => '0' );
+         ROB_ALLOC_VALID_o <= '0';
+         STACK_XFER_o <= xf;
+      elsif RENAME_READY_i = '1' then
          DECODE_TAKE_o <= to_unsigned( k, DECODE_TAKE_o'length );
          ROB_ALLOC_VALID_o <= B( k > 0 );
          STACK_XFER_o <= xf;
@@ -834,12 +1010,12 @@ begin
          end loop;
       end procedure;
 
-      procedure SET_D( a : address_t; x : physical_tag_t; s : seq_t ) is
+      procedure SET_D( a : address_t; x : physical_tag_t; s : seq_t; d : boolean ) is
       begin
          -- l'entrée de la cellule : son ancien occupant (la même cellule, ou une autre
          -- sortie de la fenêtre) est oublié ; en écriture immédiate, la mémoire l'a
          if dc( WIDX( a ) ).valid then UNMAP_TAG( dc( WIDX( a ) ).tag ); end if;
-         dc( WIDX( a ) ) := ( valid => true, addr => a, tag => x, wseq => s );
+         dc( WIDX( a ) ) := ( valid => true, addr => a, tag => x, wseq => s, dirty => d );
          mc( to_integer( x ) ) := mc( to_integer( x ) ) + 1;
       end procedure;
 
@@ -854,7 +1030,7 @@ begin
       begin
          FORGET_R( a );
          if rc( rp ).valid then UNMAP_TAG( rc( rp ).tag ); end if;
-         rc( rp ) := ( valid => true, addr => a, tag => x, wseq => s );
+         rc( rp ) := ( valid => true, addr => a, tag => x, wseq => s, dirty => false );
          mc( to_integer( x ) ) := mc( to_integer( x ) ) + 1;
          rp := ( rp + 1 ) mod RCELL_COUNT;
       end procedure;
@@ -907,6 +1083,12 @@ begin
                if rdr( ti ) > 0 then rdr( ti ) := rdr( ti ) - 1; end if;
             end if;
          end loop;
+         for j in 0 to MAXHOLD - 1 loop
+            if j < inf( to_integer( rr ) ).nhold then
+               ti := to_integer( inf( to_integer( rr ) ).holds( j ) );
+               if rdr( ti ) > 0 then rdr( ti ) := rdr( ti ) - 1; end if;
+            end if;
+         end loop;
          if inf( to_integer( rr ) ).ckpt_valid and ck( inf( to_integer( rr ) ).ckpt ).valid then
             ck( inf( to_integer( rr ) ).ckpt ).valid := false; COUNT_WIN( ck( inf( to_integer( rr ) ).ckpt ).win, -1 );
          end if;
@@ -918,12 +1100,12 @@ begin
          inf( to_integer( rr ) ).valid := false;
       end procedure;
 
-      procedure SET_C( a : address_t; x : physical_tag_t; s : seq_t ) is
+      procedure SET_C( a : address_t; x : physical_tag_t; s : seq_t; d : boolean ) is
       begin
          if cw( WIDX( a ) ).valid then
             mcc( to_integer( cw( WIDX( a ) ).tag ) ) := mcc( to_integer( cw( WIDX( a ) ).tag ) ) - 1;
          end if;
-         cw( WIDX( a ) ) := ( valid => true, addr => a, tag => x, wseq => s );
+         cw( WIDX( a ) ) := ( valid => true, addr => a, tag => x, wseq => s, dirty => d );
          mcc( to_integer( x ) ) := mcc( to_integer( x ) ) + 1;
       end procedure;
 
@@ -938,14 +1120,14 @@ begin
 
       procedure APPLY_D( o : map_op_t ) is					-- une opération, fenêtre spéculative
       begin
-         if o.set then SET_D( o.addr, o.tag, o.wseq );
+         if o.set then SET_D( o.addr, o.tag, o.wseq, o.dirty );
          elsif o.hi /= o.addr then FORGET_DR( o.addr, o.hi );
          else FORGET_D( o.addr ); end if;
       end procedure;
 
       procedure APPLY_C( o : map_op_t ) is					-- une opération, fenêtre retirée
       begin
-         if o.set then SET_C( o.addr, o.tag, o.wseq ); else FORGET_C( o.addr, o.hi ); end if;
+         if o.set then SET_C( o.addr, o.tag, o.wseq, o.dirty ); else FORGET_C( o.addr, o.hi ); end if;
       end procedure;
 
       procedure RESTORE_D( w : cell_array_t ) is				-- la fenêtre spéculative := w
@@ -1018,6 +1200,11 @@ begin
                            ti := to_integer( p_info( i ).srcs( j ) ); rdr( ti ) := rdr( ti ) + 1;
                         end if;
                      end loop;
+                     for j in 0 to MAXHOLD - 1 loop
+                        if j < p_info( i ).nhold then
+                           ti := to_integer( p_info( i ).holds( j ) ); rdr( ti ) := rdr( ti ) + 1;
+                        end if;
+                     end loop;
                      if p_writers( i ).valid then
                         for w in 0 to NWRIT - 1 loop
                            if not wr( w ).valid then wr( w ) := p_writers( i ); exit; end if;
@@ -1088,8 +1275,33 @@ begin
                end if;
             end loop;
 
+            -- réécriture (écriture différée) : les cellules réécrites deviennent propres
+            -- partout où elles ont le même registre ; DONE (une impulsion) quand il n'en reste
+            -- plus, pour que la demande suivante ne prenne pas le DONE de celle-ci
+            if p_maint then
+               for j in 0 to STACK_XFER_WIDTH - 1 loop
+                  if j < p_nmclean then
+                     n := p_mclean( j ); ws := 0;
+                     cw( n ).dirty := false;
+                     if dc( n ).valid and dc( n ).addr = cw( n ).addr and dc( n ).tag = cw( n ).tag then
+                        dc( n ).dirty := false;
+                     end if;
+                     for c in 0 to NCKPT - 1 loop
+                        if ck( c ).valid and ck( c ).win( n ).valid and ck( c ).win( n ).addr = cw( n ).addr
+                           and ck( c ).win( n ).tag = cw( n ).tag then
+                           ck( c ).win( n ).dirty := false;
+                        end if;
+                     end loop;
+                  end if;
+               end loop;
+            end if;
+
             -- maintenance : la mémoire est à jour ; l'invalidation oublie les cellules
-            maint_done <= STACK_MAINT_i.valid;
+            if DEFERRED_SPILL_G and STACK_MAINT_i.kind /= MAINT_INVALIDATE_RANGE then
+               maint_done <= B( p_maint and not p_mrest and maint_done = '0' );
+            else
+               maint_done <= STACK_MAINT_i.valid;
+            end if;
             if STACK_MAINT_i.valid = '1' and STACK_MAINT_i.kind = MAINT_INVALIDATE_RANGE then
                for i in 0 to CELLS - 1 loop
                   if dc( i ).valid and dc( i ).addr + 8 > STACK_MAINT_i.base

@@ -18,9 +18,9 @@ use work.EXEC_TYPES.all;
 		--  COMPLEX_UNIT, architecture RTL : première étape (voir le contrat).
 		--
 		--  Un automate, une instruction à la fois. Les blocs passent par un moteur
-		--  commun : une liste d'au plus trois intervalles (lus, écrits), un sondage par
-		--  morceaux (8 octets, puis 1), une maintenance par intervalle, puis une boucle
-		--  d'accès (octets ; composants pour LEXCMP). Un seul accès mémoire en vol ;
+		--  commun : une liste d'au plus trois intervalles (lus, écrits), leur validité
+		--  (règle de DATA_CACHE, un cycle par intervalle), une maintenance par
+		--  intervalle, puis une boucle d'accès (octets ; composants pour LEXCMP). Un seul accès mémoire en vol ;
 		--  une instruction abandonnée pendant un accès attend sa réponse (S_FLUSH).
 		--------------------------------------------------------------------------------
 
@@ -48,7 +48,7 @@ of COMPLEX_UNIT is		---
    constant OP_EXC_RAISE	: opcode_t := x"FE";
 
    type state_t		is ( S_IDLE, S_READ, S_SYS, S_SYS_WAIT, S_FEXP_START, S_FEXP, S_FUPD, S_HEAD, S_DRAIN, S_ATOMIC, S_HOLD_WAIT, S_FSTEP, S_FSTEP_WAIT,
-				     S_RANGE, S_PROBE, S_PROBE_WAIT, S_MAINT, S_ACC, S_ACC_WAIT, S_INVAL, S_RESULT,
+				     S_RANGE, S_PROBE, S_MAINT, S_ACC, S_ACC_WAIT, S_INVAL, S_RESULT,
 				     S_RETIRE_WAIT, S_FLUSH, S_LEXEC, S_ULOAD, S_UWAIT );
    type range_t		is record
 			  base		: address_t;
@@ -90,7 +90,6 @@ of COMPLEX_UNIT is		---
    signal nranges		: natural range 0 to 3;
    signal write_range		: integer range -1 to 2;			-- intervalle écrit
    signal ri			: natural range 0 to 3;			-- intervalle en cours
-   signal roff		: address_t;				-- décalage dans l'intervalle
    signal k			: address_t;				-- octet, ou décalage LEXCMP
    signal sub			: natural range 0 to 2;			-- étape de l'octet k
    signal word_a		: word64_t;					-- élément lu ([src] ou [a]) : 1 ou 8 octets
@@ -133,7 +132,7 @@ of COMPLEX_UNIT is		---
       return IS_LINK( op ) or IS_EXCM( op ) or IS_UNLINK( op );
    end function;
 
-   -- écrit la mémoire : HEAD_ATOMIC_o, sondage préalable (LINK, EXC_MACH compris)
+   -- écrit la mémoire : HEAD_ATOMIC_o, validité préalable (LINK, EXC_MACH compris)
    function IS_WRITING_BLOCK( op : opcode_t ) return boolean is
    begin
       return op = OP_BLKMOV or op = OP_BLKAND or op = OP_BLKOU or op = OP_BLKOUX or op = OP_BLKNOT
@@ -256,7 +255,6 @@ begin
       variable op		: opcode_t;
       variable sz65		: unsigned( 64 downto 0 );
       variable nxt		: unsigned( 65 downto 0 );
-      variable left		: address_t;
       variable b		: byte_t;
       variable cg, cd		: signed( 63 downto 0 );
       variable sz		: natural;
@@ -523,44 +521,30 @@ begin
                   when S_HOLD_WAIT =>
                      if SYSTEM_HOLD_i = '0' then atomic <= '1'; state <= S_ATOMIC; end if;
 
-                  when S_RANGE =>							-- RANGE_o ; sondage
-                     ri <= 0; roff <= ( others => '0' );
+                  when S_RANGE =>							-- RANGE_o ; validité
+                     ri <= 0;
                      if IS_LEX( instr.slot.canon.op ) then
-                        state <= S_MAINT;						-- lectures seules : pas de sondage
+                        state <= S_MAINT;						-- lectures seules : pas de validité préalable
                      else
                         state <= S_PROBE;
                      end if;
 
-                  when S_PROBE =>							-- morceaux de 8 octets, puis 1
+                  when S_PROBE =>							-- validité d'un intervalle par cycle
                      if ri >= nranges then
                         ri <= 0; state <= S_MAINT;
-                     elsif roff >= ranges( ri ).length then
-                        ri <= ri + 1; roff <= ( others => '0' );
+                     elsif ranges( ri ).length = 0
+                        or ( ranges( ri ).base >= VALID_BASE_G and VALID_LIMIT_G >= ranges( ri ).length
+                             and ranges( ri ).base <= VALID_LIMIT_G - ranges( ri ).length ) then
+                        ri <= ri + 1;
                      else
-                        left := ranges( ri ).length - roff;
-                        if left >= 8 then
-                           req <= ( valid => '1', write => '0', probe => '1', address => ranges( ri ).base + roff,
-                                    size => "11", wdata => ( others => '0' ) );
-                           roff <= roff + 8;
-                        else
-                           req <= ( valid => '1', write => '0', probe => '1', address => ranges( ri ).base + roff,
-                                    size => "00", wdata => ( others => '0' ) );
-                           roff <= roff + 1;
-                        end if;
-                        state <= S_PROBE_WAIT;
-                     end if;
-
-                  when S_PROBE_WAIT =>
-                     if MEM_RSP_i.valid = '1' then
-                        if MEM_RSP_i.fault = '1' then
-                           FINISH( ( others => '0' ), 132, false );
-                        else
-                           state <= S_PROBE;
-                        end if;
+                        FINISH( ( others => '0' ), 132, false );
                      end if;
 
                   when S_MAINT =>							-- réécriture de chaque intervalle
                      if ri >= nranges then
+                       -- les SPILL de la réécriture (écriture différée) sont des rangements
+                       -- validés : la mémoire ne les a qu'une fois la LSQ vidée
+                       if LSQ_DRAINED_i = '1' then
                         k <= ( others => '0' ); sub <= 0; fstep <= 0;
                         -- par mots de 8 octets : BLKMOV (sans recouvrement, V8), BLKNOT, BLKCMP ;
                         -- blocs logiques : si [dst] et [src] sont égaux ou distants d'au moins 8
@@ -569,6 +553,7 @@ begin
                                      or instr.slot.canon.op = OP_BLKCMP
                                      or dif = 0 or ( dif >= 8 and dif <= unsigned'( x"FFFFFFFFFFFFFFF8" ) );
                         if IS_FRAME( instr.slot.canon.op ) then state <= S_FSTEP; else state <= S_ACC; end if;
+                       end if;
                      elsif ranges( ri ).length = 0 then
                         ri <= ri + 1;
                      elsif STACK_MAINT_DONE_i = '1' then
