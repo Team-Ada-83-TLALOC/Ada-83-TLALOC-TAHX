@@ -218,6 +218,14 @@ use work.RENAME_TYPES.all;
 		--        STACK_MAINT_DONE_o, une impulsion, quand il n'en reste plus.
 		--     Les cellules rangées deviennent propres là où elles ont le même registre
 		--     (fenêtres spéculative et retirée, copies des points de reprise).
+		--
+		--  13. Famille C à lvl 0..14 (chargements et rangements ; ni LIVA ni CHKI) dont la
+		--     cellule pointeur (address, alignée, au plus DSP) est dans la fenêtre :
+		--     l'instruction devient de famille B à lvl = 1111, ofs en val, address_known
+		--     = '0', le registre de la cellule en source( 0 ) (la donnée d'un rangement en
+		--     source( 1 )). La cellule pointeur n'est pas lue en mémoire (en écriture
+		--     différée : pas de vidage). Effets de pile, classe, rangement par pointeur
+		--     inchangés.
 		--------------------------------------------------------------------------------
 
 

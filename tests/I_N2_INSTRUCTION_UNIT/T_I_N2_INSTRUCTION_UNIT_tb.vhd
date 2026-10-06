@@ -47,7 +47,7 @@ architecture			TEST
 of T_I_N2_INSTRUCTION_UNIT_tb is
 
    constant PERIOD		: time		:= 10 ns;
-   constant CYCLES		: positive	:= 30000;
+   constant CYCLES		: positive	:= 45000;				-- (préchargement de FETCH_UNIT : marge de couverture)
    constant HALT_CYCLES	: positive	:= 300;
    constant MAX_IDLE		: positive	:= 600;
    constant SEED_1		: positive	:= 1903;

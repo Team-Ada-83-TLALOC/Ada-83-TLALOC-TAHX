@@ -38,8 +38,9 @@ use work.EXEC_TYPES.all;
 		--  Temps, opérandes, résultat, reprise : comme MULDIV_UNIT. Prise au front où
 		--  ISSUE_VALID_i = ISSUE_READY_o = '1' (voie 0) ; opérandes lus au cycle qui
 		--  suit ; résultat sur RESULT_o( 0 ) pendant un cycle, plus tard ; la latence
-		--  ne fait pas partie du contrat (FDIV itérative). Une instruction abandonnée ne
-		--  paraît jamais sur RESULT_o.
+		--  ne fait pas partie du contrat (FDIV itérative). Pipeline : une prise par
+		--  cycle, les résultats sortent un par cycle, pas forcément dans l'ordre des
+		--  prises. Une instruction abandonnée ne paraît jamais sur RESULT_o.
 		--------------------------------------------------------------------------------
 
 				----------
@@ -55,7 +56,8 @@ is				----------
 		--------------------------------------------------------------------------------
 		-- Émission venant de la file FLOAT : ISSUE_BLOCK_i( 0 .. ISSUE_COUNT_i - 1 ),
 		-- une instruction par voie, ISSUE_COUNT_i <= LANES_G. Transfert tout ou rien.
-		-- ISSUE_READY_o = '0' tant qu'une opération itérative occupe l'unité.
+		-- ISSUE_READY_o : l'instruction offerte est prise (pipeline : le cycle de son
+		-- résultat doit être libre ; une FDIV attend la fin de la précédente).
 		--------------------------------------------------------------------------------
 
       ISSUE_VALID_i		:in  std_logic;			-- Canonisées prêtes

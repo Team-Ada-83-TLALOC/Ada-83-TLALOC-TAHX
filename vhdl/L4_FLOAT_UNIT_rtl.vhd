@@ -29,9 +29,14 @@ use work.FLOAT64_PKG.all;
 		--  NaN canonique, FNEG, FABS, comparaisons, CVTFI, CVTFIR : sur les motifs
 		--  binaires (float_pkg n'a pas l'arrondi « mi-chemin à l'écart de zéro »).
 		--
-		--  Automate et latences modèles comme MULDIV_UNIT : FNEG FABS comparaisons 3
-		--  cycles de la prise au résultat, FADD FSUB CVTIF CVTFI CVTFIR 4, FMUL 5,
-		--  FDIV 20. Elles ne font pas partie du contrat.
+		--  Latences modèles (elles ne font pas partie du contrat) : FNEG FABS
+		--  comparaisons 3 cycles de la prise au résultat, FADD FSUB CVTIF CVTFI CVTFIR 4,
+		--  FMUL 5, FDIV 20. Pipeline : une prise par cycle ; une opération de latence L
+		--  n'est prise que si le cycle où sortira son résultat est libre (table de
+		--  réservation du bus de résultat, une voie) ; FDIV, itérative, n'exclut qu'une
+		--  autre FDIV pendant sa durée. Étage de lecture (opérandes, calcul) au cycle qui
+		--  suit la prise, puis registre à décalage jusqu'à la sortie ; une reprise efface
+		--  les opérations abandonnées de chaque étage.
 		--------------------------------------------------------------------------------
 
 
@@ -65,14 +70,19 @@ of FLOAT_UNIT is		---
    constant LATENCY_MUL	: positive := 5;
    constant LATENCY_DIV	: positive := 20;
 
-   type state_t		is ( LIBRE, LECTURE, ATTENTE, RESULTAT );
+   -- étage de lecture ; résultats en attente : pend( k ) sort dans k + 1 cycles
+   -- (pend( 0 ) au cycle qui suit) ; busy( k ) : le cycle « maintenant + k » a son
+   -- résultat déjà réservé
+   type pend_t		is array( 0 to LATENCY_DIV ) of exec_result_t;
 
-   signal state		: state_t;
-   signal instr		: renamed_instruction_t;
+   signal rd_valid		: boolean;
+   signal instr		: renamed_instruction_t;			-- l'étage de lecture
    signal computed		: exec_result_t;
-   signal result		: exec_result_t;
-   signal countdown		: natural range 0 to LATENCY_DIV;
-
+   signal pend		: pend_t;
+   signal out_r		: exec_result_t;			-- le résultat de ce cycle
+   signal busy		: std_logic_vector( 0 to LATENCY_DIV + 1 );
+   signal div_left		: natural range 0 to LATENCY_DIV;		-- FDIV en cours (cycles)
+   signal can_take		: std_logic;
 
    function LATENCY( op : opcode_t ) return positive is
    begin
@@ -231,14 +241,18 @@ of FLOAT_UNIT is		---
 
 begin
 
-   ISSUE_READY_o <= '1' when state = LIBRE else '0';
+   -- prise : le cycle du résultat est libre ; une seule FDIV à la fois
+   can_take <= '1' when busy( LATENCY( ISSUE_BLOCK_i( 0 ).slot.canon.op ) ) = '0'
+			   and not ( ISSUE_BLOCK_i( 0 ).slot.canon.op = OP_FDIV and div_left /= 0 ) else '0';
+   ISSUE_READY_o <= can_take;
 
    READ_TAGS_o( 0 ) <= instr.source;
 
-   CALCUL : process( state, instr, READ_DATA_i, BYPASS_i )
+   CALCUL : process( rd_valid, instr, READ_DATA_i, BYPASS_i )
       variable opd : operand_array_t;
    begin
-      if state = LECTURE then
+      computed.valid <= '0';
+      if rd_valid then
          for s in 0 to MAX_SOURCE_COUNT - 1 loop
             opd( s ) := READ_DATA_i( 0 )( s );
             for p in BYPASS_i'range loop
@@ -259,10 +273,10 @@ begin
       end if;
    end process;
 
-   SORTIE : process( state, result, RECOVERY_i, ROB_HEAD_i )
+   SORTIE : process( out_r, RECOVERY_i, ROB_HEAD_i )
    begin
-      RESULT_o( 0 ) <= result;
-      if state /= RESULTAT or ABANDONED( result.completion.rob_index, RECOVERY_i, ROB_HEAD_i ) then
+      RESULT_o( 0 ) <= out_r;
+      if out_r.valid = '0' or ABANDONED( out_r.completion.rob_index, RECOVERY_i, ROB_HEAD_i ) then
          RESULT_o( 0 ).valid <= '0';
       end if;
    end process;
@@ -273,37 +287,47 @@ begin
    end generate;
 
    AUTOMATE : process( CLK_i )
+      variable p	: pend_t;
+      variable b	: std_logic_vector( 0 to LATENCY_DIV + 1 );
+      variable l	: natural;
    begin
       if rising_edge( CLK_i ) then
          if RESET_i = '1' then
-            state <= LIBRE;
+            rd_valid <= false; out_r.valid <= '0'; busy <= ( others => '0' ); div_left <= 0;
+            for k in pend'range loop pend( k ).valid <= '0'; end loop;
          else
-            case state is
-               when LIBRE =>
-                  if ISSUE_VALID_i = '1' and ISSUE_COUNT_i >= 1
-                     and not ABANDONED( ISSUE_BLOCK_i( 0 ).rob_index, RECOVERY_i, ROB_HEAD_i ) then
-                     instr <= ISSUE_BLOCK_i( 0 );
-                     state <= LECTURE;
+            -- un cycle passe : décalage des résultats et des réservations
+            out_r <= pend( 0 );
+            for k in 0 to LATENCY_DIV - 1 loop p( k ) := pend( k + 1 ); end loop;
+            p( LATENCY_DIV ).valid := '0';
+            b( 0 to LATENCY_DIV ) := busy( 1 to LATENCY_DIV + 1 ); b( LATENCY_DIV + 1 ) := '0';
+            if div_left /= 0 then div_left <= div_left - 1; end if;
+            -- l'étage de lecture rend son résultat : il sortira LATENCY - 2 cycles après
+            if rd_valid and not ABANDONED( instr.rob_index, RECOVERY_i, ROB_HEAD_i ) then
+               p( LATENCY( instr.slot.canon.op ) - 3 ) := computed;
+            end if;
+            -- reprise : les abandonnées disparaissent de chaque étage
+            if RECOVERY_i.valid = '1' then
+               for k in p'range loop
+                  if p( k ).valid = '1' and ABANDONED( p( k ).completion.rob_index, RECOVERY_i, ROB_HEAD_i ) then
+                     p( k ).valid := '0';
                   end if;
-               when LECTURE =>
-                  result <= computed;
-                  countdown <= LATENCY( instr.slot.canon.op ) - 3;
-                  if ABANDONED( instr.rob_index, RECOVERY_i, ROB_HEAD_i ) then
-                     state <= LIBRE;
-                  else
-                     state <= ATTENTE;
-                  end if;
-               when ATTENTE =>
-                  if ABANDONED( instr.rob_index, RECOVERY_i, ROB_HEAD_i ) then
-                     state <= LIBRE;
-                  elsif countdown = 0 then
-                     state <= RESULTAT;
-                  else
-                     countdown <= countdown - 1;
-                  end if;
-               when RESULTAT =>
-                  state <= LIBRE;
-            end case;
+               end loop;
+               if pend( 0 ).valid = '1' and ABANDONED( pend( 0 ).completion.rob_index, RECOVERY_i, ROB_HEAD_i ) then
+                  out_r.valid <= '0';
+               end if;
+            end if;
+            -- prise
+            rd_valid <= false;
+            if ISSUE_VALID_i = '1' and ISSUE_COUNT_i >= 1 and can_take = '1' then
+               if not ABANDONED( ISSUE_BLOCK_i( 0 ).rob_index, RECOVERY_i, ROB_HEAD_i ) then
+                  instr <= ISSUE_BLOCK_i( 0 ); rd_valid <= true;
+                  l := LATENCY( ISSUE_BLOCK_i( 0 ).slot.canon.op );
+                  b( l - 1 ) := '1';
+                  if ISSUE_BLOCK_i( 0 ).slot.canon.op = OP_FDIV then div_left <= LATENCY_DIV - 1; end if;
+               end if;
+            end if;
+            pend <= p; busy <= b;
          end if;
       end if;
    end process;

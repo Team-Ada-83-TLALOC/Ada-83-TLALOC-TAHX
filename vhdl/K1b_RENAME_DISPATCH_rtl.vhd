@@ -658,6 +658,26 @@ begin
                   ri.address := f.display( lvl ) + U64( slot.canon.val );
                end if;
 
+               -- famille C à lvl 0..14 dont la cellule pointeur est dans la fenêtre (vivante) :
+               -- l'accès devient de famille B à lvl = 1111, le registre de la cellule en
+               -- source 0 (EA = pointeur + ofs ; un rangement garde sa donnée en source 1).
+               -- La cellule pointeur n'est pas lue en mémoire : ni lecture ni vidage. Les
+               -- effets de pile, la classe et le rangement par pointeur ne changent pas.
+               -- (Chargements et rangements ; pas LIVA ni CHKI.)
+               if ri.address_known = '1' and op( 7 downto 6 ) = "10" and e.memory
+                  and op( 5 downto 4 ) /= "00" and op( 3 downto 2 ) /= "11"
+                  and ri.address( 2 downto 0 ) = "000" and ri.address <= t_f.dsp then
+                  LOOKUP( ri.address, found, tg );
+                  if found then
+                     SOURCE( tg );
+                     ri.slot.canon.op( 7 downto 6 ) := "01";
+                     ri.slot.canon.lvl := "1111";
+                     ri.slot.canon.val := signed( resize( slot.canon.ofs, 32 ) );
+                     ri.slot.canon.ofs := ( others => '0' );
+                     ri.address_known := '0';
+                  end if;
+               end if;
+
                -- écriture différée : une lecture en mémoire ne doit pas trouver une cellule
                -- sale ; LVA rend propre la cellule qu'il désigne (règle V8 de l'exposition :
                -- une lecture calculée ne lit une cellule de calcul que désignée par un LVA)

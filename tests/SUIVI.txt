@@ -283,3 +283,20 @@ concernée quand on l'écrira, puis à rayer ici.
               rétablie avec lui (elle était vidée à toute reprise).
               B_APPELS (cycles) : 58 913 -> 50 241 (ombre de co-pile) -> 44 946 (pile
               d'ombre gardée) -> 43 559 (prise enchaînée) ; IPC 1,08 -> 1,46.
+  2026-10-07  Mesures de N4 (commit 11a915d) : IPC de 0,60 (B_FLOTTANT) à 2,67 (B_MATRICE) ;
+              B_ARBRE 0,82 : vidages (renommage arrêté 42 % des cycles) ; B_FLOTTANT 0,60 :
+              unité flottante non pipelinée (file fp pleine, dorsal saturé 89 %).
+              RENAME_DISPATCH (contrat 13) : un chargement ou un rangement de famille C à
+              lvl 0..14 dont la cellule pointeur est dans la fenêtre devient de famille B à
+              lvl = 1111, le registre de la cellule en source 0 : ni lecture de la cellule
+              pointeur ni vidage (B_ARBRE : 2 658 vidages, environ 19 cycles chacun ; un
+              paramètre in out lu par LIQ 2, -A_ofs). Banc : forme convertie reconnue,
+              seuil des lectures comparées à 600 ; 4 graines ; erreur introduite détectée.
+              FLOAT_UNIT pipelinée : une prise par cycle si le cycle de son résultat est
+              libre (table de réservation), latences inchangées, FDIV itérative n'exclut
+              qu'une autre FDIV ; reprise : les abandonnées effacées de chaque étage. Banc
+              L4 OK ; deux erreurs introduites détectées. B_FLOTTANT : 125 755 -> 89 729
+              cycles (IPC 0,60 -> 0,84) ; le reste est borné par FDIV (20 cycles, une à la
+              fois : chaîne de Newton, série de Leibniz).
+              I_N2_INSTRUCTION_UNIT : tirage de 45 000 cycles (le préchargement de
+              FETCH_UNIT avait ramené la couverture à 49 sauts conditionnels pris pour 50).

@@ -243,6 +243,7 @@ begin
       variable served_i		: boolean;
       variable conv_ld, conv_st	: boolean;
       variable n_conv		: natural := 0;				-- accès directs étroits convertis
+      variable n_cconv		: natural := 0;				-- LIQ convertis (cellule pointeur en fenêtre)
 
       -- mémoire physique de la pile data, écrite seulement par les SPILL et les rangements :
       -- un journal (comme la LSQ) ordonné par clé (2 * n + 2 : les écritures de l'instruction n),
@@ -1035,6 +1036,14 @@ begin
                   conv_st := q( x ).kind = K_STORE and q( x ).fault = 0 and ren_block( i ).slot.canon.op = x"C6"
                              and ren_block( i ).source_count = 2 and ren_block( i ).destination_valid = '1'
                              and ren_block( i ).issue_class = ISSUE_INTEGER and alloc_block( i ).is_store = '0';
+                  -- LIQ dont la cellule pointeur est dans la fenêtre : LQ à lvl 1111, le
+                  -- registre de la cellule (le pointeur) en source 0 ; aucune lecture en mémoire
+                  if q( x ).kind = K_CLOAD and q( x ).fault = 0 and ren_block( i ).slot.canon.op = x"57" then
+                     ok := ok and ren_block( i ).slot.canon.lvl = "1111" and ren_block( i ).address_known = '0'
+                           and to_integer( ren_block( i ).slot.canon.val ) = 0;
+                     q( x ).nsrc := 1; q( x ).src( 0 ) := q( x ).mrv( 0 ); q( x ).addr_known := false;
+                     q( x ).nmr := 0; n_cconv := n_cconv + 1;
+                  end if;
                   if served_i then							-- servi par la fenêtre (comme DUP)
                      q( x ).dest := false; q( x ).exec_need := false; n_served := n_served + 1;
                   elsif conv_ld then							-- lecture étroite : UBFXI, SBFXI de la cellule
@@ -1260,14 +1269,14 @@ begin
       report "écriture différée " & boolean'image( DEFERRED ) & " ; lectures comparées à la mémoire physique "
              & integer'image( n_mcheck ) & ", SPILL hors push " & integer'image( n_def_spill ) & " (vidage "
              & integer'image( n_cspill ) & "), réécrits " & integer'image( n_wb ) & ", mots vérifiés après réécriture "
-             & integer'image( n_wbcheck ) severity note;
+             & integer'image( n_wbcheck ) & ", LIQ convertis " & integer'image( n_cconv ) severity note;
       if DEFERRED then
-         CHECK( c, n_src_checked > 5000 and n_fill > 300 and n_def_spill > 100 and n_cspill > 5 and n_wb > 20
-                   and n_mis > 50 and n_flt > 20 and n_inval > 100 and n_mcheck > 1000 and n_wbcheck > 100,
+         CHECK( c, n_src_checked > 5000 and n_fill > 300 and n_def_spill > 100 and n_cspill > 5 and n_wb > 20 and n_cconv > 50
+                   and n_mis > 50 and n_flt > 20 and n_inval > 100 and n_mcheck > 600 and n_wbcheck > 100,
                 "le tirage a exercé sources, FILL, SPILL d'éviction, vidages, réécritures, reprises et invalidations" );
       else
          CHECK( c, n_src_checked > 5000 and n_fill > 300 and n_spill > 3000 and n_mis > 50 and n_flt > 20 and n_inval > 100
-                   and n_mcheck > 1000 and n_wbcheck > 100,
+                   and n_mcheck > 600 and n_wbcheck > 100,
                 "le tirage a exercé sources, FILL, SPILL, reprises et invalidations" );
       end if;
       FINISH( c, "T_K1b_RENAME_DISPATCH_tb" );
