@@ -299,6 +299,8 @@ begin
       variable t		: physical_tag_t;
       variable found		: boolean;
       variable served		: boolean;					-- chargement servi par la fenêtre
+      variable narrow		: boolean;					-- lecture étroite, convertie
+      variable swp		: physical_tag_t;
       variable tg		: physical_tag_t;
       variable addr		: address_t;
       variable dl		: integer range -1 to 14;
@@ -317,6 +319,8 @@ begin
       end procedure;
 
       -- registre d'une cellule de la pile data : surcouche du bloc, puis table
+      impure function CELL_HIT( a : address_t ) return boolean;
+
       procedure LOOKUP( a : address_t; hit : out boolean; r : out physical_tag_t ) is
       begin
          hit := false; r := ( others => '0' );
@@ -330,6 +334,14 @@ begin
          end if;
 
       end procedure;
+
+      impure function CELL_HIT( a : address_t ) return boolean is
+         variable h : boolean;
+         variable r : physical_tag_t;
+      begin
+         LOOKUP( a, h, r );
+         return h;
+      end function;
 
       procedure RLOOKUP( a : address_t; hit : out boolean; r : out physical_tag_t ) is
       begin
@@ -498,7 +510,7 @@ begin
                      srcs => ( others => ( others => '0' ) ), ckpt_valid => false, ckpt => 0, writer => false, nops => 0, ops => ( others => NO_OP ) );
             is_store := e.memory and op( 5 downto 4 ) = "10";
             is_ptr_store := is_store and ( op( 7 downto 6 ) = "10" or lvl = 15 );
-            served := false;
+            served := false; narrow := false;
             is_wblock := op = x"34" or op = x"3C" or op = x"3D" or op = x"3E" or op = x"3F" or op = x"45" or op = x"49";
             dl := -1; dv := ( others => '0' );
 
@@ -590,8 +602,26 @@ begin
                            LOOKUP( ri.address, found, tg );
                            served := found;
                         end if;
+                        -- lecture directe étroite d'une cellule de la fenêtre (champ dans la cellule,
+                        -- au plus DSP) : UBFXI ou SBFXI sur son registre, sans accès mémoire
+                        if not served and e.memory and op( 7 downto 6 ) = "01"
+                           and ( op( 5 downto 4 ) = "01" or op( 5 downto 4 ) = "11" )
+                           and op( 3 downto 2 ) /= "11" and op( 1 downto 0 ) /= "11" and ri.address_known = '1'
+                           and npop = 0 and npush = 1
+                           and to_integer( ri.address( 2 downto 0 ) ) + 2 ** to_integer( unsigned( op( 1 downto 0 ) ) ) <= 8
+                           and ri.address( 63 downto 3 ) & "000" <= t_f.dsp then
+                           LOOKUP( ri.address( 63 downto 3 ) & "000", found, tg );
+                           narrow := found;
+                        end if;
                         if served then
                            PUSH_CELL( tg, READY_OF( tg ) );
+                        elsif narrow then
+                           if op( 5 downto 4 ) = "01" then ri.slot.canon.op := x"C5"; else ri.slot.canon.op := x"C4"; end if;	-- SBFXI, UBFXI
+                           ri.slot.canon.val := to_signed( 8 * to_integer( ri.address( 2 downto 0 ) ), ri.slot.canon.val'length );
+                           ri.slot.canon.ofs := to_unsigned( 8 * 2 ** to_integer( unsigned( op( 1 downto 0 ) ) ), 8 );
+                           ri.issue_class := ISSUE_INTEGER; ri.address_known := '0';
+                           SOURCE( tg );
+                           DEST( t ); PUSH_CELL( t, '0' );
                         else
                         for j in 0 to 3 loop						-- du plus profond au sommet
                            if j < npop then
@@ -624,6 +654,18 @@ begin
                   if sz = 8 and ri.address( 2 downto 0 ) = "000" then
                      LOOKUP( ri.address, found, tg );
                      if found then DOP( true, ri.address, ri.source( inf.nsrc - 1 ) ); end if;
+                  elsif to_integer( ri.address( 2 downto 0 ) ) + sz <= 8 and addr <= t_f.dsp and CELL_HIT( addr ) then
+                     -- écriture directe étroite d'une cellule de la fenêtre : BFII ( ancien donnée -- nouveau ),
+                     -- dont la destination devient le registre de la cellule ; pas de rangement
+                     LOOKUP( addr, found, tg );
+                     ri.slot.canon.op := x"C6";					-- BFII
+                     ri.slot.canon.val := to_signed( 8 * to_integer( ri.address( 2 downto 0 ) ), ri.slot.canon.val'length );
+                     ri.slot.canon.ofs := to_unsigned( 8 * sz, 8 );
+                     ri.issue_class := ISSUE_INTEGER; ri.address_known := '0'; is_store := false;
+                     SOURCE( tg );						-- sources : ( ancien donnée )
+                     swp := ri.source( 0 ); ri.source( 0 ) := ri.source( 1 ); ri.source( 1 ) := swp;
+                     swp := inf.srcs( 0 ); inf.srcs( 0 ) := inf.srcs( 1 ); inf.srcs( 1 ) := swp;
+                     DEST( t ); DOP( true, addr, t ); XFER( XFER_SPILL, addr, t, '0' );
                   else
                      LOOKUP( addr, found, tg );
                      if found then DOP( false, addr, tg ); end if;

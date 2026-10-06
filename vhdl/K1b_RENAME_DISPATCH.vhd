@@ -100,6 +100,12 @@ use work.RENAME_TYPES.all;
 		--     registre : il empile une cellule qui le reprend, comme DUP, sans
 		--     exécution (stack_cache_hit = '1', done à l'allocation). Au-dessus de DSP,
 		--     une cellule est morte : un rangement calculé a pu l'écrire.
+		--     Accès directs étroits (famille B, lvl = 0..14, moins de 8 octets, champ dans
+		--     une cellule de la fenêtre, au plus DSP) : une lecture devient SBFXI (signée)
+		--     ou UBFXI sur le registre de la cellule (lsb = 8 * décalage, w = 8 * taille) ;
+		--     une écriture devient BFII ( ancien donnée -- nouveau ), dont la destination
+		--     devient le registre de la cellule (avec son SPILL), sans rangement. Classe
+		--     ISSUE_INTEGER ; pas d'accès mémoire.
 		--     Copies de la fenêtre (R2b) : chaque instruction garde ses opérations sur la
 		--     fenêtre ; la fenêtre retirée les rejoue au retrait ; chaque point de reprise
 		--     garde la fenêtre d'après son instruction ; une reprise rétablit la copie de

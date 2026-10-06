@@ -77,6 +77,9 @@ of T_K1b_RENAME_DISPATCH_tb is
 			  paddr		: addrs_t;
 			  dest		: boolean;
 			  dval		: word64_t;
+			  conv_old	: word64_t;		-- accès direct étroit converti : la cellule avant
+			  conv_new	: word64_t;		--  (écriture) la cellule après
+			  conv_cell	: natural;		--  son adresse
 			  addr_known	: boolean;
 			  addr		: address_t;
 			  fault		: natural;
@@ -226,6 +229,8 @@ begin
       variable n_src_checked, n_fill, n_spill, n_mis, n_flt, n_unlink_wait, n_inval, n_sync, n_ckpt_rec : natural := 0;
       variable n_served		: natural := 0;				-- chargements servis par la fenêtre
       variable served_i		: boolean;
+      variable conv_ld, conv_st	: boolean;
+      variable n_conv		: natural := 0;				-- accès directs étroits convertis
 
       impure function RAND return real is
       begin
@@ -403,11 +408,22 @@ begin
                   d := to_integer( e.addr - f.dsp ); d := 8 * ( ( d + 7 ) / 8 );
                   e.addr := e.addr - to_unsigned( d, 64 ); e.slot.canon.val := e.slot.canon.val - to_signed( d, 32 );
                end if;
-               e.dval := MREAD( e.addr );						-- la valeur de la mémoire (servi
+               -- LB, LW, LD : un décalage dans la cellule, multiple de la taille
+               if ( op = x"54" or op = x"55" or op = x"56" ) and e.addr( 2 downto 0 ) = "000" then
+                  a := 2 ** ( to_integer( unsigned( op( 1 downto 0 ) ) ) );		-- taille
+                  a := a * RAND_INT( 8 / a - 1 );					-- décalage
+                  e.addr := e.addr + to_unsigned( a, 64 ); e.slot.canon.val := e.slot.canon.val + to_signed( a, 32 );
+               end if;
+               e.conv_old := MREAD( e.addr( 63 downto 3 ) & "000" ); e.conv_cell := to_integer( e.addr( 30 downto 3 ) & "000" );
+               e.dval := MREAD( e.addr( 63 downto 3 ) & "000" );			-- la valeur de la mémoire (servi
+               a := 8 * to_integer( e.addr( 2 downto 0 ) );
+               if a + 8 * 2 ** to_integer( unsigned( op( 1 downto 0 ) ) ) > 64 then	-- (base non alignée : à cheval)
+                  e.dval := MREAD( e.addr ); a := 0;
+               end if;
                case op is
-                  when x"54" => e.dval := std_logic_vector( resize( signed( e.dval( 7 downto 0 ) ), 64 ) );
-                  when x"55" => e.dval := std_logic_vector( resize( signed( e.dval( 15 downto 0 ) ), 64 ) );
-                  when x"56" => e.dval := std_logic_vector( resize( signed( e.dval( 31 downto 0 ) ), 64 ) );
+                  when x"54" => e.dval := std_logic_vector( resize( signed( e.dval( a + 7 downto a ) ), 64 ) );
+                  when x"55" => e.dval := std_logic_vector( resize( signed( e.dval( a + 15 downto a ) ), 64 ) );
+                  when x"56" => e.dval := std_logic_vector( resize( signed( e.dval( a + 31 downto a ) ), 64 ) );
                   when others => null;
                end case;
                e.dest := true; PUSH( e, f, e.dval );					--  par la fenêtre, ou exécuté)
@@ -427,8 +443,10 @@ begin
                if op = x"67" then MWRITE( e, e.addr, e.src( 0 ), true );
                else								-- un octet
                   w := MREAD( e.addr( 63 downto 3 ) & "000" );
+                  e.conv_old := w; e.conv_cell := to_integer( e.addr( 30 downto 3 ) & "000" );
                   a := to_integer( e.addr( 2 downto 0 ) );
                   w( 8 * a + 7 downto 8 * a ) := e.src( 0 )( 7 downto 0 );
+                  e.conv_new := w;
                   MWRITE( e, e.addr( 63 downto 3 ) & "000", w, true );
                end if;
                e.exec_need := true;
@@ -684,8 +702,27 @@ begin
                               and ren_block( i ).destination_valid = '0' and ren_block( i ).stack_cache_hit = '1'
                               and ren_block( i ).execute_required = '0' and alloc_block( i ).fault.valid = '0'
                               and ren_block( i ).source_count = 0;
+                  conv_ld := q( x ).kind = K_LOAD and q( x ).fault = 0
+                             and ( ren_block( i ).slot.canon.op = x"C4" or ren_block( i ).slot.canon.op = x"C5" )
+                             and ren_block( i ).source_count = 1 and ren_block( i ).destination_valid = '1'
+                             and ren_block( i ).issue_class = ISSUE_INTEGER and ren_block( i ).execute_required = '1';
+                  conv_st := q( x ).kind = K_STORE and q( x ).fault = 0 and ren_block( i ).slot.canon.op = x"C6"
+                             and ren_block( i ).source_count = 2 and ren_block( i ).destination_valid = '1'
+                             and ren_block( i ).issue_class = ISSUE_INTEGER and alloc_block( i ).is_store = '0';
                   if served_i then							-- servi par la fenêtre (comme DUP)
                      q( x ).dest := false; q( x ).exec_need := false; n_served := n_served + 1;
+                  elsif conv_ld then							-- lecture étroite : UBFXI, SBFXI de la cellule
+                     q( x ).nsrc := 1; q( x ).src( 0 ) := q( x ).conv_old; n_conv := n_conv + 1;
+                     -- le champ : lsb = 8 * décalage, w = 8 * taille ; LB, LW, LD : SBFXI
+                     ok := ok and ren_block( i ).slot.canon.op = x"C5"
+                           and to_integer( ren_block( i ).slot.canon.val ) = 8 * ( to_integer( q( x ).addr( 30 downto 0 ) ) - q( x ).conv_cell )
+                           and to_integer( ren_block( i ).slot.canon.ofs ) = 8 * 2 ** to_integer( unsigned( q( x ).slot.canon.op( 1 downto 0 ) ) );
+                  elsif conv_st then							-- écriture étroite : BFII ( ancien donnée -- nouveau )
+                     q( x ).nsrc := 2; q( x ).src( 1 ) := q( x ).src( 0 ); q( x ).src( 0 ) := q( x ).conv_old;
+                     q( x ).dest := true; q( x ).dval := q( x ).conv_new; q( x ).is_store := false;
+                     q( x ).npush := 1; q( x ).paddr( 0 ) := q( x ).conv_cell; n_conv := n_conv + 1;
+                     ok := ok and to_integer( ren_block( i ).slot.canon.val ) = 8 * ( to_integer( q( x ).addr( 30 downto 0 ) ) - q( x ).conv_cell )
+                           and to_integer( ren_block( i ).slot.canon.ofs ) = 8;		-- SB : un octet
                   elsif q( x ).fault /= 0 then
                      ok := ok and alloc_block( i ).fault.valid = '1' and alloc_block( i ).fault.code = q( x ).fault
                            and alloc_block( i ).done = '1' and ren_block( i ).execute_required = '0';
@@ -845,7 +882,7 @@ begin
                                                   & integer'image( to_integer( free_count ) ) & ")" );
       running <= false;
       report "graines " & integer'image( SEED_1 ) & ", " & integer'image( SEED_2 ) & " ; " & integer'image( INSTRUCTIONS )
-             & " instructions ; sources vérifiées " & integer'image( n_src_checked ) & " ; FILL " & integer'image( n_fill ) & " (chargements servis par la fenêtre " & integer'image( n_served ) & ")"
+             & " instructions ; sources vérifiées " & integer'image( n_src_checked ) & " ; FILL " & integer'image( n_fill ) & " (chargements servis par la fenêtre " & integer'image( n_served ) & ", accès étroits convertis " & integer'image( n_conv ) & ")"
              & ", SPILL " & integer'image( n_spill ) & " ; reprises : mauvaise prédiction " & integer'image( n_mis )
              & ", faute " & integer'image( n_flt ) & ", SYNC " & integer'image( n_sync ) & " ; invalidations "
              & integer'image( n_inval ) severity note;

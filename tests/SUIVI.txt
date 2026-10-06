@@ -222,3 +222,17 @@ concernée quand on l'écrira, puis à rayer ici.
               au-dessus de DSP, UNLINK ne fait pas remonter DSP (mesure : 0 sur 68 M
               instructions). tx_run -v la vérifie. Banc : UNLINK sous la règle, rangements
               par pointeur hors de la pile, accès directs ramenés sous DSP ; six graines.
+  2026-10-05  R2b, étape 3a (écriture immédiate encore) : accès directs étroits d'une
+              cellule de la fenêtre convertis au renommage : lecture -> SBFXI/UBFXI sur
+              le registre de la cellule ; écriture -> BFII, dont la destination devient
+              le registre de la cellule. Mesure tx_run (TLALOC) : 285 556 lectures et
+              3 587 écritures directes étroites en fenêtre, qui seraient fausses en
+              écriture différée si elles allaient en mémoire. Banc : formes converties
+              acceptées, champs (opcode, lsb, w) et valeur de la cellule vérifiés ;
+              lectures étroites à décalage ; quatre erreurs détectées. N3 : TAHX_1,
+              EXC_TEST0, CHK_TEST0 identiques à tx_run.
+              Reste pour R2b : 3b (plus de SPILL au push ; SPILL à l'éviction d'une cellule
+              vivante ; banc : mémoire physique tenue par les SPILL pour vérifier les FILL),
+              4 (maintenance : réécriture d'un intervalle pour CTX_SAVE et les blocs),
+              5 (lectures calculées des cellules en fenêtre : vérification en tête et
+              réexécution). Écriture différée derrière un générique tant que 4 et 5 manquent.
