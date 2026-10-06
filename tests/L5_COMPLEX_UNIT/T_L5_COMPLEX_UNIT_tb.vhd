@@ -296,6 +296,12 @@ begin
       variable dq		: natural;					-- phase dirigée : rang de l'instruction
       variable d_ok		: boolean;
       variable dc1, ds1, dc2, ds2, dw	: address_t;
+      -- phase en rafale : LSQ_EXEC_o vus, attendus
+      type ev_t		is array( 0 to 15 ) of address_t;
+      variable ev_a, ev_d, ex_a, ex_d	: ev_t;
+      variable nev		: natural;
+      variable acc		: boolean;
+      variable c0			: address_t;
 
       procedure D_ISSUE( dop : opcode_t; lv : natural; sq : natural ) is
       begin
@@ -923,8 +929,8 @@ begin
       D_RECOVER( dq + 1 );							-- l'UNLINK seul est abandonné
       D_ISSUE( x"44", 0, dq + 2 ); D_EXEC( ds2, dc2, true, "LINK après une reprise qui garde LINK 2" );
       D_RECOVER( dq );							-- LINK 2 et ce LINK abandonnés
-      dw := to_unsigned( COP + 200, 64 );
-      D_ISSUE( x"F9", 1, dq + 1 ); D_EXEC( dc1, dc1, false, "UNLINKR après une reprise qui garde LINK 1" );
+      dw := cfp;								-- M64[dc1] : sauvé par LINK 1 (spéc. V8 :
+      D_ISSUE( x"F9", 1, dq + 1 );						--  seul LINK l'écrit ; ombre de co-pile) D_EXEC( dc1, dc1, false, "UNLINKR après une reprise qui garde LINK 1" );
       D_LOAD( dq + 1, dw );							-- CSP := dc1 ; CFP := dw
       D_RETIRE( dq ); D_RETIRE( dq + 1 );
       d_ok := c_copile.cfp = dw and c_copile.csp = dc1;
@@ -933,6 +939,68 @@ begin
       D_RETIRE( dq + 2 );
       d_ok := c_copile.cfp = dc1 and c_copile.csp = dc1 + 8;
       if d_ok then CHECK_PASSED( c ); else CHECK( c, false, "phase dirigée : état retiré final" ); end if;
+
+      -- Phase en rafale : LINK, UNLINK, UNLINKR présentés coup sur coup (chacun offert dès
+      -- que le précédent est pris ; COMPLEX prend le suivant à son dernier cycle) ; l'ombre
+      -- de co-pile sert les UNLINK. Aucun ne doit se perdre : la suite des LSQ_EXEC_o, puis
+      -- l'état retiré.
+      c0 := to_unsigned( COP + 400, 64 );
+      sync_copile <= ( cfp => to_unsigned( COP + 8, 64 ), csp => c0, hp => hp_c, hp_valid => '1' ); sync_valid <= '1';
+      wait until falling_edge( clk );
+      sync_valid <= '0';
+      dq := dq + 20; rob_head <= ROB( dq - 1 );
+      wait until falling_edge( clk );
+      --        LSQ_EXEC_o attendus : adresse, donnée (LINK : M64[CSP] := CFP ; UNLINK : M64[CFP])
+      ex_a( 0 ) := c0;      ex_d( 0 ) := to_unsigned( COP + 8, 64 );	-- LINK
+      ex_a( 1 ) := c0 + 8;  ex_d( 1 ) := c0;				-- LINK
+      ex_a( 2 ) := c0 + 8;  ex_d( 2 ) := ( others => '0' );		-- UNLINK : CFP := c0
+      ex_a( 3 ) := c0 + 16; ex_d( 3 ) := c0;				-- LINK
+      ex_a( 4 ) := c0 + 16; ex_d( 4 ) := ( others => '0' );		-- UNLINKR : CSP := c0 + 16, CFP := c0
+      ex_a( 5 ) := c0 + 16; ex_d( 5 ) := c0;				-- LINK
+      nev := 0;
+      for k in 0 to 5 loop
+         blk( 0 ).slot.canon := CANON_NOP;
+         if k = 2 then blk( 0 ).slot.canon.op := x"F8"; elsif k = 4 then blk( 0 ).slot.canon.op := x"F9";
+         else blk( 0 ).slot.canon.op := x"44"; end if;
+         if k = 2 or k = 4 then blk( 0 ).slot.canon.lvl := to_unsigned( 1, 4 ); blk( 0 ).source_count := 1;
+         else blk( 0 ).slot.canon.lvl := to_unsigned( 0, 4 ); blk( 0 ).source_count := 0; end if;
+         blk( 0 ).rob_index := ROB( dq + k ); blk( 0 ).address := ( others => '0' ); blk( 0 ).address_known := '1';
+         blk( 0 ).destination_valid := B( k = 2 or k = 4 );
+         tagc := ( tagc + 1 ) mod REGISTERS; blk( 0 ).destination := to_unsigned( tagc, PHYSICAL_TAG_BITS );
+         iss_block <= blk; iss_count <= to_unsigned( 1, iss_count'length ); iss_valid <= '1';
+         loop
+            wait until rising_edge( clk );
+            acc := iss_ready = '1';
+            wait until falling_edge( clk );
+            if lsq_exec.valid = '1' and nev <= ev_a'high then
+               ev_a( nev ) := lsq_exec.address; ev_d( nev ) := unsigned( lsq_exec.data ); nev := nev + 1;
+            end if;
+            exit when acc;
+         end loop;
+      end loop;
+      iss_valid <= '0';
+      for t in 0 to 30 loop
+         if lsq_exec.valid = '1' and nev <= ev_a'high then
+            ev_a( nev ) := lsq_exec.address; ev_d( nev ) := unsigned( lsq_exec.data ); nev := nev + 1;
+         end if;
+         wait until falling_edge( clk );
+      end loop;
+      d_ok := nev = 6;
+      for k in 0 to 5 loop
+         if k < nev and ( ev_a( k ) /= ex_a( k ) or ( ( k = 0 or k = 1 or k = 3 or k = 5 ) and ev_d( k ) /= ex_d( k ) ) ) then
+            d_ok := false;
+         end if;
+      end loop;
+      if d_ok then CHECK_PASSED( c ); else
+         CHECK( c, false, "phase en rafale : LSQ_EXEC_o (" & integer'image( nev ) & " vus sur 6 ; premier "
+                          & HEX( ev_a( 0 ) ) & ")" );
+      end if;
+      for k in 0 to 5 loop D_RETIRE( dq + k ); end loop;
+      d_ok := c_copile.cfp = c0 + 16 and c_copile.csp = c0 + 24;
+      if d_ok then CHECK_PASSED( c ); else
+         CHECK( c, false, "phase en rafale : état retiré", HEX( c0 + 16 ) & " / " & HEX( c0 + 24 ),
+                HEX( c_copile.cfp ) & " / " & HEX( c_copile.csp ) );
+      end if;
 
       running <= false;
       report "graines " & integer'image( SEED_1 ) & ", " & integer'image( SEED_2 ) & " ; sérialisantes "

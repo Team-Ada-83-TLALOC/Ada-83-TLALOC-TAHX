@@ -137,6 +137,8 @@ of RENAME_DISPATCH is		---
 			  seq		: seq_t;
 			  frame		: frame_state_t;
 			  win		: cell_array_t;			-- la fenêtre après l'instruction
+			  sh		: shadow_t;			-- la pile d'ombre après l'instruction
+			  shn		: natural range 0 to SHADOW_DEPTH;
 			end record;
    type ckpt_array_t		is array( 0 to NCKPT - 1 ) of ckpt_t;
    type ckpt_alloc_t		is record
@@ -144,6 +146,8 @@ of RENAME_DISPATCH is		---
 			  id		: natural range 0 to NCKPT - 1;
 			  seq		: seq_t;
 			  frame		: frame_state_t;
+			  sh		: shadow_t;
+			  shn		: natural range 0 to SHADOW_DEPTH;
 			end record;
    type ckpt_alloc_block_t	is array( 0 to DECODE_WIDTH - 1 ) of ckpt_alloc_t;
 
@@ -195,6 +199,9 @@ of RENAME_DISPATCH is		---
    signal p_wait_lvl		: natural range 0 to 14;
    signal p_fstall		: boolean;
    signal p_free_tags		: tag_block_t;					-- registres libres, dans l'ordre
+   -- pragma translate_off
+   signal dbg_why		: natural;					-- mesure : pourquoi le plan s'arrête
+   -- pragma translate_on
    -- écriture différée : réécriture (maintenance) du cycle, sur la fenêtre retirée
    type clean_list_t		is array( 0 to STACK_XFER_WIDTH - 1 ) of natural range 0 to CELLS - 1;
    signal p_mclean		: clean_list_t;					-- entrées de cwin réécrites
@@ -327,6 +334,7 @@ begin
       variable uw		: seq_t;					-- UNLINK : écrivain de la cellule sauvée
       variable dty		: boolean;
       variable mnt		: boolean;					-- cycle de réécriture (maintenance)
+      variable why		: natural;					-- mesure : cause de l'arrêt du plan
       variable mcl		: clean_list_t;
       variable nmcl		: natural range 0 to STACK_XFER_WIDTH;
       variable mrest		: boolean;
@@ -567,7 +575,7 @@ begin
                             srcs => ( others => ( others => '0' ) ), ckpt_valid => false, ckpt => 0, writer => false, nops => 0, ops => ( others => NO_OP ),
                      nhold => 0, holds => ( others => ( others => '0' ) ) ) );
       wrs := ( others => ( valid => false, ptr => false, rob => ( others => '0' ), seq => 0 ) );
-      cks := ( others => ( valid => false, id => 0, seq => 0, frame => frame_s ) );
+      cks := ( others => ( valid => false, id => 0, seq => 0, frame => frame_s, sh => shadow, shn => 0 ) );
       for i in 0 to DECODE_WIDTH - 1 loop
          rb( i ) := ( slot => DECODE_BLOCK_i( i ), rob_index => ( others => '0' ), issue_class => ISSUE_NONE,
                       source_count => 0, source => ( others => ( others => '0' ) ), source_ready => ( others => '1' ),
@@ -603,9 +611,15 @@ begin
       end if;
       p_mclean <= mcl; p_nmclean <= nmcl; p_mrest <= mrest; p_maint <= mnt;
 
+      -- 0 rien à prendre, 1 reprise ou SYNC, 2 attente de FRAME_UPDATE, 3 arrêt après faute,
+      -- 4 réécriture, 5 ROB plein, 6 vidage, 7 registres ou échanges, 8 point de reprise,
+      -- 9 écrivains, 10 bus d'échanges, 11 bloc complet ou fin sur faute ou attente
+      if RECOVERY_i.valid = '1' or SYNC_VALID_i = '1' then why := 1;
+      elsif waiting then why := 2; elsif fstall then why := 3; elsif mnt then why := 4; else why := 11; end if;
       if RECOVERY_i.valid = '0' and SYNC_VALID_i = '0' and not waiting and not fstall and not mnt then
          for i in 0 to DECODE_WIDTH - 1 loop
-            exit when i >= to_integer( DECODE_COUNT_i ) or i >= to_integer( ROB_FREE_i );
+            if i >= to_integer( DECODE_COUNT_i ) then why := 0; exit; end if;
+            if i >= to_integer( ROB_FREE_i ) then why := 5; exit; end if;
             slot := DECODE_BLOCK_i( i );
             op := slot.canon.op;
             e := ISA_TABLE( to_integer( unsigned( op ) ) );
@@ -677,7 +691,7 @@ begin
                         end loop;
                      end if;
                      if hz then							-- vidage : le ROB vide, ses cellules
-                        exit when i /= 0 or r_head /= r_tail;			--  sont réécrites (SPILL validés)
+                        if i /= 0 or r_head /= r_tail then why := 6; exit; end if;	--  sont réécrites (SPILL validés)
                         a8 := hlo( 63 downto 3 ) & "000";
                         for c in 0 to 2 loop
                            if a8 <= hhi then
@@ -854,10 +868,10 @@ begin
                end if;
             end if;
 
-            exit when not ok;							-- registres ou échanges épuisés
-            if fault = 0 and e.control and nck = 0 then exit; end if;		-- pas de point de reprise libre
-            if fault = 0 and ( is_ptr_store or is_wblock ) and nwr >= NWRIT then exit; end if;
-            exit when t_nx > nx and STACK_XFER_READY_i = '0';
+            if not ok then why := 7; exit; end if;					-- registres ou échanges épuisés
+            if fault = 0 and e.control and nck = 0 then why := 8; exit; end if;	-- pas de point de reprise libre
+            if fault = 0 and ( is_ptr_store or is_wblock ) and nwr >= NWRIT then why := 9; exit; end if;
+            if t_nx > nx and STACK_XFER_READY_i = '0' then why := 10; exit; end if;
 
             -- l'instruction est prise
             al := ( valid => '1', pc => slot.pc, len => slot.canon.len, op => op, fault => NO_FAULT, done => '0',
@@ -908,7 +922,7 @@ begin
                      if cid < 0 and ck_used( c ) = '0' then cid := c; end if;
                   end loop;
                   ck_used( cid ) := '1'; nck := nck - 1;
-                  cks( i ) := ( valid => true, id => cid, seq => seq, frame => f );
+                  cks( i ) := ( valid => true, id => cid, seq => seq, frame => f, sh => sh, shn => shn );
                   inf.ckpt_valid := true; inf.ckpt := cid;
                   al.checkpoint_valid := '1'; al.checkpoint := to_unsigned( cid, CHECKPOINT_BITS );
                   ri.checkpoint_valid := '1'; ri.checkpoint := to_unsigned( cid, CHECKPOINT_BITS );
@@ -951,6 +965,9 @@ begin
          STACK_XFER_o <= xf;
       end if;
       STALLED_o <= B( k = 0 and DECODE_COUNT_i /= 0 );
+      -- pragma translate_off
+      dbg_why <= why;
+      -- pragma translate_on
    end process;
 
    COMMITTED_FRAME_o	<= frame_c;
@@ -1212,7 +1229,7 @@ begin
                      end if;
                      if p_ckpts( i ).valid then					-- la fenêtre après l'instruction
                         ck( p_ckpts( i ).id ) := ( valid => true, seq => p_ckpts( i ).seq, frame => p_ckpts( i ).frame,
-                                                   win => dc );
+                                                   win => dc, sh => p_ckpts( i ).sh, shn => p_ckpts( i ).shn );
                         COUNT_WIN( dc, 1 );
                      end if;
                   end if;
@@ -1341,12 +1358,17 @@ begin
                if RECOVERY_i.kind = RECOVER_COMMITTED then tl := hd; else tl := RECOVERY_i.keep_last + 1; end if;
                -- la fenêtre du point de reprise, ou la fenêtre retirée (la pile des retours,
                -- en écriture immédiate, est oubliée)
+               -- la pile d'ombre aussi : celle du point de reprise (l'UNLINK vérifie toujours
+               -- que la cellule sauvée garde le registre et l'écrivain de son LINK)
                if RECOVERY_i.kind = RECOVER_CHECKPOINT then
                   RESTORE_D( ck( to_integer( RECOVERY_i.checkpoint ) ).win );
+                  shadow <= ck( to_integer( RECOVERY_i.checkpoint ) ).sh;
+                  shadow_n <= ck( to_integer( RECOVERY_i.checkpoint ) ).shn;
                else
                   RESTORE_D( cw );
+                  shadow_n <= 0;
                end if;
-               shadow_n <= 0; waiting <= false; fstall <= false;
+               waiting <= false; fstall <= false;
             end if;
 
             -- SYNC (au cycle d'une reprise) : l'état imposé, spéculatif et retiré

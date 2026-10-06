@@ -27,6 +27,15 @@ N3  Machine : TAHX_1 exécute une image HX ; on compare la trace de retrait à c
     tx_run, instruction par instruction. Banc progressif : DIS_BONJOUR, puis CORPS.FINC,
     CHK.FINC, BF.FINC, PEEP.FINC, puis TLALOC lui-même.
 
+N4  Mesure : bancs B_xxx, programmes Ada propres au test (B_xxx/<programme>.adb, vecteurs
+    par generer.sh comme en N3), de 60 000 à 160 000 instructions : tri, crible, chaînes,
+    arbre (tas), matrices, flottant, appels, petit frontal d'expressions. Leur verdict
+    est celui de N3 (trace identique à tx_run) ; leur objet est la mesure.
+    Mesures : les compteurs (perf.txt) de chaque test réussi sur la plateforme N3 sont
+    copiés dans MESURES/<test>.txt et résumés dans MESURES/BILAN.txt (cycles, retraits,
+    IPC, SPILL, FILL ; date, commit) ; MESURES/ est suivi par git, pour que les mesures
+    accompagnent le commit.
+
 
 Rangement
 ---------
@@ -36,6 +45,7 @@ tests/
   SUIVI.txt                 état de chaque pièce (à tenir à jour à chaque commit)
   LISTE                     tests lancés par lancer_tests.sh, dans l'ordre
   lancer_tests.sh           lance tout, ou un test : ./lancer_tests.sh A1_ISA_TABLE
+  MESURES/                  compteurs des tests N3 et N4 du dernier lancement (suivi par git)
   commun/                   paquetage TB_UTILS, modèles partagés (mémoire, horloge...)
   <code>_<PIECE>/           un répertoire par test :
       T_<code>_<PIECE>_tb.vhd     le banc

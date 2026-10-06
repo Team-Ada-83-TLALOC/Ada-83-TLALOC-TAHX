@@ -315,6 +315,13 @@ need not have been written back to memory (paragraph "Above DSP"). Reading a loc
 before writing it gives an unspecified value, as in Ada for an uninitialised variable (see
 [Q20]).
 
+Co-stack chaining. The cell M64[CSP] where LINK saves CFP is written, while the frame it
+chains is alive (up to the UNLINK that reads it back), only by that LINK: UNLINK and UNLINKR
+read back the value that LINK stored there. A program that writes it otherwise has
+unspecified behaviour. An implementation may therefore restore CFP without waiting for the
+read of the cell (TAHX: co-stack shadow of COMPLEX_UNIT). tx_run -v checks the rule (see
+[Q21]).
+
 The data stack and the co-stack are ordinary memory: the program also accesses them by
 address (locals, parameters, LVA, co-stack blocks). The return stack, on the other hand,
 is read and written only by push_return and pop_return (CALL, CALLI, RTD, vectored TRAP,
@@ -1783,6 +1790,13 @@ and resets DR to 0.
 	7,494 reads (LD through a pointer) of local variables never written since their
 	allocation; none by FILL, direct access or block. They are reads of uninitialised
 	variables in TLALOC (precedent: IN_SPEC_UNIT of EXPANDER.UTILS), to be tracked down.
+
+[Q21]	Co-stack chaining.				=> only LINK writes the saved CFP (V8, Stacks)
+	Measurement (tx_run, TLALOC compiling float_test.adb, 502,815 LINKs, and the B_xxx
+	benchmarks): every UNLINK reads back in M64[CFP] the value its LINK stored there. Without
+	the rule, UNLINK must wait for its read to return CFP, and COMPLEX_UNIT, which handles LINK
+	and UNLINK in order, no longer gives the address of the store of the following LINKs:
+	every younger load waits for it (B_APPELS: UNLINK 4.8 cycles at the head, 32 % of cycles).
 
 =========================================================================================
 	OPEN QUESTIONS

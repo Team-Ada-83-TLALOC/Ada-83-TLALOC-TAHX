@@ -21,6 +21,8 @@ use work.ROB_TYPES.all;
 		--  une redirection (toute requête acceptée reçoit sa réponse), et la ligne est
 		--  rangée : elle servira peut-être. Une ligne en faute n'est pas rangée : un
 		--  registre la retient et le bloc part avec FETCH_FAULT_o, sans relecture.
+		--  Préchargement : moteur libre et ligne du PC présente, la première des deux
+		--  lignes suivantes qui manque est remplie (pas une ligne connue en faute).
 		--  Une réalisation (plusieurs défauts en vol, lecture de mot critique d'abord)
 		--  devra passer le même banc (tests/I1_FETCH_UNIT).
 		--------------------------------------------------------------------------------
@@ -55,6 +57,8 @@ of FETCH_UNIT is		---
    signal line_base		: address_t;
    signal index		: natural range 0 to LINES - 1;
    signal hit, faulty_hit	: std_logic;
+   signal next1, next2		: address_t;					-- préchargement : les deux
+   signal miss1, miss2		: std_logic;					--  lignes qui suivent
    signal redirect		: std_logic;
    signal show			: std_logic;
 
@@ -81,6 +85,12 @@ begin
    hit		<= '1' when present( index ) = '1' and tag( index ) = line_base else '0';
    faulty_hit	<= '1' when fault_valid = '1' and fault_line = line_base else '0';
    redirect	<= RECOVERY_i.valid or PREDICT_VALID_i or STOP_i;
+   next1		<= line_base + FETCH_BLOCK_SIZE;
+   next2		<= line_base + 2 * FETCH_BLOCK_SIZE;
+   miss1		<= '1' when ( present( INDEX_OF( next1 ) ) = '0' or tag( INDEX_OF( next1 ) ) /= next1 )
+			   and not ( fault_valid = '1' and fault_line = next1 ) else '0';
+   miss2		<= '1' when ( present( INDEX_OF( next2 ) ) = '0' or tag( INDEX_OF( next2 ) ) /= next2 )
+			   and not ( fault_valid = '1' and fault_line = next2 ) else '0';
    show		<= active and ( hit or faulty_hit ) and not redirect;
 
    FLUSH_o		<= redirect;
@@ -156,6 +166,15 @@ begin
             elsif active = '1' and hit = '0' and faulty_hit = '0' and redirect = '0' then
                filling <= '1';
                fill_line <= line_base;
+               fill_fault <= '0';
+               req_k <= 0;
+               resp_k <= 0;
+
+            -- préchargement : la ligne du PC est là, le moteur est libre ; la première des
+            -- deux lignes suivantes qui manque (une ligne connue en faute n'est pas reprise)
+            elsif active = '1' and hit = '1' and redirect = '0' and ( miss1 = '1' or miss2 = '1' ) then
+               filling <= '1';
+               if miss1 = '1' then fill_line <= next1; else fill_line <= next2; end if;
                fill_fault <= '0';
                req_k <= 0;
                resp_k <= 0;

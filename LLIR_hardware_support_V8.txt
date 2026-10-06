@@ -318,6 +318,13 @@ leur place n'a pas à avoir été réécrite en mémoire (paragraphe « Au-dessu
 une variable locale avant de l'écrire donne une valeur non spécifiée, comme en Ada pour une
 variable non initialisée (voir [Q20]).
 
+Chaînage de la co-pile. La cellule M64[CSP] où LINK sauve CFP n'est écrite, tant que le
+frame qu'elle chaîne vit (jusqu'à l'UNLINK qui la relit), que par ce LINK : UNLINK et UNLINKR
+y relisent la valeur que LINK y a rangée. Un programme qui l'écrit autrement a un
+comportement non spécifié. Une implantation peut donc restaurer CFP sans attendre la
+lecture de la cellule (TAHX : ombre de co-pile de COMPLEX_UNIT). tx_run -v vérifie la règle
+(voir [Q21]).
+
 La pile data et la co-pile sont de la mémoire ordinaire : le programme y accède aussi par
 adresse (locales, paramètres, LVA, blocs de la co-pile). La pile des retours, elle, n'est
 lue et écrite que par push_retour et pop_retour (CALL, CALLI, RTD, TRAP vectorisé,
@@ -1786,6 +1793,13 @@ l'instruction interrompue et remet DR à 0.
 	7 494 lectures (LD par pointeur) de variables locales jamais écrites depuis leur
 	allocation ; aucune par FILL, accès direct ou bloc. Ce sont des lectures de variables non
 	initialisées dans TLALOC (précédent : IN_SPEC_UNIT d'EXPANDER.UTILS), à rechercher.
+
+[Q21]	Chaînage de la co-pile.				=> seul LINK écrit le CFP sauvé (V8, Piles)
+	Mesure (tx_run, TLALOC compilant float_test.adb, 502 815 LINK, et bancs B_xxx) : chaque
+	UNLINK relit en M64[CFP] la valeur que son LINK y a rangée. Sans la règle, UNLINK doit
+	attendre sa lecture pour rendre CFP, et COMPLEX_UNIT, qui traite LINK et UNLINK dans
+	l'ordre, ne donne plus l'adresse du rangement des LINK suivants : tout chargement plus
+	jeune l'attend (B_APPELS : UNLINK 4,8 cycles en tête, 32 % des cycles).
 
 =========================================================================================
 	QUESTIONS OUVERTES

@@ -49,7 +49,7 @@ of COMPLEX_UNIT is		---
 
    type state_t		is ( S_IDLE, S_READ, S_SYS, S_SYS_WAIT, S_FEXP_START, S_FEXP, S_FUPD, S_HEAD, S_DRAIN, S_ATOMIC, S_HOLD_WAIT, S_FSTEP, S_FSTEP_WAIT,
 				     S_RANGE, S_PROBE, S_MAINT, S_ACC, S_ACC_WAIT, S_INVAL, S_RESULT,
-				     S_RETIRE_WAIT, S_FLUSH, S_LEXEC, S_ULOAD, S_UWAIT );
+				     S_RETIRE_WAIT, S_FLUSH, S_LEXEC, S_UWAIT );
    type range_t		is record
 			  base		: address_t;
 			  length		: address_t;
@@ -81,6 +81,19 @@ of COMPLEX_UNIT is		---
    signal hist			: hist_t;
    signal hn			: natural range 0 to HIST_DEPTH;
    signal res_nocomp		: boolean;					-- LINK : la LSQ rend la fin d'exécution
+   -- ombre de co-pile : (adresse, CFP sauvé) par LINK, à correspondance directe ; UNLINK
+   -- qui y trouve CFP n'attend pas son chargement (spéc. V8 : la cellule où LINK sauve CFP
+   -- n'est écrite que par LINK tant que le frame vit)
+   constant SH_N		: positive := 16;
+   type sh_entry_t		is record
+			  valid		: boolean;
+			  addr, val	: address_t;
+			  rob		: rob_index_t;
+			end record;
+   type sh_t			is array( 0 to SH_N - 1 ) of sh_entry_t;
+   signal shadow		: sh_t;
+   signal u_fast		: boolean;					-- UNLINK servi par l'ombre
+   signal last_cycle		: boolean;					-- dernier cycle d'un LINK, d'un UNLINK court
    signal lx_addr		: address_t;				-- LSQ_EXEC_o : adresse, donnée
    signal lx_data		: word64_t;
    signal hp_c, hp_s		: address_t;
@@ -183,12 +196,17 @@ begin
 		-- Sorties
 		--------------------------------------------------------------------------------
 
-   ISSUE_READY_o	<= '1' when state = S_IDLE else '0';
+   -- prise : au repos, ou au dernier cycle d'un LINK ou d'un UNLINK court (l'instruction
+   -- suivante est prise sans repasser par S_IDLE), si l'instruction en cours reste
+   ISSUE_READY_o	<= '1' when state = S_IDLE
+			   or ( last_cycle and not ABANDONED( instr.rob_index, RECOVERY_i, ROB_HEAD_i ) ) else '0';
    READ_TAGS_o( 0 )	<= instr.source;
    HEAD_ATOMIC_o	<= atomic;
    MEM_REQ_o		<= req;
    COMMITTED_COPILE_o	<= ( cfp => cfp_c, csp => csp_c, hp => hp_c, hp_valid => '0' );
-   LSQ_EXEC_o		<= ( valid => B( state = S_LEXEC or state = S_ULOAD ), rob_index => instr.rob_index,
+   last_cycle		<= ( state = S_FUPD and u_fast ) or ( state = S_LEXEC and instr.slot.canon.lvl = 0 )
+			   or ( state = S_RESULT and not at_head );
+   LSQ_EXEC_o		<= ( valid => B( state = S_LEXEC or state = S_FUPD ), rob_index => instr.rob_index,
 			   address => lx_addr, data => lx_data );			-- LINK, UNLINK, UNLINKR
    FRAME_UPDATE_o	<= ( valid => '1', rob_index => instr.rob_index, lvl => instr.slot.canon.lvl,
 			     value => unsigned( opd( 0 ) ) ) when state = S_FUPD		-- UNLINK : FP sauvé
@@ -276,11 +294,29 @@ begin
       variable rcfp, rcsp	: address_t;					-- état spéculatif après une reprise
       variable got		: boolean;
       variable nv		: address_t;
+      variable shv		: sh_t;
+
+      function SH_IDX( a : address_t ) return natural is
+      begin
+         return to_integer( a( 6 downto 3 ) );					-- SH_N = 16
+      end function;
 
       procedure PUSH( c, p : address_t ) is					-- valeurs après l'instruction en cours
       begin
          hv( hnv ) := ( rob => instr.rob_index, cfp => c, csp => p ); hnv := hnv + 1;
          cfp_s <= c; csp_s <= p;
+      end procedure;
+
+      -- dernier cycle d'une instruction : la suivante est prise comme au repos (ISSUE_READY_o)
+      procedure TAKE_NEXT is
+      begin
+         if ISSUE_VALID_i = '1' and ISSUE_COUNT_i >= 1
+            and not ABANDONED( ISSUE_BLOCK_i( 0 ).rob_index, RECOVERY_i, ROB_HEAD_i ) then
+            instr <= ISSUE_BLOCK_i( 0 );
+            state <= S_READ;
+         else
+            state <= S_IDLE;
+         end if;
       end procedure;
 
       -- un accès mémoire (un seul en vol)
@@ -300,7 +336,10 @@ begin
             csp_c <= ( others => '0' ); csp_s <= ( others => '0' );
             hp_c <= ( others => '0' ); hp_s <= ( others => '0' );
             hn <= 0; res_nocomp <= false;
+            for e in shadow'range loop shadow( e ).valid <= false; end loop;
+            u_fast <= false;
          else
+            shv := shadow;
             -- historique : le retrait consomme sa tête (état retiré) ; une reprise ôte les
             -- entrées abandonnées et rend la dernière qui reste (ou l'état retiré)
             hv := hist; hnv := hn; ccfp := cfp_c; ccsp := csp_c;
@@ -314,6 +353,9 @@ begin
             cfp_c <= ccfp; csp_c <= ccsp;
             rcfp := ccfp; rcsp := ccsp;
             if RECOVERY_i.valid = '1' then
+               for e in shv'range loop						-- ombre : LINK abandonnés
+                  if shv( e ).valid and ABANDONED( shv( e ).rob, RECOVERY_i, ROB_HEAD_i ) then shv( e ).valid := false; end if;
+               end loop;
                while hnv > 0 and ABANDONED( hv( hnv - 1 ).rob, RECOVERY_i, ROB_HEAD_i ) loop hnv := hnv - 1; end loop;
                if hnv > 0 then rcfp := hv( hnv - 1 ).cfp; rcsp := hv( hnv - 1 ).csp; end if;
                if state = S_IDLE or state = S_FLUSH then cfp_s <= rcfp; csp_s <= rcsp; end if;
@@ -321,6 +363,7 @@ begin
             -- resynchronisation (SYSTEM_UNIT, au cycle d'une reprise)
             if SYNC_VALID_i = '1' then
                hnv := 0;
+               for e in shv'range loop shv( e ).valid := false; end loop;
                cfp_c <= SYNC_COPILE_i.cfp; cfp_s <= SYNC_COPILE_i.cfp;
                csp_c <= SYNC_COPILE_i.csp; csp_s <= SYNC_COPILE_i.csp;
                if SYNC_COPILE_i.hp_valid = '1' then hp_c <= SYNC_COPILE_i.hp; hp_s <= SYNC_COPILE_i.hp; end if;
@@ -380,6 +423,7 @@ begin
                               FINISH( ( others => '0' ), 135, false );
                            else
                               lx_addr <= csp_s; lx_data <= std_logic_vector( cfp_s );	-- M64[CSP] := CFP
+                              shv( SH_IDX( csp_s ) ) := ( valid => true, addr => csp_s, val => cfp_s, rob => instr.rob_index );
                               PUSH( csp_s, csp_s + 8 );				-- CFP := CSP ; CSP += 8
                               state <= S_LEXEC;
                            end if;
@@ -388,6 +432,17 @@ begin
                         if hnv < HIST_DEPTH then
                            lx_addr <= cfp_s; lx_data <= ( others => '0' );		-- M64[CFP], par la LSQ
                            state <= S_FUPD;
+                           -- ombre : CFP restauré sans attendre le chargement, qui reste fait
+                           -- (la LSQ rend la fin d'exécution de l'UNLINK)
+                           u_fast <= shv( SH_IDX( cfp_s ) ).valid and shv( SH_IDX( cfp_s ) ).addr = cfp_s;
+                           if shv( SH_IDX( cfp_s ) ).valid and shv( SH_IDX( cfp_s ) ).addr = cfp_s then
+                              nv := shv( SH_IDX( cfp_s ) ).val;
+                              if op = OP_UNLINKR then
+                                 PUSH( nv, cfp_s );					-- CSP := CFP ; CFP := M64[CFP]
+                              else
+                                 PUSH( nv, csp_s );					-- CFP := M64[CFP]
+                              end if;
+                           end if;
                         end if;
                      elsif op = OP_CO_VAR or op = OP_HEAP_ALLOC or IS_BLOCK( op ) or IS_EXCM( op ) then
                         at_head <= true;
@@ -396,11 +451,12 @@ begin
                         FINISH( ( others => '0' ), 137, false );
                      end if;
 
-                  when S_FUPD =>							-- FRAME_UPDATE_o
-                     state <= S_ULOAD;
-
-                  when S_ULOAD =>							-- LSQ_EXEC_o : adresse du chargement
-                     state <= S_UWAIT;
+                  when S_FUPD =>							-- FRAME_UPDATE_o, et LSQ_EXEC_o :
+                     if u_fast then							--  l'adresse du chargement
+                        TAKE_NEXT;
+                     else
+                        state <= S_UWAIT;
+                     end if;
 
                   when S_UWAIT =>							-- le chargement de la LSQ, sur le bus
                      got := false;
@@ -425,7 +481,7 @@ begin
                         res_value <= std_logic_vector( instr.address ); res_fault <= 0; res_dest <= true;
                         res_nocomp <= true; state <= S_RESULT;
                      else
-                        state <= S_IDLE;
+                        TAKE_NEXT;
                      end if;
 
                   when S_SYS =>							-- SYS_REQ_o
@@ -696,7 +752,7 @@ begin
                      end if;
 
                   when S_RESULT =>
-                     if at_head then state <= S_RETIRE_WAIT; else state <= S_IDLE; end if;
+                     if at_head then state <= S_RETIRE_WAIT; else TAKE_NEXT; end if;
 
                   when S_RETIRE_WAIT =>						-- le retrait retient CSP, HP
                      for r in 0 to RETIRE_WIDTH - 1 loop
@@ -710,7 +766,7 @@ begin
                      if MEM_RSP_i.valid = '1' then state <= S_IDLE; end if;
                end case;
             end if;
-            hist <= hv; hn <= hnv;
+            hist <= hv; hn <= hnv; shadow <= shv;
          end if;
       end if;
    end process;

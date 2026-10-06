@@ -5,8 +5,9 @@
 #	instructions exécutées ; -x : la trace, pc de chaque instruction exécutée), puis la
 #	plateforme (n3_plateforme.py). tx_run doit connaître l'option -x.
 #	  n3_generer.sh <dépôt du compilateur> <dépôt eXecutor> <programme> <répertoire du test>
-#	<programme> : nom d'un source de tests_TLALOC (sans .adb), ou DIS_BONJOUR (image
-#	reprise de I_N2_INSTRUCTION_UNIT).
+#	<programme> : nom d'un source (sans .adb) du répertoire du test s'il y est (bancs de
+#	mesure B_xxx), sinon de tests_TLALOC, ou DIS_BONJOUR (image reprise de
+#	I_N2_INSTRUCTION_UNIT).
 set -e
 COMP=$(cd "$1" && pwd); EXE=$(cd "$2" && pwd); PROG=$3; DEST=$(cd "$4" && pwd)
 COMMUN=$(cd "$(dirname "$0")" && pwd)
@@ -18,7 +19,11 @@ if [ "$U" = "DIS_BONJOUR" ]; then
    cp "$COMMUN/../I_N2_INSTRUCTION_UNIT/vecteurs/DIS_BONJOUR.hxexe" "$T/$U.hxexe"
 else
    cp -r "$COMP/bin" "$T/bin"
-   cp "$COMP/tests_TLALOC/$PROG.adb" "$T/bin/"
+   if [ -f "$DEST/$PROG.adb" ]; then			# source propre au test (bancs B_xxx)
+      cp "$DEST/$PROG.adb" "$T/bin/"
+   else
+      cp "$COMP/tests_TLALOC/$PROG.adb" "$T/bin/"
+   fi
    cd "$T/bin"
    for v in "COMPILE $PROG.adb" "BIND $U" "CODE $U"; do
       echo "$v" | "$T/tx_run" -c 1024 -t 1024 TLALOC.txexe > /dev/null
@@ -32,8 +37,8 @@ set +e
 CODE=$?
 set -e
 N=$(grep -m1 "instructions executees" "$T/rapport.txt" | awk '{print $NF}')
-python3 "$COMMUN/n3_plateforme.py" "$T/$U.hxexe" "$T/n3_image.bin" "$DEST/vecteurs/constantes.txt"
 mkdir -p "$DEST/vecteurs"
+python3 "$COMMUN/n3_plateforme.py" "$T/$U.hxexe" "$T/n3_image.bin" "$DEST/vecteurs/constantes.txt"
 gzip -9 -n -c "$T/n3_image.bin" > "$DEST/vecteurs/n3_image.bin.gz"
 gzip -9 -n -c "$T/trace.txt" > "$DEST/vecteurs/trace.txt.gz"
 {

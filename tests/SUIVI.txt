@@ -266,3 +266,20 @@ concernée quand on l'écrira, puis à rayer ici.
               CHK_TEST0 15276 -> 8743 (IPC 0,86 -> 1,51), CASE_ST1 10027 -> 8164,
               POW1 10631 -> 8640 ; traces identiques à tx_run. DIS_BONJOUR : SPILL 2339 -> 37.
               tx_run (TLALOC, 157 compilations, 12,4 G instructions) : SPILL 6,8 G -> 29 M.
+  2026-10-06  N4 : bancs de mesure B_TRI, B_CRIBLE, B_CHAINES, B_ARBRE, B_MATRICE,
+              B_FLOTTANT, B_APPELS, B_EXPR (Ada propres au test, 60 000 à 160 000
+              instructions, auto-vérifiants) ; n3_generer.sh prend le source du test et
+              crée vecteurs/ avant d'y écrire ; lancer_tests.sh copie les compteurs dans
+              MESURES/ (suivi par git) et y écrit BILAN.txt. Écriture différée par défaut.
+              Plateforme N3 : causes des cycles de frontal vide (arrêt, défaut d'I-cache,
+              après reprise, débit) et des arrêts du renommage (dbg_why).
+              FETCH_UNIT : préchargement des deux lignes suivantes (DIS_BONJOUR -0,6 %).
+              COMPLEX_UNIT : ombre de co-pile (16 entrées : LINK note CSP, CFP ; UNLINK
+              qui y trouve CFP n'attend pas son chargement ; spéc. V8 [Q21] : seul LINK
+              écrit le CFP sauvé, tx_run -v le vérifie) ; chargement d'UNLINK avec
+              FRAME_UPDATE ; LINK et UNLINK court prennent l'instruction suivante à leur
+              dernier cycle (banc L5 : phase en rafale, qui détecte une prise perdue).
+              RENAME_DISPATCH : la pile d'ombre est gardée dans chaque point de reprise et
+              rétablie avec lui (elle était vidée à toute reprise).
+              B_APPELS (cycles) : 58 913 -> 50 241 (ombre de co-pile) -> 44 946 (pile
+              d'ombre gardée) -> 43 559 (prise enchaînée) ; IPC 1,08 -> 1,46.

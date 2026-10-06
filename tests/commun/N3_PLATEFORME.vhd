@@ -279,6 +279,17 @@ COMPTEURS :
     type q_t is array( 0 to 6 ) of natural;
     type sum_t is array( 0 to 6 ) of real;
     variable cyc, ret, alloc, rn_block, rn_starved, dq_empty : natural := 0;
+    -- frontal : cycles de file de décodage vide, par cause
+    alias fe_active    is << signal DUT.U_iNSTRUCTION.U_FETCH.active : std_logic >>;
+    alias fe_hit       is << signal DUT.U_iNSTRUCTION.U_FETCH.hit : std_logic >>;
+    alias fe_fhit      is << signal DUT.U_iNSTRUCTION.U_FETCH.faulty_hit : std_logic >>;
+    alias fe_pred      is << signal DUT.U_iNSTRUCTION.predict_valid : std_logic >>;
+    alias fe_win       is << signal DUT.U_iNSTRUCTION.window_count : window_count_t >>;
+    variable fe_cause  : natural range 0 to 3 := 0;			-- 1 point de reprise, 2 état retiré, 3 saut pris
+    variable fe_stop, fe_miss, fe_ck, fe_cm, fe_pr, fe_dbf, fe_dbd : natural := 0;
+    alias rn_why       is << signal DUT.U_RENAME.dbg_why : natural >>;
+    type why_t is array( 0 to 11 ) of natural;
+    variable why_n     : why_t := ( others => 0 );
     variable rob_sum : real := 0.0;
     variable rob_min : natural := ROB_SIZE;
     variable qsum : sum_t := ( others => 0.0 );
@@ -427,6 +438,7 @@ COMPTEURS :
       if rn_valid = '1' and rn_ready = '0' then rn_block := rn_block + 1; end if;
       if dq_count /= 0 and rn_valid = '0' then
         rn_starved := rn_starved + 1;
+        if rn_why <= 11 then why_n( rn_why ) := why_n( rn_why ) + 1; end if;
         if xfer_ready = '0' then st_xfer := st_xfer + 1; end if;
         if rob_free = 0 then st_rob := st_rob + 1; end if;
       end if;
@@ -436,6 +448,24 @@ COMPTEURS :
         end loop;
       end if;
       if dq_count = 0 then dq_empty := dq_empty + 1; end if;
+      -- frontal : cause d'un cycle de file vide (la dernière redirection depuis que la
+      -- file était non vide ; avant tout, chargement arrêté, puis défaut d'I-cache)
+      if dq_count /= 0 then fe_cause := 0; end if;
+      if dq_count = 0 then
+        if fe_active = '0' then fe_stop := fe_stop + 1;
+        elsif fe_hit = '0' and fe_fhit = '0' then fe_miss := fe_miss + 1;
+        elsif fe_cause = 1 then fe_ck := fe_ck + 1;
+        elsif fe_cause = 2 then fe_cm := fe_cm + 1;
+        elsif fe_cause = 3 then fe_pr := fe_pr + 1;
+        elsif to_integer( fe_win ) = 0 then fe_dbf := fe_dbf + 1;
+        else fe_dbd := fe_dbd + 1;
+        end if;
+      end if;
+      if recovery.valid = '1' then
+        if recovery.kind = RECOVER_CHECKPOINT then fe_cause := 1; else fe_cause := 2; end if;
+      elsif fe_pred = '1' and fe_cause = 0 then
+        fe_cause := 3;
+      end if;
       qv := ( int_n, mdv_n, mem_n, br_n, fp_n, cx_n, lsq_n );
       for q in qv'range loop
         qsum( q ) := qsum( q ) + real( qv( q ) );
@@ -482,8 +512,18 @@ COMPTEURS :
     LIGNE( "PERF cycles rn_valid and not rn_ready (dorsal)      " & integer'image( rn_block ) & " (" & PCT( rn_block, cyc ) & ")" );
     LIGNE( "PERF cycles file de décodage non vide, rien renommé " & integer'image( rn_starved ) & " (" & PCT( rn_starved, cyc ) & ")" );
     LIGNE( "PERF   dont LSQ sans place pour les échanges / ROB plein " & integer'image( st_xfer ) & " / " & integer'image( st_rob ) );
+    LIGNE( "PERF   causes : reprise " & integer'image( why_n( 1 ) ) & ", attente FRAME_UPDATE " & integer'image( why_n( 2 ) )
+           & ", après faute " & integer'image( why_n( 3 ) ) & ", réécriture " & integer'image( why_n( 4 ) )
+           & ", ROB " & integer'image( why_n( 5 ) ) & ", vidage " & integer'image( why_n( 6 ) ) );
+    LIGNE( "PERF   causes : registres ou échanges " & integer'image( why_n( 7 ) ) & ", points de reprise " & integer'image( why_n( 8 ) )
+           & ", écrivains " & integer'image( why_n( 9 ) ) & ", bus d'échanges " & integer'image( why_n( 10 ) )
+           & ", autre " & integer'image( why_n( 0 ) + why_n( 11 ) ) );
     LIGNE( "PERF chargements servis par la fenêtre de pile      " & integer'image( served ) );
     LIGNE( "PERF cycles file de décodage vide (frontal)         " & integer'image( dq_empty ) & " (" & PCT( dq_empty, cyc ) & ")" );
+    LIGNE( "PERF   frontal : arrêté / défaut d'I-cache          " & integer'image( fe_stop ) & " / " & integer'image( fe_miss ) );
+    LIGNE( "PERF   frontal : après mauvaise prédiction / reprise sur l'état retiré / saut pris "
+           & integer'image( fe_ck ) & " / " & integer'image( fe_cm ) & " / " & integer'image( fe_pr ) );
+    LIGNE( "PERF   frontal : débit (fenêtre vide / octets non décodés) " & integer'image( fe_dbf ) & " / " & integer'image( fe_dbd ) );
     for q in 0 to 6 loop
       LIGNE( "PERF occupation " & NOMS( q ) & " moyenne / maximum            "
              & F2( qsum( q ) / real( maximum( cyc, 1 ) ) ) & " /" & integer'image( qmax( q ) ) );

@@ -67,7 +67,7 @@ use work.TAHX_1_ISA.all;
 entity				TAHX_1
 is				------
    generic (
-      DEFERRED_SPILL_G	: boolean := false			-- R2b : écriture différée de la fenêtre
+      DEFERRED_SPILL_G	: boolean := true			-- R2b : écriture différée de la fenêtre
    );
    port (
 

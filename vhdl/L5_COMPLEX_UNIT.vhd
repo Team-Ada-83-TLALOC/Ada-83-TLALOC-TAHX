@@ -130,6 +130,12 @@ use work.EXEC_TYPES.all;
 		--                  qui en rend la fin d'exécution) ; à son résultat sur BYPASS_i
 		--                  (même rob_index) : UNLINK : CFP := valeur ; UNLINKR : CSP :=
 		--                  CFP, puis CFP := valeur ; une fin fautive n'y change rien.
+		--                  Ombre de co-pile (16 entrées, à correspondance directe par
+		--                  l'adresse) : LINK y note ( CSP, CFP, rob_index ) ; un UNLINK dont
+		--                  CFP y est trouvé rend CFP (et CSP) aussitôt, sans attendre son
+		--                  chargement, toujours fait (la LSQ en rend la fin d'exécution) ;
+		--                  spéc. V8 : seul LINK écrit le CFP sauvé. Une reprise efface les
+		--                  entrées des LINK abandonnés ; SYNC les efface toutes.
 		--     EXC_MACH, à la tête, après LSQ_DRAINED_i :
 		--       EXC_MACH lvl, ctx  base = address (DISPLAY[lvl] + ctx, du renommage) ;
 		--                  comme un bloc qui écrit, intervalle [base + 16, base + 64 + 8 * lvl) :
