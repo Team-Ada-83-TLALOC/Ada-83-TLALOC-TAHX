@@ -1,48 +1,49 @@
-PERF T_B_CRIBLE_tb : 66406 cycles, 120894 retraits
-PERF IPC (retraits par cycle)                       1,82
-PERF ROB_FREE moyen / minimum                       160,50 / 0 (sur256)
-PERF renommage : instructions par cycle             2,52
-PERF cycles rn_valid and not rn_ready (dorsal)      27965 (42,11 %)
-PERF cycles file de décodage non vide, rien renommé 1483 (2,23 %)
+PERF T_B_CRIBLE_tb : 65800 cycles, 120894 retraits
+PERF IPC (retraits par cycle)                       1,84
+PERF ROB_FREE moyen / minimum                       159,69 / 0 (sur256)
+PERF renommage : instructions par cycle             2,55
+PERF cycles rn_valid and not rn_ready (dorsal)      27966 (42,50 %)
+PERF cycles file de décodage non vide, rien renommé 1082 (1,64 %)
 PERF   dont LSQ sans place pour les échanges / ROB plein 0 / 252
-PERF   causes : reprise 524, attente FRAME_UPDATE 532, après faute 27, réécriture 68, ROB 252, vidage 0
-PERF   causes : registres ou échanges 0, points de reprise 80, écrivains 0, bus d'échanges 0, autre 0
-PERF chargements servis par la fenêtre de pile      304
-PERF cycles file de décodage vide (frontal)         12079 (18,19 %)
-PERF   frontal : arrêté / défaut d'I-cache          136 / 1134
-PERF   frontal : après mauvaise prédiction / reprise sur l'état retiré / saut pris 1327 / 74 / 0
-PERF   frontal : débit (fenêtre vide / octets non décodés) 64 / 9344
-PERF occupation int moyenne / maximum            18,80 /32
-PERF occupation mdv moyenne / maximum            2,24 /8
-PERF occupation mem moyenne / maximum            4,12 /27
-PERF occupation br  moyenne / maximum            9,26 /16
+PERF   causes : reprise 127, attente FRAME_UPDATE 526, après faute 27, réécriture 69, ROB 252, vidage 0
+PERF   causes : registres ou échanges 0, points de reprise 81, écrivains 0, bus d'échanges 0, autre 0
+PERF chargements servis par la fenêtre de pile      308
+PERF cycles file de décodage vide (frontal)         11447 (17,40 %)
+PERF   frontal : arrêté / défaut d'I-cache          136 / 1127
+PERF   frontal : après mauvaise prédiction / reprise sur l'état retiré / saut pris 751 / 43 / 9293
+PERF   frontal : débit (fenêtre vide / octets non décodés) 46 / 51
+PERF   frontal : sauts prédits pris 11901, cycles de file vide après eux 9293
+PERF occupation int moyenne / maximum            18,96 /32
+PERF occupation mdv moyenne / maximum            2,26 /8
+PERF occupation mem moyenne / maximum            4,16 /27
+PERF occupation br  moyenne / maximum            9,35 /16
 PERF occupation fp  moyenne / maximum            0,00 /1
 PERF occupation cx  moyenne / maximum            0,11 /8
-PERF occupation LSQ moyenne / maximum            32,87 /87
-PERF SPILL / FILL (dont FILL qui terminent)         359 /189 (40)
-PERF D-cache acceptées : lectures / écritures / sondages 54129 /10229 /5015 ; présentées non acceptées (port-cycles)1998
-PERF D-cache requêtes acceptées par cycle : 0 :23795, 1 :15866, 2 :26728, 3+ :17
+PERF occupation LSQ moyenne / maximum            33,14 /87
+PERF SPILL / FILL (dont FILL qui terminent)         364 /187 (40)
+PERF D-cache acceptées : lectures / écritures / sondages 54152 /10229 /5017 ; présentées non acceptées (port-cycles)1989
+PERF D-cache requêtes acceptées par cycle : 0 :23174, 1 :15871, 2 :26738, 3+ :17
 PERF D-cache lignes remplies / réécrites            174 /1
 PERF I-cache lignes remplies                        192
 PERF transferts retirés / conditionnels / pris      18830 /14955 /7756
-PERF mauvaises prédictions (reprises sur point)     579 (3,07 % des transferts)
+PERF mauvaises prédictions (reprises sur point)     578 (3,07 % des transferts)
 PERF reprises sur l'état retiré (fautes, services)  33
-PERF cycles HOLD_RETIRE / tête sérialisante / HEAD_ATOMIC 834 /797 /818
-PERF tête non terminée (cycles) : 29698 (44,72 %)
+PERF cycles HOLD_RETIRE / tête sérialisante / HEAD_ATOMIC 833 /796 /818
+PERF tête non terminée (cycles) : 29658 (45,07 %)
 PERF   classe : cycles en tête non terminée (part des cycles), retirées, cycles par instruction
-PERF   chargements : 6494  (9,78 %)  39263  0,17
-PERF   rangements : 5771  (8,69 %)  9858  0,59
+PERF   chargements : 6485  (9,86 %)  39263  0,17
+PERF   rangements : 5756  (8,75 %)  9858  0,58
 PERF   adresses (LIVA) : 140  (0,21 %)  298  0,47
-PERF   blocs qui écrivent : 775  (1,17 %)  2  387,50
-PERF   LINK : 39  (0,06 %)  46  0,85
-PERF   UNLINK, UNLINKR : 189  (0,28 %)  45  4,20
+PERF   blocs qui écrivent : 775  (1,18 %)  2  387,50
+PERF   LINK : 38  (0,06 %)  46  0,83
+PERF   UNLINK, UNLINKR : 179  (0,27 %)  45  3,98
 PERF   EXC_MACH : 163  (0,25 %)  1  163,00
 PERF   CO_VAR, HEAP_ALLOC : 10  (0,02 %)  5  2,00
-PERF   services (TRAP, RTX, EXC_RAISE) : 701  (1,06 %)  32  21,91
-PERF   transferts : 4715  (7,10 %)  18783  0,25
-PERF   autres : 10701  (16,11 %)  52561  0,20
-PERF rangements en tête : avant l'adresse 16, après (LSQ) 5755
-PERF chargements en tête : avant l'adresse 679, après (LSQ) 5815
-PERF lectures en attente dans la LSQ (somme sur les cycles) : rangement plus ancien sans adresse 1330125, recouvrement partiel 0, barrière 3813
-PERF rangements sans adresse dans la LSQ (somme sur les cycles) : famille B 130133, famille C pointeur non lu 51963, famille C cellule inconnue 0, de LINK 1096
-PERF accès mémoire : adresse -> fin rendue par la LSQ, moyenne 31,80 cycles (51321 accès)
+PERF   services (TRAP, RTX, EXC_RAISE) : 700  (1,06 %)  32  21,88
+PERF   transferts : 4713  (7,16 %)  18783  0,25
+PERF   autres : 10699  (16,26 %)  52561  0,20
+PERF rangements en tête : avant l'adresse 16, après (LSQ) 5740
+PERF chargements en tête : avant l'adresse 676, après (LSQ) 5809
+PERF lectures en attente dans la LSQ (somme sur les cycles) : rangement plus ancien sans adresse 1329104, recouvrement partiel 0, barrière 3813
+PERF rangements sans adresse dans la LSQ (somme sur les cycles) : famille B 130045, famille C pointeur non lu 51963, famille C cellule inconnue 0, de LINK 1107
+PERF accès mémoire : adresse -> fin rendue par la LSQ, moyenne 31,78 cycles (51312 accès)

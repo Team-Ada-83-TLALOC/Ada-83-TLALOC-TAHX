@@ -37,9 +37,13 @@ use work.FETCH_DECODE_TYPES.all;
 		--     DECODE_WIDTH ) ; POP_BLOCK_o( i ), i < POP_COUNT_o, est la i-ème plus
 		--     ancienne, avec valid = '1' ; au-delà, valid = '0' et le reste n'est pas
 		--     défini. Un bloc pris au front n est en sortie au cycle n + 1.
+		--     Contournement : file vide, PUSH_VALID_i = '1' et ni RESET_i ni FLUSH_i, la
+		--     sortie est le bloc présenté (POP_COUNT_o = PUSH_COUNT_i), au même cycle ;
+		--     le retrait peut y puiser, les cases non prises entrent en file. (Chemin
+		--     combinatoire du frontal au renommage dans le cycle : à revoir à la synthèse.)
 		--
 		--  3. Retrait. Au front, les POP_TAKE_i plus anciennes quittent la file
-		--     (contrat du renommage : pas plus que POP_COUNT_o). Entrée et retrait
+		--     (contrat du renommage : pas plus que POP_COUNT_o, contournement compris). Entrée et retrait
 		--     peuvent avoir lieu au même front.
 		--
 		--  4. Vidage. RESET_i ou FLUSH_i = '1' vide la file au front, sans entrée ni

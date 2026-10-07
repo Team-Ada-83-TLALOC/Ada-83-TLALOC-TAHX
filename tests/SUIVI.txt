@@ -300,3 +300,17 @@ concernée quand on l'écrira, puis à rayer ici.
               fois : chaîne de Newton, série de Leibniz).
               I_N2_INSTRUCTION_UNIT : tirage de 45 000 cycles (le préchargement de
               FETCH_UNIT avait ramené la couverture à 49 sauts conditionnels pris pour 50).
+  2026-10-07  Mesures de N4 (commit 596ad16) : B_ARBRE 0,82 -> 1,00 (conversion C),
+              B_FLOTTANT 0,84 ; toute la suite OK (42 min, -j 16).
+              Plateforme N3 : la cause d'une redirection vaut jusqu'au premier bloc entré
+              dans la file après elle (elle était oubliée dès que la file était non vide :
+              « octets non décodés » prenait les bulles des sauts pris) ; nombre de sauts
+              prédits pris ; file vide = rien en file et rien qui arrive.
+              Trace cycle par cycle (CHK_TEST0) : un saut pris coûtait deux cycles, la
+              fenêtre vidée par la redirection, puis la file (un bloc entré au front n
+              n'était visible qu'au cycle n + 1, même file vide).
+              DECODE_QUEUE : contournement de la file vide (le bloc présenté est en sortie
+              au même cycle) ; banc J1 suivant le nouveau contrat (l'ancienne file y
+              échoue). CHK_TEST0 8 684 -> 8 593, B_APPELS 43 559 -> 42 007 (IPC 1,51).
+              Reste environ un cycle par saut pris (B_APPELS : 15 493 cycles pour 15 970
+              sauts) : la redirection n'est connue qu'après le décodage.

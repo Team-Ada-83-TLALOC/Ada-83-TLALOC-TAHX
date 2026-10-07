@@ -116,6 +116,7 @@ begin
       variable ok		: boolean;
       variable bad		: integer;
       variable full_seen, empty_seen : natural := 0;
+      variable bypass_seen	: natural := 0;				-- blocs pris par le contournement
 
       impure function RAND return real is
       begin
@@ -149,6 +150,8 @@ begin
          do_flush := RAND < p_flush;
          do_push := RAND < p_push;
          push_n := RAND_INT( DECODE_WIDTH );
+         -- file vide : le bloc présenté est en sortie au même cycle (contournement)
+         if n = 0 and do_push and not do_flush then pc := push_n; end if;
          for i in 0 to DECODE_WIDTH - 1 loop
             if i < push_n then
                blk( i ) := SLOT_OF( next_seq + i );
@@ -161,6 +164,7 @@ begin
          if RAND < p_take then
             if RAND < 0.4 then take := pc; else take := RAND_INT( pc ); end if;
          end if;
+         if n = 0 and take > 0 then bypass_seen := bypass_seen + 1; end if;
 
          flush <= B( do_flush );
          push_valid <= B( do_push );
@@ -202,11 +206,11 @@ begin
             head_seq := next_seq;
          else
             head_seq := head_seq + take;
-            n := n - take;
             if do_push and ready_seen = '1' then
                n := n + push_n;
                next_seq := next_seq + push_n;
             end if;
+            n := n - take;
          end if;
          if n > DECODE_QUEUE_DEPTH - DECODE_WIDTH then full_seen := full_seen + 1; end if;
          if n = 0 then empty_seen := empty_seen + 1; end if;
@@ -216,8 +220,9 @@ begin
       running <= false;
       report "graines " & integer'image( SEED_1 ) & ", " & integer'image( SEED_2 ) & " ; cases entrées "
              & integer'image( next_seq ) & ", cycles sans place pour un bloc " & integer'image( full_seen )
-             & ", file vide " & integer'image( empty_seen ) severity note;
-      CHECK( c, full_seen > 100 and empty_seen > 100, "le tirage a rempli et vidé la file" );
+             & ", file vide " & integer'image( empty_seen ) & ", contournements " & integer'image( bypass_seen ) severity note;
+      CHECK( c, full_seen > 100 and empty_seen > 100 and bypass_seen > 100,
+             "le tirage a rempli et vidé la file, et pris des blocs par le contournement" );
       FINISH( c, "T_J1_DECODE_QUEUE_tb" );
       wait;
    end process;

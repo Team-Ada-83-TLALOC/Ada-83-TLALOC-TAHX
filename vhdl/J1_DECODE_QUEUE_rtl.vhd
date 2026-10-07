@@ -46,8 +46,20 @@ begin
 		-- 2. sortie : les plus anciennes
 		--------------------------------------------------------------------------------
 
-   SORTIE : process( slots, head, count )
+   SORTIE : process( slots, head, count, PUSH_VALID_i, PUSH_BLOCK_i, PUSH_COUNT_i, FLUSH_i, RESET_i )
    begin
+      -- file vide : contournement, le bloc présenté est en sortie au même cycle
+      if count = 0 and PUSH_VALID_i = '1' and FLUSH_i = '0' and RESET_i = '0' then
+         for i in 0 to DECODE_WIDTH - 1 loop
+            POP_BLOCK_o( i ) <= PUSH_BLOCK_i( i );
+            if i < to_integer( PUSH_COUNT_i ) then
+               POP_BLOCK_o( i ).valid <= '1';
+            else
+               POP_BLOCK_o( i ).valid <= '0';
+            end if;
+         end loop;
+         POP_COUNT_o <= PUSH_COUNT_i;
+      else
       for i in 0 to DECODE_WIDTH - 1 loop
          POP_BLOCK_o( i ) <= slots( ( head + i ) mod DECODE_QUEUE_DEPTH );
          if i < count then
@@ -60,6 +72,7 @@ begin
          POP_COUNT_o <= to_unsigned( DECODE_WIDTH, POP_COUNT_o'length );
       else
          POP_COUNT_o <= to_unsigned( count, POP_COUNT_o'length );
+      end if;
       end if;
    end process;
 
@@ -84,14 +97,16 @@ begin
             end if;
 
             -- pragma translate_off
-            assert take <= count and take <= DECODE_WIDTH
+            assert ( take <= count or ( count = 0 and take <= push ) ) and take <= DECODE_WIDTH
                report "DECODE_QUEUE : retrait de " & integer'image( take ) & " cases, "
                       & integer'image( count ) & " présentes" severity error;
             assert push <= DECODE_WIDTH
                report "DECODE_QUEUE : bloc de plus de DECODE_WIDTH cases" severity error;
             -- pragma translate_on
 
-            if take > count then						-- contrat violé : on borne
+            if count = 0 then						-- contournement : le bloc entrant
+               if take > push then take := push; end if;
+            elsif take > count then					-- contrat violé : on borne
                take := count;
             end if;
 

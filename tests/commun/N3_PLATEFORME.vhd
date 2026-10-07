@@ -285,6 +285,10 @@ COMPTEURS :
     alias fe_fhit      is << signal DUT.U_iNSTRUCTION.U_FETCH.faulty_hit : std_logic >>;
     alias fe_pred      is << signal DUT.U_iNSTRUCTION.predict_valid : std_logic >>;
     alias fe_win       is << signal DUT.U_iNSTRUCTION.window_count : window_count_t >>;
+    alias fe_out_v     is << signal DUT.fe_valid : std_logic >>;
+    alias fe_out_r     is << signal DUT.fe_ready : std_logic >>;
+    alias fe_out_n     is << signal DUT.fe_count : decode_count_t >>;
+    variable fe_npred  : natural := 0;					-- sauts prédits pris (redirections)
     variable fe_cause  : natural range 0 to 3 := 0;			-- 1 point de reprise, 2 état retiré, 3 saut pris
     variable fe_stop, fe_miss, fe_ck, fe_cm, fe_pr, fe_dbf, fe_dbd : natural := 0;
     alias rn_why       is << signal DUT.U_RENAME.dbg_why : natural >>;
@@ -447,11 +451,11 @@ COMPTEURS :
           if ren_blk( k ).stack_cache_hit = '1' then served := served + 1; end if;
         end loop;
       end if;
-      if dq_count = 0 then dq_empty := dq_empty + 1; end if;
-      -- frontal : cause d'un cycle de file vide (la dernière redirection depuis que la
-      -- file était non vide ; avant tout, chargement arrêté, puis défaut d'I-cache)
-      if dq_count /= 0 then fe_cause := 0; end if;
-      if dq_count = 0 then
+      -- file vide : rien en file et rien qui arrive (DECODE_QUEUE contourne une file vide)
+      if dq_count = 0 and fe_out_v = '0' then dq_empty := dq_empty + 1; end if;
+      -- frontal : cause d'un cycle de file vide (la dernière redirection dont aucun bloc
+      -- n'est encore entré dans la file ; avant tout, chargement arrêté, puis défaut d'I-cache)
+      if dq_count = 0 and fe_out_v = '0' then
         if fe_active = '0' then fe_stop := fe_stop + 1;
         elsif fe_hit = '0' and fe_fhit = '0' then fe_miss := fe_miss + 1;
         elsif fe_cause = 1 then fe_ck := fe_ck + 1;
@@ -461,10 +465,13 @@ COMPTEURS :
         else fe_dbd := fe_dbd + 1;
         end if;
       end if;
+      -- (le cycle est classé d'abord) la cause d'une redirection vaut jusqu'au premier bloc
+      -- accepté par la file après elle (celui du cycle même de la redirection est celui du saut)
+      if fe_out_v = '1' and fe_out_r = '1' and recovery.valid = '0' and fe_pred = '0' then fe_cause := 0; end if;
       if recovery.valid = '1' then
         if recovery.kind = RECOVER_CHECKPOINT then fe_cause := 1; else fe_cause := 2; end if;
-      elsif fe_pred = '1' and fe_cause = 0 then
-        fe_cause := 3;
+      elsif fe_pred = '1' then
+        fe_cause := 3; fe_npred := fe_npred + 1;
       end if;
       qv := ( int_n, mdv_n, mem_n, br_n, fp_n, cx_n, lsq_n );
       for q in qv'range loop
@@ -524,6 +531,8 @@ COMPTEURS :
     LIGNE( "PERF   frontal : après mauvaise prédiction / reprise sur l'état retiré / saut pris "
            & integer'image( fe_ck ) & " / " & integer'image( fe_cm ) & " / " & integer'image( fe_pr ) );
     LIGNE( "PERF   frontal : débit (fenêtre vide / octets non décodés) " & integer'image( fe_dbf ) & " / " & integer'image( fe_dbd ) );
+    LIGNE( "PERF   frontal : sauts prédits pris " & integer'image( fe_npred ) & ", cycles de file vide après eux "
+           & integer'image( fe_pr ) );
     for q in 0 to 6 loop
       LIGNE( "PERF occupation " & NOMS( q ) & " moyenne / maximum            "
              & F2( qsum( q ) / real( maximum( cyc, 1 ) ) ) & " /" & integer'image( qmax( q ) ) );
