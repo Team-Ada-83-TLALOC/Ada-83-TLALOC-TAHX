@@ -65,6 +65,13 @@ of T_I1_FETCH_UNIT_tb is
    signal recovery		: recovery_t := NO_RECOVERY;
    signal predict_valid	: std_logic := '0';
    signal predict_pc		: address_t := ( others => '0' );
+   -- tampon de cible : chargement de la file d'octets ; apprentissage de la table
+   signal pre_valid		: std_logic;
+   signal pre_pc		: address_t;
+   signal pre_block		: fetch_block_t;
+   signal pre_count		: fetch_count_t;
+   signal tr_valid, tr_taken	: std_logic := '0';
+   signal tr_key, tr_fin, tr_target : address_t := ( others => '0' );
    signal stop			: std_logic := '0';
    signal flush		: std_logic;
 
@@ -83,7 +90,10 @@ begin
          FETCH_VALID_o => fetch_valid, FETCH_PC_o => fetch_pc, FETCH_BLOCK_o => fetch_block,
          FETCH_COUNT_o => fetch_count, FETCH_READY_i => fetch_ready, FETCH_FAULT_o => fetch_fault,
          RECOVERY_i => recovery, PREDICT_VALID_i => predict_valid, PREDICT_PC_i => predict_pc,
-         STOP_i => stop, FLUSH_o => flush );
+         STOP_i => stop, FLUSH_o => flush,
+         PRELOAD_VALID_o => pre_valid, PRELOAD_PC_o => pre_pc, PRELOAD_BLOCK_o => pre_block, PRELOAD_COUNT_o => pre_count,
+         TRAIN_VALID_i => tr_valid, TRAIN_KEY_i => tr_key, TRAIN_FIN_i => tr_fin, TRAIN_TARGET_i => tr_target,
+         TRAIN_TAKEN_i => tr_taken );
 
    MEMOIRE : entity work.MEMOIRE_INSTRUCTIONS
       generic map ( LATENCY_MIN_G => 1, LATENCY_MAX_G => 20, READY_PROB_G => 0.8, SEED_1_G => 11, SEED_2_G => 12 )
@@ -118,6 +128,16 @@ begin
       variable rec		: recovery_t;
       variable ok		: boolean;
       variable n_blocks, n_faulty, n_rec, n_pred, n_stop, longest_wait : natural := 0;
+      -- le banc joue BRANCH_PREDICT : il apprend un saut pris depuis un bloc pris, et
+      -- prédit souvent la cible apprise du dernier bloc pris
+      variable last_target	: address_t := to_unsigned( REGION, 64 );
+      type kt_t		is array( 0 to 63 ) of address_t;
+      variable kk, kt		: kt_t := ( others => ( others => '1' ) );	-- points d'entrée appris, cibles
+      variable kn		: natural := 0;
+      variable armed		: boolean := false;
+      variable tr_t		: address_t;
+      variable n_train, n_preload : natural := 0;
+      variable pcnt		: natural;
 
       impure function RAND return real is
       begin
@@ -158,6 +178,7 @@ begin
          end if;
          target := NEW_TARGET;
          pred_target := NEW_TARGET;
+         if armed and RAND < 0.8 then pred_target := last_target; end if;
          rec := NO_RECOVERY;
          if do_rec then
             rec.valid := '1';
@@ -171,6 +192,25 @@ begin
          stop <= B( do_stop );
          fetch_ready <= B( RAND < 0.75 );
          wait for 1 ns;
+
+		-- tampon de cible : seulement au cycle d'une prédiction sans reprise, vers sa cible,
+		-- avec les octets de la mémoire
+         if pre_valid = '1' then
+            pcnt := FETCH_BLOCK_SIZE - to_integer( pred_target( 4 downto 0 ) );
+            got := ( others => '0' ); exp := ( others => '0' );
+            for i in 0 to FETCH_BLOCK_SIZE - 1 loop
+               if i < pcnt then
+                  got( 8 * i + 7 downto 8 * i ) := pre_block( i );
+                  exp( 8 * i + 7 downto 8 * i ) := MEM_BYTE( pred_target + i );
+               end if;
+            end loop;
+            ok := do_pred and not do_rec and active and pre_pc = pred_target
+                  and pre_count = to_unsigned( pcnt, pre_count'length ) and got = exp and MEM_FAULT( pred_target ) = '0';
+            if ok then CHECK_PASSED( c ); n_preload := n_preload + 1; else
+               CHECK( c, false, "cycle " & integer'image( cycle ) & " : tampon de cible (" & HEX( pre_pc ) & ", attendu "
+                                & HEX( pred_target ) & ")" );
+            end if;
+         end if;
 
 		-- vérifications
          if flush = B( do_rec or do_pred or do_stop ) then CHECK_PASSED( c ); else
@@ -203,6 +243,22 @@ begin
             end if;
          end if;
          take := fetch_valid = '1' and fetch_ready = '1';
+         -- apprentissage (au front) : depuis le point d'entrée du bloc pris, un saut pris
+         tr_valid <= '0';
+         if take then							-- un bloc d'entrée apprise : sa cible est prévue
+            armed := false;
+            for j in kk'range loop
+               if kk( j ) = expected then armed := true; last_target := kt( j ); end if;
+            end loop;
+         end if;
+         if take and not armed and RAND < 0.6 then
+            tr_t := NEW_TARGET;
+            tr_valid <= '1'; tr_taken <= '1'; tr_key <= expected; tr_target <= tr_t;
+            tr_fin <= expected( 63 downto 5 ) & "11111"; n_train := n_train + 1;
+            kk( kn ) := expected; kt( kn ) := tr_t; kn := ( kn + 1 ) mod 64;
+         elsif take and RAND < 0.1 then
+            tr_valid <= '1'; tr_taken <= '0'; tr_key <= expected; tr_fin <= expected( 63 downto 5 ) & "11111";
+         end if;
 
 		-- front : le modèle suit le contrat
          wait until rising_edge( clk );
@@ -218,6 +274,9 @@ begin
          end if;
          if do_rec then
             active := true; expected := target; waited := 0; n_rec := n_rec + 1;
+         elsif do_pred and pre_valid = '1' then				-- la cible est déjà dans la file
+            expected := pred_target( 63 downto 5 ) & "00000"; expected := expected + FETCH_BLOCK_SIZE;
+            waited := 0; n_pred := n_pred + 1;
          elsif do_pred then
             expected := pred_target; waited := 0; n_pred := n_pred + 1;
          elsif do_stop then
@@ -238,8 +297,11 @@ begin
              & integer'image( n_pred ) & ", arrêts " & integer'image( n_stop ) & ", attente maximale "
              & integer'image( longest_wait ) & " cycles" severity note;
       report "reprises coïncidant avec une prédiction ou un arrêt : " & integer'image( n_both ) severity note;
-      CHECK( c, n_blocks > 10000 and n_faulty > 50 and n_stop > 20 and n_both > 10 and accepted < 4 * n_blocks,
-             "le tirage a exercé blocs, fautes, arrêts, et le cache sert" );
+      report "tampon de cible : apprentissages " & integer'image( n_train ) & ", chargements "
+             & integer'image( n_preload ) severity note;
+      CHECK( c, n_blocks > 10000 and n_faulty > 50 and n_stop > 20 and n_both > 10 and accepted < 4 * n_blocks
+                and n_preload > 100,
+             "le tirage a exercé blocs, fautes, arrêts, tampon de cible, et le cache sert" );
       FINISH( c, "T_I1_FETCH_UNIT_tb" );
       wait;
    end process;

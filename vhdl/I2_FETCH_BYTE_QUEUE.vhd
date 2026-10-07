@@ -54,6 +54,11 @@ use work.FETCH_DECODE_TYPES.all;
 		--  4. Vidage. RESET_i ou FLUSH_i = '1' vide la file au front, sans retrait ni
 		--     ajout ce cycle-là. Contrat de FETCH_UNIT : FETCH_VALID_i = '0' le cycle
 		--     où il lève FLUSH_i (il n'a encore rien lu à la nouvelle adresse).
+		--     Chargement : FLUSH_i = PRELOAD_VALID_i = '1' (sans RESET_i) remplace la
+		--     file par les PRELOAD_COUNT_i premiers octets de PRELOAD_BLOCK_i, sans
+		--     faute, le PC de tête valant PRELOAD_PC_i (tampon de cible de FETCH_UNIT :
+		--     la cible d'un saut prédit pris, déjà lue) ; le bloc suivant de FETCH_UNIT
+		--     commence à PRELOAD_PC_i + PRELOAD_COUNT_i.
 		--
 		--  Les manquements aux contrats (bloc non consécutif, retrait de plus que la
 		--  fenêtre, bloc pendant un vidage, plus de 32 octets) sont signalés en
@@ -109,6 +114,10 @@ is				----------------
 		--------------------------------------------------------------------------------
 
       FLUSH_i		:in  std_logic;
+      PRELOAD_VALID_i	:in  std_logic;			-- avec FLUSH_i : la file prend ce bloc
+      PRELOAD_PC_i		:in  address_t;
+      PRELOAD_BLOCK_i	:in  fetch_block_t;
+      PRELOAD_COUNT_i	:in  fetch_count_t;
 
 		--------------------------------------------------------------------------------
 		-- État interne de la file tampon

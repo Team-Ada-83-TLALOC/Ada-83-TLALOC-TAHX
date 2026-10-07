@@ -48,6 +48,14 @@ of INSTRUCTION_UNIT is		---------
    signal predict_valid			: std_logic;
    signal predict_pc			: address_t;
 
+   -- tampon de cible (FETCH_UNIT -> FETCH_BYTE_QUEUE) ; apprentissage (BRANCH_PREDICT -> FETCH_UNIT)
+   signal preload_valid			: std_logic;
+   signal preload_pc			: address_t;
+   signal preload_block			: fetch_block_t;
+   signal preload_count			: fetch_count_t;
+   signal train_valid, train_taken		: std_logic;
+   signal train_key, train_fin, train_target	: address_t;
+
 begin
 
   stop <= ( decode_stop  and  consume )  or  HALT_i;
@@ -61,7 +69,11 @@ U_FETCH :
       FETCH_VALID_o => fetch_valid, FETCH_PC_o => fetch_pc, FETCH_BLOCK_o => fetch_block,
       FETCH_COUNT_o => fetch_count, FETCH_READY_i => fetch_ready, FETCH_FAULT_o => fetch_fault,
       RECOVERY_i => RECOVERY_i, PREDICT_VALID_i => predict_valid, PREDICT_PC_i => predict_pc,
-      STOP_i => stop, FLUSH_o => flush
+      STOP_i => stop, FLUSH_o => flush,
+      PRELOAD_VALID_o => preload_valid, PRELOAD_PC_o => preload_pc, PRELOAD_BLOCK_o => preload_block,
+      PRELOAD_COUNT_o => preload_count,
+      TRAIN_VALID_i => train_valid, TRAIN_KEY_i => train_key, TRAIN_FIN_i => train_fin,
+      TRAIN_TARGET_i => train_target, TRAIN_TAKEN_i => train_taken
     );
 
 U_BYTES :
@@ -74,6 +86,8 @@ U_BYTES :
       WINDOW_FAULT_o => window_fault,
       CONSUME_i => consume, CONSUMED_BYTES_i => consumed_bytes,
       FLUSH_i => flush,
+      PRELOAD_VALID_i => preload_valid, PRELOAD_PC_i => preload_pc, PRELOAD_BLOCK_i => preload_block,
+      PRELOAD_COUNT_i => preload_count,
       EMPTY_o => open, BYTE_COUNT_o => open
     );
 
@@ -96,6 +110,8 @@ U_PREDICT :
          OUT_BLOCK_o => OUT_BLOCK_o, OUT_COUNT_o => OUT_COUNT_o, OUT_VALID_o => OUT_VALID_o,
          OUT_READY_i => OUT_READY_i,
          PREDICT_VALID_o => predict_valid, PREDICT_PC_o => predict_pc,
+         TRAIN_VALID_o => train_valid, TRAIN_KEY_o => train_key, TRAIN_FIN_o => train_fin,
+         TRAIN_TARGET_o => train_target, TRAIN_TAKEN_o => train_taken,
          RETIRE_i => RETIRE_i, RECOVERY_i => RECOVERY_i
     );
 

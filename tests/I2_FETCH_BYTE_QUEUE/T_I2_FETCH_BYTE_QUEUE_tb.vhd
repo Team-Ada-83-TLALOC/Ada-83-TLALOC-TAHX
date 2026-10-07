@@ -66,6 +66,10 @@ of T_I2_FETCH_BYTE_QUEUE_tb is
    signal consume		: std_logic := '0';
    signal consumed_bytes	: window_count_t := ( others => '0' );
    signal flush		: std_logic := '0';
+   signal pre_valid		: std_logic := '0';
+   signal pre_pc		: address_t := ( others => '0' );
+   signal pre_block		: fetch_block_t;
+   signal pre_count		: fetch_count_t := ( others => '0' );
    signal empty		: std_logic;
    signal byte_count		: queue_count_t;
 
@@ -107,6 +111,7 @@ begin
          WINDOW_FAULT_o => window_fault,
          CONSUME_i => consume, CONSUMED_BYTES_i => consumed_bytes,
          FLUSH_i => flush,
+         PRELOAD_VALID_i => pre_valid, PRELOAD_PC_i => pre_pc, PRELOAD_BLOCK_i => pre_block, PRELOAD_COUNT_i => pre_count,
          EMPTY_o => empty, BYTE_COUNT_o => byte_count );
 
    clk <= not clk after PERIOD / 2 when running;
@@ -139,6 +144,10 @@ begin
       variable exp_bytes, got_bytes : std_logic_vector( 8 * DECODE_WINDOW_SIZE - 1 downto 0 );
       variable exp_flags, got_flags : std_logic_vector( 0 to DECODE_WINDOW_SIZE - 1 );
       variable full_seen, empty_seen : natural := 0;
+      variable do_pre		: boolean;				-- vidage avec chargement
+      variable ppc		: address_t;
+      variable pn, pre_seen	: natural := 0;
+      variable pblk		: fetch_block_t;
       variable ready_seen	: std_logic;				-- FETCH_READY_o avant le front
       variable blk		: fetch_block_t;
 
@@ -190,6 +199,19 @@ begin
                blk( j ) := std_logic_vector( to_unsigned( RAND_INT( 255 ), 8 ) );	-- quelconques
             end if;
          end loop;
+         -- vidage avec chargement (tampon de cible) : une ligne sans faute
+         do_pre := false;
+         if do_flush and RAND < 0.5 then
+            ppc := NEW_PC; pn := FETCH_BLOCK_SIZE - to_integer( ppc( 4 downto 0 ) ); do_pre := true;
+            for j in 0 to FETCH_BLOCK_SIZE - 1 loop
+               if j < pn then
+                  pblk( j ) := MEM_BYTE( LOW( ppc ) + j );
+                  if MEM_FAULT( LOW( ppc ) + j ) = '1' then do_pre := false; end if;
+               else
+                  pblk( j ) := std_logic_vector( to_unsigned( RAND_INT( 255 ), 8 ) );
+               end if;
+            end loop;
+         end if;
          do_pop := RAND < p_pop;
          if RAND < 0.3 then
             pop_n := wc;
@@ -198,6 +220,8 @@ begin
          end if;
 
          flush <= B( do_flush );
+         pre_valid <= B( do_pre ); pre_pc <= ppc; pre_block <= pblk;
+         pre_count <= to_unsigned( pn, pre_count'length );
          fetch_valid <= B( do_push );
          fetch_pc <= next_pc;
          fetch_block <= blk;
@@ -242,7 +266,9 @@ begin
 
 		-- front : le modèle suit le contrat
          wait until rising_edge( clk );
-         if do_flush then
+         if do_flush and do_pre then
+            count := pn; head_pc := ppc; next_pc := ppc + pn; pre_seen := pre_seen + 1;
+         elsif do_flush then
             count := 0;
             next_pc := NEW_PC;
          else
@@ -269,8 +295,10 @@ begin
 
       running <= false;
       report "graines " & integer'image( SEED_1 ) & ", " & integer'image( SEED_2 ) & " ; cycles file pleine "
-             & integer'image( full_seen ) & ", file vide " & integer'image( empty_seen ) severity note;
-      CHECK( c, full_seen > 100 and empty_seen > 100, "le tirage a rempli et vidé la file" );
+             & integer'image( full_seen ) & ", file vide " & integer'image( empty_seen )
+             & ", vidages chargés " & integer'image( pre_seen ) severity note;
+      CHECK( c, full_seen > 100 and empty_seen > 100 and pre_seen > 100,
+             "le tirage a rempli et vidé la file, avec des vidages chargés" );
       FINISH( c, "T_I2_FETCH_BYTE_QUEUE_tb" );
       wait;
    end process;

@@ -94,6 +94,15 @@ FILE_OCTETS :
         head <= 0;
         count <= 0;
         pc_known <= '0';
+        if  RESET_i = '0'  and  PRELOAD_VALID_i = '1'  then		-- vidage avec chargement
+          for  j in 0 to FETCH_BLOCK_SIZE - 1  loop
+            bytes( j ) <= PRELOAD_BLOCK_i( j );
+            faults( j ) <= '0';
+          end loop;
+          count <= to_integer( PRELOAD_COUNT_i );
+          head_pc <= PRELOAD_PC_i;
+          pc_known <= '1';
+        end if;
 
             -- pragma translate_off
         assert  not ( FLUSH_i = '1'  and  RESET_i = '0'  and  FETCH_VALID_i = '1' )

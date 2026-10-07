@@ -60,6 +60,16 @@ use work.ROB_TYPES.all;
 		--     d'indice ( pc mod 2^16 ) xor ghist (celui de la prédiction) avance vers
 		--     taken, avec saturation à 0 et 3.
 		--
+		--  5. Apprentissage de la table de blocs de FETCH_UNIT (performance seule).
+		--     Le point d'entrée suit, dans l'ordre du décodage, le PC de chargement de
+		--     FETCH_UNIT : la cible d'un saut prédit pris, le PC d'une reprise, et le
+		--     début de la ligne alignée de 32 octets où finit une instruction, si elle
+		--     n'est pas celle du point d'entrée. Au cycle qui suit le transfert d'un
+		--     bloc, TRAIN_VALID_o = '1' pour son premier saut prédit pris (TRAIN_TAKEN_o =
+		--     '1' ; TRAIN_KEY_o le point d'entrée, TRAIN_FIN_o son dernier octet,
+		--     TRAIN_TARGET_o sa cible) ou, à défaut, pour son premier saut conditionnel
+		--     prédit non pris (TRAIN_TAKEN_o = '0').
+		--
 		--  4. Reprise. Au front où RECOVERY_i est valide, ghist := recovery.ghist et
 		--     ras_ptr := recovery.ras_ptr (calculés par le ROB) ; le bloc du cycle ne
 		--     fait pas avancer l'état. Les entrées de la pile ne sont pas réparées :
@@ -100,6 +110,14 @@ is                              --------------
 
       PREDICT_VALID_o	:out std_logic;			-- Prédiction valide
       PREDICT_PC_o		:out address_t;			-- Adresse prédite
+		----------------------------------------------------------------
+		-- Apprentissage de la table de blocs de FETCH_UNIT
+		----------------------------------------------------------------
+      TRAIN_VALID_o		:out std_logic;
+      TRAIN_KEY_o		:out address_t;
+      TRAIN_FIN_o		:out address_t;
+      TRAIN_TARGET_o	:out address_t;
+      TRAIN_TAKEN_o		:out std_logic;
 
 		----------------------------------------------------------------
 		-- Apprentissage et reprise

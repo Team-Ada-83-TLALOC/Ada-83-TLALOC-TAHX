@@ -62,6 +62,29 @@ of FETCH_UNIT is		---
    signal redirect		: std_logic;
    signal show			: std_logic;
 
+   -- table de blocs et tampon de cible
+   constant BT_ENTRIES		: positive := 256;
+   type bt_entry_t		is record
+			  valid		: boolean;
+			  key, fin, target : address_t;
+			  ctr		: natural range 0 to 3;
+			end record;
+   type bt_array_t		is array( 0 to BT_ENTRIES - 1 ) of bt_entry_t;
+   signal bt			: bt_array_t;
+   constant TB_ENTRIES		: positive := 4;					-- tampons de cible
+   type tb_valid_t		is array( 0 to TB_ENTRIES - 1 ) of boolean;
+   type tb_pc_t		is array( 0 to TB_ENTRIES - 1 ) of address_t;
+   type tb_block_t		is array( 0 to TB_ENTRIES - 1 ) of fetch_block_t;
+   signal tb_valid		: tb_valid_t;
+   signal tb_pc		: tb_pc_t;
+   signal tb_block		: tb_block_t;
+   signal tb_next		: natural range 0 to TB_ENTRIES - 1;		-- prochain à remplacer
+   signal tb_sel		: natural range 0 to TB_ENTRIES - 1;		-- celui de la cible prédite
+   signal tb_has		: boolean;					-- la cible prévue y est déjà
+   signal bt_target		: address_t;					-- cible prévue depuis le PC
+   signal bt_load		: boolean;					--  et sa ligne est en cache
+   signal preload		: std_logic;
+
    function LINE_OF( a : address_t ) return address_t is
    begin
       return a( a'high downto 5 ) & "00000";
@@ -70,6 +93,11 @@ of FETCH_UNIT is		---
    function INDEX_OF( a : address_t ) return natural is
    begin
       return to_integer( a( 13 downto 5 ) );				-- LINES = 512
+   end function;
+
+   function BT_IDX( a : address_t ) return natural is			-- BT_ENTRIES = 256
+   begin
+      return to_integer( a( 12 downto 5 ) xor ( "000" & a( 4 downto 0 ) ) );
    end function;
 
 begin
@@ -94,6 +122,30 @@ begin
    show		<= active and ( hit or faulty_hit ) and not redirect;
 
    FLUSH_o		<= redirect;
+
+   -- table de blocs : depuis le PC (point d'entrée), une cible dont la ligne est en cache
+   bt_target	<= bt( BT_IDX( pc ) ).target;
+   bt_load		<= active = '1' and bt( BT_IDX( pc ) ).valid and bt( BT_IDX( pc ) ).key = pc
+			   and bt( BT_IDX( pc ) ).ctr >= 2
+			   and present( INDEX_OF( bt( BT_IDX( pc ) ).target ) ) = '1'
+			   and tag( INDEX_OF( bt( BT_IDX( pc ) ).target ) ) = LINE_OF( bt( BT_IDX( pc ) ).target );
+   -- redirection par BRANCH_PREDICT vers la cible du tampon : la file d'octets la prend
+   TAMPONS : process( tb_valid, tb_pc, PREDICT_VALID_i, PREDICT_PC_i, RECOVERY_i, bt_target )
+      variable hit : boolean;
+      variable sel : natural range 0 to TB_ENTRIES - 1;
+   begin
+      hit := false; sel := 0; tb_has <= false;
+      for k in 0 to TB_ENTRIES - 1 loop
+         if tb_valid( k ) and tb_pc( k ) = PREDICT_PC_i then hit := true; sel := k; end if;
+         if tb_valid( k ) and tb_pc( k ) = bt_target then tb_has <= true; end if;
+      end loop;
+      tb_sel <= sel;
+      if PREDICT_VALID_i = '1' and RECOVERY_i.valid = '0' and hit then preload <= '1'; else preload <= '0'; end if;
+   end process;
+   PRELOAD_VALID_o	<= preload;
+   PRELOAD_PC_o		<= tb_pc( tb_sel );
+   PRELOAD_BLOCK_o	<= tb_block( tb_sel );
+   PRELOAD_COUNT_o	<= to_unsigned( FETCH_BLOCK_SIZE - to_integer( tb_pc( tb_sel )( 4 downto 0 ) ), PRELOAD_COUNT_o'length );
    FETCH_VALID_o	<= show;
    FETCH_PC_o		<= pc;
    FETCH_COUNT_o	<= to_unsigned( FETCH_BLOCK_SIZE - to_integer( pc( 4 downto 0 ) ), FETCH_COUNT_o'length );
@@ -127,6 +179,8 @@ begin
          if RESET_i = '1' then
             active <= '0';
             present <= ( others => '0' );
+            tb_valid <= ( others => false ); tb_next <= 0;
+            for e in bt'range loop bt( e ).valid <= false; end loop;
             fault_valid <= '0';
             filling <= '0';
             req_k <= 0;
@@ -180,10 +234,43 @@ begin
                resp_k <= 0;
             end if;
 
+            -- tampon de cible : le bloc de la cible prévue (second port de lecture)
+            if bt_load and not tb_has then					-- (une cible n'y est qu'une fois)
+               tb_valid( tb_next ) <= true; tb_pc( tb_next ) <= bt_target;
+               tb_next <= ( tb_next + 1 ) mod TB_ENTRIES;
+               for i in 0 to FETCH_BLOCK_SIZE - 1 loop
+                  if to_integer( bt_target( 4 downto 0 ) ) + i < FETCH_BLOCK_SIZE then
+                     tb_block( tb_next )( i ) <= data( INDEX_OF( bt_target ) )( to_integer( bt_target( 4 downto 0 ) ) + i );
+                  else
+                     tb_block( tb_next )( i ) <= ( others => '0' );
+                  end if;
+               end loop;
+            end if;
+
+            -- apprentissage
+            if TRAIN_VALID_i = '1' then
+               if TRAIN_TAKEN_i = '1' then
+                  if bt( BT_IDX( TRAIN_KEY_i ) ).valid and bt( BT_IDX( TRAIN_KEY_i ) ).key = TRAIN_KEY_i
+                     and bt( BT_IDX( TRAIN_KEY_i ) ).fin = TRAIN_FIN_i and bt( BT_IDX( TRAIN_KEY_i ) ).target = TRAIN_TARGET_i then
+                     if bt( BT_IDX( TRAIN_KEY_i ) ).ctr < 3 then
+                        bt( BT_IDX( TRAIN_KEY_i ) ).ctr <= bt( BT_IDX( TRAIN_KEY_i ) ).ctr + 1;
+                     end if;
+                  else
+                     bt( BT_IDX( TRAIN_KEY_i ) ) <= ( valid => true, key => TRAIN_KEY_i, fin => TRAIN_FIN_i,
+                                                      target => TRAIN_TARGET_i, ctr => 2 );
+                  end if;
+               elsif bt( BT_IDX( TRAIN_KEY_i ) ).valid and bt( BT_IDX( TRAIN_KEY_i ) ).key = TRAIN_KEY_i
+                     and bt( BT_IDX( TRAIN_KEY_i ) ).fin = TRAIN_FIN_i and bt( BT_IDX( TRAIN_KEY_i ) ).ctr > 0 then
+                  bt( BT_IDX( TRAIN_KEY_i ) ).ctr <= bt( BT_IDX( TRAIN_KEY_i ) ).ctr - 1;
+               end if;
+            end if;
+
             -- PC
             if RECOVERY_i.valid = '1' then
                pc <= RECOVERY_i.new_pc;
                active <= '1';
+            elsif PREDICT_VALID_i = '1' and preload = '1' then
+               pc <= LINE_OF( PREDICT_PC_i ) + FETCH_BLOCK_SIZE;		-- la cible est dans la file
             elsif PREDICT_VALID_i = '1' then
                pc <= PREDICT_PC_i;
             elsif STOP_i = '1' then

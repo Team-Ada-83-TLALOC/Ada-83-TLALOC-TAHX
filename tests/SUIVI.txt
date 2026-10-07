@@ -314,3 +314,21 @@ concernée quand on l'écrira, puis à rayer ici.
               échoue). CHK_TEST0 8 684 -> 8 593, B_APPELS 43 559 -> 42 007 (IPC 1,51).
               Reste environ un cycle par saut pris (B_APPELS : 15 493 cycles pour 15 970
               sauts) : la redirection n'est connue qu'après le décodage.
+  2026-10-07  Tampon de cible (frontal). Mesure dans tx_run d'une table de blocs au
+              chargement : indexée par le bloc, la moitié des sauts directs pris ; par le
+              point d'entrée du bloc (PC de chargement), 87 % (B_APPELS) à 93 % (B_CRIBLE),
+              et sur TLALOC 73 % (64 entrées), 83 % (256), 87 % (1 024).
+              FETCH_UNIT (point 5) : table de 256 blocs (point d'entrée, fin du saut,
+              cible, compteur de 2 bits) ; depuis le PC, la cible prévue, si sa ligne est
+              en cache, est lue (second port) dans l'un de 4 tampons ; une redirection de
+              BRANCH_PREDICT vers l'une d'elles charge FETCH_BYTE_QUEUE au front du vidage
+              (PRELOAD_xxx) et le PC passe à la ligne suivante. FETCH_BYTE_QUEUE : vidage
+              avec chargement. BRANCH_PREDICT (point 5) : point d'entrée dans l'ordre du
+              décodage, apprentissage de la table (TRAIN_xxx), prédiction inchangée.
+              Bancs : I2 (vidages chargés), I1 (le banc joue BRANCH_PREDICT ; 218
+              chargements vérifiés) ; erreurs introduites détectées (I2 : 2, I1 : 4).
+              I_N2 : 94 % des redirections servies, flux décodé identique. Plateforme N3 :
+              redirections servies par le tampon.
+              B_APPELS 42 007 -> 37 247 (un tampon) -> 35 859 cycles (quatre), IPC 1,51 ->
+              1,77 ; 73 % des redirections servies. CHK_TEST0 8 593 -> 8 613 (limité par
+              le dorsal : ROB plein, tête non terminée 56 %).

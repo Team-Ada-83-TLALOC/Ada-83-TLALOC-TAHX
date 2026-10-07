@@ -53,6 +53,26 @@ use work.ROB_TYPES.all;
 		--     Elle ne consomme aucun octet : sans vidage, le décodeur la reproduirait.
 		--     Rien d'utile n'est à charger avant la reprise qui livrera la faute.
 		--
+		--  5. Tampon de cible. Une table de blocs (BT_ENTRIES entrées, à correspondance
+		--     directe) est indexée par le point d'entrée du bloc chargé (le PC de
+		--     chargement : la cible d'une redirection, ou le début de la ligne en
+		--     séquence) ; une entrée ( point d'entrée, fin du saut, cible, compteur de 2
+		--     bits ) dit qu'un saut pris quitte ce bloc. Quand le PC en est l'entrée avec
+		--     un compteur d'au moins 2 et que la ligne de la cible est en cache, le bloc
+		--     de la cible est lu (second port de lecture du cache) dans l'un des
+		--     TB_ENTRIES (4) tampons de cible (remplacés à tour de rôle ; une cible n'y
+		--     est qu'une fois). Au cycle de PREDICT_VALID_i (sans reprise) dont
+		--     PREDICT_PC_i est la cible d'un tampon : PRELOAD_VALID_o = '1', PRELOAD_PC_o, PRELOAD_BLOCK_o,
+		--     PRELOAD_COUNT_o (32 - cible mod 32) sont le bloc de la cible, que
+		--     FETCH_BYTE_QUEUE prend au front du vidage ; le PC devient la ligne qui suit
+		--     la cible. Seule la performance en dépend : un tampon ne sert que pour la
+		--     cible même que BRANCH_PREDICT a prédite.
+		--     Apprentissage (BRANCH_PREDICT, au front de TRAIN_VALID_i) : saut pris
+		--     (TRAIN_TAKEN_i = '1') : l'entrée de TRAIN_KEY_i, si elle a la même fin et la
+		--     même cible, voit son compteur croître (jusqu'à 3), sinon elle est remplacée
+		--     (compteur 2) ; saut conditionnel non pris : l'entrée de même clé et de même
+		--     fin voit son compteur décroître (jusqu'à 0).
+		--
 		--  4. Mémoire (I_xxx). Une requête est un mot de 64 bits aligné (I_ADDR_o mod 8
 		--     = 0), acceptée au front où I_REQ_o = I_READY_i = '1'. Les réponses
 		--     arrivent dans l'ordre des requêtes, une par cycle au plus, après une
@@ -116,7 +136,22 @@ is				----------
 		-- Vidage de la file d'octets : toute redirection, et STOP_i
 		----------------------------------------------------------------
 
-      FLUSH_o		:out std_logic
+      FLUSH_o		:out std_logic;
+		----------------------------------------------------------------
+		-- Tampon de cible : avec FLUSH_o, la file d'octets prend ce bloc
+		----------------------------------------------------------------
+      PRELOAD_VALID_o	:out std_logic;
+      PRELOAD_PC_o		:out address_t;
+      PRELOAD_BLOCK_o	:out fetch_block_t;
+      PRELOAD_COUNT_o	:out fetch_count_t;
+		----------------------------------------------------------------
+		-- Apprentissage de la table de blocs (BRANCH_PREDICT)
+		----------------------------------------------------------------
+      TRAIN_VALID_i		:in  std_logic := '0';
+      TRAIN_KEY_i		:in  address_t := ( others => '0' );	-- point d'entrée du bloc
+      TRAIN_FIN_i		:in  address_t := ( others => '0' );	-- dernier octet du saut
+      TRAIN_TARGET_i	:in  address_t := ( others => '0' );
+      TRAIN_TAKEN_i		:in  std_logic := '0'
    );
 
 		----------

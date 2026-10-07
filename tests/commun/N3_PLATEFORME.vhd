@@ -289,6 +289,8 @@ COMPTEURS :
     alias fe_out_r     is << signal DUT.fe_ready : std_logic >>;
     alias fe_out_n     is << signal DUT.fe_count : decode_count_t >>;
     variable fe_npred  : natural := 0;					-- sauts prédits pris (redirections)
+    alias fe_preload   is << signal DUT.U_iNSTRUCTION.preload_valid : std_logic >>;
+    variable fe_npre   : natural := 0;					-- servies par le tampon de cible
     variable fe_cause  : natural range 0 to 3 := 0;			-- 1 point de reprise, 2 état retiré, 3 saut pris
     variable fe_stop, fe_miss, fe_ck, fe_cm, fe_pr, fe_dbf, fe_dbd : natural := 0;
     alias rn_why       is << signal DUT.U_RENAME.dbg_why : natural >>;
@@ -472,6 +474,7 @@ COMPTEURS :
         if recovery.kind = RECOVER_CHECKPOINT then fe_cause := 1; else fe_cause := 2; end if;
       elsif fe_pred = '1' then
         fe_cause := 3; fe_npred := fe_npred + 1;
+        if fe_preload = '1' then fe_npre := fe_npre + 1; end if;
       end if;
       qv := ( int_n, mdv_n, mem_n, br_n, fp_n, cx_n, lsq_n );
       for q in qv'range loop
@@ -532,7 +535,7 @@ COMPTEURS :
            & integer'image( fe_ck ) & " / " & integer'image( fe_cm ) & " / " & integer'image( fe_pr ) );
     LIGNE( "PERF   frontal : débit (fenêtre vide / octets non décodés) " & integer'image( fe_dbf ) & " / " & integer'image( fe_dbd ) );
     LIGNE( "PERF   frontal : sauts prédits pris " & integer'image( fe_npred ) & ", cycles de file vide après eux "
-           & integer'image( fe_pr ) );
+           & integer'image( fe_pr ) & " ; servis par le tampon de cible " & integer'image( fe_npre ) );
     for q in 0 to 6 loop
       LIGNE( "PERF occupation " & NOMS( q ) & " moyenne / maximum            "
              & F2( qsum( q ) / real( maximum( cyc, 1 ) ) ) & " /" & integer'image( qmax( q ) ) );
