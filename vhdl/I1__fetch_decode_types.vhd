@@ -20,7 +20,7 @@ is				------------------
    constant FETCH_BLOCK_SIZE    : positive := 32;				-- octets par cycle (étude : 4,8 à 5,8 instr./cycle)
    constant FETCH_QUEUE_SIZE    : positive := 128;			-- quatre blocs
    constant DECODE_WINDOW_SIZE  : positive := FETCH_BLOCK_SIZE;		-- 32 octets
-   constant DECODE_WIDTH        : positive := 8;				-- max de formes canoniques traitees par cycle
+   constant DECODE_WIDTH        : positive := 4;				-- max de formes canoniques traitees par cycle (étude des largeurs : 4)
    constant DECODE_QUEUE_DEPTH  : positive := 32;				-- cases pour instructions canonisees
 
 

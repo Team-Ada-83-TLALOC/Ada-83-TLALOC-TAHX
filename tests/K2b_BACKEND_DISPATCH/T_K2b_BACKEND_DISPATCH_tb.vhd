@@ -186,7 +186,7 @@ begin
       report "graines " & integer'image( SEED_1 ) & ", " & integer'image( SEED_2 ) & " ; blocs pris "
              & integer'image( n_taken ) & ", refusés faute de place " & integer'image( n_refused )
              & ", instructions routées nulle part " & integer'image( n_none ) severity note;
-      CHECK( c, n_taken > 15000 and n_refused > 6000 and n_none > 15000, "le tirage a exercé prise, refus et non-routage" );
+      CHECK( c, n_taken > 15000 and n_refused > 2000 and n_none > 15000, "le tirage a exercé prise, refus et non-routage" );	-- (largeur 4 : environ 3 800 refus)
       FINISH( c, "T_K2b_BACKEND_DISPATCH_tb" );
       wait;
    end process;

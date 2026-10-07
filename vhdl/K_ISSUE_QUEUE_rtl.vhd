@@ -186,8 +186,8 @@ begin
          end if;
       end loop;
       ENTRY_COUNT_O <= n;
-      if QUEUE_DEPTH_G - n > 8 then
-         INSERT_CAPACITY_O <= to_unsigned( 8, INSERT_CAPACITY_O'length );
+      if QUEUE_DEPTH_G - n > DECODE_WIDTH then				-- un bloc : DECODE_WIDTH au plus
+         INSERT_CAPACITY_O <= to_unsigned( DECODE_WIDTH, INSERT_CAPACITY_O'length );
       else
          INSERT_CAPACITY_O <= to_unsigned( QUEUE_DEPTH_G - n, INSERT_CAPACITY_O'length );
       end if;

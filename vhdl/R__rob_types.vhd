@@ -29,7 +29,7 @@ is				---------
 		-- fenêtre 256 et largeur 8 : 4,82. La largeur de décodage étant 8, on prend 256.
 		--------------------------------------------------------------------------------
 
-   constant ROB_INDEX_BITS		: positive	:= 8;
+   constant ROB_INDEX_BITS		: positive	:= 7;
    constant ROB_SIZE		: positive	:= 2 ** ROB_INDEX_BITS;	-- 256
    constant RETIRE_WIDTH		: positive	:= DECODE_WIDTH;		-- 8
 

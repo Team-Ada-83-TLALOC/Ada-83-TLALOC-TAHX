@@ -343,3 +343,18 @@ concernée quand on l'écrira, puis à rayer ici.
               MESURES/<nom>/). lancer_variantes.sh : les huit bancs N4 par variante, au plus
               -j simulations à la fois, résumé MESURES/VARIANTES.txt. Variantes : L8 (la
               référence), L6, L4, L2, L4R128, L2R64.
+  2026-10-07  Étude des largeurs (commit 04fc7b9, 215 min) : IPC pondéré des huit bancs
+              L8 1,53, L6 1,52, L4 1,49, L4R128 1,49, L2 1,28, L2R64 1,26. La largeur 4
+              garde 97,4 % de L8, le ROB de 128 n'y coûte que 0,5 % ; la largeur 2 perd 16 %
+              (B_MATRICE 2,68 -> 1,79). En L4R128, B_EXPR perd surtout aux points de reprise
+              (3 276 cycles d'arrêt, 455 en L8).
+              Configuration par défaut : L4R128 (DECODE_WIDTH = 4, ROB_INDEX_BITS = 7), en vue
+              de la réalisation en 130 nm. Variantes redéfinies (L4R128 la référence ; L8, L6,
+              L4, L2, L2R64 inchangées dans leurs constantes).
+              K_ISSUE_QUEUE : INSERT_CAPACITY_O = min( entrées libres, DECODE_WIDTH ) (8 en dur ;
+              sans effet en largeur 8). Bancs adaptés à la largeur : I3_DECODE_BLOC (vecteurs
+              de la largeur 8 tronqués à DECODE_WIDTH formes, coupés à une frontière
+              d'instruction ; bloc plein : pas de besoin d'octets), K_ISSUE_QUEUE (blocs et
+              largeurs d'émission bornés par DECODE_WIDTH), K2b_BACKEND_DISPATCH (seuil de
+              refus 2 000). Les bancs de pièces passent en L4R128 (24), et les bancs modifiés
+              en L8 et L2. N3 en L4R128 : TAHX_1 3 878, EXC_TEST0 973, CHK_TEST0 9 161 cycles.

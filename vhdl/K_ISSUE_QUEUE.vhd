@@ -12,7 +12,7 @@ use ieee.numeric_std.all;
 --
 --  1. Insertion. Au front où INSERT_VALID_I = '1', les instructions INSERT_BLOCK_I( 0 ..
 --     INSERT_COUNT_I - 1 ) entrent dans la file (contrat de BACKEND_DISPATCH : pas plus que
---     INSERT_CAPACITY_O). INSERT_CAPACITY_O = min( entrées libres, 8 ) ne dépend que de
+--     INSERT_CAPACITY_O). INSERT_CAPACITY_O = min( entrées libres, DECODE_WIDTH ) ne dépend que de
 --     l'état de la file. Une source entre prête si source_ready = '1' ou si le bus de réveil
 --     du cycle d'insertion porte son étiquette ; le renommage, lui, a reporté dans
 --     source_ready les réveils des cycles précédents.

@@ -247,7 +247,7 @@ begin
 		-- (au plus ROB_SIZE instructions de la tête à la dernière : l'âge modulo
 		-- ROB_SIZE reste univoque)
          cap := DEPTH_G - nq;
-         if cap > 8 then cap := 8; end if;
+         if cap > DECODE_WIDTH then cap := DECODE_WIDTH; end if;
          if next_seq + cap - head_seq > ROB_SIZE then
             cap := ROB_SIZE - ( next_seq - head_seq );
          end if;
@@ -352,7 +352,7 @@ begin
                       & integer'image( to_integer( issue_block( 0 ).rob_index ) ) );
          end if;
          cap := DEPTH_G - nq;
-         if cap > 8 then cap := 8; end if;
+         if cap > DECODE_WIDTH then cap := DECODE_WIDTH; end if;
          if insert_capacity = to_unsigned( cap, insert_capacity'length ) then CHECK_PASSED( c ); else
             CHECK( c, false, NAME_G & ", cycle " & integer'image( cycle ) & " : INSERT_CAPACITY_O",
                    integer'image( cap ), integer'image( to_integer( insert_capacity ) ) );
@@ -486,6 +486,7 @@ end architecture		TEST;
 		--------------------------------------------------------------------------------
 
 use work.TB_UTILS.all;
+use work.FETCH_DECODE_TYPES.all;
 
 				------------------
 entity				T_K_ISSUE_QUEUE_tb
@@ -506,12 +507,12 @@ of T_K_ISSUE_QUEUE_tb is
 begin
 
    INTEGER_Q : entity work.BANC_ISSUE_QUEUE
-      generic map ( NAME_G => "INTEGER (32 x 4)", DEPTH_G => 32, WIDTH_G => 4, IN_ORDER_G => false,
+      generic map ( NAME_G => "INTEGER (32 x 4)", DEPTH_G => 32, WIDTH_G => minimum( 4, DECODE_WIDTH ), IN_ORDER_G => false,
                     CYCLES_G => 12000, SEED_1_G => 101, SEED_2_G => 102 )
       port map ( DONE_o => done( 0 ), CHECKS_o => checks( 0 ), FAILURES_o => failures( 0 ) );
 
    MEMORY_Q : entity work.BANC_ISSUE_QUEUE
-      generic map ( NAME_G => "MEMORY (32 x 2)", DEPTH_G => 32, WIDTH_G => 2, IN_ORDER_G => false,
+      generic map ( NAME_G => "MEMORY (32 x 2)", DEPTH_G => 32, WIDTH_G => minimum( 2, DECODE_WIDTH ), IN_ORDER_G => false,
                     CYCLES_G => 12000, SEED_1_G => 201, SEED_2_G => 202 )
       port map ( DONE_o => done( 1 ), CHECKS_o => checks( 1 ), FAILURES_o => failures( 1 ) );
 

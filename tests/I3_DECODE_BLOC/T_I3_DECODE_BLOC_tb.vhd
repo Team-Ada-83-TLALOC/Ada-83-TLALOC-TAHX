@@ -92,6 +92,15 @@ begin
          variable val		: std_logic_vector( 31 downto 0 );
          variable len		: std_logic_vector( 3 downto 0 );
          variable pos		: integer;
+         -- formes d'une fenêtre (vecteurs de la largeur 8)
+         type v8_t		is array( 0 to 7 ) of std_logic_vector( 7 downto 0 );
+         type v4_t		is array( 0 to 7 ) of std_logic_vector( 3 downto 0 );
+         type v32_t		is array( 0 to 7 ) of std_logic_vector( 31 downto 0 );
+         type int8_t		is array( 0 to 7 ) of integer;
+         variable fop, fofs	: v8_t;
+         variable flvl, flen	: v4_t;
+         variable fval		: v32_t;
+         variable fpos		: int8_t;
          variable where	: line;
          variable windows	: natural := 0;
       begin
@@ -125,6 +134,26 @@ begin
             CHECK( c, tag = 'R', nom & " : ligne R attendue" );
             read( l, k ); read( l, consumed ); read( l, need ); read( l, stp );
 
+            -- F op lvl ofs val len position (vecteurs de la largeur 8 : jusqu'à 8 formes)
+            for i in 0 to k - 1 loop
+               readline( f, l );
+               read( l, tag );
+               CHECK( c, tag = 'F', nom & " : ligne F attendue" );
+               hread( l, op ); hread( l, lvl ); hread( l, ofs ); hread( l, val ); hread( l, len ); read( l, pos );
+               fop( i ) := op; flvl( i ) := lvl; fofs( i ) := ofs; fval( i ) := val; flen( i ) := len; fpos( i ) := pos;
+            end loop;
+            -- largeur DECODE_WIDTH : au plus DECODE_WIDTH formes, coupées à une frontière
+            -- d'instruction (une forme de longueur non nulle termine son instruction ; une
+            -- instruction peut donner deux formes à la même position) ; la suite n'est pas
+            -- consommée (ni besoin d'octets, ni arrêt : la forme qui les donnait n'est pas atteinte)
+            if k > DECODE_WIDTH then
+               k := DECODE_WIDTH;
+               while k > 0 and to_integer( unsigned( flen( k - 1 ) ) ) = 0 loop k := k - 1; end loop;
+               consumed := fpos( k ); need := 0; stp := 0;
+            elsif k = DECODE_WIDTH then					-- bloc plein : pas de besoin d'octets
+               need := 0;
+            end if;
+
             wait for 1 ns;
             deallocate( where );
             write( where, nom & ", fenêtre " & to_hstring( pc ) & " (" & integer'image( nb ) & " octets)" );
@@ -138,29 +167,23 @@ begin
             CHECK( c, stop = B( stp = 1 ), where.all & " : STOP_o", S( B( stp = 1 ) ), S( stop ) );
             CHECK( c, consume = B( k > 0 ), where.all & " : CONSUME_o (prêt)", S( B( k > 0 ) ), S( consume ) );
 
-            -- F op lvl ofs val len position
             for i in 0 to k - 1 loop
-               readline( f, l );
-               read( l, tag );
-               CHECK( c, tag = 'F', nom & " : ligne F attendue" );
-               hread( l, op ); hread( l, lvl ); hread( l, ofs ); hread( l, val ); hread( l, len ); read( l, pos );
-               if i < DECODE_WIDTH then
-                  CHECK( c, decoded( i ).valid = '1', where.all & ", forme " & integer'image( i ) & " : valid" );
-                  CHECK( c, decoded( i ).canon.op = op and decoded( i ).canon.lvl = unsigned( lvl )
-                            and decoded( i ).canon.ofs = unsigned( ofs ) and decoded( i ).canon.val = signed( val )
-                            and decoded( i ).canon.len = unsigned( len ),
-                         where.all & ", forme " & integer'image( i ) & " : op lvl ofs val len",
-                         to_hstring( op ) & " " & to_hstring( lvl ) & " " & to_hstring( ofs ) & " "
-                            & to_hstring( val ) & " " & to_hstring( len ),
-                         to_hstring( decoded( i ).canon.op ) & " " & to_hstring( decoded( i ).canon.lvl ) & " "
-                            & to_hstring( decoded( i ).canon.ofs ) & " " & to_hstring( decoded( i ).canon.val ) & " "
-                            & to_hstring( decoded( i ).canon.len ) );
-                  CHECK( c, decoded( i ).pc = unsigned( pc ) + pos,
-                         where.all & ", forme " & integer'image( i ) & " : pc",
-                         to_hstring( unsigned( pc ) + pos ), to_hstring( decoded( i ).pc ) );
-                  CHECK( c, decoded( i ).pred = NO_PREDICTION,
-                         where.all & ", forme " & integer'image( i ) & " : pred nulle" );
-               end if;
+               op := fop( i ); lvl := flvl( i ); ofs := fofs( i ); val := fval( i ); len := flen( i ); pos := fpos( i );
+               CHECK( c, decoded( i ).valid = '1', where.all & ", forme " & integer'image( i ) & " : valid" );
+               CHECK( c, decoded( i ).canon.op = op and decoded( i ).canon.lvl = unsigned( lvl )
+                         and decoded( i ).canon.ofs = unsigned( ofs ) and decoded( i ).canon.val = signed( val )
+                         and decoded( i ).canon.len = unsigned( len ),
+                      where.all & ", forme " & integer'image( i ) & " : op lvl ofs val len",
+                      to_hstring( op ) & " " & to_hstring( lvl ) & " " & to_hstring( ofs ) & " "
+                         & to_hstring( val ) & " " & to_hstring( len ),
+                      to_hstring( decoded( i ).canon.op ) & " " & to_hstring( decoded( i ).canon.lvl ) & " "
+                         & to_hstring( decoded( i ).canon.ofs ) & " " & to_hstring( decoded( i ).canon.val ) & " "
+                         & to_hstring( decoded( i ).canon.len ) );
+               CHECK( c, decoded( i ).pc = unsigned( pc ) + pos,
+                      where.all & ", forme " & integer'image( i ) & " : pc",
+                      to_hstring( unsigned( pc ) + pos ), to_hstring( decoded( i ).pc ) );
+               CHECK( c, decoded( i ).pred = NO_PREDICTION,
+                      where.all & ", forme " & integer'image( i ) & " : pred nulle" );
             end loop;
             for i in k to DECODE_WIDTH - 1 loop
                CHECK( c, decoded( i ).valid = '0', where.all & ", case " & integer'image( i ) & " : invalide" );
