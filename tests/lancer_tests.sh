@@ -16,12 +16,37 @@
 #	Les compteurs de performance d'un test réussi (perf.txt des tests sur la plateforme N3)
 #	sont copiés dans MESURES/<nom>.txt, et MESURES/BILAN.txt les résume : ces fichiers sont
 #	suivis par git, pour que les mesures accompagnent le commit.
+#
+#	Variante : VARIANTE=L4 ./lancer_tests.sh -j 16 B_TRI ...
+#	VARIANTES/<nom>.txt donne des constantes à remplacer, une par ligne :
+#	  <fichier de vhdl/> <constante> <valeur>
+#	Les tests sont analysés depuis une copie de vhdl/ ainsi modifiée (travail/<nom>/_vhdl,
+#	chaque remplacement est vérifié), dans travail/<nom>/ ; les mesures vont dans
+#	MESURES/<nom>/. Sans VARIANTE, rien ne change.
 debutT=$(date +%s)
 
 cd "$(dirname "$0")" || exit 2
 ICI=$(pwd)
 VHDL=$ICI/../vhdl
 TRAVAIL=$ICI/travail
+MESURES=$ICI/MESURES
+
+if [ -n "$VARIANTE" ]; then			# copie de vhdl/ aux constantes de la variante
+	DEF=$ICI/VARIANTES/$VARIANTE.txt
+	[ -f "$DEF" ] || { echo "variante inconnue : $DEF"; exit 2; }
+	TRAVAIL=$ICI/travail/$VARIANTE
+	MESURES=$MESURES/$VARIANTE
+	mkdir -p "$TRAVAIL"
+	rm -rf "$TRAVAIL/_vhdl"
+	cp -r "$VHDL" "$TRAVAIL/_vhdl" || exit 2
+	VHDL=$TRAVAIL/_vhdl
+	while read -r FIC CONST VAL; do
+		[[ -z $FIC || $FIC == \#* ]] && continue
+		sed -E -i "s/(constant[[:space:]]+$CONST[[:space:]]*:[^=]*:=[[:space:]]*)[^;]+;/\1$VAL;/" "$VHDL/$FIC" || exit 2
+		grep -E -q "constant[[:space:]]+$CONST[[:space:]]*:[^=]*:=[[:space:]]*$VAL;" "$VHDL/$FIC" \
+			|| { echo "variante $VARIANTE : $CONST introuvable dans $FIC"; exit 2; }
+	done < "$DEF"
+fi
 
 JOBS=1
 if [ "$1" = "-j" ]; then
@@ -73,19 +98,20 @@ lancer_un ()			# $1 : nom du test ; code de retour dans travail/<nom>/code.txt
 	fi
 	echo $RC > "$W/code.txt"
 	if [ "$RC" -eq 0 ] && [ -f "$W/perf.txt" ]; then		# mesures : suivies par git
-		mkdir -p "$ICI/MESURES"
-		cp "$W/perf.txt" "$ICI/MESURES/$T.txt"
+		mkdir -p "$MESURES"
+		cp "$W/perf.txt" "$MESURES/$T.txt"
 	fi
 }
 
 bilan_mesures ()		# MESURES/BILAN.txt : une ligne par test mesuré
 {
 	local F N
-	[ -d "$ICI/MESURES" ] || return 0
+	[ -d "$MESURES" ] || return 0
 	{
-		echo "Mesures de TAHX_1 sur la plateforme N3 ($(date '+%Y-%m-%d %H:%M'), $(cd "$ICI/.." && git log -1 --format=%h 2>/dev/null))"
+		echo "Mesures de TAHX_1 sur la plateforme N3 ($(date '+%Y-%m-%d %H:%M'), $(cd "$ICI/.." && git log -1 --format=%h 2>/dev/null))${VARIANTE:+, variante $VARIANTE}"
+		[ -n "$VARIANTE" ] && grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$DEF" | sed 's/^/  /'
 		printf "%-16s %10s %10s %6s %7s %7s\n" test cycles retraits IPC SPILL FILL
-		for F in "$ICI"/MESURES/*.txt; do
+		for F in "$MESURES"/*.txt; do
 			N=$(basename "$F" .txt)
 			[ "$N" = BILAN ] && continue
 			awk -v n="$N" '
@@ -93,7 +119,7 @@ bilan_mesures ()		# MESURES/BILAN.txt : une ligne par test mesuré
 				/^PERF SPILL \/ FILL/ { split( $0, a, "  +" ); split( a[2], b, " /" ); s = b[1]; f = b[2]; sub( / .*/, "", f ) }
 				END { if ( c > 0 ) printf "%-16s %10d %10d %6.2f %7s %7s\n", n, c, r, r / c, s, f }' "$F"
 		done
-	} > "$ICI/MESURES/BILAN.txt"
+	} > "$MESURES/BILAN.txt"
 }
 
 OK=0; ECHEC=0

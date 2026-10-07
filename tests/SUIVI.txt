@@ -332,3 +332,14 @@ concernée quand on l'écrira, puis à rayer ici.
               B_APPELS 42 007 -> 37 247 (un tampon) -> 35 859 cycles (quatre), IPC 1,51 ->
               1,77 ; 73 % des redirections servies. CHK_TEST0 8 593 -> 8 613 (limité par
               le dorsal : ROB plein, tête non terminée 56 %).
+  2026-10-07  Mesures (commit 9535b80, tampon de cible) : B_APPELS 1,77, B_ARBRE 1,05,
+              B_EXPR 1,62 ; toute la suite OK (43 min).
+              Étude des largeurs : le RTL fonctionne à DECODE_WIDTH = 6, 4 et 2 (avec
+              INTEGER_LANES <= DECODE_WIDTH : le bloc d'émission a la largeur du décodage)
+              et à ROB de 128 ou 64 (DIS_BONJOUR : L8 3 769, L6 3 770, L4 3 763, L2 3 784,
+              L4R128 3 878, L2R64 4 018 cycles ; démarrage à froid, peu parlant).
+              lancer_tests.sh : VARIANTE=<nom> (VARIANTES/<nom>.txt : constantes remplacées
+              dans une copie de vhdl/, chaque remplacement vérifié ; travail/<nom>/,
+              MESURES/<nom>/). lancer_variantes.sh : les huit bancs N4 par variante, au plus
+              -j simulations à la fois, résumé MESURES/VARIANTES.txt. Variantes : L8 (la
+              référence), L6, L4, L2, L4R128, L2R64.

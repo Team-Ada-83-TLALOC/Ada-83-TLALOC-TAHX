@@ -35,6 +35,13 @@ N4  Mesure : bancs B_xxx, programmes Ada propres au test (B_xxx/<programme>.adb,
     copiés dans MESURES/<test>.txt et résumés dans MESURES/BILAN.txt (cycles, retraits,
     IPC, SPILL, FILL ; date, commit) ; MESURES/ est suivi par git, pour que les mesures
     accompagnent le commit.
+    Variantes : VARIANTES/<nom>.txt remplace des constantes des paquetages (une ligne
+    « fichier constante valeur ») ; VARIANTE=<nom> ./lancer_tests.sh ... analyse depuis une
+    copie de vhdl/ ainsi modifiée et range les mesures dans MESURES/<nom>/ ;
+    ./lancer_variantes.sh -j 16 lance les bancs N4 pour chaque variante et résume dans
+    MESURES/VARIANTES.txt (IPC par banc, cycles, IPC pondéré). Les bancs de pièces (N1)
+    ne sont pas faits pour d'autres largeurs : les variantes servent aux mesures N3 et N4.
+    Une voie (INTEGER_LANES, MEMORY_LANES, BRANCH_LANES) ne peut dépasser DECODE_WIDTH.
 
 
 Rangement
@@ -46,6 +53,8 @@ tests/
   LISTE                     tests lancés par lancer_tests.sh, dans l'ordre
   lancer_tests.sh           lance tout, ou un test : ./lancer_tests.sh A1_ISA_TABLE
   MESURES/                  compteurs des tests N3 et N4 du dernier lancement (suivi par git)
+  VARIANTES/                variantes de constantes pour l'étude des largeurs
+  lancer_variantes.sh       les bancs N4 pour chaque variante, et leur résumé
   commun/                   paquetage TB_UTILS, modèles partagés (mémoire, horloge...)
   <code>_<PIECE>/           un répertoire par test :
       T_<code>_<PIECE>_tb.vhd     le banc
