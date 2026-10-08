@@ -32,9 +32,11 @@ use work.IN_ORDER_TYPES.all;
         -- RTD lit/dépile RSP et RTD n décrémente DSP de n octets. Le RAS du frontal
         -- reste purement spéculatif ; cette pile est l'état architectural réel.
         --
-        -- Les instructions mémoire du programme sont encore différées : leur cohérence
-        -- avec les cellules sales du cache de pile data doit être définie explicitement.
-        -- LINK/UNLINK et les opérations système sérialisantes seront ajoutés ensuite.
+        -- Les instructions mémoire simples sont admises. Pour les accès directs lvl=0..14,
+        -- les cellules sales recouvertes sont réécrites avant l'accès ; un rangement direct
+        -- réussi invalide les copies cache recouvertes. LVA connu réécrit la cellule exposée.
+        -- Les accès calculés suivent les invariants V8 des cellules de calcul et n'ont pas à
+        -- sonder le cache. LINK/UNLINK et les opérations système sérialisantes restent à faire.
         --------------------------------------------------------------------------------
 
                                 ---
@@ -54,6 +56,9 @@ of STACK_UNIT is                ---
       ST_RET_SPILL_RSP,
       ST_RET_FILL_REQ,
       ST_RET_FILL_RSP,
+      ST_COH_SCAN,
+      ST_COH_SPILL_REQ,
+      ST_COH_SPILL_RSP,
       ST_ISSUE,
       ST_WAIT_EXEC,
       ST_MISPRED_HOLD,
@@ -107,6 +112,16 @@ of STACK_UNIT is                ---
    signal ret_mem_cell_index_s : natural range 0 to RETURN_CACHE_WORDS_G - 1 := 0;
    signal ret_after_spill_fill_s : std_logic := '0';
 
+   -- Cohérence entre les accès directs du programme et le cache de pile data.
+   -- Avant un accès direct lvl=0..14 (ou un LVA connu), toute cellule sale
+   -- intersectée est réécrite. Après un rangement direct réussi, les copies
+   -- cache intersectées sont invalidées : une lecture de pile les rechargera.
+   signal coh_required_s        : std_logic := '0';
+   signal coh_invalidate_s      : std_logic := '0';
+   signal coh_base_s            : address_t := ( others => '0' );
+   signal coh_length_s          : address_t := ( others => '0' );
+   signal coh_index_s           : natural range 0 to 3 := 0;
+
    signal maint_s              : stack_maint_t;
    signal maint_index_s        : natural range 0 to STACK_CACHE_WORDS_G := 0;
    signal ret_maint_index_s    : natural range 0 to RETURN_CACHE_WORDS_G := 0;
@@ -135,6 +150,9 @@ of STACK_UNIT is                ---
       return to_integer( a( 30 downto 3 ) ) mod RETURN_CACHE_WORDS_G;
    end function;
 
+   constant OP_LVA_B16 : opcode_t := x"47";
+   constant OP_LVA_B24 : opcode_t := x"4B";
+
    function IS_CALL_OP( op : opcode_t ) return boolean is
    begin
       return op = OP_CALL or op = x"33";      -- CALL, CALLI
@@ -158,8 +176,7 @@ of STACK_UNIT is                ---
       variable op : opcode_t;
    begin
       op := s.canon.op;
-      return e.memory
-         or e.frame
+      return e.frame
          or op = OP_TRAP
          or op = OP_EXC_RAISE
          or op = OP_RTX;
@@ -248,7 +265,7 @@ begin
 
       case state_s is
          when ST_SRC_SPILL_REQ | ST_DST_SPILL_REQ | ST_RET_SPILL_REQ |
-              ST_MAINT_SPILL_REQ | ST_MAINT_RET_SPILL_REQ =>
+              ST_COH_SPILL_REQ | ST_MAINT_SPILL_REQ | ST_MAINT_RET_SPILL_REQ =>
             mem_v.valid   := '1';
             mem_v.write   := '1';
             mem_v.probe   := '0';
@@ -308,6 +325,11 @@ begin
             initial_fault_s  <= NO_FAULT;
             ret_after_spill_fill_s <= '0';
             return_target_s   <= ( others => '0' );
+            coh_required_s    <= '0';
+            coh_invalidate_s  <= '0';
+            coh_base_s        <= ( others => '0' );
+            coh_length_s      <= ( others => '0' );
+            coh_index_s       <= 0;
             maint_return_fault_s <= '0';
             commit_s         <= ( valid => '0', slot => ( valid => '0', canon => CANON_NOP,
                                   pc => ( others => '0' ), pred => NO_PREDICTION ),
@@ -327,6 +349,9 @@ begin
             state_s         <= ST_IDLE;
             source_index_s  <= 0;
             source_count_s  <= 0;
+            coh_required_s   <= '0';
+            coh_invalidate_s <= '0';
+            coh_index_s      <= 0;
             maint_return_fault_s <= '0';
 
          else
@@ -410,6 +435,49 @@ begin
                      source_index_s      <= 0;
                      source_value_s      <= ( others => ( others => '0' ) );
                      destination_valid_s <= '0';
+
+                     -- Cohérence du cache de pile pour les accès visibles en mémoire.
+                     -- Les accès calculés n'ont pas à sonder le cache : V8 impose qu'une
+                     -- cellule de calcul lue par adresse calculée ait été exposée auparavant
+                     -- par un LVA connu, et interdit de l'écrire par un accès calculé.
+                     coh_required_s   <= '0';
+                     coh_invalidate_s <= '0';
+                     coh_base_s       <= ( others => '0' );
+                     coh_length_s     <= ( others => '0' );
+                     coh_index_s      <= 0;
+
+                     if ( s.canon.op = OP_LVA_B16 or s.canon.op = OP_LVA_B24 )
+                        and to_integer( s.canon.lvl ) <= 14 then
+                        -- LVA expose la cellule qui contient l'adresse rendue : une
+                        -- implantation à écriture différée doit la rendre propre.
+                        a := frame_s.display( to_integer( s.canon.lvl ) ) + U64( s.canon.val );
+                        coh_required_s <= '1';
+                        coh_base_s     <= a( 63 downto 3 ) & "000";
+                        coh_length_s   <= to_unsigned( 8, 64 );
+
+                     elsif e.memory and to_integer( s.canon.lvl ) <= 14 then
+                        a := frame_s.display( to_integer( s.canon.lvl ) ) + U64( s.canon.val );
+                        coh_required_s <= '1';
+                        coh_base_s     <= a;
+
+                        if s.canon.op( 7 downto 6 ) = "10" then
+                           -- Famille C : avant toute chose l'unité mémoire lit la
+                           -- cellule pointeur M64[a].
+                           coh_length_s <= to_unsigned( 8, 64 );
+                        elsif s.canon.op( 3 downto 2 ) = "11"
+                           and ( s.canon.op( 5 downto 4 ) = "01"
+                                 or s.canon.op( 5 downto 4 ) = "11" ) then
+                           -- CHK direct : deux bornes contiguës de même taille.
+                           coh_length_s <= to_unsigned(
+                              2 * ( 2 ** to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ) ), 64 );
+                        else
+                           coh_length_s <= to_unsigned(
+                              2 ** to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ), 64 );
+                           if s.canon.op( 5 downto 4 ) = "10" then
+                              coh_invalidate_s <= '1';
+                           end if;
+                        end if;
+                     end if;
 
                      -- Sources dans l'ordre de la notation de pile : la plus profonde
                      -- d'abord, comme dans RENAME_DISPATCH.
@@ -524,7 +592,12 @@ begin
                                          taken => '0', target => ( others => '0' ) );
                            state_s <= ST_IDLE;
                         else
-                           state_s <= ST_ISSUE;
+                           if coh_required_s = '1' then
+                              coh_index_s <= 0;
+                              state_s <= ST_COH_SCAN;
+                           else
+                              state_s <= ST_ISSUE;
+                           end if;
                         end if;
                      end if;
 
@@ -543,7 +616,12 @@ begin
                            ret_after_spill_fill_s <= '0';
                            state_s                <= ST_RET_SPILL_REQ;
                         else
-                           state_s <= ST_ISSUE;
+                           if coh_required_s = '1' then
+                              coh_index_s <= 0;
+                              state_s <= ST_COH_SCAN;
+                           else
+                              state_s <= ST_ISSUE;
+                           end if;
                         end if;
 
                      elsif IS_RTD_OP( slot_s.canon.op ) then
@@ -551,7 +629,12 @@ begin
                         if return_cells_s( ridx ).valid = '1'
                            and return_cells_s( ridx ).addr = frame_s.rsp then
                            return_target_s <= unsigned( return_cells_s( ridx ).data );
-                           state_s <= ST_ISSUE;
+                           if coh_required_s = '1' then
+                              coh_index_s <= 0;
+                              state_s <= ST_COH_SCAN;
+                           else
+                              state_s <= ST_ISSUE;
+                           end if;
                         elsif return_cells_s( ridx ).valid = '1'
                            and return_cells_s( ridx ).dirty = '1' then
                            ret_mem_cell_index_s   <= ridx;
@@ -577,7 +660,12 @@ begin
                                       taken => '0', target => ( others => '0' ) );
                         state_s <= ST_IDLE;
                      else
-                        state_s <= ST_ISSUE;
+                        if coh_required_s = '1' then
+                              coh_index_s <= 0;
+                              state_s <= ST_COH_SCAN;
+                           else
+                              state_s <= ST_ISSUE;
+                           end if;
                      end if;
                   end if;
 
@@ -702,6 +790,53 @@ begin
                   end if;
 
                -------------------------------------------------------------------------
+               -- Cohérence d'un accès direct / LVA avec le cache de pile data.
+               -- Une plage d'instruction ne couvre au plus que 16 octets ; avec un
+               -- départ non aligné, trois cellules de 8 octets suffisent donc.
+               -------------------------------------------------------------------------
+
+               when ST_COH_SCAN =>
+                  a := ( coh_base_s( 63 downto 3 ) & "000" ) + to_unsigned( 8 * coh_index_s, 64 );
+                  if coh_required_s = '0' or coh_index_s = 3
+                     or a >= coh_base_s + coh_length_s then
+                     state_s <= ST_ISSUE;
+                  else
+                     idx := WIDX( a );
+                     if cells_s( idx ).valid = '1'
+                        and cells_s( idx ).addr = a
+                        and cells_s( idx ).dirty = '1'
+                        and cells_s( idx ).addr <= old_dsp_s then
+                        mem_cell_index_s <= idx;
+                        mem_address_s    <= a;
+                        mem_data_s       <= cells_s( idx ).data;
+                        state_s          <= ST_COH_SPILL_REQ;
+                     else
+                        coh_index_s <= coh_index_s + 1;
+                     end if;
+                  end if;
+
+               when ST_COH_SPILL_REQ =>
+                  if MEM_READY_i = '1' then
+                     state_s <= ST_COH_SPILL_RSP;
+                  end if;
+
+               when ST_COH_SPILL_RSP =>
+                  if MEM_RSP_i.valid = '1' then
+                     if MEM_RSP_i.fault = '1' then
+                        commit_s <= ( valid => '1', slot => slot_s,
+                                      fault => ( valid => '1', code => FAULT_ACCESS ),
+                                      taken => '0', target => ( others => '0' ) );
+                        state_s <= ST_FAULT_HOLD;
+                     else
+                        -- La cellule reste valide : sa copie mémoire est désormais
+                        -- conforme à la valeur architecturale tenue dans le cache.
+                        cells_s( mem_cell_index_s ).dirty <= '0';
+                        coh_index_s <= coh_index_s + 1;
+                        state_s <= ST_COH_SCAN;
+                     end if;
+                  end if;
+
+               -------------------------------------------------------------------------
                -- Exécution. L'état architectural reste inchangé jusqu'à COMPLETE.
                -------------------------------------------------------------------------
 
@@ -717,6 +852,20 @@ begin
                                       taken => COMPLETE_i.taken, target => COMPLETE_i.target );
                         state_s <= ST_FAULT_HOLD;
                      else
+                        -- Un rangement direct lvl=0..14 est le seul accès mémoire du
+                        -- programme autorisé à modifier une cellule de calcul. La mémoire
+                        -- vient d'être écrite avec succès : oublier toute copie cache qui
+                        -- intersecte les octets rangés, afin qu'une utilisation ultérieure
+                        -- recharge la nouvelle valeur.
+                        if coh_invalidate_s = '1' then
+                           for k in 0 to 2 loop
+                              a := ( coh_base_s( 63 downto 3 ) & "000" ) + to_unsigned( 8 * k, 64 );
+                              if a < coh_base_s + coh_length_s then
+                                 INVALIDATE_CELL( cells_s, a );
+                              end if;
+                           end loop;
+                        end if;
+
                         -- CALL/CALLI et RTD ont un effet architectural supplémentaire
                         -- sur RSP et sur la pile de retours. Rien n'a été modifié avant
                         -- cette terminaison sans faute.

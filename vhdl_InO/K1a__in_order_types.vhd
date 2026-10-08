@@ -71,6 +71,31 @@ is				--------------
       target           : address_t;
    end record;
 
+
+   ------------------------------------------------------------------
+   -- Résultat du calcul d'adresse d'une instruction MEMORY.
+   --
+   -- Pour les familles B, address est l'adresse effective.
+   -- Pour les familles C (et LIVA/CHKI), address est l'adresse de la
+   -- cellule pointeur ; l'étage mémoire lira ce pointeur et ajoutera
+   -- slot.canon.ofs.
+   -- data vaut la donnée d'un rangement, ou v pour CHK/CHKI.
+   ------------------------------------------------------------------
+
+   type ino_address_t is record
+      valid            : std_logic;
+      slot             : decoded_slot_t;
+      address          : address_t;
+      data             : word64_t;
+   end record;
+
+   constant NO_INO_ADDRESS : ino_address_t := (
+      valid   => '0',
+      slot    => ( valid => '0', canon => CANON_NOP,
+                   pc => ( others => '0' ), pred => NO_PREDICTION ),
+      address => ( others => '0' ),
+      data    => ( others => '0' ) );
+
 	----------------------
 end	package IN_ORDER_TYPES;
 	----------------------

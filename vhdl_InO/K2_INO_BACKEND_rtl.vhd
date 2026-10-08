@@ -52,14 +52,16 @@ begin
                        '0'                   when others;
 
    -- pragma translate_off
-   CHECK_CLASS : process( all )
+   CHECK_CLASS : process( CLK_i )
    begin
-      if RESET_i = '0' and ISSUE_VALID_i = '1' then
-         assert ISSUE_i.issue_class = ISSUE_INTEGER
-             or ISSUE_i.issue_class = ISSUE_MUL_DIV
-             or ISSUE_i.issue_class = ISSUE_BRANCH
-            report "INO_BACKEND : classe d'emission non encore implantee"
-            severity failure;
+      if rising_edge( CLK_i ) then
+         if RESET_i = '0' and ISSUE_VALID_i = '1' then
+            assert ISSUE_i.issue_class = ISSUE_INTEGER
+                or ISSUE_i.issue_class = ISSUE_MUL_DIV
+                or ISSUE_i.issue_class = ISSUE_BRANCH
+               report "INO_BACKEND : classe d'emission non encore implantee"
+               severity failure;
+         end if;
       end if;
    end process CHECK_CLASS;
    -- pragma translate_on
