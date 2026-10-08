@@ -152,6 +152,18 @@ of STACK_UNIT is                ---
 
    constant OP_LVA_B16 : opcode_t := x"47";
    constant OP_LVA_B24 : opcode_t := x"4B";
+   constant OP_LINK16  : opcode_t := x"44";
+   constant OP_LINK24  : opcode_t := x"48";
+
+   function IS_LINK_OP( op : opcode_t ) return boolean is
+   begin
+      return op = OP_LINK16 or op = OP_LINK24;
+   end function;
+
+   function IS_UNLINK_OP( op : opcode_t ) return boolean is
+   begin
+      return op = OP_UNLINK or op = OP_UNLINKR;
+   end function;
 
    function IS_CALL_OP( op : opcode_t ) return boolean is
    begin
@@ -176,7 +188,7 @@ of STACK_UNIT is                ---
       variable op : opcode_t;
    begin
       op := s.canon.op;
-      return e.frame
+      return ( e.frame and not IS_LINK_OP( op ) and not IS_UNLINK_OP( op ) )
          or op = OP_TRAP
          or op = OP_EXC_RAISE
          or op = OP_RTX;
@@ -305,6 +317,9 @@ begin
       variable ridx            : natural;
       variable f               : fault_t;
       variable live_collision  : boolean;
+      variable lvl             : natural range 0 to 15;
+      variable alloc65         : unsigned( 64 downto 0 );
+      variable ndsp65          : unsigned( 64 downto 0 );
    begin
       if rising_edge( CLK_i ) then
 
@@ -392,6 +407,7 @@ begin
                      end if;
 
                      ndsp := frame_s.dsp;
+                     lvl := to_integer( s.canon.lvl );
                      case e.stack_action is
                         when STACK_LINEAR =>
                            if npop > e.pushes then
@@ -407,9 +423,25 @@ begin
                            null;
                      end case;
 
-                     -- RTD n ne décrit pas son effet sur DSP par pops/pushes dans
-                     -- ISA_TABLE : n est un nombre d'octets à abandonner.
-                     if IS_RTD_OP( s.canon.op ) then
+                     -- Effet de frame, non décrit par pops/pushes dans ISA_TABLE.
+                     -- LINK lvl>0 pousse l'ancien DISPLAY[lvl], puis réserve alloc octets ;
+                     -- lvl=0 ne pousse rien. UNLINK/UNLINKR reviennent à DISPLAY[lvl],
+                     -- dépilent le FP sauvé et laissent DSP juste en dessous.
+                     if IS_LINK_OP( s.canon.op ) then
+                        alloc65 := resize( unsigned( std_logic_vector( s.canon.val ) ), 65 ) + 7;
+                        alloc65( 2 downto 0 ) := "000";
+                        ndsp65 := resize( frame_s.dsp, 65 ) + alloc65;
+                        if lvl > 0 then
+                           ndsp65 := ndsp65 + 8;
+                        end if;
+                        ndsp := ndsp65( 63 downto 0 );
+                        if ndsp65( 64 ) = '1' then
+                           f := ( valid => '1', code => FAULT_DSP_LIMIT );
+                        end if;
+                     elsif IS_UNLINK_OP( s.canon.op ) then
+                        ndsp := frame_s.display( lvl ) - 8;
+                     elsif IS_RTD_OP( s.canon.op ) then
+                        -- RTD n : n est un nombre d'octets à abandonner.
                         ndsp := frame_s.dsp - U64( s.canon.val );
                      end if;
 
@@ -455,7 +487,12 @@ begin
                         coh_base_s     <= a( 63 downto 3 ) & "000";
                         coh_length_s   <= to_unsigned( 8, 64 );
 
-                     elsif e.memory and to_integer( s.canon.lvl ) <= 14 then
+                     elsif e.memory and not e.frame
+                        and to_integer( s.canon.lvl ) <= 14 then
+                        -- LINK/UNLINK portent memory=true parce que COMPLEX_UNIT accède
+                        -- à la co-pile. Ce ne sont pas des accès mémoire adressés par
+                        -- lvl/val dans la pile data : ne pas déclencher ici la cohérence
+                        -- générique du cache de pile.
                         a := frame_s.display( to_integer( s.canon.lvl ) ) + U64( s.canon.val );
                         coh_required_s <= '1';
                         coh_base_s     <= a;
@@ -480,41 +517,54 @@ begin
                      end if;
 
                      -- Sources dans l'ordre de la notation de pile : la plus profonde
-                     -- d'abord, comme dans RENAME_DISPATCH.
+                     -- d'abord, comme dans RENAME_DISPATCH. Les opérations de frame ont
+                     -- leur propre convention.
                      nsrc := 0;
                      source_address_s <= ( others => ( others => '0' ) );
-                     case e.stack_action is
-                        when STACK_LINEAR =>
-                           nsrc := npop;
-                           for j in 0 to 3 loop
-                              if j < npop then
-                                 source_address_s( j ) <= frame_s.dsp - 8 * ( npop - 1 - j );
+                     if IS_LINK_OP( s.canon.op ) then
+                        if lvl > 0 then
+                           -- Réserver la cellule qui sauvera l'ancien DISPLAY[lvl].
+                           destination_valid_s   <= '1';
+                           destination_address_s <= frame_s.dsp + 8;
+                        end if;
+                     elsif IS_UNLINK_OP( s.canon.op ) then
+                        -- FP sauvegardé par LINK, restauré au commit si la lecture de co-pile réussit.
+                        nsrc := 1;
+                        source_address_s( 0 ) <= frame_s.display( lvl );
+                     else
+                        case e.stack_action is
+                           when STACK_LINEAR =>
+                              nsrc := npop;
+                              for j in 0 to 3 loop
+                                 if j < npop then
+                                    source_address_s( j ) <= frame_s.dsp - 8 * ( npop - 1 - j );
+                                 end if;
+                              end loop;
+                              if e.pushes = 1 then
+                                 destination_valid_s   <= '1';
+                                 destination_address_s <= ndsp;
                               end if;
-                           end loop;
-                           if e.pushes = 1 then
+
+                           when STACK_KEEP_TOP =>
+                              nsrc := 1;
+                              source_address_s( 0 ) <= frame_s.dsp;
+
+                           when STACK_DUP =>
+                              nsrc := 1;
+                              source_address_s( 0 ) <= frame_s.dsp;
                               destination_valid_s   <= '1';
                               destination_address_s <= ndsp;
-                           end if;
 
-                        when STACK_KEEP_TOP =>
-                           nsrc := 1;
-                           source_address_s( 0 ) <= frame_s.dsp;
+                           when STACK_OVER =>
+                              nsrc := 1;
+                              source_address_s( 0 ) <= frame_s.dsp - 8;
+                              destination_valid_s   <= '1';
+                              destination_address_s <= ndsp;
 
-                        when STACK_DUP =>
-                           nsrc := 1;
-                           source_address_s( 0 ) <= frame_s.dsp;
-                           destination_valid_s   <= '1';
-                           destination_address_s <= ndsp;
-
-                        when STACK_OVER =>
-                           nsrc := 1;
-                           source_address_s( 0 ) <= frame_s.dsp - 8;
-                           destination_valid_s   <= '1';
-                           destination_address_s <= ndsp;
-
-                        when STACK_DROP =>
-                           nsrc := 0;
-                     end case;
+                           when STACK_DROP =>
+                              nsrc := 0;
+                        end case;
+                     end if;
                      source_count_s <= nsrc;
 
                      -- pragma translate_off
@@ -866,10 +916,55 @@ begin
                            end loop;
                         end if;
 
+                        -- LINK/UNLINK/UNLINKR modifient DSP/DISPLAY de façon non linéaire.
+                        -- L'effet de co-pile a déjà été rendu atomiquement par COMPLEX_UNIT ;
+                        -- l'état de frame ne devient visible qu'ici, après succès complet.
+                        if IS_LINK_OP( slot_s.canon.op ) then
+                           lvl := to_integer( slot_s.canon.lvl );
+                           -- Les anciennes correspondances de la zone locale nouvellement allouée
+                           -- ne sont plus valides. La cellule du FP sauvegardé est réinstallée ensuite.
+                           for j in 0 to STACK_CACHE_WORDS_G - 1 loop
+                              if cells_s( j ).valid = '1'
+                                 and cells_s( j ).addr > old_dsp_s
+                                 and cells_s( j ).addr <= new_dsp_s
+                                 -- Pour LINK lvl>0, old_dsp+8 est précisément la cellule
+                                 -- dans laquelle on installe juste après l'ancien DISPLAY[lvl].
+                                 -- Ne pas programmer simultanément son invalidation et son
+                                 -- remplacement : avec un index de tableau dynamique, ces
+                                 -- affectations partielles concurrentes peuvent laisser la
+                                 -- cellule invalidée après le delta-cycle.
+                                 and not ( lvl > 0 and cells_s( j ).addr = old_dsp_s + 8 ) then
+                                 cells_s( j ).valid <= '0';
+                                 cells_s( j ).dirty <= '0';
+                              end if;
+                           end loop;
+                           if lvl > 0 then
+                              a := old_dsp_s + 8;
+                              idx := WIDX( a );
+                              cells_s( idx ) <= ( valid => '1', dirty => '1', addr => a,
+                                                  data => std_logic_vector( frame_s.display( lvl ) ) );
+                              frame_s.display( lvl ) <= a;
+                           end if;
+                           frame_s.dsp <= new_dsp_s;
+
+                        elsif IS_UNLINK_OP( slot_s.canon.op ) then
+                           lvl := to_integer( slot_s.canon.lvl );
+                           -- Tout le frame courant devient mort, cellule du FP sauvé comprise.
+                           for j in 0 to STACK_CACHE_WORDS_G - 1 loop
+                              if cells_s( j ).valid = '1'
+                                 and cells_s( j ).addr > new_dsp_s
+                                 and cells_s( j ).addr <= old_dsp_s then
+                                 cells_s( j ).valid <= '0';
+                                 cells_s( j ).dirty <= '0';
+                              end if;
+                           end loop;
+                           frame_s.dsp <= new_dsp_s;
+                           frame_s.display( lvl ) <= unsigned( source_value_s( 0 ) );
+
                         -- CALL/CALLI et RTD ont un effet architectural supplémentaire
                         -- sur RSP et sur la pile de retours. Rien n'a été modifié avant
                         -- cette terminaison sans faute.
-                        if IS_CALL_OP( slot_s.canon.op ) then
+                        elsif IS_CALL_OP( slot_s.canon.op ) then
                            -- CALLI dépile sa cible de la pile data ; CALL direct n'y
                            -- touche pas. L'adresse de retour est le PC suivant.
                            for j in 0 to 3 loop

@@ -56,10 +56,21 @@ is				-------------
 		----------------------------------------------------------------
 
 		--------------------------------------------------------------------------------
-		-- copile_state_t est désormais défini dans ARCH_TYPES : il décrit un état
-		-- architectural commun aux backends OoO et InO.
+		-- Registres de co-pile et de tas
+		--
+		-- CFP, CSP et HP ne sont pas suivis au renommage (CO_VAR et HEAP_ALLOC les
+		-- font avancer d'une quantité connue à l'exécution seulement). Ils sont tenus
+		-- par l'unité COMPLEX, qui exécute LINK, UNLINK, UNLINKR, CO_VAR et
+		-- HEAP_ALLOC dans l'ordre. Leur reprise après une mauvaise prédiction reste
+		-- à définir (copie par checkpoint, ou exécution à la tête du ROB).
 		--------------------------------------------------------------------------------
 
+   type copile_state_t	is record
+			  cfp		: address_t;
+			  csp		: address_t;
+			  hp		: address_t;
+			  hp_valid	: std_logic;			-- '0' : HP inchangé (EXC_RAISE, CTX_RESTORE)
+			end record;
 
    --------------------------------------------------------------------
    -- Requête de l'unité COMPLEX à SYSTEM_UNIT

@@ -32,6 +32,22 @@ is				----------
 
 
 		--------------------------------------------------------------------------------
+		-- État architectural de co-pile et du tas.
+		--
+		-- Commun aux microarchitectures OoO et InO ; il est restauré par SYSTEM_UNIT
+		-- lors des synchronisations de contexte. hp_valid = '0' signifie que HP doit
+		-- rester inchangé lors d'une synchronisation partielle.
+		--------------------------------------------------------------------------------
+
+   type copile_state_t	is record
+			  cfp		: address_t;
+			  csp		: address_t;
+			  hp		: address_t;
+			  hp_valid	: std_logic;
+			end record;
+
+
+		--------------------------------------------------------------------------------
 		-- Maintenance demandée à la tête du ROB (unité COMPLEX, SYSTEM_UNIT)
 		--
 		--   MAINT_WRITEBACK_RANGE  tout mot tenu en registre dans [base, base + length)
