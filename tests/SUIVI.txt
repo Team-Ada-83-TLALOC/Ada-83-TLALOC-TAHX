@@ -397,3 +397,13 @@ concernée quand on l'écrira, puis à rayer ici.
               détectées. B_MATRICE : 58 554 -> 52 005 cycles (IPC 2,68 -> 3,02), dorsal
               saturé 51 % -> 5,4 % ; B_TRI : 72 899 -> 65 103 cycles (IPC 1,66 -> 1,85),
               malgré le diviseur réel (32 cycles au plus pour 64 bits, contre 20 supposés).
+  2026-10-08  L4R128 après points de reprise et MULDIV (commit 6469dc9) : IPC pondéré
+              1,49 -> 1,63 (B_CHAINES 1,38 -> 1,94, B_MATRICE 2,66 -> 3,02, B_TRI 1,66 ->
+              1,85, B_ARBRE 1,01 -> 1,09) ; au-dessus de l'ancienne largeur 8 (1,53).
+              Second tour de variantes autour de L4R128, une seule différence chacune :
+              I3, I2 (voies entières), BR1 (voie de branchement), MEM1 (voie mémoire), Q32
+              (LSQ), C16 (points de reprise), W32 (fenêtre de pile), P256 (registres
+              physiques) ; MINI les combine (I2, BR1, Q32, C16, W32, P256). Toutes passent
+              DIS_BONJOUR (MEM1 4 163, Q32 et MINI 4 091, les autres 3 878 cycles ; ce
+              programme n'exerce pas les voies) ; MINI passe aussi CHK_TEST0 (9 373 contre
+              9 161) et EXC_TEST0.
