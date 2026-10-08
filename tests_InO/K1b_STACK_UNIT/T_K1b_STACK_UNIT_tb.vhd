@@ -20,7 +20,7 @@ use work.TB_UTILS.all;
         -- Ce banc ne regarde pas l'organisation interne du cache de pile. Il joue :
         --   * DECODE_QUEUE, une instruction à la fois ;
         --   * une unité d'exécution minimale qui rend le résultat demandé ;
-        --   * une mémoire inactive (aucun FILL/SPILL ne doit être nécessaire ici).
+        --   * une petite mémoire de test pour les FILL/SPILL et les maintenances.
         --
         -- Premier chemin vérifié :
         --
@@ -28,7 +28,10 @@ use work.TB_UTILS.all;
         --
         -- Les opérandes vus à ISSUE constituent l'observation de la pile. Un second
         -- petit scénario LI 7 ; DUP ; ADD vérifie explicitement que DUP a bien copié
-        -- la valeur et pas seulement déplacé DSP.
+        -- la valeur et pas seulement déplacé DSP. Un troisième scénario injecte une
+        -- FAULT_OVERFLOW à COMPLETE : DSP et pile doivent rester inchangés ; un
+        -- WRITEBACK_ALL est accepté en FAULT_HOLD, puis une SYNC et deux FILL relisent
+        -- exactement les opérandes de l'instruction fautive.
         --------------------------------------------------------------------------------
 
 
@@ -104,6 +107,12 @@ of T_K1b_STACK_UNIT_tb is       ----
    signal mem_ready            : std_logic := '1';
    signal mem_rsp              : mem_response_t := NO_MEM_RESPONSE;
 
+   constant MEM_WORDS          : positive := 128;
+   type test_memory_t          is array( 0 to MEM_WORDS - 1 ) of word64_t;
+   signal test_memory          : test_memory_t := ( others => ( others => '0' ) );
+   signal mem_read_count       : natural := 0;
+   signal mem_write_count      : natural := 0;
+
    signal idle                 : std_logic;
 
    function A64( n : natural ) return address_t is
@@ -114,6 +123,13 @@ of T_K1b_STACK_UNIT_tb is       ----
    function W64( n : integer ) return word64_t is
    begin
       return std_logic_vector( to_signed( n, 64 ) );
+   end function;
+
+   function MEM_INDEX( a : address_t ) return natural is
+      variable d : address_t;
+   begin
+      d := a - A64( S0 );
+      return to_integer( d( 12 downto 3 ) );
    end function;
 
    function SLOT(
@@ -170,23 +186,51 @@ begin
    clk <= not clk after PERIOD / 2 when running;
 
         --------------------------------------------------------------------------------
-        -- Aucun accès mémoire n'est attendu dans ce premier test : toutes les valeurs
-        -- utilisées sont produites par des LI et restent dans la fenêtre de pile.
+        -- Petite mémoire synchrone du banc : réponse un cycle après acceptation de la
+        -- requête. Elle permet d'observer les writebacks de maintenance et les FILL.
         --------------------------------------------------------------------------------
 
-   MEMORY_GUARD : process( clk )
+   MEMORY_MODEL : process( clk )
+      variable idx : natural;
    begin
       if rising_edge( clk ) then
-         assert reset = '1' or mem_req.valid = '0'
-            report "STACK_UNIT : accès mémoire inattendu dans le test élémentaire"
-            severity failure;
+         mem_rsp <= NO_MEM_RESPONSE;
+
+         if reset = '0' and mem_req.valid = '1' and mem_ready = '1' then
+            assert mem_req.probe = '0'
+               report "STACK_UNIT TB : probe mémoire inattendue"
+               severity failure;
+            assert mem_req.size = "11"
+               report "STACK_UNIT TB : accès mémoire non 64 bits"
+               severity failure;
+            assert mem_req.address >= A64( S0 )
+               and mem_req.address < A64( S0 + 8 * MEM_WORDS )
+               report "STACK_UNIT TB : adresse mémoire hors zone de test"
+               severity failure;
+
+            idx := MEM_INDEX( mem_req.address );
+            assert idx < MEM_WORDS
+               report "STACK_UNIT TB : index mémoire hors zone"
+               severity failure;
+
+            if mem_req.write = '1' then
+               test_memory( idx ) <= mem_req.wdata;
+               mem_write_count <= mem_write_count + 1;
+               mem_rsp <= ( valid => '1', rdata => ( others => '0' ), fault => '0' );
+            else
+               mem_read_count <= mem_read_count + 1;
+               mem_rsp <= ( valid => '1', rdata => test_memory( idx ), fault => '0' );
+            end if;
+         end if;
       end if;
-   end process MEMORY_GUARD;
+   end process MEMORY_MODEL;
 
         --------------------------------------------------------------------------------
 
    STIMULI : process
-      variable c : tb_counter_t := TB_COUNTER_INIT;
+      variable c             : tb_counter_t := TB_COUNTER_INIT;
+      variable writes_before : natural := 0;
+      variable reads_before  : natural := 0;
 
       procedure PRESENT( constant s : in decoded_slot_t ) is
       begin
@@ -253,6 +297,34 @@ begin
          wait until falling_edge( clk );
       end procedure COMPLETE_WITH;
 
+      procedure COMPLETE_FAULT( constant code : in trap_code_t ) is
+      begin
+         complete <= (
+            valid        => '1',
+            result_valid => '0',
+            result       => ( others => '0' ),
+            fault        => ( valid => '1', code => code ),
+            taken        => '0',
+            target       => ( others => '0' ) );
+
+         wait until rising_edge( clk );
+         complete <= NO_COMPLETE;
+         wait until falling_edge( clk );
+      end procedure COMPLETE_FAULT;
+
+      procedure WAIT_MAINT_ALL is
+      begin
+         maint <= ( valid => '1', kind => MAINT_WRITEBACK_ALL,
+                    base => ( others => '0' ), length => ( others => '0' ) );
+         wait until rising_edge( clk );
+         maint.valid <= '0';
+
+         loop
+            wait until falling_edge( clk );
+            exit when maint_done = '1';
+         end loop;
+      end procedure WAIT_MAINT_ALL;
+
       procedure WAIT_DIRECT_COMMIT is
       begin
          -- DROP/DUP/OVER (ISSUE_NONE) n'appellent pas l'exécuteur.
@@ -273,6 +345,21 @@ begin
          CHECK( c, frame.dsp = A64( dsp ),
                 "DSP au COMMIT", HEX( A64( dsp ) ), HEX( frame.dsp ) );
       end procedure CHECK_COMMIT;
+
+      procedure CHECK_FAULT_COMMIT(
+         constant op   : in opcode_t;
+         constant code : in trap_code_t;
+         constant dsp  : in natural ) is
+      begin
+         CHECK( c, commit.valid = '1', "COMMIT.valid sur faute" );
+         CHECK( c, commit.slot.canon.op = op,
+                "opcode au COMMIT fautif", HEX( op ), HEX( commit.slot.canon.op ) );
+         CHECK( c, commit.fault.valid = '1', "faute présente au COMMIT" );
+         CHECK( c, commit.fault.code = code,
+                "code de faute", HEX( code ), HEX( commit.fault.code ) );
+         CHECK( c, frame.dsp = A64( dsp ),
+                "DSP inchangé sur faute", HEX( A64( dsp ) ), HEX( frame.dsp ) );
+      end procedure CHECK_FAULT_COMMIT;
 
       procedure DO_LI(
          constant value : in integer;
@@ -340,6 +427,8 @@ begin
       --    SYNC invalide le cache et repart du même DSP initial.
       -------------------------------------------------------------------------------
 
+      WAIT_MAINT_ALL;
+
       sync_frame.dsp <= A64( S0 );
       sync_valid     <= '1';
       wait until rising_edge( clk );
@@ -358,6 +447,71 @@ begin
       PRESENT( SLOT( OP_ADD_T, 0, 1, 16#2006# ) );
       WAIT_ISSUE( OP_ADD_T, 2, W64( 7 ), W64( 7 ) );
       COMPLETE_WITH( W64( 14 ) );
+      CHECK_COMMIT( OP_ADD_T, S0 + 8 );
+
+      -------------------------------------------------------------------------------
+      -- 3. Faute précise : LI 40 ; LI 2 ; ADD fautif.
+      --
+      --    L'ADD dépilerait deux cellules et repousserait un résultat. Une faute venant
+      --    de l'exécuteur ne doit appliquer aucun de ces effets. Le cache sale doit
+      --    rester maintenable pendant FAULT_HOLD ; après WRITEBACK_ALL + SYNC, les deux
+      --    FILL doivent restituer 40 et 2.
+      -------------------------------------------------------------------------------
+
+      WAIT_MAINT_ALL;
+
+      sync_frame.dsp <= A64( S0 );
+      sync_valid     <= '1';
+      wait until rising_edge( clk );
+      sync_valid     <= '0';
+      wait until falling_edge( clk );
+
+      DO_LI( 40, 16#3000#, S0 + 8 );
+      DO_LI(  2, 16#3005#, S0 + 16 );
+
+      PRESENT( SLOT( OP_ADD_T, 0, 1, 16#300A# ) );
+      WAIT_ISSUE( OP_ADD_T, 2, W64( 40 ), W64( 2 ) );
+      COMPLETE_FAULT( FAULT_OVERFLOW );
+      CHECK_FAULT_COMMIT( OP_ADD_T, FAULT_OVERFLOW, S0 + 16 );
+
+      -- FAULT_HOLD ne doit pas dépiler l'instruction suivante.
+      decode_block      <= ( others => NO_SLOT );
+      decode_block( 0 ) <= SLOT( OP_NEG_T, 0, 1, 16#300B# );
+      decode_count      <= to_unsigned( 1, decode_count'length );
+      wait until falling_edge( clk );
+      CHECK( c, decode_take = 0, "aucune prise DECODE_QUEUE pendant FAULT_HOLD" );
+      decode_count      <= ( others => '0' );
+      decode_block      <= ( others => NO_SLOT );
+
+      writes_before := mem_write_count;
+      WAIT_MAINT_ALL;
+      wait until falling_edge( clk );
+
+      CHECK( c, mem_write_count = writes_before + 2,
+             "deux writebacks après la faute",
+             integer'image( writes_before + 2 ), integer'image( mem_write_count ) );
+      CHECK( c, test_memory( MEM_INDEX( A64( S0 + 8 ) ) ) = W64( 40 ),
+             "writeback opérande profond", HEX( W64( 40 ) ),
+             HEX( test_memory( MEM_INDEX( A64( S0 + 8 ) ) ) ) );
+      CHECK( c, test_memory( MEM_INDEX( A64( S0 + 16 ) ) ) = W64( 2 ),
+             "writeback sommet", HEX( W64( 2 ) ),
+             HEX( test_memory( MEM_INDEX( A64( S0 + 16 ) ) ) ) );
+      CHECK( c, frame.dsp = A64( S0 + 16 ),
+             "DSP après maintenance de faute", HEX( A64( S0 + 16 ) ), HEX( frame.dsp ) );
+
+      sync_frame.dsp <= A64( S0 + 16 );
+      sync_valid     <= '1';
+      wait until rising_edge( clk );
+      sync_valid     <= '0';
+      wait until falling_edge( clk );
+
+      reads_before := mem_read_count;
+      PRESENT( SLOT( OP_ADD_T, 0, 1, 16#4000# ) );
+      WAIT_ISSUE( OP_ADD_T, 2, W64( 40 ), W64( 2 ) );
+      CHECK( c, mem_read_count = reads_before + 2,
+             "deux FILL après SYNC",
+             integer'image( reads_before + 2 ), integer'image( mem_read_count ) );
+      COMPLETE_WITH( W64( 42 ) );
       CHECK_COMMIT( OP_ADD_T, S0 + 8 );
 
       -------------------------------------------------------------------------------

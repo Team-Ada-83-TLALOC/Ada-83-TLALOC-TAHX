@@ -98,6 +98,9 @@ of STACK_UNIT is                ---
 
    signal commit_s             : ino_commit_t;
    signal maint_done_s         : std_logic := '0';
+   -- Une maintenance peut aussi être lancée après une faute précise. Dans ce cas,
+   -- MAINT_DONE ne libère pas le backend : on revient attendre la SYNC d'exception.
+   signal maint_return_fault_s : std_logic := '0';
 
    function U64( v : signed ) return address_t is
    begin
@@ -268,6 +271,7 @@ begin
             source_count_s   <= 0;
             source_value_s   <= ( others => ( others => '0' ) );
             initial_fault_s  <= NO_FAULT;
+            maint_return_fault_s <= '0';
             commit_s         <= ( valid => '0', slot => ( valid => '0', canon => CANON_NOP,
                                   pc => ( others => '0' ), pred => NO_PREDICTION ),
                                   fault => NO_FAULT, taken => '0', target => ( others => '0' ) );
@@ -285,6 +289,7 @@ begin
             state_s         <= ST_IDLE;
             source_index_s  <= 0;
             source_count_s  <= 0;
+            maint_return_fault_s <= '0';
 
          else
             case state_s is
@@ -295,9 +300,10 @@ begin
 
                when ST_IDLE =>
                   if MAINT_i.valid = '1' then
-                     maint_s       <= MAINT_i;
-                     maint_index_s <= 0;
-                     state_s       <= ST_MAINT_SCAN;
+                     maint_s              <= MAINT_i;
+                     maint_index_s        <= 0;
+                     maint_return_fault_s <= '0';
+                     state_s              <= ST_MAINT_SCAN;
 
                   elsif DECODE_COUNT_i /= 0 and DECODE_BLOCK_i( 0 ).valid = '1' then
                      s := DECODE_BLOCK_i( 0 );
@@ -616,7 +622,16 @@ begin
                -- l'instruction fautive n'a été appliqué ; attendre la SYNC du
                -- mécanisme de livraison avant de reprendre le décodage.
                when ST_FAULT_HOLD =>
-                  null;
+                  -- Les instructions déjà committées peuvent encore résider comme
+                  -- cellules sales dans le cache. Le mécanisme d'exception doit donc
+                  -- pouvoir demander WRITEBACK_ALL avant la SYNC qui invalidera le
+                  -- cache. Une maintenance lancée ici revient ensuite en FAULT_HOLD.
+                  if MAINT_i.valid = '1' then
+                     maint_s              <= MAINT_i;
+                     maint_index_s        <= 0;
+                     maint_return_fault_s <= '1';
+                     state_s              <= ST_MAINT_SCAN;
+                  end if;
 
                -------------------------------------------------------------------------
                -- Maintenance du cache de pile. Une entrée par cycle ; un mot sale
@@ -626,7 +641,11 @@ begin
                when ST_MAINT_SCAN =>
                   if maint_index_s = STACK_CACHE_WORDS_G then
                      maint_done_s <= '1';
-                     state_s <= ST_IDLE;
+                     if maint_return_fault_s = '1' then
+                        state_s <= ST_FAULT_HOLD;
+                     else
+                        state_s <= ST_IDLE;
+                     end if;
                   else
                      idx := maint_index_s;
                      if cells_s( idx ).valid = '1'
