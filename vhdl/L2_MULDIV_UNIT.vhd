@@ -42,7 +42,9 @@ use work.EXEC_TYPES.all;
 		--  suit, comme dans INTEGER_UNIT ; son résultat paraît sur RESULT_o( 0 ) pendant
 		--  un seul cycle, plus tard. La latence n'est pas fixée par le contrat : elle
 		--  dépend de l'opération et de la réalisation (multiplieur pipeliné, division
-		--  itérative). ISSUE_READY_o ne dépend que de l'état de l'unité.
+		--  itérative) ; les résultats ne sortent pas forcément dans l'ordre des prises.
+		--  ISSUE_READY_o dépend de l'état de l'unité et de l'instruction offerte (une
+		--  division n'entre que diviseur libre ; une MUL entre pendant une division).
 		--
 		--  Opérandes, résultat, fautes précises et reprise : comme INTEGER_UNIT. Une
 		--  instruction abandonnée ne paraît jamais sur RESULT_o, et l'unité qui la
@@ -62,7 +64,7 @@ is				-----------
 		--------------------------------------------------------------------------------
 		-- Émission venant de la file MUL_DIV : ISSUE_BLOCK_i( 0 .. ISSUE_COUNT_i - 1 ),
 		-- une instruction par voie, ISSUE_COUNT_i <= LANES_G. Transfert tout ou rien.
-		-- ISSUE_READY_o = '0' tant qu'une opération itérative occupe l'unité.
+		-- ISSUE_READY_o : l'instruction offerte est prise (voir le contrat).
 		--------------------------------------------------------------------------------
 
       ISSUE_VALID_i		:in  std_logic;			-- Canonisées prêtes

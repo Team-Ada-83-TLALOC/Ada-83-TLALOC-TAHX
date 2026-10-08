@@ -150,6 +150,8 @@ begin
       variable keep_seq		: integer;
       variable head_seq		: natural;
       variable n_checked, n_squashed, n_bypass, n_fault, max_lat : natural := 0;
+      variable n_desordre	: natural := 0;				-- résultats avant ceux de plus anciennes
+      variable max_seq_fini	: integer := -1;
 
       variable tag_c		: character;
       variable v_op		: std_logic_vector( 7 downto 0 );
@@ -157,6 +159,20 @@ begin
       variable v_s		: operand_array_t;
       variable v_fault		: std_logic_vector( 7 downto 0 );
       variable v_res		: std_logic_vector( 63 downto 0 );
+      type vec_t		is record
+			  op		: std_logic_vector( 7 downto 0 );
+			  n		: integer;
+			  s		: operand_array_t;
+			  fault		: std_logic_vector( 7 downto 0 );
+			  res		: std_logic_vector( 63 downto 0 );
+			  line_no		: natural;
+			end record;
+      type vec_array_t		is array( 0 to 15999 ) of vec_t;
+      type perm_t		is array( 0 to 15999 ) of natural;
+      variable vecs		: vec_array_t;
+      variable perm		: perm_t;
+      variable nvec, vi		: natural := 0;
+      variable pj, ptmp		: natural;
 
       impure function RAND return real is
       begin
@@ -191,7 +207,9 @@ begin
          return e.valid and rc.valid = '1' and ( keep < 0 or e.seq > keep );
       end function;
 
-      impure function READ_VECTOR return boolean is
+      -- les vecteurs, rangés par opération, sont présentés mélangés (les MUL passent
+      -- alors pendant les divisions)
+      impure function LOAD_VECTOR return boolean is
       begin
          loop
             if endfile( f ) then
@@ -210,11 +228,26 @@ begin
          hread( l, v_fault ); hread( l, v_res );
          return true;
       end function;
+      impure function READ_VECTOR return boolean is
+      begin
+         if vi >= nvec then return false; end if;
+         v_op := vecs( perm( vi ) ).op; v_n := vecs( perm( vi ) ).n; v_s := vecs( perm( vi ) ).s;
+         v_fault := vecs( perm( vi ) ).fault; v_res := vecs( perm( vi ) ).res; line_no := vecs( perm( vi ) ).line_no;
+         vi := vi + 1;
+         return true;
+      end function;
 
    begin
       file_open( status, f, "vecteurs_muldiv.txt", read_mode );
       CHECK( c, status = open_ok, "ouverture de vecteurs_muldiv.txt" );
       s2 := SEED_2;
+      while LOAD_VECTOR loop
+         vecs( nvec ) := ( op => v_op, n => v_n, s => v_s, fault => v_fault, res => v_res, line_no => line_no );
+         perm( nvec ) := nvec; nvec := nvec + 1;
+      end loop;
+      for k in nvec - 1 downto 1 loop						-- permutation (Fisher-Yates)
+         pj := RAND_INT( k ); ptmp := perm( k ); perm( k ) := perm( pj ); perm( pj ) := ptmp;
+      end loop;
       blk := ( others => ( slot => ( valid => '0', canon => CANON_NOP, pc => ( others => '0' ),
                                      pred => NO_PREDICTION ),
                            rob_index => ( others => '0' ), issue_class => ISSUE_MUL_DIV,
@@ -348,6 +381,8 @@ begin
                             & " valeur " & HEX( result( 0 ).value ) );
                end if;
                if pending( found ).fault /= 0 then n_fault := n_fault + 1; end if;
+               if pending( found ).seq < max_seq_fini then n_desordre := n_desordre + 1; end if;
+               if pending( found ).seq > max_seq_fini then max_seq_fini := pending( found ).seq; end if;
                if cycle - pending( found ).taken_at > max_lat then max_lat := cycle - pending( found ).taken_at; end if;
                n_checked := n_checked + 1;
                pending( found ).valid := false;
@@ -404,11 +439,12 @@ begin
              & integer'image( n_checked ) & " (dont " & integer'image( n_fault ) & " en faute), abandonnées "
              & integer'image( n_squashed ) & ", opérandes par contournement " & integer'image( n_bypass )
              & ", latence maximale " & integer'image( max_lat ) & " cycles ; lues " & integer'image( next_seq )
+             & " ; rendues après une plus jeune " & integer'image( n_desordre )
              severity note;
       CHECK( c, n_checked + n_squashed = next_seq, "chaque instruction lue est vérifiée ou abandonnée",
              integer'image( next_seq ), integer'image( n_checked + n_squashed ) );
-      CHECK( c, n_squashed > 50 and n_bypass > 500 and n_fault > 1000,
-             "le tirage a exercé reprises, contournement et fautes" );
+      CHECK( c, n_squashed > 50 and n_bypass > 500 and n_fault > 1000 and n_desordre > 500,
+             "le tirage a exercé reprises, contournement, fautes et résultats rendus dans le désordre" );
       FINISH( c, "T_L2_MULDIV_UNIT_tb" );
       wait;
    end process;

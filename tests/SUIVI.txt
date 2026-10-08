@@ -381,3 +381,19 @@ concernée quand on l'écrira, puis à rayer ici.
               arrêts faute de point de reprise 19 952 -> 0 ; ROB plein devient la limite.
               (Ne pas donner de point de reprise à BRA et CALL : essayé, inutile après cela,
               retiré.)
+  2026-10-08  MULDIV_UNIT refaite (mêmes ports) : multiplieur pipeliné (une MUL par
+              cycle ; lecture et quatre produits partiels de 32 x 32 bits sur les valeurs
+              absolues, puis somme, signe et débordement ; résultat en 3 cycles) et
+              diviseur itératif réel (DIV, REMI, MODI ; CVTIX et CVTXI après le produit par
+              le multiplieur) : restauration sur les valeurs absolues, DIV_BITS = 2 bits
+              par cycle à partir du premier bit utile du dividende, puis un cycle pour les
+              signes, l'arrondi et le débordement. Plus de /, rem, mod ni produit de 128
+              bits en combinatoire. Les MUL passent pendant une division ; la sortie est à
+              la MUL d'abord, une division finie attend au plus deux cycles. ISSUE_READY_o
+              dépend de l'instruction offerte (contrat mis à jour).
+              Banc L2 : les vecteurs, rangés par opération, sont présentés mélangés
+              (aucune MUL ne passait pendant une division) ; au moins 500 résultats rendus
+              avant ceux d'instructions plus anciennes (1 372) ; cinq erreurs introduites
+              détectées. B_MATRICE : 58 554 -> 52 005 cycles (IPC 2,68 -> 3,02), dorsal
+              saturé 51 % -> 5,4 % ; B_TRI : 72 899 -> 65 103 cycles (IPC 1,66 -> 1,85),
+              malgré le diviseur réel (32 cycles au plus pour 64 bits, contre 20 supposés).

@@ -31,7 +31,9 @@ use work.TB_UTILS.all;
         -- la valeur et pas seulement déplacé DSP. Un troisième scénario injecte une
         -- FAULT_OVERFLOW à COMPLETE : DSP et pile doivent rester inchangés ; un
         -- WRITEBACK_ALL est accepté en FAULT_HOLD, puis une SYNC et deux FILL relisent
-        -- exactement les opérandes de l'instruction fautive.
+        -- exactement les opérandes de l'instruction fautive. Un quatrième scénario
+        -- pousse 65 cellules dans un cache de 64 : la première doit être SPILLée, puis
+        -- 64 DROP la rendent de nouveau sommet et NEG doit la récupérer par un FILL.
         --------------------------------------------------------------------------------
 
 
@@ -513,6 +515,61 @@ begin
              integer'image( reads_before + 2 ), integer'image( mem_read_count ) );
       COMPLETE_WITH( W64( 42 ) );
       CHECK_COMMIT( OP_ADD_T, S0 + 8 );
+
+      -------------------------------------------------------------------------------
+      -- 4. Eviction dirty réelle : le cache a 64 entrées. Après remise à zéro logique,
+      --    65 LI successifs occupent les adresses S0+8 .. S0+520. La 65e destination
+      --    retombe sur l'index de S0+8 et doit donc SPILLer la valeur 1 avant de la
+      --    remplacer. Après 64 DROP, S0+8 redevient le sommet mais n'est plus en cache ;
+      --    NEG doit provoquer exactement un FILL et recevoir la valeur 1.
+      -------------------------------------------------------------------------------
+
+      WAIT_MAINT_ALL;
+
+      sync_frame.dsp <= A64( S0 );
+      sync_valid     <= '1';
+      wait until rising_edge( clk );
+      sync_valid     <= '0';
+      wait until falling_edge( clk );
+
+      writes_before := mem_write_count;
+      reads_before  := mem_read_count;
+
+      for i in 1 to 65 loop
+         DO_LI( i, 16#5000# + 5 * ( i - 1 ), S0 + 8 * i );
+      end loop;
+
+      CHECK( c, frame.dsp = A64( S0 + 8 * 65 ),
+             "DSP après 65 LI", HEX( A64( S0 + 8 * 65 ) ), HEX( frame.dsp ) );
+      CHECK( c, mem_write_count = writes_before + 1,
+             "un seul SPILL après 65 LI",
+             integer'image( writes_before + 1 ), integer'image( mem_write_count ) );
+      CHECK( c, mem_read_count = reads_before,
+             "aucun FILL pendant les 65 LI",
+             integer'image( reads_before ), integer'image( mem_read_count ) );
+      CHECK( c, test_memory( MEM_INDEX( A64( S0 + 8 ) ) ) = W64( 1 ),
+             "valeur de la cellule évincée", HEX( W64( 1 ) ),
+             HEX( test_memory( MEM_INDEX( A64( S0 + 8 ) ) ) ) );
+
+      for i in 1 to 64 loop
+         PRESENT( SLOT( OP_DROP_T, 0, 1, 16#5200# + i ) );
+         WAIT_DIRECT_COMMIT;
+         CHECK_COMMIT( OP_DROP_T, S0 + 8 * ( 65 - i ) );
+      end loop;
+
+      CHECK( c, frame.dsp = A64( S0 + 8 ),
+             "DSP revenu sur cellule évincée", HEX( A64( S0 + 8 ) ), HEX( frame.dsp ) );
+      CHECK( c, mem_write_count = writes_before + 1,
+             "DROP sans SPILL supplémentaire",
+             integer'image( writes_before + 1 ), integer'image( mem_write_count ) );
+
+      PRESENT( SLOT( OP_NEG_T, 0, 1, 16#5300# ) );
+      WAIT_ISSUE( OP_NEG_T, 1, W64( 1 ) );
+      CHECK( c, mem_read_count = reads_before + 1,
+             "un FILL de la cellule évincée",
+             integer'image( reads_before + 1 ), integer'image( mem_read_count ) );
+      COMPLETE_WITH( W64( -1 ) );
+      CHECK_COMMIT( OP_NEG_T, S0 + 8 );
 
       -------------------------------------------------------------------------------
 
