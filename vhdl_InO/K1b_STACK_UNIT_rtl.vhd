@@ -131,6 +131,9 @@ of STACK_UNIT is                ---
    -- Une maintenance peut aussi être lancée après une faute précise. Dans ce cas,
    -- MAINT_DONE ne libère pas le backend : on revient attendre la SYNC d'exception.
    signal maint_return_fault_s : std_logic := '0';
+   -- Maintenance lancée pendant ST_WAIT_EXEC (blocs complexes) :
+   -- revenir attendre COMPLETE au lieu de libérer STACK_UNIT.
+   signal maint_return_exec_s  : std_logic := '0';
 
    function U64( v : signed ) return address_t is
    begin
@@ -346,6 +349,7 @@ begin
             coh_length_s      <= ( others => '0' );
             coh_index_s       <= 0;
             maint_return_fault_s <= '0';
+            maint_return_exec_s  <= '0';
             commit_s         <= ( valid => '0', slot => ( valid => '0', canon => CANON_NOP,
                                   pc => ( others => '0' ), pred => NO_PREDICTION ),
                                   fault => NO_FAULT, taken => '0', target => ( others => '0' ) );
@@ -368,6 +372,7 @@ begin
             coh_invalidate_s <= '0';
             coh_index_s      <= 0;
             maint_return_fault_s <= '0';
+            maint_return_exec_s  <= '0';
 
          else
             case state_s is
@@ -382,6 +387,7 @@ begin
                      maint_index_s        <= 0;
                      ret_maint_index_s    <= 0;
                      maint_return_fault_s <= '0';
+                     maint_return_exec_s  <= '0';
                      state_s              <= ST_MAINT_SCAN;
 
                   elsif DECODE_COUNT_i /= 0 and DECODE_BLOCK_i( 0 ).valid = '1' then
@@ -896,7 +902,18 @@ begin
                   end if;
 
                when ST_WAIT_EXEC =>
-                  if COMPLETE_i.valid = '1' then
+                  -- Les opérations de bloc peuvent demander une maintenance du cache
+                  -- pendant leur exécution. La requête MAINT_i est une impulsion ; le
+                  -- backend attend MAINT_DONE_o avant de poursuivre ses accès mémoire.
+                  if MAINT_i.valid = '1' then
+                     maint_s              <= MAINT_i;
+                     maint_index_s        <= 0;
+                     ret_maint_index_s    <= 0;
+                     maint_return_fault_s <= '0';
+                     maint_return_exec_s  <= '1';
+                     state_s              <= ST_MAINT_SCAN;
+
+                  elsif COMPLETE_i.valid = '1' then
                      if COMPLETE_i.fault.valid = '1' then
                         commit_s <= ( valid => '1', slot => slot_s, fault => COMPLETE_i.fault,
                                       taken => COMPLETE_i.taken, target => COMPLETE_i.target );
@@ -1055,6 +1072,7 @@ begin
                      maint_index_s        <= 0;
                      ret_maint_index_s    <= 0;
                      maint_return_fault_s <= '1';
+                     maint_return_exec_s  <= '0';
                      state_s              <= ST_MAINT_SCAN;
                   end if;
 
@@ -1072,6 +1090,9 @@ begin
                         maint_done_s <= '1';
                         if maint_return_fault_s = '1' then
                            state_s <= ST_FAULT_HOLD;
+                        elsif maint_return_exec_s = '1' then
+                           maint_return_exec_s <= '0';
+                           state_s <= ST_WAIT_EXEC;
                         else
                            state_s <= ST_IDLE;
                         end if;
@@ -1133,6 +1154,9 @@ begin
                      maint_done_s <= '1';
                      if maint_return_fault_s = '1' then
                         state_s <= ST_FAULT_HOLD;
+                     elsif maint_return_exec_s = '1' then
+                        maint_return_exec_s <= '0';
+                        state_s <= ST_WAIT_EXEC;
                      else
                         state_s <= ST_IDLE;
                      end if;
