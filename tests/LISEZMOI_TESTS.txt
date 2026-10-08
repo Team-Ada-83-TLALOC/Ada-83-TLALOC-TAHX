@@ -42,9 +42,11 @@ N4  Mesure : bancs B_xxx, programmes Ada propres au test (B_xxx/<programme>.adb,
     MESURES/VARIANTES.txt (IPC par banc, cycles, IPC pondéré). Les bancs de pièces (N1)
     ne sont pas faits pour d'autres largeurs : les variantes servent aux mesures N3 et N4.
     Une voie (INTEGER_LANES, MEMORY_LANES, BRANCH_LANES) ne peut dépasser DECODE_WIDTH.
-    Configuration par défaut (depuis l'étude des largeurs) : L4R128, largeur 4 et ROB de
-    128 ; L8 (largeur 8, ROB de 256) reste une variante. Les bancs de pièces passent aux
-    largeurs 2, 4 et 8.
+    Configuration par défaut (deux tours de variantes) : MINI, largeur 4, ROB de 128, 2 voies
+    entières, 1 de branchement, 2 mémoire, LSQ de 32, 16 points de reprise, fenêtre de pile
+    de 32 mots, 256 registres physiques. Les autres configurations mesurées (L4R128, L8,
+    ...) sont des variantes décrites en entier par rapport à MINI. Les bancs de pièces
+    passent en MINI, L4R128, L8 (et L2 pour ceux qui dépendent de la largeur).
 
 
 Rangement

@@ -42,7 +42,7 @@ is				---------
 		-- Checkpoints du renommage (un par transfert de contrôle prédit, au plus)
 		--------------------------------------------------------------------
 
-   constant CHECKPOINT_BITS		: positive	:= 5;
+   constant CHECKPOINT_BITS		: positive	:= 4;
    subtype checkpoint_id_t		is unsigned( CHECKPOINT_BITS - 1 downto 0 );
 
 		-------------------------------------------------------------------------------------

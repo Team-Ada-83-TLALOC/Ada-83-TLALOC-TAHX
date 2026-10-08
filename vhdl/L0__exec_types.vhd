@@ -34,10 +34,10 @@ is				----------
 		-- Voies de chaque groupe d'unités (= largeur d'émission de sa file)
 		--------------------------------------------------------------------------------
 
-   constant INTEGER_LANES		: positive	:= 4;
+   constant INTEGER_LANES		: positive	:= 2;
    constant MULDIV_LANES		: positive	:= 1;
    constant MEMORY_LANES		: positive	:= 2;		-- unité d'adresses et LSQ
-   constant BRANCH_LANES		: positive	:= 2;
+   constant BRANCH_LANES		: positive	:= 1;
    constant FLOAT_LANES		: positive	:= 1;
    constant COMPLEX_LANES		: positive	:= 1;
 
@@ -99,7 +99,7 @@ is				----------
 		-- au renommage (address_known) ou à l'exécution (lsq_exec_t).
 		--------------------------------------------------------------------------------
 
-   constant LSQ_DEPTH			: positive	:= 128;		-- R1 : un SPILL par cellule empilée
+   constant LSQ_DEPTH			: positive	:= 32;		-- R1 : un SPILL par cellule empilée
    -- règle de validité des accès de données (plateforme ; celle de tx_run), commune à
    -- DATA_CACHE et à la LSQ (qui en décide seule pour les rangements)
    constant DATA_VALID_BASE		: address_t	:= x"0000000000400000";

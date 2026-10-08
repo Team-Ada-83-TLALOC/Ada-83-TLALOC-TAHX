@@ -140,6 +140,13 @@ begin
       variable next_seq		: natural := 0;
       variable next_tag		: natural := 0;
       variable stage_read, stage_result, issued : stage_t;
+      function IDLE( st : stage_t ) return boolean is			-- aucune voie occupée
+      begin
+         for i in st'range loop
+            if st( i ).valid then return false; end if;
+         end loop;
+         return true;
+      end function;
       variable blk		: renamed_block_t;
       variable k		: natural;
       variable byp		: exec_result_bus_t( 0 to RESULT_PORTS - 1 );
@@ -243,10 +250,7 @@ begin
       wait until falling_edge( clk );
       reset <= '0';
 
-      while not ( exhausted and not stage_read( 0 ).valid and not stage_read( 1 ).valid
-                  and not stage_read( 2 ).valid and not stage_read( 3 ).valid
-                  and not stage_result( 0 ).valid and not stage_result( 1 ).valid
-                  and not stage_result( 2 ).valid and not stage_result( 3 ).valid ) loop
+      while not ( exhausted and IDLE( stage_read ) and IDLE( stage_result ) ) loop
 
 		-- bloc émis ce cycle (pris au front qui vient)
          issued := ( others => stage_read( 0 ) );

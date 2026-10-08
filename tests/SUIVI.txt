@@ -407,3 +407,23 @@ concernée quand on l'écrira, puis à rayer ici.
               DIS_BONJOUR (MEM1 4 163, Q32 et MINI 4 091, les autres 3 878 cycles ; ce
               programme n'exerce pas les voies) ; MINI passe aussi CHK_TEST0 (9 373 contre
               9 161) et EXC_TEST0.
+  2026-10-09  Second tour de variantes (commit a21f264, 262 min), IPC pondéré : L4R128
+              1,63 ; I3 1,63 ; I2 1,62 ; BR1 1,63 ; MEM1 1,34 (-18 %, B_MATRICE 3,02 ->
+              1,75) ; Q32 1,62 ; C16 1,63 et P256 1,63 (cycles identiques : jamais épuisés) ;
+              W32 1,63 ; MINI 1,61 (-1,5 %).
+              Configuration par défaut : MINI (INTEGER_LANES 2, BRANCH_LANES 1, LSQ_DEPTH 32,
+              CHECKPOINT_BITS 4, STACK_CACHE_WORDS 32, PHYSICAL_TAG_BITS 8 ; largeur 4, ROB
+              de 128, deux voies mémoire). Le modèle dans l'ordre (tests_InO, qui partage
+              R__rob_types) passe : il n'utilise pas les points de reprise.
+              Bancs : L1_INTEGER_UNIT (fin de boucle sur les voies, et non 4 étages en dur) ;
+              L3_BRANCH_UNIT (seuils de couverture par voie) ; P_PHYSICAL_REGISTER_FILE
+              (défaut de cadencement : la phase 3 finit en cours de cycle ; avec 8 ports, la
+              phase 4 vérifiait l'écriture avant tout front montant ; calée sur un front).
+              Les 24 bancs de pièces passent en MINI, et les trois modifiés en L4R128 et L8.
+              N3 en MINI : TAHX_1 4 091, EXC_TEST0 973, CHK_TEST0 9 373 cycles.
+              Variantes redéfinies en entier par rapport à MINI (L4R128 reproduit l'ancien
+              défaut : DIS_BONJOUR 3 878 cycles). Troisième tour autour de MINI : R64 (ROB
+              de 64), Q16 (LSQ de 16), C8 (8 points de reprise), W16 (fenêtre de 16), L3
+              (largeur 3), IQ16 (files d'émission entière et mémoire de 16, branchement 8),
+              DQ16 (file de décodage de 16 ; la file d'octets reste de 128 : FETCH_BYTE_QUEUE
+              l'exige), MINI2 (R64, Q16, C8, IQ16, DQ16).

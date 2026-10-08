@@ -202,7 +202,8 @@ begin
 		-- 4. Moment de l'écriture : ancienne valeur avant le front, nouvelle après
 		--------------------------------------------------------------------------------
 
-      for p in 0 to RESULT_PORTS - 1 loop
+      wait until falling_edge( clk );			-- (la phase 3 finit en cours de cycle :
+      for p in 0 to RESULT_PORTS - 1 loop		--  un front montant doit suivre l'écriture)
          w( p ) := WRITING( 100 + p, PATTERN( 100 + p, 2 ) );
       end loop;
       write <= w;

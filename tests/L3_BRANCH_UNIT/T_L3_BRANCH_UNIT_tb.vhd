@@ -422,7 +422,7 @@ begin
              & ", direction fausse mais adresse juste " & integer'image( n_dir_wrong_addr_ok ) & "), abandonnées "
              & integer'image( n_squashed ) & ", opérandes par contournement " & integer'image( n_bypass )
              severity note;
-      CHECK( c, n_checked > 20000 and n_mis > 5000 and n_squashed > 500 and n_bypass > 1000
+      CHECK( c, n_checked > 10000 * LANES and n_mis > 5000 and n_squashed > 250 * LANES and n_bypass > 1000	-- (par voie)
                 and n_dir_wrong_addr_ok > 500,
              "le tirage a exercé les issues, les erreurs de prédiction, les reprises et le contournement" );
       FINISH( c, "T_L3_BRANCH_UNIT_tb" );

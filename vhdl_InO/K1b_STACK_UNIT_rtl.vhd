@@ -157,6 +157,8 @@ of STACK_UNIT is                ---
    constant OP_LVA_B24 : opcode_t := x"4B";
    constant OP_LINK16  : opcode_t := x"44";
    constant OP_LINK24  : opcode_t := x"48";
+   constant OP_EXCM16  : opcode_t := x"45";
+   constant OP_EXCM24  : opcode_t := x"49";
 
    function IS_LINK_OP( op : opcode_t ) return boolean is
    begin
@@ -166,6 +168,11 @@ of STACK_UNIT is                ---
    function IS_UNLINK_OP( op : opcode_t ) return boolean is
    begin
       return op = OP_UNLINK or op = OP_UNLINKR;
+   end function;
+
+   function IS_EXCM_OP( op : opcode_t ) return boolean is
+   begin
+      return op = OP_EXCM16 or op = OP_EXCM24;
    end function;
 
    function IS_CALL_OP( op : opcode_t ) return boolean is
@@ -187,14 +194,16 @@ of STACK_UNIT is                ---
       return a + 8 > base and a < base + length;
    end function;
 
+   function IS_SYSTEM_OP( op : opcode_t ) return boolean is
+   begin
+      return op = OP_TRAP or op = OP_EXC_RAISE or op = OP_RTX;
+   end function;
+
    function IS_SPECIAL_NOT_YET_SUPPORTED( s : decoded_slot_t; e : isa_entry_t ) return boolean is
       variable op : opcode_t;
    begin
       op := s.canon.op;
-      return ( e.frame and not IS_LINK_OP( op ) and not IS_UNLINK_OP( op ) )
-         or op = OP_TRAP
-         or op = OP_EXC_RAISE
-         or op = OP_RTX;
+      return e.frame and not IS_LINK_OP( op ) and not IS_UNLINK_OP( op ) and not IS_EXCM_OP( op );
    end function;
 
    function MISPREDICTED( s : decoded_slot_t; c : ino_complete_t ) return boolean is
@@ -396,6 +405,20 @@ begin
                      if s.canon.op = UOP_LIHI then
                         e := ( true, 9, FMT_NONE, ISSUE_INTEGER, 1, 1, STACK_LINEAR,
                                LVL_NONE, false, false, false, false );
+                     elsif s.canon.op = OP_TRAP then
+                        -- Les services système ont un effet de pile dynamique qui n'est
+                        -- pas encodé dans ISA_TABLE :
+                        --   0 EXIT et 17 CTX_RESTORE lisent le sommet sans le dépiler ;
+                        --   16 CTX_SAVE et 18 SET_IMASK font ( x -- r ) ;
+                        --   les autres services n'ont pas d'effet propre sur la pile.
+                        case to_integer( s.canon.val ) is
+                           when 0 | 17 =>
+                              e.pops := 1; e.pushes := 1; e.stack_action := STACK_KEEP_TOP;
+                           when 16 | 18 =>
+                              e.pops := 1; e.pushes := 1; e.stack_action := STACK_LINEAR;
+                           when others =>
+                              e.pops := 0; e.pushes := 0; e.stack_action := STACK_LINEAR;
+                        end case;
                      end if;
 
                      f := NO_FAULT;
@@ -493,7 +516,7 @@ begin
                         coh_base_s     <= a( 63 downto 3 ) & "000";
                         coh_length_s   <= to_unsigned( 8, 64 );
 
-                     elsif e.memory and not e.frame
+                     elsif e.memory and not e.frame and not IS_SYSTEM_OP( s.canon.op )
                         and to_integer( s.canon.lvl ) <= 14 then
                         -- LINK/UNLINK portent memory=true parce que COMPLEX_UNIT accède
                         -- à la co-pile. Ce ne sont pas des accès mémoire adressés par

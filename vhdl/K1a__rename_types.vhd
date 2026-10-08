@@ -32,7 +32,7 @@ is                              ------------
 		-------------
 
    constant RENAME_WIDTH		: positive	:= DECODE_WIDTH;		-- 8
-   constant STACK_CACHE_WORDS		: positive	:= 64;			-- fenêtre circulaire sous DSP (R2)
+   constant STACK_CACHE_WORDS		: positive	:= 32;			-- fenêtre circulaire sous DSP (R2)
 
    -- BFI ( old ins lsb w ) et LEXCMP ( @g lg @d ld ) lisent quatre cellules
    constant MAX_SOURCE_COUNT		: positive	:= 4;
@@ -43,7 +43,7 @@ is                              ------------
    -- 9 bits : 512 valeurs. Il en faut environ STACK_CACHE_WORDS + ROB_SIZE (384) plus une marge.
    --------------------------------------------------------------------
 
-   constant PHYSICAL_TAG_BITS		: positive := 9;
+   constant PHYSICAL_TAG_BITS		: positive := 8;
 
    subtype physical_tag_t		is unsigned( PHYSICAL_TAG_BITS - 1 downto 0 );
    subtype physical_count_t		is unsigned( PHYSICAL_TAG_BITS downto 0 );

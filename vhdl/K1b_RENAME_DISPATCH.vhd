@@ -9,8 +9,8 @@ use ieee.numeric_std.all;
 --
 use work.TAHX_1_ISA.all;
 use work.TAHX_1_ISA_TABLE.all;
-use work.FETCH_DECODE_TYPES.all;
 use work.ARCH_TYPES.all;
+use work.FETCH_DECODE_TYPES.all;
 use work.ROB_TYPES.all;
 use work.RENAME_TYPES.all;
 
