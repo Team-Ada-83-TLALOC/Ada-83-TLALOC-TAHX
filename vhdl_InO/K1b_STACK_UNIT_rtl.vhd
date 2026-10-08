@@ -27,12 +27,14 @@ use work.IN_ORDER_TYPES.all;
         -- cellule absente nécessaire comme source est relue par MEM (FILL). Avant de
         -- remplacer une cellule sale encore vivante, elle est rangée par MEM (SPILL).
         --
-        -- Cette première architecture couvre les effets génériques non mémoire de
-        -- ISA_TABLE : STACK_LINEAR, STACK_DROP, STACK_DUP, STACK_OVER et
-        -- STACK_KEEP_TOP. Les instructions mémoire sont volontairement différées :
-        -- leur cohérence avec les cellules sales du cache de pile doit être définie
-        -- explicitement avant de les autoriser. CALL/CALLI/RTD, LINK/UNLINK et les
-        -- opérations système sérialisantes seront ajoutés ensuite.
+        -- Cette architecture couvre les effets génériques non mémoire de ISA_TABLE et
+        -- une pile de retours architecturale séparée : CALL/CALLI poussent pc+len,
+        -- RTD lit/dépile RSP et RTD n décrémente DSP de n octets. Le RAS du frontal
+        -- reste purement spéculatif ; cette pile est l'état architectural réel.
+        --
+        -- Les instructions mémoire du programme sont encore différées : leur cohérence
+        -- avec les cellules sales du cache de pile data doit être définie explicitement.
+        -- LINK/UNLINK et les opérations système sérialisantes seront ajoutés ensuite.
         --------------------------------------------------------------------------------
 
                                 ---
@@ -48,13 +50,20 @@ of STACK_UNIT is                ---
       ST_SRC_FILL_RSP,
       ST_DST_SPILL_REQ,
       ST_DST_SPILL_RSP,
+      ST_RET_SPILL_REQ,
+      ST_RET_SPILL_RSP,
+      ST_RET_FILL_REQ,
+      ST_RET_FILL_RSP,
       ST_ISSUE,
       ST_WAIT_EXEC,
       ST_MISPRED_HOLD,
       ST_FAULT_HOLD,
       ST_MAINT_SCAN,
       ST_MAINT_SPILL_REQ,
-      ST_MAINT_SPILL_RSP
+      ST_MAINT_SPILL_RSP,
+      ST_MAINT_RET_SCAN,
+      ST_MAINT_RET_SPILL_REQ,
+      ST_MAINT_RET_SPILL_RSP
    );
 
    type stack_cell_t is record
@@ -75,6 +84,7 @@ of STACK_UNIT is                ---
    signal state_s              : state_t := ST_IDLE;
    signal frame_s              : frame_state_t;
    signal cells_s              : stack_cell_array_t( 0 to STACK_CACHE_WORDS_G - 1 );
+   signal return_cells_s       : stack_cell_array_t( 0 to RETURN_CACHE_WORDS_G - 1 );
 
    signal slot_s               : decoded_slot_t;
    signal entry_s              : isa_entry_t := ISA_RESERVE;
@@ -84,6 +94,8 @@ of STACK_UNIT is                ---
    signal source_value_s       : ino_operand_array_t;
    signal old_dsp_s            : address_t := ( others => '0' );
    signal new_dsp_s            : address_t := ( others => '0' );
+   signal new_rsp_s            : address_t := ( others => '0' );
+   signal return_target_s      : address_t := ( others => '0' );
    signal destination_valid_s  : std_logic := '0';
    signal destination_address_s: address_t := ( others => '0' );
    signal initial_fault_s      : fault_t := NO_FAULT;
@@ -92,9 +104,12 @@ of STACK_UNIT is                ---
    signal mem_address_s        : address_t := ( others => '0' );
    signal mem_data_s           : word64_t := ( others => '0' );
    signal mem_cell_index_s     : natural range 0 to STACK_CACHE_WORDS_G - 1 := 0;
+   signal ret_mem_cell_index_s : natural range 0 to RETURN_CACHE_WORDS_G - 1 := 0;
+   signal ret_after_spill_fill_s : std_logic := '0';
 
    signal maint_s              : stack_maint_t;
    signal maint_index_s        : natural range 0 to STACK_CACHE_WORDS_G := 0;
+   signal ret_maint_index_s    : natural range 0 to RETURN_CACHE_WORDS_G := 0;
 
    signal commit_s             : ino_commit_t;
    signal maint_done_s         : std_logic := '0';
@@ -115,6 +130,21 @@ of STACK_UNIT is                ---
       return to_integer( a( 30 downto 3 ) ) mod STACK_CACHE_WORDS_G;
    end function;
 
+   function RWIDX( a : address_t ) return natural is
+   begin
+      return to_integer( a( 30 downto 3 ) ) mod RETURN_CACHE_WORDS_G;
+   end function;
+
+   function IS_CALL_OP( op : opcode_t ) return boolean is
+   begin
+      return op = OP_CALL or op = x"33";      -- CALL, CALLI
+   end function;
+
+   function IS_RTD_OP( op : opcode_t ) return boolean is
+   begin
+      return op = OP_RTD_N or op = OP_RTD_0;
+   end function;
+
    function IN_RANGE( a : address_t; base : address_t; length : address_t ) return boolean is
    begin
       if length = 0 then
@@ -130,10 +160,6 @@ of STACK_UNIT is                ---
       op := s.canon.op;
       return e.memory
          or e.frame
-         or op = x"33"                 -- CALLI
-         or op = OP_CALL
-         or op = OP_RTD_N
-         or op = OP_RTD_0
          or op = OP_TRAP
          or op = OP_EXC_RAISE
          or op = OP_RTX;
@@ -205,7 +231,12 @@ begin
          issue_v.operand_count := source_count_s;
          issue_v.operand       := source_value_s;
 
-         if ( entry_s.lvl_use = LVL_ADDR or entry_s.lvl_use = LVL_FRAME )
+         if IS_RTD_OP( slot_s.canon.op ) then
+            -- La cible de RTD vient de la pile de retours architecturale, pas de la
+            -- pile data. Elle a été obtenue (cache ou FILL) avant ST_ISSUE.
+            issue_v.address_known := '1';
+            issue_v.address       := return_target_s;
+         elsif ( entry_s.lvl_use = LVL_ADDR or entry_s.lvl_use = LVL_FRAME )
             and to_integer( slot_s.canon.lvl ) <= 14 then
             issue_v.address_known := '1';
             issue_v.address := frame_s.display( to_integer( slot_s.canon.lvl ) ) + U64( slot_s.canon.val );
@@ -216,7 +247,8 @@ begin
       end if;
 
       case state_s is
-         when ST_SRC_SPILL_REQ | ST_DST_SPILL_REQ | ST_MAINT_SPILL_REQ =>
+         when ST_SRC_SPILL_REQ | ST_DST_SPILL_REQ | ST_RET_SPILL_REQ |
+              ST_MAINT_SPILL_REQ | ST_MAINT_RET_SPILL_REQ =>
             mem_v.valid   := '1';
             mem_v.write   := '1';
             mem_v.probe   := '0';
@@ -224,7 +256,7 @@ begin
             mem_v.size    := "11";
             mem_v.wdata   := mem_data_s;
 
-         when ST_SRC_FILL_REQ =>
+         when ST_SRC_FILL_REQ | ST_RET_FILL_REQ =>
             mem_v.valid   := '1';
             mem_v.write   := '0';
             mem_v.probe   := '0';
@@ -249,9 +281,11 @@ begin
       variable npop            : natural range 0 to 4;
       variable nsrc            : natural range 0 to 4;
       variable ndsp            : address_t;
+      variable nrsp            : address_t;
       variable a               : address_t;
       variable idx             : natural;
       variable dst_idx         : natural;
+      variable ridx            : natural;
       variable f               : fault_t;
       variable live_collision  : boolean;
    begin
@@ -267,10 +301,13 @@ begin
             frame_s.rsp      <= ( others => '0' );
             frame_s.display  <= ( others => ( others => '0' ) );
             cells_s          <= ( others => NO_CELL );
+            return_cells_s   <= ( others => NO_CELL );
             source_index_s   <= 0;
             source_count_s   <= 0;
             source_value_s   <= ( others => ( others => '0' ) );
             initial_fault_s  <= NO_FAULT;
+            ret_after_spill_fill_s <= '0';
+            return_target_s   <= ( others => '0' );
             maint_return_fault_s <= '0';
             commit_s         <= ( valid => '0', slot => ( valid => '0', canon => CANON_NOP,
                                   pc => ( others => '0' ), pred => NO_PREDICTION ),
@@ -286,6 +323,7 @@ begin
             -- pragma translate_on
             frame_s         <= SYNC_FRAME_i;
             cells_s         <= ( others => NO_CELL );
+            return_cells_s  <= ( others => NO_CELL );
             state_s         <= ST_IDLE;
             source_index_s  <= 0;
             source_count_s  <= 0;
@@ -302,6 +340,7 @@ begin
                   if MAINT_i.valid = '1' then
                      maint_s              <= MAINT_i;
                      maint_index_s        <= 0;
+                     ret_maint_index_s    <= 0;
                      maint_return_fault_s <= '0';
                      state_s              <= ST_MAINT_SCAN;
 
@@ -343,14 +382,30 @@ begin
                            null;
                      end case;
 
+                     -- RTD n ne décrit pas son effet sur DSP par pops/pushes dans
+                     -- ISA_TABLE : n est un nombre d'octets à abandonner.
+                     if IS_RTD_OP( s.canon.op ) then
+                        ndsp := frame_s.dsp - U64( s.canon.val );
+                     end if;
+
+                     nrsp := frame_s.rsp;
+                     if IS_CALL_OP( s.canon.op ) then
+                        nrsp := frame_s.rsp - 8;
+                     end if;
+
                      if f.valid = '0' and ndsp > LIMITS_i.lim_dsp and ndsp > frame_s.dsp then
                         f := ( valid => '1', code => FAULT_DSP_LIMIT );
+                     elsif f.valid = '0' and nrsp < LIMITS_i.lim_rsp and nrsp < frame_s.rsp then
+                        f := ( valid => '1', code => FAULT_RSP_LIMIT );
                      end if;
 
                      slot_s              <= s;
                      entry_s             <= e;
                      old_dsp_s           <= frame_s.dsp;
                      new_dsp_s           <= ndsp;
+                     new_rsp_s           <= nrsp;
+                     return_target_s     <= ( others => '0' );
+                     ret_after_spill_fill_s <= '0';
                      initial_fault_s     <= f;
                      source_index_s      <= 0;
                      source_value_s      <= ( others => ( others => '0' ) );
@@ -474,7 +529,43 @@ begin
                      end if;
 
                   else
-                     if entry_s.issue_class = ISSUE_NONE then
+                     -- Pile de retours séparée. CALL/CALLI réservent la cellule du
+                     -- futur RSP ; RTD obtient la cible au RSP courant. Une collision
+                     -- sale est rangée avant remplacement.
+                     if IS_CALL_OP( slot_s.canon.op ) then
+                        ridx := RWIDX( new_rsp_s );
+                        if return_cells_s( ridx ).valid = '1'
+                           and return_cells_s( ridx ).addr /= new_rsp_s
+                           and return_cells_s( ridx ).dirty = '1' then
+                           ret_mem_cell_index_s   <= ridx;
+                           mem_address_s          <= return_cells_s( ridx ).addr;
+                           mem_data_s             <= return_cells_s( ridx ).data;
+                           ret_after_spill_fill_s <= '0';
+                           state_s                <= ST_RET_SPILL_REQ;
+                        else
+                           state_s <= ST_ISSUE;
+                        end if;
+
+                     elsif IS_RTD_OP( slot_s.canon.op ) then
+                        ridx := RWIDX( frame_s.rsp );
+                        if return_cells_s( ridx ).valid = '1'
+                           and return_cells_s( ridx ).addr = frame_s.rsp then
+                           return_target_s <= unsigned( return_cells_s( ridx ).data );
+                           state_s <= ST_ISSUE;
+                        elsif return_cells_s( ridx ).valid = '1'
+                           and return_cells_s( ridx ).dirty = '1' then
+                           ret_mem_cell_index_s   <= ridx;
+                           mem_address_s          <= return_cells_s( ridx ).addr;
+                           mem_data_s             <= return_cells_s( ridx ).data;
+                           ret_after_spill_fill_s <= '1';
+                           state_s                <= ST_RET_SPILL_REQ;
+                        else
+                           ret_mem_cell_index_s   <= ridx;
+                           mem_address_s          <= frame_s.rsp;
+                           state_s                <= ST_RET_FILL_REQ;
+                        end if;
+
+                     elsif entry_s.issue_class = ISSUE_NONE then
                         case entry_s.stack_action is
                            when STACK_DROP =>
                               INVALIDATE_CELL( cells_s, old_dsp_s );
@@ -561,6 +652,56 @@ begin
                   end if;
 
                -------------------------------------------------------------------------
+               -- Pile des retours : collision à ranger / cible RTD à relire.
+               -------------------------------------------------------------------------
+
+               when ST_RET_SPILL_REQ =>
+                  if MEM_READY_i = '1' then
+                     state_s <= ST_RET_SPILL_RSP;
+                  end if;
+
+               when ST_RET_SPILL_RSP =>
+                  if MEM_RSP_i.valid = '1' then
+                     if MEM_RSP_i.fault = '1' then
+                        commit_s <= ( valid => '1', slot => slot_s,
+                                      fault => ( valid => '1', code => FAULT_ACCESS ),
+                                      taken => '0', target => ( others => '0' ) );
+                        state_s <= ST_FAULT_HOLD;
+                     else
+                        return_cells_s( ret_mem_cell_index_s ).valid <= '0';
+                        return_cells_s( ret_mem_cell_index_s ).dirty <= '0';
+                        if ret_after_spill_fill_s = '1' then
+                           mem_address_s <= frame_s.rsp;
+                           state_s <= ST_RET_FILL_REQ;
+                        else
+                           state_s <= ST_PREPARE;
+                        end if;
+                     end if;
+                  end if;
+
+               when ST_RET_FILL_REQ =>
+                  if MEM_READY_i = '1' then
+                     state_s <= ST_RET_FILL_RSP;
+                  end if;
+
+               when ST_RET_FILL_RSP =>
+                  if MEM_RSP_i.valid = '1' then
+                     if MEM_RSP_i.fault = '1' then
+                        commit_s <= ( valid => '1', slot => slot_s,
+                                      fault => ( valid => '1', code => FAULT_ACCESS ),
+                                      taken => '0', target => ( others => '0' ) );
+                        state_s <= ST_FAULT_HOLD;
+                     else
+                        ridx := RWIDX( frame_s.rsp );
+                        return_cells_s( ridx ) <=
+                           ( valid => '1', dirty => '0', addr => frame_s.rsp,
+                             data => MEM_RSP_i.rdata );
+                        return_target_s <= unsigned( MEM_RSP_i.rdata );
+                        state_s <= ST_PREPARE;
+                     end if;
+                  end if;
+
+               -------------------------------------------------------------------------
                -- Exécution. L'état architectural reste inchangé jusqu'à COMPLETE.
                -------------------------------------------------------------------------
 
@@ -576,9 +717,48 @@ begin
                                       taken => COMPLETE_i.taken, target => COMPLETE_i.target );
                         state_s <= ST_FAULT_HOLD;
                      else
+                        -- CALL/CALLI et RTD ont un effet architectural supplémentaire
+                        -- sur RSP et sur la pile de retours. Rien n'a été modifié avant
+                        -- cette terminaison sans faute.
+                        if IS_CALL_OP( slot_s.canon.op ) then
+                           -- CALLI dépile sa cible de la pile data ; CALL direct n'y
+                           -- touche pas. L'adresse de retour est le PC suivant.
+                           for j in 0 to 3 loop
+                              if j < source_count_s then
+                                 INVALIDATE_CELL( cells_s, source_address_s( j ) );
+                              end if;
+                           end loop;
+                           frame_s.dsp <= new_dsp_s;
+                           frame_s.rsp <= new_rsp_s;
+                           ridx := RWIDX( new_rsp_s );
+                           return_cells_s( ridx ) <=
+                              ( valid => '1', dirty => '1', addr => new_rsp_s,
+                                data => std_logic_vector(
+                                   slot_s.pc + resize( slot_s.canon.len, 64 ) ) );
+
+                        elsif IS_RTD_OP( slot_s.canon.op ) then
+                           -- RTD n abandonne n octets de pile data : les cellules
+                           -- cachées devenues mortes ne doivent surtout pas être rangées.
+                           for j in 0 to STACK_CACHE_WORDS_G - 1 loop
+                              if cells_s( j ).valid = '1'
+                                 and cells_s( j ).addr > new_dsp_s
+                                 and cells_s( j ).addr <= old_dsp_s then
+                                 cells_s( j ).valid <= '0';
+                                 cells_s( j ).dirty <= '0';
+                              end if;
+                           end loop;
+                           frame_s.dsp <= new_dsp_s;
+                           ridx := RWIDX( frame_s.rsp );
+                           if return_cells_s( ridx ).valid = '1'
+                              and return_cells_s( ridx ).addr = frame_s.rsp then
+                              return_cells_s( ridx ).valid <= '0';
+                              return_cells_s( ridx ).dirty <= '0';
+                           end if;
+                           frame_s.rsp <= frame_s.rsp + 8;
+
                         -- Les cellules réellement dépilées deviennent mortes. Le résultat,
                         -- s'il existe, est ensuite installé à sa nouvelle adresse.
-                        if entry_s.stack_action = STACK_LINEAR then
+                        elsif entry_s.stack_action = STACK_LINEAR then
                            for j in 0 to 3 loop
                               if j < source_count_s then
                                  INVALIDATE_CELL( cells_s, source_address_s( j ) );
@@ -629,6 +809,7 @@ begin
                   if MAINT_i.valid = '1' then
                      maint_s              <= MAINT_i;
                      maint_index_s        <= 0;
+                     ret_maint_index_s    <= 0;
                      maint_return_fault_s <= '1';
                      state_s              <= ST_MAINT_SCAN;
                   end if;
@@ -640,11 +821,16 @@ begin
 
                when ST_MAINT_SCAN =>
                   if maint_index_s = STACK_CACHE_WORDS_G then
-                     maint_done_s <= '1';
-                     if maint_return_fault_s = '1' then
-                        state_s <= ST_FAULT_HOLD;
+                     if maint_s.kind = MAINT_WRITEBACK_ALL then
+                        ret_maint_index_s <= 0;
+                        state_s <= ST_MAINT_RET_SCAN;
                      else
-                        state_s <= ST_IDLE;
+                        maint_done_s <= '1';
+                        if maint_return_fault_s = '1' then
+                           state_s <= ST_FAULT_HOLD;
+                        else
+                           state_s <= ST_IDLE;
+                        end if;
                      end if;
                   else
                      idx := maint_index_s;
@@ -693,6 +879,52 @@ begin
                      end if;
                      maint_index_s <= maint_index_s + 1;
                      state_s <= ST_MAINT_SCAN;
+                  end if;
+
+               -- WRITEBACK_ALL inclut la pile de retours (ARCH_TYPES). Les maintenances
+               -- de tranche ne la concernent pas : elle n'est pas adressable par le
+               -- programme ordinaire.
+               when ST_MAINT_RET_SCAN =>
+                  if ret_maint_index_s = RETURN_CACHE_WORDS_G then
+                     maint_done_s <= '1';
+                     if maint_return_fault_s = '1' then
+                        state_s <= ST_FAULT_HOLD;
+                     else
+                        state_s <= ST_IDLE;
+                     end if;
+                  else
+                     ridx := ret_maint_index_s;
+                     if return_cells_s( ridx ).valid = '1'
+                        and return_cells_s( ridx ).dirty = '1' then
+                        ret_mem_cell_index_s <= ridx;
+                        mem_address_s        <= return_cells_s( ridx ).addr;
+                        mem_data_s           <= return_cells_s( ridx ).data;
+                        state_s              <= ST_MAINT_RET_SPILL_REQ;
+                     else
+                        ret_maint_index_s <= ret_maint_index_s + 1;
+                     end if;
+                  end if;
+
+               when ST_MAINT_RET_SPILL_REQ =>
+                  if MEM_READY_i = '1' then
+                     state_s <= ST_MAINT_RET_SPILL_RSP;
+                  end if;
+
+               when ST_MAINT_RET_SPILL_RSP =>
+                  if MEM_RSP_i.valid = '1' then
+                     -- pragma translate_off
+                     assert MEM_RSP_i.fault = '0'
+                        report "STACK_UNIT: faute pendant le writeback de la pile retours"
+                        severity failure;
+                     -- pragma translate_on
+                     if MEM_RSP_i.fault = '0' then
+                        if return_cells_s( ret_mem_cell_index_s ).valid = '1'
+                           and return_cells_s( ret_mem_cell_index_s ).addr = mem_address_s then
+                           return_cells_s( ret_mem_cell_index_s ).dirty <= '0';
+                        end if;
+                     end if;
+                     ret_maint_index_s <= ret_maint_index_s + 1;
+                     state_s <= ST_MAINT_RET_SCAN;
                   end if;
 
             end case;

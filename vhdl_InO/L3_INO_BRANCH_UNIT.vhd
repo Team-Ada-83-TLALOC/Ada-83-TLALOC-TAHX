@@ -13,10 +13,11 @@ use work.FETCH_DECODE_TYPES.all;
 use work.IN_ORDER_TYPES.all;
 
         --------------------------------------------------------------------------------
-        -- INO_BRANCH_UNIT : résolution des transferts ordinaires BRA, BT et BF.
+        -- INO_BRANCH_UNIT : résolution des transferts BRA, BT, BF, CALL, CALLI et RTD.
         --
-        -- CALL/CALLI/RTD ne sont pas encore acceptés : leur exécution dépend de la
-        -- future pile de retours architecturale de STACK_UNIT.
+        -- La pile de retours architecturale reste entièrement dans STACK_UNIT :
+        -- CALL/CALLI y poussent pc+len au commit ; RTD reçoit ici sa cible par
+        -- ISSUE_i.address, obtenue du cache/FILL de retours avant l'émission.
         --
         -- La sortie target est toujours l'adresse où l'exécution doit continuer :
         -- cible si le transfert est pris, PC suivant sinon. STACK_UNIT conserve slot.pred

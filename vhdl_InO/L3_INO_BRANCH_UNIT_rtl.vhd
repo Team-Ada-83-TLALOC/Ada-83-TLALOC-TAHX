@@ -15,15 +15,16 @@ use work.IN_ORDER_TYPES.all;
         --------------------------------------------------------------------------------
         -- INO_BRANCH_UNIT, architecture RTL.
         --
-        -- Même sémantique de résolution que L3_BRANCH_UNIT du backend OoO, réduite aux
-        -- branches ordinaires déjà compatibles avec STACK_UNIT :
+        -- Même sémantique de résolution que L3_BRANCH_UNIT du backend OoO :
         --
-        --   BRA E0..E3 : toujours prise
+        --   BRA E0..E3 : toujours prise, cible relative
         --   BT  E4..E7 : prise si operand(0) /= 0
         --   BF  E8..EB : prise si operand(0) = 0
+        --   CALL       : toujours pris, cible relative
+        --   CALLI      : toujours pris, cible = operand(0)
+        --   RTD 0/n    : toujours pris, cible = ISSUE_i.address (pile retours)
         --
-        -- cible relative = pc + len + sign_extend(val)
-        -- target rendu = cible si pris, pc + len sinon.
+        -- target rendu = adresse où l'exécution continue.
         --
         -- Un cycle, comme INO_INTEGER_UNIT.
         --------------------------------------------------------------------------------
@@ -43,9 +44,12 @@ of INO_BRANCH_UNIT is           ---
    signal computed_s            : ino_complete_t := NO_COMPLETE;
    signal complete_s            : ino_complete_t := NO_COMPLETE;
 
-   function IS_ORDINARY_BRANCH( op : opcode_t ) return boolean is
+   constant OP_CALLI : opcode_t := x"33";
+
+   function IS_BRANCH_OP( op : opcode_t ) return boolean is
    begin
-      return unsigned( op ) >= 16#E0# and unsigned( op ) <= 16#EB#;
+      return ( unsigned( op ) >= 16#E0# and unsigned( op ) <= 16#EB# )
+          or op = OP_CALL or op = OP_CALLI or op = OP_RTD_0 or op = OP_RTD_N;
    end function;
 
    function EXECUTE( ins : ino_issue_t ) return ino_complete_t is
@@ -63,6 +67,10 @@ of INO_BRANCH_UNIT is           ---
          taken_v := unsigned( ins.operand( 0 ) ) /= 0;       -- BT
       elsif unsigned( op ) >= 16#E8# and unsigned( op ) <= 16#EB# then
          taken_v := unsigned( ins.operand( 0 ) ) = 0;        -- BF
+      elsif op = OP_CALLI then
+         tgt := unsigned( ins.operand( 0 ) );
+      elsif op = OP_RTD_0 or op = OP_RTD_N then
+         tgt := ins.address;
       end if;
 
       r.valid        := '1';
@@ -99,9 +107,18 @@ begin
             assert ISSUE_i.issue_class = ISSUE_BRANCH
                report "INO_BRANCH_UNIT : classe d'emission incorrecte"
                severity failure;
-            assert IS_ORDINARY_BRANCH( ISSUE_i.slot.canon.op )
-               report "INO_BRANCH_UNIT : transfert non encore implante"
+            assert IS_BRANCH_OP( ISSUE_i.slot.canon.op )
+               report "INO_BRANCH_UNIT : transfert non implante"
                severity failure;
+            if ISSUE_i.slot.canon.op = OP_CALLI then
+               assert ISSUE_i.operand_count = 1
+                  report "INO_BRANCH_UNIT : CALLI sans cible"
+                  severity failure;
+            elsif ISSUE_i.slot.canon.op = OP_RTD_0 or ISSUE_i.slot.canon.op = OP_RTD_N then
+               assert ISSUE_i.address_known = '1'
+                  report "INO_BRANCH_UNIT : RTD sans cible de pile retours"
+                  severity failure;
+            end if;
          end if;
       end if;
    end process CHECK_OPCODE;

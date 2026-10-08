@@ -28,6 +28,7 @@ of T_L3_INO_BRANCH_UNIT_tb is  ----
    constant OP_BRA8_T           : opcode_t := x"E0";
    constant OP_BT8_T            : opcode_t := x"E4";
    constant OP_BF8_T            : opcode_t := x"E8";
+   constant OP_CALLI_T          : opcode_t := x"33";
 
    constant NO_SLOT : decoded_slot_t := (
       valid => '0', canon => CANON_NOP, pc => ( others => '0' ), pred => NO_PREDICTION );
@@ -99,14 +100,19 @@ begin
          constant condition       : in word64_t := ( others => '0' );
          constant expected_taken  : in std_logic;
          constant expected_target : in natural;
-         constant name            : in string ) is
+         constant name            : in string;
+         constant noperand        : in natural := 1;
+         constant address_known   : in std_logic := '0';
+         constant address         : in natural := 0 ) is
       begin
          wait until falling_edge( clk );
          issue                 <= NO_ISSUE;
          issue.slot            <= SLOT( op, pc, len, val );
          issue.issue_class     <= ISSUE_BRANCH;
-         issue.operand_count   <= 1;
+         issue.operand_count   <= noperand;
          issue.operand( 0 )    <= condition;
+         issue.address_known   <= address_known;
+         issue.address         <= A64( address );
          issue_valid           <= '1';
 
          wait until rising_edge( clk );
@@ -144,6 +150,22 @@ begin
 
       EXEC( OP_BF8_T, 16#4000#, 2, 12, WS( 0 ), expected_taken => '1', expected_target => 16#400E#, name => "BF pris" );
       EXEC( OP_BF8_T, 16#4000#, 2, 12, WS( 7 ), expected_taken => '0', expected_target => 16#4002#, name => "BF non pris" );
+
+      -- CALL direct : fall=0x5004, cible=fall+0x20=0x5024.
+      EXEC( OP_CALL, 16#5000#, 4, 16#20#, expected_taken => '1',
+            expected_target => 16#5024#, name => "CALL", noperand => 0 );
+
+      -- CALLI : la cible vient du sommet de la pile data fourni comme operand(0).
+      EXEC( OP_CALLI_T, 16#6000#, 1, 0, WS( 16#1234# ), expected_taken => '1',
+            expected_target => 16#1234#, name => "CALLI", noperand => 1 );
+
+      -- RTD : STACK_UNIT fournit la cible par address_known/address.
+      EXEC( OP_RTD_0, 16#7000#, 1, 0, expected_taken => '1',
+            expected_target => 16#3456#, name => "RTD 0", noperand => 0,
+            address_known => '1', address => 16#3456# );
+      EXEC( OP_RTD_N, 16#7100#, 4, 16, expected_taken => '1',
+            expected_target => 16#4567#, name => "RTD n", noperand => 0,
+            address_known => '1', address => 16#4567# );
 
       running <= false;
       FINISH( c, "T_L3_INO_BRANCH_UNIT_tb" );
