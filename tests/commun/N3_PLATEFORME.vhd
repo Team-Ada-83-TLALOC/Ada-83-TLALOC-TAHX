@@ -588,6 +588,7 @@ STIMULI :
     variable l			: line;
     variable key			: string( 1 to 12 );
     variable c			: tb_counter_t	:= TB_COUNTER_INIT;
+    alias rn_maperr    is << signal DUT.U_RENAME.dbg_map_err : natural >>;
     variable exp_exit		: integer;
     variable exp_count		: integer;
     variable exp_out		: line;
@@ -718,6 +719,13 @@ STIMULI :
       if now mod 5000 = 0 then
         report "cycle " & integer'image( now ) & " : retirées " & integer'image( n_prog ) & " (+ "
                    & integer'image( n_handler ) & " des handlers), dernier pc " & HEX( last_pc ) severity note;
+      end if;
+      -- cohérence du renommage (simulation) : comptes de registres, producteurs en vol,
+      -- reprise sur un point valide ; au premier écart, le test échoue
+      if rn_maperr /= 0 then
+        CHECK( c, false, "cycle " & integer'image( now ) & " : renommage incohérent ("
+                         & integer'image( rn_maperr ) & " écart(s) : registres, producteurs en vol, point de reprise)" );
+        exit;
       end if;
       exit when halted = '1';
       if now - last_retire > 20000 and now > 20000 then

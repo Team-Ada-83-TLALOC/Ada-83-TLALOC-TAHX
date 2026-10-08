@@ -10,6 +10,7 @@ use ieee.numeric_std.all;
 use work.TAHX_1_ISA.all;
 use work.TAHX_1_ISA_TABLE.all;
 use work.FETCH_DECODE_TYPES.all;
+use work.ARCH_TYPES.all;
 use work.ROB_TYPES.all;
 use work.RENAME_TYPES.all;
 
@@ -226,6 +227,13 @@ use work.RENAME_TYPES.all;
 		--     source( 1 )). La cellule pointeur n'est pas lue en mémoire (en écriture
 		--     différée : pas de vidage). Effets de pile, classe, rangement par pointeur
 		--     inchangés.
+		--
+		--  14. Points de reprise. Un transfert de contrôle prend un point de reprise au
+		--     renommage. Il le rend au retrait, ou plus tôt : une fin d'exécution
+		--     (COMPLETION_i, le bus du sommet) valide, sans faute ni mauvaise prédiction,
+		--     d'une instruction qui en tient un le rend aussitôt (le ROB ne reprend qu'au
+		--     cycle qui suit la fin d'une branche mal prédite, sur son point). Au cycle
+		--     d'une reprise, rien n'est rendu ainsi (la reprise traite les abandonnées).
 		--------------------------------------------------------------------------------
 
 
@@ -282,6 +290,11 @@ is                              ---------------
 		-------------------------------------------------------
 
       RECOVERY_i		:in  recovery_t;
+		----------------------------------------------------------------
+		-- Fins d'exécution (bus de résultats) : une branche finie sans mauvaise
+		-- prédiction rend son point de reprise (contrat 14)
+		----------------------------------------------------------------
+      COMPLETION_i		:in  completion_bus_t;		-- (le bus du sommet, RESULT_PORTS fins)
 
 		--------------------------------------------------------------------------------
 		-- Resynchronisation de l'état de frame, machine vide (SYSTEM_UNIT : démarrage,

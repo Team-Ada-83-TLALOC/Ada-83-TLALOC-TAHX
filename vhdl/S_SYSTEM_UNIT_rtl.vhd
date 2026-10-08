@@ -9,6 +9,7 @@ use ieee.numeric_std.all;
 --
 use work.TAHX_1_ISA.all;
 use work.TAHX_1_ISA_TABLE.all;
+use work.ARCH_TYPES.all;
 use work.ROB_TYPES.all;
 use work.RENAME_TYPES.all;
 use work.BACKEND_TYPES.all;
@@ -95,15 +96,15 @@ of SYSTEM_UNIT is		---
       return std_logic_vector( a );
    end function;
 
-   function A( w : word64_t ) return address_t is
+   function A( mot : word64_t ) return address_t is
    begin
-      return unsigned( w );
+      return unsigned( mot );
    end function;
 
-   function NDISP( w : word64_t ) return natural is			-- min( n, 15 )
+   function NDISP( mot : word64_t ) return natural is			-- min( n, 15 )
    begin
-      if unsigned( w ) > 15 then return 15; end if;
-      return to_integer( unsigned( w( 3 downto 0 ) ) );
+      if unsigned( mot ) > 15 then return 15; end if;
+      return to_integer( unsigned( mot( 3 downto 0 ) ) );
    end function;
 
 		--------------------------------------------------------------------------------

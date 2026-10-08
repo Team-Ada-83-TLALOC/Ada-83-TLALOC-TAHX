@@ -358,3 +358,26 @@ concernée quand on l'écrira, puis à rayer ici.
               largeurs d'émission bornés par DECODE_WIDTH), K2b_BACKEND_DISPATCH (seuil de
               refus 2 000). Les bancs de pièces passent en L4R128 (24), et les bancs modifiés
               en L8 et L2. N3 en L4R128 : TAHX_1 3 878, EXC_TEST0 973, CHK_TEST0 9 161 cycles.
+  2026-10-08  Étude des largeurs refaite au nouveau défaut (commit 7a7bd7e) : chiffres
+              identiques, les variantes redéfinies reproduisent les configurations.
+              RENAME_DISPATCH, défaut latent corrigé (exposé par le ROB de 128) : le parcours
+              des abandonnées à une reprise allait de la tête à la queue, et s'arrêtait tout
+              de suite ROB plein (tête = queue) : les abandonnées ne passaient pas par LEAVE,
+              leurs registres restaient « producteurs » et ne se libéraient plus (B_ARBRE :
+              72 producteurs pour 4 instructions en vol). Le renommage tient le nombre
+              d'instructions en vol (r_count : + prise, - retrait, - abandonnées comptées au
+              parcours) ; le parcours et la condition « ROB vide » du vidage s'y fient.
+              Contrôle de cohérence (dbg_map_err) complété : un registre producteur
+              appartient à une instruction en vol ; le nombre en vol s'accorde à la tête et
+              à la queue ; une reprise se fait sur un point de reprise valide. La plateforme
+              N3 fait échouer le test au premier écart (l'ancien parcours est détecté au
+              cycle 3 588 de B_ARBRE).
+              Points de reprise (contrat 14) : une branche finie sans faute ni mauvaise
+              prédiction (COMPLETION_i, le bus du sommet) rend son point aussitôt, non au
+              retrait. Banc du renommage : fins d'exécution jouées, reprise un cycle après la
+              fin de la branche mal prédite (comme le ROB), BRA et CALL jamais mal prédits ;
+              erreurs introduites détectées (point d'une branche mal prédite rendu,
+              ckpt_valid non effacé). B_ARBRE : 96 810 -> 95 206 cycles (IPC 1,01 -> 1,03),
+              arrêts faute de point de reprise 19 952 -> 0 ; ROB plein devient la limite.
+              (Ne pas donner de point de reprise à BRA et CALL : essayé, inutile après cela,
+              retiré.)

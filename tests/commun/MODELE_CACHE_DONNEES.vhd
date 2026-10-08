@@ -75,6 +75,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
 use work.TAHX_1_ISA.all;
+use work.MEMORY_TYPES.all;
 use work.EXEC_TYPES.all;
 use work.BACKEND_TYPES.all;
 use work.MEMOIRE_DONNEES_PKG.all;

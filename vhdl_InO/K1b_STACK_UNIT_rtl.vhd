@@ -1,0 +1,689 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+------------------------------------------------------------------------------------------------------------------------
+-- SPDX-FileCopyrightText: 2026 VINCENT MORIN, UBO
+-- SPDX-License-Identifier: GPL-3.0-or-later
+------------------------------------------------------------------------------------------------------------------------
+--      1       2       3       4       5       6       7       8       9       0       1       2
+--
+use work.TAHX_1_ISA.all;
+use work.TAHX_1_ISA_TABLE.all;
+use work.FETCH_DECODE_TYPES.all;
+use work.ARCH_TYPES.all;
+use work.MEMORY_TYPES.all;
+use work.IN_ORDER_TYPES.all;
+
+        --------------------------------------------------------------------------------
+        -- STACK_UNIT, architecture RTL -- première étape du backend InO.
+        --
+        -- Une seule instruction est en vol. DECODE_QUEUE est dépilée quand STACK_UNIT
+        -- prend l'instruction ; l'état architectural (DSP et cache de pile) n'est
+        -- modifié qu'à sa terminaison sans faute.
+        --
+        -- Le cache de pile est indexé par l'adresse architecturale de la cellule :
+        --      index = ( adresse / 8 ) mod STACK_CACHE_WORDS_G
+        -- Chaque entrée garde son adresse complète. Une cellule poussée est sale ; une
+        -- cellule absente nécessaire comme source est relue par MEM (FILL). Avant de
+        -- remplacer une cellule sale encore vivante, elle est rangée par MEM (SPILL).
+        --
+        -- Cette première architecture couvre les effets génériques non mémoire de
+        -- ISA_TABLE : STACK_LINEAR, STACK_DROP, STACK_DUP, STACK_OVER et
+        -- STACK_KEEP_TOP. Les instructions mémoire sont volontairement différées :
+        -- leur cohérence avec les cellules sales du cache de pile doit être définie
+        -- explicitement avant de les autoriser. CALL/CALLI/RTD, LINK/UNLINK et les
+        -- opérations système sérialisantes seront ajoutés ensuite.
+        --------------------------------------------------------------------------------
+
+                                ---
+architecture                    RTL
+of STACK_UNIT is                ---
+
+   type state_t is (
+      ST_IDLE,
+      ST_PREPARE,
+      ST_SRC_SPILL_REQ,
+      ST_SRC_SPILL_RSP,
+      ST_SRC_FILL_REQ,
+      ST_SRC_FILL_RSP,
+      ST_DST_SPILL_REQ,
+      ST_DST_SPILL_RSP,
+      ST_ISSUE,
+      ST_WAIT_EXEC,
+      ST_MISPRED_HOLD,
+      ST_FAULT_HOLD,
+      ST_MAINT_SCAN,
+      ST_MAINT_SPILL_REQ,
+      ST_MAINT_SPILL_RSP
+   );
+
+   type stack_cell_t is record
+      valid  : std_logic;
+      dirty  : std_logic;
+      addr   : address_t;
+      data   : word64_t;
+   end record;
+
+   type stack_cell_array_t is array( natural range <> ) of stack_cell_t;
+
+   constant NO_CELL : stack_cell_t := (
+      valid => '0', dirty => '0', addr => ( others => '0' ), data => ( others => '0' ) );
+
+   subtype operand_index_t is natural range 0 to 4;
+   type source_address_array_t is array( 0 to 3 ) of address_t;
+
+   signal state_s              : state_t := ST_IDLE;
+   signal frame_s              : frame_state_t;
+   signal cells_s              : stack_cell_array_t( 0 to STACK_CACHE_WORDS_G - 1 );
+
+   signal slot_s               : decoded_slot_t;
+   signal entry_s              : isa_entry_t := ISA_RESERVE;
+   signal source_count_s       : stack_count_t := 0;
+   signal source_index_s       : operand_index_t := 0;
+   signal source_address_s     : source_address_array_t;
+   signal source_value_s       : ino_operand_array_t;
+   signal old_dsp_s            : address_t := ( others => '0' );
+   signal new_dsp_s            : address_t := ( others => '0' );
+   signal destination_valid_s  : std_logic := '0';
+   signal destination_address_s: address_t := ( others => '0' );
+   signal initial_fault_s      : fault_t := NO_FAULT;
+
+   -- Transaction mémoire interne en cours (FILL/SPILL/maintenance).
+   signal mem_address_s        : address_t := ( others => '0' );
+   signal mem_data_s           : word64_t := ( others => '0' );
+   signal mem_cell_index_s     : natural range 0 to STACK_CACHE_WORDS_G - 1 := 0;
+
+   signal maint_s              : stack_maint_t;
+   signal maint_index_s        : natural range 0 to STACK_CACHE_WORDS_G := 0;
+
+   signal commit_s             : ino_commit_t;
+   signal maint_done_s         : std_logic := '0';
+
+   function U64( v : signed ) return address_t is
+   begin
+      return unsigned( std_logic_vector( resize( v, 64 ) ) );
+   end function;
+
+   function WIDX( a : address_t ) return natural is
+   begin
+      -- Même convention que le cache de pile du renommage OoO. Le générique est
+      -- destiné à une puissance de deux ; garder l'adresse complète dans l'entrée
+      -- protège dans tous les cas contre une fausse correspondance.
+      return to_integer( a( 30 downto 3 ) ) mod STACK_CACHE_WORDS_G;
+   end function;
+
+   function IN_RANGE( a : address_t; base : address_t; length : address_t ) return boolean is
+   begin
+      if length = 0 then
+         return false;
+      end if;
+      -- Une cellule de 8 octets intersecte [base, base + length).
+      return a + 8 > base and a < base + length;
+   end function;
+
+   function IS_SPECIAL_NOT_YET_SUPPORTED( s : decoded_slot_t; e : isa_entry_t ) return boolean is
+      variable op : opcode_t;
+   begin
+      op := s.canon.op;
+      return e.memory
+         or e.frame
+         or op = x"33"                 -- CALLI
+         or op = OP_CALL
+         or op = OP_RTD_N
+         or op = OP_RTD_0
+         or op = OP_TRAP
+         or op = OP_EXC_RAISE
+         or op = OP_RTX;
+   end function;
+
+   function MISPREDICTED( s : decoded_slot_t; c : ino_complete_t ) return boolean is
+   begin
+      if s.pred.taken /= c.taken then
+         return true;
+      elsif c.taken = '1' and s.pred.target /= c.target then
+         return true;
+      else
+         return false;
+      end if;
+   end function;
+
+   procedure INVALIDATE_CELL(
+      signal c : inout stack_cell_array_t;
+      constant a : in address_t ) is
+      variable i : natural;
+   begin
+      i := WIDX( a );
+      if c( i ).valid = '1' and c( i ).addr = a then
+         c( i ).valid <= '0';
+         c( i ).dirty <= '0';
+      end if;
+   end procedure;
+
+begin
+
+   FRAME_o      <= frame_s;
+   COMMIT_o     <= commit_s;
+   MAINT_DONE_o <= maint_done_s;
+
+   IDLE_o <= '1' when state_s = ST_IDLE or state_s = ST_FAULT_HOLD else '0';
+
+        --------------------------------------------------------------------------------
+        -- Sorties combinatoires : prise de DECODE_QUEUE, émission et port mémoire.
+        --------------------------------------------------------------------------------
+
+   OUTPUTS : process( all )
+      variable issue_v : ino_issue_t;
+      variable mem_v   : mem_request_t;
+   begin
+      DECODE_TAKE_o <= ( others => '0' );
+
+      issue_v.slot          := ( valid => '0', canon => CANON_NOP,
+                                 pc => ( others => '0' ), pred => NO_PREDICTION );
+      issue_v.issue_class   := ISSUE_NONE;
+      issue_v.operand_count := 0;
+      issue_v.operand       := ( others => ( others => '0' ) );
+      issue_v.address_known := '0';
+      issue_v.address       := ( others => '0' );
+      ISSUE_o               <= issue_v;
+      ISSUE_VALID_o         <= '0';
+
+      mem_v := NO_MEM_REQUEST;
+
+      -- Une instruction est retirée de DECODE_QUEUE dès qu'elle devient l'unique
+      -- instruction interne de STACK_UNIT. Les FILL éventuels sont ensuite privés.
+      if state_s = ST_IDLE and RESET_i = '0' and SYNC_VALID_i = '0'
+         and MAINT_i.valid = '0' and DECODE_COUNT_i /= 0 and DECODE_BLOCK_i( 0 ).valid = '1' then
+         DECODE_TAKE_o <= to_unsigned( 1, DECODE_TAKE_o'length );
+      end if;
+
+      if state_s = ST_ISSUE then
+         issue_v.slot          := slot_s;
+         issue_v.issue_class   := entry_s.issue_class;
+         issue_v.operand_count := source_count_s;
+         issue_v.operand       := source_value_s;
+
+         if ( entry_s.lvl_use = LVL_ADDR or entry_s.lvl_use = LVL_FRAME )
+            and to_integer( slot_s.canon.lvl ) <= 14 then
+            issue_v.address_known := '1';
+            issue_v.address := frame_s.display( to_integer( slot_s.canon.lvl ) ) + U64( slot_s.canon.val );
+         end if;
+
+         ISSUE_o       <= issue_v;
+         ISSUE_VALID_o <= '1';
+      end if;
+
+      case state_s is
+         when ST_SRC_SPILL_REQ | ST_DST_SPILL_REQ | ST_MAINT_SPILL_REQ =>
+            mem_v.valid   := '1';
+            mem_v.write   := '1';
+            mem_v.probe   := '0';
+            mem_v.address := mem_address_s;
+            mem_v.size    := "11";
+            mem_v.wdata   := mem_data_s;
+
+         when ST_SRC_FILL_REQ =>
+            mem_v.valid   := '1';
+            mem_v.write   := '0';
+            mem_v.probe   := '0';
+            mem_v.address := mem_address_s;
+            mem_v.size    := "11";
+            mem_v.wdata   := ( others => '0' );
+
+         when others =>
+            null;
+      end case;
+
+      MEM_REQ_o <= mem_v;
+   end process OUTPUTS;
+
+        --------------------------------------------------------------------------------
+        -- État séquentiel.
+        --------------------------------------------------------------------------------
+
+   SEQUENTIAL : process( CLK_i )
+      variable s               : decoded_slot_t;
+      variable e               : isa_entry_t;
+      variable npop            : natural range 0 to 4;
+      variable nsrc            : natural range 0 to 4;
+      variable ndsp            : address_t;
+      variable a               : address_t;
+      variable idx             : natural;
+      variable dst_idx         : natural;
+      variable f               : fault_t;
+      variable live_collision  : boolean;
+   begin
+      if rising_edge( CLK_i ) then
+
+         -- Impulsions par défaut.
+         commit_s.valid     <= '0';
+         maint_done_s       <= '0';
+
+         if RESET_i = '1' then
+            state_s          <= ST_IDLE;
+            frame_s.dsp      <= ( others => '0' );
+            frame_s.rsp      <= ( others => '0' );
+            frame_s.display  <= ( others => ( others => '0' ) );
+            cells_s          <= ( others => NO_CELL );
+            source_index_s   <= 0;
+            source_count_s   <= 0;
+            source_value_s   <= ( others => ( others => '0' ) );
+            initial_fault_s  <= NO_FAULT;
+            commit_s         <= ( valid => '0', slot => ( valid => '0', canon => CANON_NOP,
+                                  pc => ( others => '0' ), pred => NO_PREDICTION ),
+                                  fault => NO_FAULT, taken => '0', target => ( others => '0' ) );
+
+         elsif SYNC_VALID_i = '1' then
+            -- Contrat : la maintenance requise a été terminée auparavant et aucune
+            -- instruction n'est en vol. Une SYNC invalide donc simplement le cache.
+            -- pragma translate_off
+            assert state_s = ST_IDLE or state_s = ST_FAULT_HOLD
+               report "STACK_UNIT: SYNC pendant une instruction ou une maintenance"
+               severity failure;
+            -- pragma translate_on
+            frame_s         <= SYNC_FRAME_i;
+            cells_s         <= ( others => NO_CELL );
+            state_s         <= ST_IDLE;
+            source_index_s  <= 0;
+            source_count_s  <= 0;
+
+         else
+            case state_s is
+
+               -------------------------------------------------------------------------
+               -- Prise d'une instruction ou d'une maintenance.
+               -------------------------------------------------------------------------
+
+               when ST_IDLE =>
+                  if MAINT_i.valid = '1' then
+                     maint_s       <= MAINT_i;
+                     maint_index_s <= 0;
+                     state_s       <= ST_MAINT_SCAN;
+
+                  elsif DECODE_COUNT_i /= 0 and DECODE_BLOCK_i( 0 ).valid = '1' then
+                     s := DECODE_BLOCK_i( 0 );
+                     e := ISA_TABLE( to_integer( unsigned( s.canon.op ) ) );
+                     if s.canon.op = UOP_LIHI then
+                        e := ( true, 9, FMT_NONE, ISSUE_INTEGER, 1, 1, STACK_LINEAR,
+                               LVL_NONE, false, false, false, false );
+                     end if;
+
+                     f := NO_FAULT;
+                     if s.canon.op = UOP_FETCH_FAULT then
+                        f := ( valid => '1', code => FAULT_ACCESS );
+                     elsif s.canon.op = UOP_ILLEGAL or not e.defined then
+                        f := ( valid => '1', code => FAULT_UNDEFINED );
+                     elsif e.lvl_use = LVL_FRAME and s.canon.lvl = LEVEL_STACK then
+                        f := ( valid => '1', code => FAULT_UNDEFINED );
+                     end if;
+
+                     npop := e.pops;
+                     if e.lvl_use = LVL_ADDR and s.canon.lvl = LEVEL_STACK then
+                        npop := npop + 1;
+                     end if;
+
+                     ndsp := frame_s.dsp;
+                     case e.stack_action is
+                        when STACK_LINEAR =>
+                           if npop > e.pushes then
+                              ndsp := frame_s.dsp - 8 * ( npop - e.pushes );
+                           elsif e.pushes > npop then
+                              ndsp := frame_s.dsp + 8 * ( e.pushes - npop );
+                           end if;
+                        when STACK_DROP =>
+                           ndsp := frame_s.dsp - 8;
+                        when STACK_DUP | STACK_OVER =>
+                           ndsp := frame_s.dsp + 8;
+                        when STACK_KEEP_TOP =>
+                           null;
+                     end case;
+
+                     if f.valid = '0' and ndsp > LIMITS_i.lim_dsp and ndsp > frame_s.dsp then
+                        f := ( valid => '1', code => FAULT_DSP_LIMIT );
+                     end if;
+
+                     slot_s              <= s;
+                     entry_s             <= e;
+                     old_dsp_s           <= frame_s.dsp;
+                     new_dsp_s           <= ndsp;
+                     initial_fault_s     <= f;
+                     source_index_s      <= 0;
+                     source_value_s      <= ( others => ( others => '0' ) );
+                     destination_valid_s <= '0';
+
+                     -- Sources dans l'ordre de la notation de pile : la plus profonde
+                     -- d'abord, comme dans RENAME_DISPATCH.
+                     nsrc := 0;
+                     source_address_s <= ( others => ( others => '0' ) );
+                     case e.stack_action is
+                        when STACK_LINEAR =>
+                           nsrc := npop;
+                           for j in 0 to 3 loop
+                              if j < npop then
+                                 source_address_s( j ) <= frame_s.dsp - 8 * ( npop - 1 - j );
+                              end if;
+                           end loop;
+                           if e.pushes = 1 then
+                              destination_valid_s   <= '1';
+                              destination_address_s <= ndsp;
+                           end if;
+
+                        when STACK_KEEP_TOP =>
+                           nsrc := 1;
+                           source_address_s( 0 ) <= frame_s.dsp;
+
+                        when STACK_DUP =>
+                           nsrc := 1;
+                           source_address_s( 0 ) <= frame_s.dsp;
+                           destination_valid_s   <= '1';
+                           destination_address_s <= ndsp;
+
+                        when STACK_OVER =>
+                           nsrc := 1;
+                           source_address_s( 0 ) <= frame_s.dsp - 8;
+                           destination_valid_s   <= '1';
+                           destination_address_s <= ndsp;
+
+                        when STACK_DROP =>
+                           nsrc := 0;
+                     end case;
+                     source_count_s <= nsrc;
+
+                     -- pragma translate_off
+                     assert not IS_SPECIAL_NOT_YET_SUPPORTED( s, e )
+                        report "STACK_UNIT: instruction speciale non encore implementee"
+                        severity failure;
+                     -- pragma translate_on
+
+                     state_s <= ST_PREPARE;
+                  end if;
+
+               -------------------------------------------------------------------------
+               -- Obtenir toutes les sources dans le cache puis réserver la future
+               -- cellule destination. Aucun changement architectural n'a encore lieu.
+               -------------------------------------------------------------------------
+
+               when ST_PREPARE =>
+                  if initial_fault_s.valid = '1' then
+                     commit_s <= ( valid => '1', slot => slot_s, fault => initial_fault_s,
+                                   taken => '0', target => ( others => '0' ) );
+                     state_s <= ST_FAULT_HOLD;
+
+                  elsif source_index_s < source_count_s then
+                     a   := source_address_s( source_index_s );
+                     idx := WIDX( a );
+                     if cells_s( idx ).valid = '1' and cells_s( idx ).addr = a then
+                        source_value_s( source_index_s ) <= cells_s( idx ).data;
+                        source_index_s <= source_index_s + 1;
+                     else
+                        -- Avant de prendre l'entrée, sauver son occupant sale s'il est
+                        -- encore une cellule vivante de la pile architecturale.
+                        live_collision := cells_s( idx ).valid = '1'
+                                          and cells_s( idx ).dirty = '1'
+                                          and cells_s( idx ).addr <= old_dsp_s;
+                        mem_cell_index_s <= idx;
+                        if live_collision then
+                           mem_address_s <= cells_s( idx ).addr;
+                           mem_data_s    <= cells_s( idx ).data;
+                           state_s       <= ST_SRC_SPILL_REQ;
+                        else
+                           mem_address_s <= a;
+                           state_s       <= ST_SRC_FILL_REQ;
+                        end if;
+                     end if;
+
+                  elsif destination_valid_s = '1' then
+                     dst_idx := WIDX( destination_address_s );
+                     if cells_s( dst_idx ).valid = '1'
+                        and cells_s( dst_idx ).addr /= destination_address_s
+                        and cells_s( dst_idx ).dirty = '1'
+                        and cells_s( dst_idx ).addr <= old_dsp_s then
+                        mem_cell_index_s <= dst_idx;
+                        mem_address_s    <= cells_s( dst_idx ).addr;
+                        mem_data_s       <= cells_s( dst_idx ).data;
+                        state_s          <= ST_DST_SPILL_REQ;
+                     else
+                        -- L'entrée pourra être remplacée au commit.
+                        if entry_s.issue_class = ISSUE_NONE then
+                           case entry_s.stack_action is
+                              when STACK_DROP =>
+                                 INVALIDATE_CELL( cells_s, old_dsp_s );
+                                 frame_s.dsp <= new_dsp_s;
+
+                              when STACK_DUP | STACK_OVER =>
+                                 idx := WIDX( destination_address_s );
+                                 cells_s( idx ) <= ( valid => '1', dirty => '1',
+                                                     addr => destination_address_s,
+                                                     data => source_value_s( 0 ) );
+                                 frame_s.dsp <= new_dsp_s;
+
+                              when others =>
+                                 null;
+                           end case;
+                           commit_s <= ( valid => '1', slot => slot_s, fault => NO_FAULT,
+                                         taken => '0', target => ( others => '0' ) );
+                           state_s <= ST_IDLE;
+                        else
+                           state_s <= ST_ISSUE;
+                        end if;
+                     end if;
+
+                  else
+                     if entry_s.issue_class = ISSUE_NONE then
+                        case entry_s.stack_action is
+                           when STACK_DROP =>
+                              INVALIDATE_CELL( cells_s, old_dsp_s );
+                              frame_s.dsp <= new_dsp_s;
+                           when others =>
+                              null;
+                        end case;
+                        commit_s <= ( valid => '1', slot => slot_s, fault => NO_FAULT,
+                                      taken => '0', target => ( others => '0' ) );
+                        state_s <= ST_IDLE;
+                     else
+                        state_s <= ST_ISSUE;
+                     end if;
+                  end if;
+
+               -------------------------------------------------------------------------
+               -- SPILL d'une entrée qui doit être remplacée pour charger une source.
+               -------------------------------------------------------------------------
+
+               when ST_SRC_SPILL_REQ =>
+                  if MEM_READY_i = '1' then
+                     state_s <= ST_SRC_SPILL_RSP;
+                  end if;
+
+               when ST_SRC_SPILL_RSP =>
+                  if MEM_RSP_i.valid = '1' then
+                     if MEM_RSP_i.fault = '1' then
+                        commit_s <= ( valid => '1', slot => slot_s,
+                                      fault => ( valid => '1', code => FAULT_ACCESS ),
+                                      taken => '0', target => ( others => '0' ) );
+                        state_s <= ST_FAULT_HOLD;
+                     else
+                        cells_s( mem_cell_index_s ).valid <= '0';
+                        cells_s( mem_cell_index_s ).dirty <= '0';
+                        mem_address_s <= source_address_s( source_index_s );
+                        state_s <= ST_SRC_FILL_REQ;
+                     end if;
+                  end if;
+
+               when ST_SRC_FILL_REQ =>
+                  if MEM_READY_i = '1' then
+                     state_s <= ST_SRC_FILL_RSP;
+                  end if;
+
+               when ST_SRC_FILL_RSP =>
+                  if MEM_RSP_i.valid = '1' then
+                     if MEM_RSP_i.fault = '1' then
+                        commit_s <= ( valid => '1', slot => slot_s,
+                                      fault => ( valid => '1', code => FAULT_ACCESS ),
+                                      taken => '0', target => ( others => '0' ) );
+                        state_s <= ST_FAULT_HOLD;
+                     else
+                        idx := WIDX( source_address_s( source_index_s ) );
+                        cells_s( idx ) <= ( valid => '1', dirty => '0',
+                                            addr => source_address_s( source_index_s ),
+                                            data => MEM_RSP_i.rdata );
+                        source_value_s( source_index_s ) <= MEM_RSP_i.rdata;
+                        source_index_s <= source_index_s + 1;
+                        state_s <= ST_PREPARE;
+                     end if;
+                  end if;
+
+               -------------------------------------------------------------------------
+               -- SPILL nécessaire avant la future destination.
+               -------------------------------------------------------------------------
+
+               when ST_DST_SPILL_REQ =>
+                  if MEM_READY_i = '1' then
+                     state_s <= ST_DST_SPILL_RSP;
+                  end if;
+
+               when ST_DST_SPILL_RSP =>
+                  if MEM_RSP_i.valid = '1' then
+                     if MEM_RSP_i.fault = '1' then
+                        commit_s <= ( valid => '1', slot => slot_s,
+                                      fault => ( valid => '1', code => FAULT_ACCESS ),
+                                      taken => '0', target => ( others => '0' ) );
+                        state_s <= ST_FAULT_HOLD;
+                     else
+                        cells_s( mem_cell_index_s ).valid <= '0';
+                        cells_s( mem_cell_index_s ).dirty <= '0';
+                        state_s <= ST_PREPARE;
+                     end if;
+                  end if;
+
+               -------------------------------------------------------------------------
+               -- Exécution. L'état architectural reste inchangé jusqu'à COMPLETE.
+               -------------------------------------------------------------------------
+
+               when ST_ISSUE =>
+                  if ISSUE_READY_i = '1' then
+                     state_s <= ST_WAIT_EXEC;
+                  end if;
+
+               when ST_WAIT_EXEC =>
+                  if COMPLETE_i.valid = '1' then
+                     if COMPLETE_i.fault.valid = '1' then
+                        commit_s <= ( valid => '1', slot => slot_s, fault => COMPLETE_i.fault,
+                                      taken => COMPLETE_i.taken, target => COMPLETE_i.target );
+                        state_s <= ST_FAULT_HOLD;
+                     else
+                        -- Les cellules réellement dépilées deviennent mortes. Le résultat,
+                        -- s'il existe, est ensuite installé à sa nouvelle adresse.
+                        if entry_s.stack_action = STACK_LINEAR then
+                           for j in 0 to 3 loop
+                              if j < source_count_s then
+                                 INVALIDATE_CELL( cells_s, source_address_s( j ) );
+                              end if;
+                           end loop;
+                           frame_s.dsp <= new_dsp_s;
+
+                           if entry_s.pushes = 1 then
+                              -- pragma translate_off
+                              assert COMPLETE_i.result_valid = '1'
+                                 report "STACK_UNIT: resultat attendu mais absent"
+                                 severity failure;
+                              -- pragma translate_on
+                              idx := WIDX( destination_address_s );
+                              cells_s( idx ) <= ( valid => '1', dirty => '1',
+                                                  addr => destination_address_s,
+                                                  data => COMPLETE_i.result );
+                           end if;
+
+                        elsif entry_s.stack_action = STACK_KEEP_TOP then
+                           -- CHK : lecture seulement, aucune modification de pile.
+                           null;
+                        end if;
+
+                        commit_s <= ( valid => '1', slot => slot_s, fault => NO_FAULT,
+                                      taken => COMPLETE_i.taken, target => COMPLETE_i.target );
+                        if entry_s.control and MISPREDICTED( slot_s, COMPLETE_i ) then
+                           state_s <= ST_MISPRED_HOLD;
+                        else
+                           state_s <= ST_IDLE;
+                        end if;
+                     end if;
+                  end if;
+
+               -- Un cycle sans prise après une mauvaise prédiction : COMMIT_o permet
+               -- au contrôleur de vider/rediriger le frontal au front suivant.
+               when ST_MISPRED_HOLD =>
+                  state_s <= ST_IDLE;
+
+               -- Une faute est devenue précise. Aucun état architectural de
+               -- l'instruction fautive n'a été appliqué ; attendre la SYNC du
+               -- mécanisme de livraison avant de reprendre le décodage.
+               when ST_FAULT_HOLD =>
+                  null;
+
+               -------------------------------------------------------------------------
+               -- Maintenance du cache de pile. Une entrée par cycle ; un mot sale
+               -- sélectionné est écrit avant de poursuivre le balayage.
+               -------------------------------------------------------------------------
+
+               when ST_MAINT_SCAN =>
+                  if maint_index_s = STACK_CACHE_WORDS_G then
+                     maint_done_s <= '1';
+                     state_s <= ST_IDLE;
+                  else
+                     idx := maint_index_s;
+                     if cells_s( idx ).valid = '1'
+                        and ( maint_s.kind = MAINT_WRITEBACK_ALL
+                              or IN_RANGE( cells_s( idx ).addr, maint_s.base, maint_s.length ) ) then
+
+                        if maint_s.kind = MAINT_INVALIDATE_RANGE then
+                           cells_s( idx ).valid <= '0';
+                           cells_s( idx ).dirty <= '0';
+                           maint_index_s <= maint_index_s + 1;
+
+                        elsif cells_s( idx ).dirty = '1' and cells_s( idx ).addr <= frame_s.dsp then
+                           mem_cell_index_s <= idx;
+                           mem_address_s    <= cells_s( idx ).addr;
+                           mem_data_s       <= cells_s( idx ).data;
+                           state_s          <= ST_MAINT_SPILL_REQ;
+
+                        else
+                           maint_index_s <= maint_index_s + 1;
+                        end if;
+                     else
+                        maint_index_s <= maint_index_s + 1;
+                     end if;
+                  end if;
+
+               when ST_MAINT_SPILL_REQ =>
+                  if MEM_READY_i = '1' then
+                     state_s <= ST_MAINT_SPILL_RSP;
+                  end if;
+
+               when ST_MAINT_SPILL_RSP =>
+                  if MEM_RSP_i.valid = '1' then
+                     -- Une faute de writeback ne devrait pas être possible pour une
+                     -- cellule précédemment valide. On la signale fortement en simulation.
+                     -- pragma translate_off
+                     assert MEM_RSP_i.fault = '0'
+                        report "STACK_UNIT: faute pendant un writeback de maintenance"
+                        severity failure;
+                     -- pragma translate_on
+                     if MEM_RSP_i.fault = '0' then
+                        if cells_s( mem_cell_index_s ).valid = '1'
+                           and cells_s( mem_cell_index_s ).addr = mem_address_s then
+                           cells_s( mem_cell_index_s ).dirty <= '0';
+                        end if;
+                     end if;
+                     maint_index_s <= maint_index_s + 1;
+                     state_s <= ST_MAINT_SCAN;
+                  end if;
+
+            end case;
+         end if;
+      end if;
+   end process SEQUENTIAL;
+
+                                ---
+end architecture                RTL;
+                                ---
+
+------------------------------------------------------------------------------------------------------------------------
+--      1       2       3       4       5       6       7       8       9       0       1       2

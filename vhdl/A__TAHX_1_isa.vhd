@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 -- SPDX-FileCopyrightText: 2026 VINCENT MORIN, UBO
 -- SPDX-License-Identifier: GPL-3.0-or-later
 ------------------------------------------------------------------------------------------------------------------------
---      1       2       3       4       5       6       7       8       9       0       1       2
+--	1	2	3	4	5	6	7	8	9	0	1	2
 --
 --  Ce que la spécification LLIR_hardware_support (V8) impose à toute réalisation, indépendamment de la
 --  micro-architecture : types des champs, propriétés des opcodes, codes des fautes et des services.
@@ -206,4 +206,4 @@ end package                     TAHX_1_ISA;
                                 ----------
 
 ------------------------------------------------------------------------------------------------------------------------
---      1       2       3       4       5       6       7       8       9       0       1       2
+--	1	2	3	4	5	6	7	8	9	0	1	2

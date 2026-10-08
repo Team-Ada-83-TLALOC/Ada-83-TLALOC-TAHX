@@ -1,0 +1,98 @@
+#!/bin/bash
+#	Analyse GHDL de TAHX_1, dans l'ordre des dépendances.
+#	./Z_analyze.sh [93c|08]		(08 par défaut)
+STD=${1:-08}
+
+#	Fichiers qui reposent sur un paquetage de VHDL-2008 : sautés en 93c.
+#	(Seule liste du dépôt : tests/V0_CABLAGE la relit.)
+VHDL2008_SEULEMENT="L4__float64_pkg.vhd L4_FLOAT_UNIT_rtl.vhd L5a_FEXP_UNIT_rtl.vhd"
+
+analyse ()
+{
+	if [ "$STD" = 93c ] && [[ " $VHDL2008_SEULEMENT " == *" $1 "* ]]; then
+		echo "($1 : VHDL-2008 seulement)"
+		return 0
+	fi
+	ghdl analyze --std=$STD "$1"
+}
+A=analyse
+
+#	Specifications, Definitions
+
+$A ../vhdl/A__TAHX_1_isa.vhd			|| exit 1
+$A ../vhdl/A__TAHX_1_isa_table.vhd		|| exit 1
+
+$A ../vhdl/B1__arch_types.vhd			|| exit 1
+$A ../vhdl/C1__memory_types.vhd		|| exit 1
+
+#	UNITE INSTRUCTIONS
+
+$A ../vhdl/I1__fetch_decode_types.vhd		|| exit 1
+$A ../vhdl/R__rob_types.vhd			|| exit 1
+
+$A ../vhdl/I1_FETCH_UNIT.vhd			|| exit 1
+#$A ../vhdl/I1_FETCH_UNIT_rtl.vhd		|| exit 1
+#$A ../vhdl/I2_FETCH_BYTE_QUEUE.vhd		|| exit 1
+#$A ../vhdl/I2_FETCH_BYTE_QUEUE_rtl.vhd	|| exit 1
+#$A ../vhdl/I3_DECODE_BLOC.vhd			|| exit 1
+#$A ../vhdl/I3_DECODE_BLOC_rtl.vhd		|| exit 1
+#$A ../vhdl/I4_BRANCH_PREDICT.vhd		|| exit 1
+#$A ../vhdl/I4_BRANCH_PREDICT_rtl.vhd		|| exit 1
+#$A ../vhdl/I_INSTRUCTION_UNIT.vhd		|| exit 1
+#$A ../vhdl/I_INSTRUCTION_UNIT_structure.vhd	|| exit 1
+
+#$A ../vhdl/J1_DECODE_QUEUE.vhd		|| exit 1
+#$A ../vhdl/J1_DECODE_QUEUE_rtl.vhd		|| exit 1
+
+$A K1a__in_order_types.vhd		|| exit 1
+$A K1b_STACK_UNIT.vhd		|| exit 1
+$A K1b_STACK_UNIT_rtl.vhd		|| exit 1
+#$A K1b_RENAME_DISPATCH_rtl.vhd	|| exit 1
+#$A K2a__backend_types.vhd		|| exit 1
+#$A K2b_BACKEND_DISPATCH.vhd		|| exit 1
+#$A K2b_BACKEND_DISPATCH_rtl.vhd	|| exit 1
+
+#	UNITES OPERATIVES
+
+#$A K_ISSUE_QUEUE.vhd			|| exit 1
+#$A K_ISSUE_QUEUE_rtl.vhd		|| exit 1
+#$A L0__exec_types.vhd			|| exit 1
+#$A L1_INTEGER_UNIT.vhd			|| exit 1
+#$A L1_INTEGER_UNIT_rtl.vhd		|| exit 1
+#$A L2_MULDIV_UNIT.vhd			|| exit 1
+#$A L2_MULDIV_UNIT_rtl.vhd		|| exit 1
+#$A L3_BRANCH_UNIT.vhd			|| exit 1
+#$A L3_BRANCH_UNIT_rtl.vhd		|| exit 1
+#$A L4_FLOAT_UNIT.vhd			|| exit 1
+#$A L4__float64_pkg.vhd		|| exit 1
+#$A L4_FLOAT_UNIT_rtl.vhd		|| exit 1
+#$A L5a_FEXP_UNIT.vhd			|| exit 1
+#$A L5a_FEXP_UNIT_rtl.vhd		|| exit 1
+#$A L5_COMPLEX_UNIT.vhd			|| exit 1
+#$A L5_COMPLEX_UNIT_rtl.vhd		|| exit 1
+
+#	MEMOIRE DE DONNEES ET REGISTRES
+
+#$A M1_ADDRESS_UNIT.vhd			|| exit 1
+#$A M1_ADDRESS_UNIT_rtl.vhd		|| exit 1
+#$A M2_LOAD_STORE_QUEUE.vhd		|| exit 1
+#$A M2_LOAD_STORE_QUEUE_rtl.vhd	|| exit 1
+#$A M3_DATA_CACHE.vhd			|| exit 1
+#$A M3_DATA_CACHE_rtl.vhd		|| exit 1
+#$A P_PHYSICAL_REGISTER_FILE.vhd		|| exit 1
+#$A P_PHYSICAL_REGISTER_FILE_rtl.vhd	|| exit 1
+
+#	REMISE EN ORDRE
+
+#$A R_ROB.vhd				|| exit 1
+#$A R_ROB_rtl.vhd			|| exit 1
+
+#$A S_SYSTEM_UNIT.vhd			|| exit 1
+#$A S_SYSTEM_UNIT_rtl.vhd		|| exit 1
+
+#	SOMMET
+
+#$A V_TAHX_1.vhd				|| exit 1
+#$A V_TAHX_1_structure.vhd		|| exit 1
+
+echo "analyse VHDL-$STD : correcte"

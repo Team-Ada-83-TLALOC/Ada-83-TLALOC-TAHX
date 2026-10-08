@@ -8,6 +8,7 @@ use ieee.numeric_std.all;
 --	1	2	3	4	5	6	7	8	9	0	1	2
 --
 use work.TAHX_1_ISA.all;
+use work.MEMORY_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.ROB_TYPES.all;
 use work.RENAME_TYPES.all;
@@ -608,8 +609,8 @@ begin
             end loop;
             for j in 0 to DEPTH_G - 1 loop
                if v( j ).valid = '1' and HAS_DATA_TAG( v( j ) ) and not v( j ).data_ready then
-                  for w in WAKEUP_i'range loop
-                     if WAKEUP_i( w ).valid = '1' and WAKEUP_i( w ).tag = v( j ).data_tag then v( j ).data_ready := true; end if;
+                  for wi in WAKEUP_i'range loop
+                     if WAKEUP_i( wi ).valid = '1' and WAKEUP_i( wi ).tag = v( j ).data_tag then v( j ).data_ready := true; end if;
                   end loop;
                end if;
             end loop;
@@ -715,8 +716,8 @@ begin
                         if v( slot ).kind = K_STORE and ins.source_count > 0 then	-- donnée : la dernière source
                            v( slot ).data_tag := ins.source( ins.source_count - 1 );
                            v( slot ).data_ready := ins.source_ready( ins.source_count - 1 ) = '1';
-                           for w in WAKEUP_i'range loop
-                              if WAKEUP_i( w ).valid = '1' and WAKEUP_i( w ).tag = v( slot ).data_tag then
+                           for wi in WAKEUP_i'range loop
+                              if WAKEUP_i( wi ).valid = '1' and WAKEUP_i( wi ).tag = v( slot ).data_tag then
                                  v( slot ).data_ready := true;
                               end if;
                            end loop;
@@ -772,8 +773,8 @@ begin
                      v( slot ).kind := K_SPILL;
                      v( slot ).data_tag := STACK_XFER_i( x ).tag;
                      v( slot ).data_ready := STACK_XFER_i( x ).ready = '1';
-                     for w in WAKEUP_i'range loop
-                        if WAKEUP_i( w ).valid = '1' and WAKEUP_i( w ).tag = STACK_XFER_i( x ).tag then
+                     for wi in WAKEUP_i'range loop
+                        if WAKEUP_i( wi ).valid = '1' and WAKEUP_i( wi ).tag = STACK_XFER_i( x ).tag then
                            v( slot ).data_ready := true;
                         end if;
                      end loop;

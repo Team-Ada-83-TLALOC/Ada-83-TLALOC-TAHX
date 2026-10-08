@@ -52,22 +52,6 @@ is                              ------------
    subtype source_ready_array_t	is std_logic_vector( 0 to MAX_SOURCE_COUNT - 1 );
    subtype source_count_t		is natural range 0 to MAX_SOURCE_COUNT;
 
-		--------------------------------------------------------------------------------
-   -- État de frame suivi au renommage
-   --
-   -- DSP, RSP et DISPLAY évoluent de façon connue au décodage (effets de pile, LINK, UNLINK,
-   -- CALL, RTD) : le renommage en tient une copie spéculative et une copie retirée. Les
-   -- instructions qui les chargent depuis la mémoire (EXC_RAISE, CTX_RESTORE, démarrage) sont
-   -- sérialisantes ; à leur retrait, l'unité qui les exécute fournit le nouvel état par SYNC.
-		--------------------------------------------------------------------------------
-
-   type display_t		is array( 0 to 14 ) of address_t;
-
-   type frame_state_t	is record
-			  dsp		: address_t;
-			  rsp		: address_t;
-			  display		: display_t;
-			end record;
 
 		------------------------------
 		-- Instruction après renommage
@@ -199,30 +183,6 @@ is                              ------------
 			end record;
 
    type stack_invalidate_bus_t	is array( natural range <> ) of stack_invalidate_t;
-
-		--------------------------------------------------------------------------------
-		-- Maintenance demandée à la tête du ROB (unité COMPLEX, SYSTEM_UNIT)
-		--
-		--   MAINT_WRITEBACK_RANGE  tout mot tenu en registre dans [base, base + length)
-		--                          est rangé (SPILL committed) et reste tenu : avant la
-		--                          lecture d'un bloc (BLKMOV, BLKCMP, LEXCMP...), avant
-		--                          la lecture d'un contexte par EXC_RAISE ;
-		--   MAINT_WRITEBACK_ALL    idem pour tout le cache de pile et toute la pile des
-		--                          retours : CTX_SAVE, et avant toute SYNC ;
-		--   MAINT_INVALIDATE_RANGE après une écriture de bloc (BLKMOV, BLKAND, BLKOU,
-		--                          BLKOUX, BLKNOT, EXC_MACH) dans la tranche.
-		-- STACK_MAINT_DONE : RENAME_DISPATCH a confié tous ses SPILL à la LSQ ; le
-		-- demandeur attend en plus que la LSQ soit vide de rangements (LSQ_DRAINED).
-		--------------------------------------------------------------------------------
-
-   type stack_maint_kind_t		is ( MAINT_WRITEBACK_RANGE, MAINT_WRITEBACK_ALL, MAINT_INVALIDATE_RANGE );
-
-   type stack_maint_t		is record
-			  valid		: std_logic;
-			  kind		: stack_maint_kind_t;
-			  base		: address_t;
-			  length		: address_t;		-- en octets
-			end record;
 
 		--------------------------------------------------------------------------------
 		-- Pointeur de frame restauré par UNLINK / UNLINKR

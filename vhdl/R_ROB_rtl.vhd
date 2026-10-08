@@ -8,6 +8,7 @@ use ieee.numeric_std.all;
 --	1	2	3	4	5	6	7	8	9	0	1	2
 --
 use work.TAHX_1_ISA.all;
+use work.ARCH_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.ROB_TYPES.all;
 

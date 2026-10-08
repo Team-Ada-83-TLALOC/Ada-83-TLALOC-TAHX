@@ -9,6 +9,8 @@ use ieee.math_real.all;
 --	1	2	3	4	5	6	7	8	9	0	1	2
 --
 use work.TAHX_1_ISA.all;
+use work.ARCH_TYPES.all;
+use work.MEMORY_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.ROB_TYPES.all;
 use work.RENAME_TYPES.all;
@@ -138,6 +140,9 @@ of T_K1b_RENAME_DISPATCH_tb is
    signal c_frame		: frame_state_t;
    signal limits		: limits_t;
    signal wakeup		: wakeup_bus_t( 0 to RESULT_PORTS - 1 ) := ( others => ( valid => '0', tag => ( others => '0' ) ) );
+   constant NO_COMPLETION	: completion_t := ( valid => '0', rob_index => ( others => '0' ), fault => NO_FAULT,
+					    taken => '0', target => ( others => '0' ), mispredicted => '0' );
+   signal compl		: completion_bus_t( 0 to RESULT_PORTS - 1 ) := ( others => NO_COMPLETION );
    signal xfer			: stack_xfer_bus_t;
    signal xfer_ready		: std_logic := '1';
    signal lookup_rsp		: stack_lookup_response_bus_t( 0 to MEMORY_LANES - 1 );
@@ -168,7 +173,7 @@ begin
          ROB_TAIL_i => rob_tail, ROB_FREE_i => rob_free,
          ROB_ALLOC_VALID_o => alloc_valid, ROB_ALLOC_BLOCK_o => alloc_block, ROB_ALLOC_COUNT_o => alloc_count,
          RENAME_VALID_o => ren_valid, RENAME_BLOCK_o => ren_block, RENAME_COUNT_o => ren_count, RENAME_READY_i => ren_ready,
-         RETIRE_COUNT_i => retire_count, RECOVERY_i => recovery,
+         RETIRE_COUNT_i => retire_count, RECOVERY_i => recovery, COMPLETION_i => compl,
          SYNC_VALID_i => sync_valid, SYNC_FRAME_i => sync_frame, COMMITTED_FRAME_o => c_frame,
          DR_i => '0', LIMITS_i => limits, WAKEUP_i => wakeup,
          STACK_XFER_o => xfer, STACK_XFER_READY_i => xfer_ready,
@@ -231,6 +236,12 @@ begin
       variable ok		: boolean;
       variable rec		: recovery_t;
       variable wk		: wakeup_bus_t( 0 to RESULT_PORTS - 1 );
+      variable cp		: completion_bus_t( 0 to RESULT_PORTS - 1 );	-- fins d'exécution des branches
+      variable ncp, n_cfin	: natural := 0;
+      -- reprise sur mauvaise prédiction au cycle qui suit la fin de la branche (comme le ROB)
+      variable mp_pend		: boolean := false;
+      variable mp_rec		: recovery_t;
+      variable mp_keep		: integer;
       variable nwk		: natural;
       variable nret		: natural;
       variable keep		: integer;
@@ -694,7 +705,7 @@ begin
                e.dest := true; e.dval := std_logic_vector( e.slot.pc + len );	-- adresse de retour
                f.rsp := f.rsp - 8; MWRITE( e, f.rsp, e.dval, false );
                e.paddr( e.npush ) := to_integer( f.rsp( 30 downto 0 ) ); e.npush := e.npush + 1;
-               e.control := true; e.mispredict := RAND < 0.03;
+               e.control := true; e.mispredict := e.kind = K_CALLI and RAND < 0.03;	-- (CALL : jamais)
             when K_RTD =>
                e.slot.canon.val := to_signed( 8 * RAND_INT( 2 ), 32 );
                f.dsp := f.dsp - unsigned( resize( e.slot.canon.val, 64 ) );
@@ -704,7 +715,7 @@ begin
             when K_BT =>
                POP( e, f ); e.control := true; e.mispredict := RAND < 0.08;
             when K_BRA =>
-               e.control := true; e.mispredict := RAND < 0.02;
+               e.control := true; e.mispredict := false;				-- (BRA : jamais mal prédit)
             when K_LINK =>								-- lvl 1..14, alloc
                if lvl = 0 then lvl := 1; e.slot.canon.lvl := "0001"; end if;
                alloc := 8 * RAND_INT( 6 ) + RAND_INT( 7 );
@@ -853,8 +864,10 @@ begin
 
 		-- unités : exécution des instructions prêtes, écriture de la destination, réveil
          wk := ( others => ( valid => '0', tag => ( others => '0' ) ) ); nwk := 0;
+         cp := ( others => NO_COMPLETION ); ncp := 0;
          fu := ( valid => '0', rob_index => ( others => '0' ), lvl => ( others => '0' ), value => ( others => '0' ) );
          rec := NO_RECOVERY; keep := -1;
+         if mp_pend then rec := mp_rec; keep := mp_keep; mp_pend := false; end if;
          for sq2 in head_seq to take_seq - 1 loop
             x := sq2 mod WIN;
             if q( x ).renamed and not q( x ).done and q( x ).exec_need then
@@ -864,7 +877,7 @@ begin
                      if j < q( x ).nsrc and pvalid( to_integer( q( x ).tags( j ) ) ) = '0' then ok := false; end if;
                   end loop;
                   if ok then q( x ).exec_at := now + RAND_INT( 3 ); end if;
-               elsif q( x ).exec_at <= now and nwk < RESULT_PORTS and rec.valid = '0'
+               elsif q( x ).exec_at <= now and nwk < RESULT_PORTS and rec.valid = '0' and not mp_pend
                      and ( q( x ).wb_state = 2 or q( x ).kind /= K_LEX ) then
                   -- lectures en mémoire (chargement exécuté, bornes de CHK, cellule pointeur) : la
                   -- mémoire physique au point de l'instruction (attente si un SPILL n'a pas sa donnée)
@@ -902,10 +915,16 @@ begin
                      fu := ( valid => '1', rob_index => q( x ).rob, lvl => q( x ).slot.canon.lvl, value => unsigned( q( x ).src( 0 ) ) );
                   end if;
                   q( x ).done := true; last_progress := now;
+                  if q( x ).control and ncp < RESULT_PORTS then		-- fin d'une branche (point de reprise)
+                     cp( ncp ) := ( valid => '1', rob_index => q( x ).rob, fault => NO_FAULT, taken => '1',
+                                    target => ( others => '0' ), mispredicted => B( q( x ).mispredict ) );
+                     ncp := ncp + 1;
+                     if not q( x ).mispredict then n_cfin := n_cfin + 1; end if;
+                  end if;
                   if q( x ).mispredict then						-- mauvaise prédiction : reprise
-                     rec := ( valid => '1', kind => RECOVER_CHECKPOINT, keep_last => q( x ).rob, checkpoint => q( x ).ckpt,
-                              new_pc => ( others => '0' ), ghist => ( others => '0' ), ras_ptr => ( others => '0' ) );
-                     keep := sq2;
+                     mp_rec := ( valid => '1', kind => RECOVER_CHECKPOINT, keep_last => q( x ).rob, checkpoint => q( x ).ckpt,
+                                 new_pc => ( others => '0' ), ghist => ( others => '0' ), ras_ptr => ( others => '0' ) );
+                     mp_keep := sq2; mp_pend := true;					-- (au cycle suivant)
                   end if;
                end if;
             end if;
@@ -939,12 +958,12 @@ begin
                exit;
             end if;
          end loop;
-         wakeup <= wk; fupd <= fu; invalidate <= inv;
+         wakeup <= wk; fupd <= fu; invalidate <= inv; compl <= cp;
 
 		-- ROB : retrait dans l'ordre ; faute en tête : reprise RECOVER_COMMITTED
          nret := 0;
          mreq := ( valid => '0', kind => MAINT_WRITEBACK_ALL, base => ( others => '0' ), length => ( others => '0' ) );
-         if rec.valid = '0' and not sync_pend then
+         if rec.valid = '0' and not sync_pend and not mp_pend then
             for i in 0 to RETIRE_WIDTH - 1 loop
                sq := head_seq + i;
                exit when sq >= take_seq;
@@ -960,11 +979,11 @@ begin
                exit when not q( x ).done or RAND < 0.1;
                nret := i + 1;
             end loop;
-            if rec.valid = '0' and nret = 0 and head_seq < take_seq and RAND < 0.002 then	-- interruption : SYNC
+            if rec.valid = '0' and not mp_pend and nret = 0 and head_seq < take_seq and RAND < 0.002 then	-- interruption : SYNC
                sync_pend := true;						-- après MAINT_WRITEBACK_ALL (SYSTEM_UNIT)
             end if;
          end if;
-         if sync_pend and rec.valid = '0' then
+         if sync_pend and rec.valid = '0' and not mp_pend then
             if m_asked = 1 and maint_done = '1' then
                rec := ( valid => '1', kind => RECOVER_COMMITTED, keep_last => ( others => '0' ), checkpoint => ( others => '0' ),
                         new_pc => ( others => '0' ), ghist => ( others => '0' ), ras_ptr => ( others => '0' ) );
@@ -977,7 +996,7 @@ begin
          end if;
          -- LEXCMP en tête (COMPLEX_UNIT) : MAINT_WRITEBACK_RANGE de son intervalle, puis la mémoire
          -- physique doit y avoir la valeur retirée de chaque mot vivant
-         if not sync_pend and rec.valid = '0' and head_seq < take_seq then
+         if not sync_pend and rec.valid = '0' and not mp_pend and head_seq < take_seq then
             x := head_seq mod WIN;
             if q( x ).renamed and q( x ).kind = K_LEX and q( x ).fault = 0 and q( x ).wb_state = 0 then
                if m_asked = 2 and maint_done = '1' then
@@ -1067,7 +1086,7 @@ begin
                            and ren_block( i ).destination_valid = B( q( x ).dest )
                            and alloc_block( i ).is_store = B( q( x ).is_store )
                            and alloc_block( i ).is_control = B( q( x ).control )
-                           and ( not q( x ).control or alloc_block( i ).checkpoint_valid = '1' )
+                           and alloc_block( i ).checkpoint_valid = B( q( x ).control )
                            and ( q( x ).kind = K_DUP or q( x ).kind = K_OVER		-- (vu avec les échanges)
                                  or alloc_block( i ).done = B( not q( x ).exec_need and q( x ).kind /= K_STORE ) )
                            and ( not q( x ).addr_known or ( ren_block( i ).address_known = '1' and ren_block( i ).address = q( x ).addr ) );
@@ -1269,7 +1288,8 @@ begin
       report "écriture différée " & boolean'image( DEFERRED ) & " ; lectures comparées à la mémoire physique "
              & integer'image( n_mcheck ) & ", SPILL hors push " & integer'image( n_def_spill ) & " (vidage "
              & integer'image( n_cspill ) & "), réécrits " & integer'image( n_wb ) & ", mots vérifiés après réécriture "
-             & integer'image( n_wbcheck ) & ", LIQ convertis " & integer'image( n_cconv ) severity note;
+             & integer'image( n_wbcheck ) & ", LIQ convertis " & integer'image( n_cconv )
+             & ", branches finies sans mauvaise prédiction " & integer'image( n_cfin ) severity note;
       if DEFERRED then
          CHECK( c, n_src_checked > 5000 and n_fill > 300 and n_def_spill > 100 and n_cspill > 5 and n_wb > 20 and n_cconv > 50
                    and n_mis > 50 and n_flt > 20 and n_inval > 100 and n_mcheck > 600 and n_wbcheck > 100,

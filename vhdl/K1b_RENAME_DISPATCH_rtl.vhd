@@ -164,6 +164,7 @@ of RENAME_DISPATCH is		---
    signal rptr			: natural range 0 to RCELL_COUNT - 1;
    signal robinfo		: robinfo_array_t;
    signal r_head, r_tail	: rob_index_t;					-- en vol : [r_head, r_tail)
+   signal r_count		: natural range 0 to ROB_SIZE;			--  leur nombre (tête = queue : vide ou plein)
    signal writers		: writer_array_t;
    signal ckpts		: ckpt_array_t;
    signal seq_next		: seq_t;
@@ -263,7 +264,7 @@ begin
 
    PLAN : process( DECODE_BLOCK_i, DECODE_COUNT_i, ROB_TAIL_i, ROB_FREE_i, RENAME_READY_i, STACK_XFER_READY_i,
                    RECOVERY_i, SYNC_VALID_i, LIMITS_i, frame_s, shadow, shadow_n, dcells, rcells, writers, ckpts,
-                   seq_next, waiting, fstall, ready, p_free_tags, p_nfree, r_head, r_tail, cwin, frame_c, STACK_MAINT_i )
+                   seq_next, waiting, fstall, ready, p_free_tags, p_nfree, r_head, r_tail, r_count, cwin, frame_c, STACK_MAINT_i )
       -- état de travail
       variable f		: frame_state_t;
       variable sh		: shadow_t;
@@ -711,7 +712,7 @@ begin
                         end loop;
                      end if;
                      if hz then							-- vidage : le ROB vide, ses cellules
-                        if i /= 0 or r_head /= r_tail then why := 6; exit; end if;	--  sont réécrites (SPILL validés)
+                        if i /= 0 or r_count /= 0 then why := 6; exit; end if;	--  sont réécrites (SPILL validés)
                         a8 := hlo( 63 downto 3 ) & "000";
                         for c in 0 to 2 loop
                            if a8 <= hhi then
@@ -936,7 +937,9 @@ begin
                if is_ptr_store or is_wblock then
                   wrs( i ) := ( valid => true, ptr => is_ptr_store, rob => rob, seq => seq ); nwr := nwr + 1;
                end if;
-               if e.control then							-- point de reprise
+               -- point de reprise : pas pour BRA ni CALL directs (prédits pris vers pc + len +
+               -- val, la cible même que calcule BRANCH_UNIT : jamais mal prédits)
+               if e.control then
                   cid := -1;
                   for c in 0 to NCKPT - 1 loop
                      if cid < 0 and ck_used( c ) = '0' then cid := c; end if;
@@ -1017,6 +1020,13 @@ begin
       -- pragma translate_off
       variable dbg_cnt		: nat_tags_t;
       variable dbg_err		: natural;
+      type mk_t			is array( 0 to NTAGS - 1 ) of boolean;
+      variable mk		: mk_t;
+      variable rx		: rob_index_t;
+      variable nbad		: natural;
+      variable first		: integer;
+      variable nv			: natural range 0 to ROB_SIZE;			-- instructions en vol
+      variable nab		: natural range 0 to ROB_SIZE;			--  abandonnées à la reprise
       -- pragma translate_on
       variable qu		: quar_t;
       variable r		: rob_index_t;
@@ -1191,7 +1201,7 @@ begin
             for i in 0 to ROB_SIZE - 1 loop
                robinfo( i ).valid <= false;
             end loop;
-            r_head <= ( others => '0' ); r_tail <= ( others => '0' );
+            r_head <= ( others => '0' ); r_tail <= ( others => '0' ); r_count <= 0;
             writers <= ( others => ( valid => false, ptr => false, rob => ( others => '0' ), seq => 0 ) );
             for i in 0 to NCKPT - 1 loop ckpts( i ).valid <= false; end loop;
             seq_next <= 0; waiting <= false; fstall <= false;
@@ -1201,7 +1211,7 @@ begin
             maint_done <= '0';
          else
             fs := frame_s; fc := frame_c; dc := dcells; rc := rcells; rp := rptr; inf := robinfo;
-            hd := r_head; tl := r_tail; wr := writers; ck := ckpts;
+            hd := r_head; tl := r_tail; nv := r_count; wr := writers; ck := ckpts;
             al := allocated; rd := ready; pr := producing; rdr := readers; mc := mapcnt; qu := quar;
             mcc := mapcnt_c; mck := mapcnt_k; mcp := mapcnt_p; cw := cwin;
 
@@ -1254,7 +1264,7 @@ begin
                      end if;
                   end if;
                end loop;
-               tl := ROB_TAIL_i + p_k;
+               tl := ROB_TAIL_i + p_k; nv := nv + p_k;
                seq_next <= seq_next + p_k;
                waiting <= p_wait; wait_rob <= p_wait_rob; wait_lvl <= p_wait_lvl;
                fstall <= p_fstall;
@@ -1284,9 +1294,27 @@ begin
                      if o < inf( to_integer( r ) ).nops then APPLY_C( inf( to_integer( r ) ).ops( o ) ); end if;
                   end loop;
                   LEAVE( r );
-                  hd := hd + 1;
+                  hd := hd + 1; nv := nv - 1;
                end if;
             end loop;
+
+            -- points de reprise : une branche finie sans mauvaise prédiction ne sera jamais
+            -- reprise (le ROB reprend au cycle qui suit la fin d'une branche mal prédite) ;
+            -- son point est rendu tout de suite, et non au retrait (au cycle d'une reprise,
+            -- celle-ci traite les abandonnées : rien n'est rendu)
+            if RECOVERY_i.valid = '0' then
+               for p in COMPLETION_i'range loop
+                  if COMPLETION_i( p ).valid = '1' and COMPLETION_i( p ).mispredicted = '0'
+                     and COMPLETION_i( p ).fault.valid = '0' then
+                     r := COMPLETION_i( p ).rob_index;
+                     if inf( to_integer( r ) ).valid and inf( to_integer( r ) ).ckpt_valid
+                        and ck( inf( to_integer( r ) ).ckpt ).valid then
+                        ck( inf( to_integer( r ) ).ckpt ).valid := false; COUNT_WIN( ck( inf( to_integer( r ) ).ckpt ).win, -1 );
+                        inf( to_integer( r ) ).ckpt_valid := false;
+                     end if;
+                  end if;
+               end loop;
+            end if;
 
             -- invalidations (rangements par pointeur écrits) : l'écrivain le plus ancien de ce rob
             for l in STACK_INVALIDATE_i'range loop
@@ -1368,13 +1396,15 @@ begin
                      wr( w ).valid := false;
                   end if;
                end loop;
-               r := hd;
+               r := hd; nab := 0;
                for j in 0 to ROB_SIZE - 1 loop						-- les abandonnées
-                  exit when r = tl;
+                  exit when j >= nv;							-- (ROB plein : tête = queue)
                   abandon := RECOVERY_i.kind = RECOVER_COMMITTED or inf( to_integer( r ) ).seq > keep_seq;
+                  if abandon then nab := nab + 1; end if;
                   if abandon and inf( to_integer( r ) ).valid then LEAVE( r ); end if;	-- (blocs : leurs écrivains)
                   r := r + 1;
                end loop;
+               nv := nv - nab;								-- (les abandonnées sont les plus jeunes)
                if RECOVERY_i.kind = RECOVER_COMMITTED then tl := hd; else tl := RECOVERY_i.keep_last + 1; end if;
                -- la fenêtre du point de reprise, ou la fenêtre retirée (la pile des retours,
                -- en écriture immédiate, est oubliée)
@@ -1441,9 +1471,30 @@ begin
             for t in 0 to NTAGS - 1 loop
                if dbg_cnt( t ) /= mck( t ) then dbg_err := dbg_err + 1; end if;
             end loop;
+            -- le nombre en vol s'accorde à la tête et à la queue (tête = queue : vide ou plein)
+            if not ( nv = to_integer( tl - hd ) or ( nv = ROB_SIZE and tl = hd ) ) then dbg_err := dbg_err + 1; end if;
+            -- un registre producteur appartient à une instruction en vol
+               mk := ( others => false ); nbad := 0; first := -1;
+               rx := hd;
+               for j in 0 to ROB_SIZE - 1 loop
+                  exit when j >= nv;
+                  for q in 0 to MAXTAGS - 1 loop
+                     if q < inf( to_integer( rx ) ).ntag then mk( to_integer( inf( to_integer( rx ) ).tags( q ) ) ) := true; end if;
+                  end loop;
+                  rx := rx + 1;
+               end loop;
+               for t in 0 to NTAGS - 1 loop
+                  if pr( t ) = '1' and not mk( t ) then nbad := nbad + 1; if first < 0 then first := t; end if; end if;
+               end loop;
+               dbg_err := dbg_err + nbad;
+            -- une reprise ne se fait que sur un point de reprise valide (non rendu)
+            if RECOVERY_i.valid = '1' and RECOVERY_i.kind = RECOVER_CHECKPOINT
+               and not ckpts( to_integer( RECOVERY_i.checkpoint ) ).valid then
+               dbg_err := dbg_err + 1;
+            end if;
             dbg_map_err <= dbg_err;
             -- pragma translate_on
-            r_head <= hd; r_tail <= tl; writers <= wr; ckpts <= ck;
+            r_head <= hd; r_tail <= tl; r_count <= nv; writers <= wr; ckpts <= ck;
             allocated <= al; ready <= rd; producing <= pr; readers <= rdr; mapcnt <= mc; quar <= qu;
             cwin <= cw; mapcnt_c <= mcc; mapcnt_k <= mck; mapcnt_p <= mcp;
          end if;

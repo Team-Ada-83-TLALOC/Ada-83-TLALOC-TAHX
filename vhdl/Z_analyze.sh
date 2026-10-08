@@ -19,8 +19,11 @@ A=analyse
 
 #	Specifications, Definitions
 
-$A A__TAHX_1_isa.vhd			|| exit 1
+$A A__TAHX_1_isa.vhd		|| exit 1
 $A A__TAHX_1_isa_table.vhd		|| exit 1
+
+$A B1__arch_types.vhd		|| exit 1
+$A C1__memory_types.vhd		|| exit 1
 
 #	UNITE INSTRUCTIONS
 

@@ -8,6 +8,7 @@ use ieee.numeric_std.all;
 --	1	2	3	4	5	6	7	8	9	0	1	2
 --
 use work.TAHX_1_ISA.all;
+use work.ARCH_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 
 		--------------------------------------------------------------------------------
@@ -48,12 +49,12 @@ is				---------
 		-- Faute constatée pour une instruction : notée dans son entrée, livrée à son retrait
 		-------------------------------------------------------------------------------------
 
-   type fault_t		is record
-			  valid	: std_logic;
-			  code	: trap_code_t;          -- 128..137
-			end record;
+--   type fault_t		is record
+--			  valid	: std_logic;
+--			  code	: trap_code_t;          -- 128..137
+--			end record;
 
-   constant NO_FAULT	: fault_t	:= ( valid => '0', code => (others => '0') );
+--   constant NO_FAULT	: fault_t	:= ( valid => '0', code => (others => '0') );
 
 		--------------------------------------------------------------------------------
 		-- Allocation : ce que RENAME_DISPATCH écrit dans le ROB pour chaque instruction
