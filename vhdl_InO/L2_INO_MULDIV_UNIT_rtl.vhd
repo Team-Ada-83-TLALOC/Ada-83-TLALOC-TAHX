@@ -176,12 +176,17 @@ begin
    end process OUTPUT;
 
    -- pragma translate_off
-   CHECK_OPCODE : process( all )
+   -- Même règle que pour les autres unités du backend : le protocole est
+   -- synchrone, donc les assertions portent sur l'émission réellement
+   -- échantillonnée au front montant et non sur des delta-cycles de routage.
+   CHECK_OPCODE : process( CLK_i )
    begin
-      if RESET_i = '0' and ISSUE_VALID_i = '1' and state_s = LIBRE then
-         assert ISSUE_i.issue_class = ISSUE_MUL_DIV and IS_MULDIV_OP( ISSUE_i.slot.canon.op )
-            report "INO_MULDIV_UNIT : instruction hors de l'unite"
-            severity failure;
+      if rising_edge( CLK_i ) then
+         if RESET_i = '0' and ISSUE_VALID_i = '1' and state_s = LIBRE then
+            assert ISSUE_i.issue_class = ISSUE_MUL_DIV and IS_MULDIV_OP( ISSUE_i.slot.canon.op )
+               report "INO_MULDIV_UNIT : instruction hors de l'unite"
+               severity failure;
+         end if;
       end if;
    end process CHECK_OPCODE;
    -- pragma translate_on

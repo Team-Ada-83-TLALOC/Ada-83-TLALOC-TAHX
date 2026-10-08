@@ -24,6 +24,10 @@ of INO_BACKEND is               ---
    signal muldiv_issue_ready_s  : std_logic;
    signal muldiv_complete_s     : ino_complete_t;
 
+   signal branch_issue_valid_s  : std_logic;
+   signal branch_issue_ready_s  : std_logic;
+   signal branch_complete_s     : ino_complete_t;
+
 begin
 
         --------------------------------------------------------------------------------
@@ -38,16 +42,22 @@ begin
    muldiv_issue_valid_s <= ISSUE_VALID_i
       when ISSUE_i.issue_class = ISSUE_MUL_DIV else '0';
 
+   branch_issue_valid_s <= ISSUE_VALID_i
+      when ISSUE_i.issue_class = ISSUE_BRANCH else '0';
+
    with ISSUE_i.issue_class select
       ISSUE_READY_o <= integer_issue_ready_s when ISSUE_INTEGER,
                        muldiv_issue_ready_s  when ISSUE_MUL_DIV,
+                       branch_issue_ready_s  when ISSUE_BRANCH,
                        '0'                   when others;
 
    -- pragma translate_off
    CHECK_CLASS : process( all )
    begin
       if RESET_i = '0' and ISSUE_VALID_i = '1' then
-         assert ISSUE_i.issue_class = ISSUE_INTEGER or ISSUE_i.issue_class = ISSUE_MUL_DIV
+         assert ISSUE_i.issue_class = ISSUE_INTEGER
+             or ISSUE_i.issue_class = ISSUE_MUL_DIV
+             or ISSUE_i.issue_class = ISSUE_BRANCH
             report "INO_BACKEND : classe d'emission non encore implantee"
             severity failure;
       end if;
@@ -76,12 +86,22 @@ begin
          ISSUE_READY_o     => muldiv_issue_ready_s,
          COMPLETE_o        => muldiv_complete_s );
 
+   U_BRANCH : entity work.INO_BRANCH_UNIT
+      port map (
+         CLK_i             => CLK_i,
+         RESET_i           => RESET_i,
+         ISSUE_VALID_i     => branch_issue_valid_s,
+         ISSUE_i           => ISSUE_i,
+         ISSUE_READY_o     => branch_issue_ready_s,
+         COMPLETE_o        => branch_complete_s );
+
         --------------------------------------------------------------------------------
         -- Une seule instruction est en vol dans STACK_UNIT. Les retours ne peuvent donc
         -- pas se chevaucher. La priorité ci-dessous est seulement défensive.
         --------------------------------------------------------------------------------
 
-   COMPLETE_o <= muldiv_complete_s when muldiv_complete_s.valid = '1'
+   COMPLETE_o <= branch_complete_s when branch_complete_s.valid = '1'
+                 else muldiv_complete_s when muldiv_complete_s.valid = '1'
                  else integer_complete_s;
 
                                 ---

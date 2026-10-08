@@ -13,19 +13,19 @@ use work.FETCH_DECODE_TYPES.all;
 use work.IN_ORDER_TYPES.all;
 
         --------------------------------------------------------------------------------
-        -- INO_BACKEND : point de raccordement unique entre STACK_UNIT et les unités
-        -- fonctionnelles du backend InO.
+        -- INO_BRANCH_UNIT : résolution des transferts ordinaires BRA, BT et BF.
         --
-        -- ISSUE_INTEGER, ISSUE_MUL_DIV et ISSUE_BRANCH sont implantées. Les autres classes seront
-        -- ajoutées ici sans modifier l'interface de STACK_UNIT.
+        -- CALL/CALLI/RTD ne sont pas encore acceptés : leur exécution dépend de la
+        -- future pile de retours architecturale de STACK_UNIT.
         --
-        -- STACK_UNIT ne laisse qu'une instruction en vol : il ne peut donc exister qu'un
-        -- COMPLETE actif à la fois. Cela simplifie fortement l'arbitrage de retour.
+        -- La sortie target est toujours l'adresse où l'exécution doit continuer :
+        -- cible si le transfert est pris, PC suivant sinon. STACK_UNIT conserve slot.pred
+        -- et peut donc déterminer si une reprise du frontal est nécessaire.
         --------------------------------------------------------------------------------
 
-                                -----------
-entity                          INO_BACKEND
-is                              -----------
+                                -----------------
+entity                          INO_BRANCH_UNIT
+is                              -----------------
    port (
       CLK_i             : in  std_logic;
       RESET_i           : in  std_logic;
@@ -36,9 +36,9 @@ is                              -----------
 
       COMPLETE_o        : out ino_complete_t
    );
-                                -----------
-end entity                      INO_BACKEND;
-                                -----------
+                                -----------------
+end entity                      INO_BRANCH_UNIT;
+                                -----------------
 
 ------------------------------------------------------------------------------------------------------------------------
 --      1       2       3       4       5       6       7       8       9       0       1       2
