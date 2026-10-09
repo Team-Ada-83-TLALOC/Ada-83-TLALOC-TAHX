@@ -59,6 +59,7 @@ of STACK_UNIT is                ---
       ST_COH_SCAN,
       ST_COH_SPILL_REQ,
       ST_COH_SPILL_RSP,
+      ST_FAST_COMMIT,
       ST_ISSUE,
       ST_WAIT_EXEC,
       ST_MISPRED_HOLD,
@@ -199,6 +200,20 @@ of STACK_UNIT is                ---
       return op = OP_TRAP or op = OP_EXC_RAISE or op = OP_RTX;
    end function;
 
+   -- Fast path InO : seulement les opérations dont toute la préparation de pile
+   -- peut être décidée localement au moment de la prise dans DECODE_QUEUE.
+   -- Les accès mémoire, frames, appels/retours et opérations longues restent sur
+   -- le chemin historique ST_PREPARE/...
+   function IS_FAST_BRANCH_OP( op : opcode_t ) return boolean is
+   begin
+      return unsigned( op ) >= 16#E0# and unsigned( op ) <= 16#EB#;
+   end function;
+
+   function IS_FAST_STACK_OP( op : opcode_t ) return boolean is
+   begin
+      return op = x"30" or op = x"31" or op = x"32";  -- DROP, DUP, OVER
+   end function;
+
    function IS_SPECIAL_NOT_YET_SUPPORTED( s : decoded_slot_t; e : isa_entry_t ) return boolean is
       variable op : opcode_t;
    begin
@@ -332,6 +347,14 @@ begin
       variable lvl             : natural range 0 to 15;
       variable alloc65         : unsigned( 64 downto 0 );
       variable ndsp65          : unsigned( 64 downto 0 );
+      -- Préparation accélérée des instructions ordinaires. Les variables sont
+      -- calculées à partir de l'état courant du cache ; si une source manque ou
+      -- si la future destination exige un SPILL, on retombe sur ST_PREPARE.
+      variable fast_ok          : boolean;
+      variable fast_values      : ino_operand_array_t;
+      variable fast_addr        : address_t;
+      variable fast_dst_addr    : address_t;
+      variable fast_dst_valid   : boolean;
    begin
       if rising_edge( CLK_i ) then
 
@@ -602,8 +625,138 @@ begin
                         severity failure;
                      -- pragma translate_on
 
-                     state_s <= ST_PREPARE;
+                     ------------------------------------------------------------------
+                     -- FAST PATH de préparation.
+                     --
+                     -- Le chemin initial lisait une source de pile par cycle dans
+                     -- ST_PREPARE, puis passait seulement à ST_ISSUE. Pour les
+                     -- opérations ordinaires, toutes les cellules nécessaires sont
+                     -- dans un petit tableau de registres ; les lire en parallèle ne
+                     -- demande aucun mécanisme OoO.
+                     --
+                     -- Si toutes les sources sont des hits et si la destination peut
+                     -- être remplacée sans SPILL, on saute directement à ST_ISSUE.
+                     -- DROP/DUP/OVER peuvent même committer ici. Tout cas douteux
+                     -- retombe exactement sur le chemin lent déjà validé.
+                     ------------------------------------------------------------------
+                     fast_ok        := false;
+                     fast_values    := ( others => ( others => '0' ) );
+                     fast_dst_addr  := ndsp;
+                     fast_dst_valid := false;
+
+                     if f.valid = '0' then
+                        if IS_FAST_STACK_OP( s.canon.op ) then
+                           fast_ok := true;
+                        elsif e.issue_class = ISSUE_INTEGER
+                           and e.lvl_use = LVL_NONE
+                           and not e.memory and not e.frame
+                           and not e.serializing and not e.control then
+                           fast_ok := true;
+                        elsif e.issue_class = ISSUE_BRANCH
+                           and IS_FAST_BRANCH_OP( s.canon.op ) then
+                           fast_ok := true;
+                        end if;
+                     end if;
+
+                     if fast_ok then
+                        -- Toutes les sources doivent déjà être dans le cache.
+                        -- L'ordre est le même que source_address_s / RENAME_DISPATCH.
+                        for j in 0 to 3 loop
+                           if j < nsrc then
+                              case e.stack_action is
+                                 when STACK_LINEAR =>
+                                    fast_addr := frame_s.dsp - 8 * ( npop - 1 - j );
+                                 when STACK_KEEP_TOP | STACK_DUP =>
+                                    fast_addr := frame_s.dsp;
+                                 when STACK_OVER =>
+                                    fast_addr := frame_s.dsp - 8;
+                                 when STACK_DROP =>
+                                    fast_addr := frame_s.dsp; -- non utilisé (nsrc=0)
+                              end case;
+
+                              idx := WIDX( fast_addr );
+                              if cells_s( idx ).valid = '1'
+                                 and cells_s( idx ).addr = fast_addr then
+                                 fast_values( j ) := cells_s( idx ).data;
+                              else
+                                 fast_ok := false;
+                              end if;
+                           end if;
+                        end loop;
+
+                        -- Même critère de collision que ST_PREPARE : une ancienne
+                        -- cellule sale encore vivante doit être rangée avant réemploi.
+                        if e.stack_action = STACK_DUP or e.stack_action = STACK_OVER then
+                           fast_dst_valid := true;
+                           fast_dst_addr  := ndsp;
+                        elsif e.stack_action = STACK_LINEAR and e.pushes = 1 then
+                           fast_dst_valid := true;
+                           fast_dst_addr  := ndsp;
+                        end if;
+
+                        if fast_dst_valid then
+                           dst_idx := WIDX( fast_dst_addr );
+                           if cells_s( dst_idx ).valid = '1'
+                              and cells_s( dst_idx ).addr /= fast_dst_addr
+                              and cells_s( dst_idx ).dirty = '1'
+                              and cells_s( dst_idx ).addr <= frame_s.dsp then
+                              fast_ok := false;
+                           end if;
+                        end if;
+                     end if;
+
+                     if fast_ok then
+                        source_value_s <= fast_values;
+                        source_index_s <= nsrc;
+
+                        if e.issue_class = ISSUE_NONE then
+                           -- Les trois manipulations de pile sont entièrement locales,
+                           -- mais ne doivent pas COMMITTER sur le même front que
+                           -- DECODE_TAKE. Les consommateurs de STACK_UNIT utilisent le
+                           -- contrat historique : prise au cycle N, terminaison au plus
+                           -- tôt au cycle N+1. ST_FAST_COMMIT conserve ce contrat tout
+                           -- en évitant ST_PREPARE et toute émission backend.
+                           state_s <= ST_FAST_COMMIT;
+                        else
+                           -- INTEGER et BRA/BT/BF : l'émission devient visible dès le
+                           -- cycle suivant la prise de DECODE_QUEUE.
+                           state_s <= ST_ISSUE;
+                        end if;
+                     else
+                        state_s <= ST_PREPARE;
+                     end if;
                   end if;
+
+               -------------------------------------------------------------------------
+               -- Commit local du fast path DROP/DUP/OVER. Les opérandes ont été lus
+               -- en parallèle lors de la prise et sont maintenant enregistrés dans
+               -- source_value_s. Aucun backend n'est impliqué.
+               -------------------------------------------------------------------------
+
+               when ST_FAST_COMMIT =>
+                  case entry_s.stack_action is
+                     when STACK_DROP =>
+                        INVALIDATE_CELL( cells_s, old_dsp_s );
+                        frame_s.dsp <= new_dsp_s;
+
+                     when STACK_DUP | STACK_OVER =>
+                        idx := WIDX( destination_address_s );
+                        cells_s( idx ) <= ( valid => '1', dirty => '1',
+                                            addr => destination_address_s,
+                                            data => source_value_s( 0 ) );
+                        frame_s.dsp <= new_dsp_s;
+
+                     when others =>
+                        -- pragma translate_off
+                        assert false
+                           report "STACK_UNIT: ST_FAST_COMMIT sur operation non locale"
+                           severity failure;
+                        -- pragma translate_on
+                  end case;
+
+                  commit_s <= ( valid => '1', slot => slot_s, fault => NO_FAULT,
+                                taken => '0', target => ( others => '0' ) );
+                  state_s <= ST_IDLE;
 
                -------------------------------------------------------------------------
                -- Obtenir toutes les sources dans le cache puis réserver la future

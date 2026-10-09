@@ -427,3 +427,22 @@ concernée quand on l'écrira, puis à rayer ici.
               (largeur 3), IQ16 (files d'émission entière et mémoire de 16, branchement 8),
               DQ16 (file de décodage de 16 ; la file d'octets reste de 128 : FETCH_BYTE_QUEUE
               l'exige), MINI2 (R64, Q16, C8, IQ16, DQ16).
+  2026-10-09  Troisième tour de variantes autour de MINI (commit f92ef62, 155 min), IPC
+              pondéré : MINI 1,61 ; IQ16 1,61 ; DQ16 1,61 ; C8 1,60 (gratuits) ; R64 1,54
+              (B_MATRICE -18 %) ; L3 1,53 (B_MATRICE -16 %) ; Q16 1,28 (B_APPELS -38 %) ;
+              MINI2 1,27 (entraîné par Q16) ; W16 : B_CHAINES bloqué.
+              Étreinte fatale latente corrigée : un service demande MAINT_WRITEBACK_ALL ; la
+              réécriture émettait ses SPILL validés seulement si STACK_XFER_READY (au moins
+              STACK_XFER_WIDTH entrées libres dans la LSQ) ; les SPILL d'éviction des
+              instructions plus jeunes (nombreux avec une fenêtre de 16) en laissaient moins,
+              et ces instructions ne se retirent pas avant le service. Correction : la
+              réécriture du renommage émet autant de SPILL validés que la LSQ a d'entrées
+              libres (STACK_XFER_FREE_i, nouvelle sortie STACK_XFER_FREE_o de la LSQ), au plus
+              STACK_XFER_WIDTH ; et la LSQ garde une entrée aux réécritures (STACK_XFER_READY_o,
+              MEMORY_CAPACITY_o et COMPLEX_CAPACITY_o laissent STACK_XFER_WIDTH + 1 entrées),
+              pour le cas d'une LSQ entièrement pleine (possible en principe, non atteint par
+              B_CHAINES). Bancs M2, M_N2 et K1b adaptés. W16 B_CHAINES : 70 841 cycles (IPC
+              1,88) au lieu du blocage ; erreurs introduites : réécriture de nouveau sur
+              STACK_XFER_READY : le blocage revient (même pc) ; sans l'entrée gardée seule :
+              pas de blocage sur ce programme. Coût : DIS_BONJOUR 4 091 -> 4 116, CHK_TEST0 9 373 ->
+              9 392 cycles.

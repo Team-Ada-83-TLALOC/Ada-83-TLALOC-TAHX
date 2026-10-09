@@ -112,6 +112,7 @@ of T_M2_LOAD_STORE_QUEUE_tb is
    signal memory		: data_memory_t;
    signal reads, writes, probes : natural;
    signal xfer_ready, wif	: std_logic;
+   signal xfer_free		: natural;
    signal lookup		: stack_lookup_request_bus_t( 0 to MEMORY_LANES - 1 );
    signal invalidate		: stack_invalidate_bus_t( 0 to MEMORY_LANES - 1 );
    signal read_tags		: read_tags_bus_t( 0 to MEMORY_LANES - 1 );
@@ -149,7 +150,7 @@ begin
          COMPLEX_CAPACITY_o => cpx_cap,
          EXEC_i => exec, RANGE_i => rng,
          STACK_XFER_i => xfer,
-         STACK_XFER_READY_o => xfer_ready,
+         STACK_XFER_READY_o => xfer_ready, STACK_XFER_FREE_o => xfer_free,
          STACK_LOOKUP_o => lookup,
          STACK_LOOKUP_i => ( others => ( valid => '0', hit => '0', tag => ( others => '0' ) ) ),
          STACK_INVALIDATE_o => invalidate, WRITERS_IN_FLIGHT_o => wif,
@@ -886,10 +887,10 @@ begin
             CHECK( c, false, "cycle " & integer'image( now ) & " : STACK_INVALIDATE_o( 1 )" );
          end if;
          -- deux entrées réservées aux échanges
-         if mem_cap = to_unsigned( minimum( 8, maximum( 0, DEPTH - entries - STACK_XFER_WIDTH ) ), mem_cap'length )
-            and cpx_cap = to_unsigned( minimum( 8, maximum( 0, DEPTH - entries - STACK_XFER_WIDTH - to_integer( mem_cap ) ) ),
+         if mem_cap = to_unsigned( minimum( 8, maximum( 0, DEPTH - entries - STACK_XFER_WIDTH - 1 ) ), mem_cap'length )
+            and cpx_cap = to_unsigned( minimum( 8, maximum( 0, DEPTH - entries - STACK_XFER_WIDTH - 1 - to_integer( mem_cap ) ) ),
                                        cpx_cap'length )
-            and xfer_ready = B( DEPTH - entries >= STACK_XFER_WIDTH ) then
+            and xfer_ready = B( DEPTH - entries >= STACK_XFER_WIDTH + 1 ) and xfer_free = DEPTH - entries then
             CHECK_PASSED( c );
          else
             CHECK( c, false, "cycle " & integer'image( now ) & " : capacités" );

@@ -418,15 +418,18 @@ begin
          RESULT_o( l ) <= rs;
       end loop;
 
-      -- deux entrées réservées aux échanges
-      if free_count >= STACK_XFER_WIDTH then mc := MIN( 8, free_count - STACK_XFER_WIDTH ); else mc := 0; end if;
+      -- STACK_XFER_WIDTH entrées réservées aux échanges, et une de plus aux SPILL validés
+      -- de la réécriture de la fenêtre (sans elle : étreinte fatale, la tête attendant
+      -- la réécriture et les plus jeunes tenant toute la file)
+      if free_count >= STACK_XFER_WIDTH + 1 then mc := MIN( 8, free_count - STACK_XFER_WIDTH - 1 ); else mc := 0; end if;
       MEMORY_CAPACITY_o <= to_unsigned( mc, MEMORY_CAPACITY_o'length );
-      if free_count >= STACK_XFER_WIDTH + mc then
-         COMPLEX_CAPACITY_o <= to_unsigned( MIN( 8, free_count - STACK_XFER_WIDTH - mc ), COMPLEX_CAPACITY_o'length );
+      if free_count >= STACK_XFER_WIDTH + 1 + mc then
+         COMPLEX_CAPACITY_o <= to_unsigned( MIN( 8, free_count - STACK_XFER_WIDTH - 1 - mc ), COMPLEX_CAPACITY_o'length );
       else
          COMPLEX_CAPACITY_o <= ( others => '0' );
       end if;
-      if free_count >= STACK_XFER_WIDTH then STACK_XFER_READY_o <= '1'; else STACK_XFER_READY_o <= '0'; end if;
+      if free_count >= STACK_XFER_WIDTH + 1 then STACK_XFER_READY_o <= '1'; else STACK_XFER_READY_o <= '0'; end if;
+      STACK_XFER_FREE_o <= free_count;
       for c in 0 to CAPTURES - 1 loop						-- données de SPILL
          if capture_pick( c ) >= 0 then
             READ_TAGS_o( c / MAX_SOURCE_COUNT )( c mod MAX_SOURCE_COUNT ) <= e( capture_pick( c ) ).data_tag;

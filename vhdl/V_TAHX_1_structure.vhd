@@ -101,6 +101,7 @@ is				---------
 
    signal stack_xfer		: stack_xfer_bus_t;
    signal stack_xfer_ready		: std_logic;
+   signal stack_xfer_free		: natural;
    signal stack_lookup_req		: stack_lookup_request_bus_t( 0 to MEMORY_LANES - 1 );
    signal stack_lookup_rsp		: stack_lookup_response_bus_t( 0 to MEMORY_LANES - 1 );
    signal stack_invalidate		: stack_invalidate_bus_t( 0 to MEMORY_LANES - 1 );
@@ -253,6 +254,7 @@ U_RENAME :
       WAKEUP_i		=> wakeup,
       STACK_XFER_o		=> stack_xfer,
       STACK_XFER_READY_i	=> stack_xfer_ready,
+      STACK_XFER_FREE_i	=> stack_xfer_free,
       STACK_LOOKUP_i	=> stack_lookup_req,
       STACK_LOOKUP_o	=> stack_lookup_rsp,
       STACK_iNVALIDATE_i	=> stack_invalidate,
@@ -632,6 +634,7 @@ U_LSQ :
       RANGE_i		=> mem_range,
       STACK_XFER_i		=> stack_xfer,
       STACK_XFER_READY_o	=> stack_xfer_ready,
+      STACK_XFER_FREE_o	=> stack_xfer_free,
       STACK_LOOKUP_o	=> stack_lookup_req,
       STACK_LOOKUP_i	=> stack_lookup_rsp,
       STACK_iNVALIDATE_o	=> stack_invalidate,

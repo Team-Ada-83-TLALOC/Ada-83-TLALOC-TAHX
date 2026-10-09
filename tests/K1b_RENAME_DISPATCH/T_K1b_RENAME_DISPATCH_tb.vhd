@@ -145,6 +145,7 @@ of T_K1b_RENAME_DISPATCH_tb is
    signal compl		: completion_bus_t( 0 to RESULT_PORTS - 1 ) := ( others => NO_COMPLETION );
    signal xfer			: stack_xfer_bus_t;
    signal xfer_ready		: std_logic := '1';
+   signal xfer_free		: natural := STACK_XFER_WIDTH + 1;		-- entrées libres de la LSQ jouée
    signal lookup_rsp		: stack_lookup_response_bus_t( 0 to MEMORY_LANES - 1 );
    signal lookup_req		: stack_lookup_request_bus_t( 0 to MEMORY_LANES - 1 ) :=
 				  ( others => ( valid => '0', address => ( others => '0' ), rob_index => ( others => '0' ) ) );
@@ -176,7 +177,7 @@ begin
          RETIRE_COUNT_i => retire_count, RECOVERY_i => recovery, COMPLETION_i => compl,
          SYNC_VALID_i => sync_valid, SYNC_FRAME_i => sync_frame, COMMITTED_FRAME_o => c_frame,
          DR_i => '0', LIMITS_i => limits, WAKEUP_i => wakeup,
-         STACK_XFER_o => xfer, STACK_XFER_READY_i => xfer_ready,
+         STACK_XFER_o => xfer, STACK_XFER_READY_i => xfer_ready, STACK_XFER_FREE_i => xfer_free,
          STACK_LOOKUP_i => lookup_req,
          STACK_LOOKUP_o => lookup_rsp, STACK_INVALIDATE_i => invalidate, WRITERS_IN_FLIGHT_i => '0',
          STACK_MAINT_i => maint, STACK_MAINT_DONE_o => maint_done, FRAME_UPDATE_i => fupd,
@@ -282,6 +283,7 @@ begin
       variable mok		: boolean;
       variable mw		: word64_t;
       variable mreq		: stack_maint_t;
+      variable xr		: boolean;					-- échanges admis ce cycle
       variable m_asked		: natural := 0;				-- demande du cycle précédent : 1 ALL, 2 RANGE
       variable o		: integer;
 
@@ -860,7 +862,10 @@ begin
          dec_count <= to_unsigned( n, dec_count'length );
          rob_tail <= ROB( rob_t );
          rob_free <= to_unsigned( ROB_SIZE - ( take_seq - head_seq ), rob_free'length );
-         ren_ready <= B( RAND < 0.85 ); xfer_ready <= B( RAND < 0.9 );
+         ren_ready <= B( RAND < 0.85 ); xr := RAND < 0.9; xfer_ready <= B( xr );
+         -- entrées libres : au moins STACK_XFER_WIDTH + 1 si les échanges sont admis ; sinon
+         -- de 0 à STACK_XFER_WIDTH (l'entrée gardée : la réécriture avance encore)
+         if xr then xfer_free <= STACK_XFER_WIDTH + 1 + RAND_INT( 8 ); else xfer_free <= RAND_INT( STACK_XFER_WIDTH ); end if;
 
 		-- unités : exécution des instructions prêtes, écriture de la destination, réveil
          wk := ( others => ( valid => '0', tag => ( others => '0' ) ) ); nwk := 0;

@@ -262,7 +262,7 @@ begin
 		-- Plan du cycle
 		--------------------------------------------------------------------------------
 
-   PLAN : process( DECODE_BLOCK_i, DECODE_COUNT_i, ROB_TAIL_i, ROB_FREE_i, RENAME_READY_i, STACK_XFER_READY_i,
+   PLAN : process( DECODE_BLOCK_i, DECODE_COUNT_i, ROB_TAIL_i, ROB_FREE_i, RENAME_READY_i, STACK_XFER_READY_i, STACK_XFER_FREE_i,
                    RECOVERY_i, SYNC_VALID_i, LIMITS_i, frame_s, shadow, shadow_n, dcells, rcells, writers, ckpts,
                    seq_next, waiting, fstall, ready, p_free_tags, p_nfree, r_head, r_tail, r_count, cwin, frame_c, STACK_MAINT_i )
       -- état de travail
@@ -599,7 +599,7 @@ begin
                and ( STACK_MAINT_i.kind = MAINT_WRITEBACK_ALL
                      or ( cwin( c ).addr + 8 > STACK_MAINT_i.base
                           and cwin( c ).addr < STACK_MAINT_i.base + STACK_MAINT_i.length ) ) then
-               if nmcl < STACK_XFER_WIDTH and STACK_XFER_READY_i = '1' then
+               if nmcl < STACK_XFER_WIDTH and nmcl < STACK_XFER_FREE_i then	-- (l'entrée gardée comprise)
                   xf( nmcl ) := ( valid => '1', kind => XFER_SPILL, address => cwin( c ).addr, tag => cwin( c ).tag,
                                   rob_index => r_head, committed => '1', ready => ready( to_integer( cwin( c ).tag ) ),
                                   completes => '0' );

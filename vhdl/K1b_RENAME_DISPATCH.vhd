@@ -215,7 +215,9 @@ use work.RENAME_TYPES.all;
 		--        avant lui ;
 		--     d) maintenance : MAINT_WRITEBACK_ALL et MAINT_WRITEBACK_RANGE rangent les
 		--        cellules sales et vivantes de la fenêtre retirée par des SPILL validés
-		--        (rob_index = tête), STACK_XFER_WIDTH par cycle, sans rien renommer ;
+		--        (rob_index = tête), autant que la LSQ a d'entrées libres
+		--        (STACK_XFER_FREE_i, au plus STACK_XFER_WIDTH) par cycle, sans rien renommer
+		--        (la LSQ en garde une aux réécritures : STACK_XFER_READY_i ne la compte pas) ;
 		--        STACK_MAINT_DONE_o, une impulsion, quand il n'en reste plus.
 		--     Les cellules rangées deviennent propres là où elles ont le même registre
 		--     (fenêtres spéculative et retirée, copies des points de reprise).
@@ -330,6 +332,7 @@ is                              ---------------
 
       STACK_XFER_o		:out stack_xfer_bus_t;		-- SPILL, FILL
       STACK_XFER_READY_i	:in  std_logic;			-- la LSQ prend tout le bus
+      STACK_XFER_FREE_i	:in  natural := 0;			-- entrées libres (réécriture)
 
       STACK_LOOKUP_i	:in  stack_lookup_request_bus_t;	-- une par voie de la LSQ
       STACK_LOOKUP_o	:out stack_lookup_response_bus_t;

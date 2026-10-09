@@ -114,8 +114,13 @@ use work.EXEC_TYPES.all;
 		--     reçues et ignorées. RESET_i vide la file.
 		--
 		--  8. Échanges (STACK_XFER_i), pris au front où ils sont valides ;
-		--     STACK_XFER_READY_o = '1' quand au moins STACK_XFER_WIDTH entrées sont
-		--     libres (état seul). Un échange dont l'instruction est abandonnée par une
+		--     STACK_XFER_READY_o = '1' quand au moins STACK_XFER_WIDTH + 1 entrées sont
+		--     libres (état seul) : la dernière est gardée aux SPILL validés de la
+		--     réécriture de la fenêtre (MAINT_WRITEBACK_xxx), qui en a besoin quand des
+		--     instructions plus jeunes, arrêtées derrière la tête qui l'attend, occupent
+		--     le reste ; STACK_XFER_FREE_o donne le nombre d'entrées libres (la
+		--     réécriture en prend autant, au plus STACK_XFER_WIDTH). MEMORY_CAPACITY_o et
+		--     COMPLEX_CAPACITY_o laissent STACK_XFER_WIDTH + 1 entrées libres. Un échange dont l'instruction est abandonnée par une
 		--     reprise du même cycle est ignoré.
 		--     SPILL : rangement de 8 octets à address, de la donnée du registre tag ;
 		--     son âge est celui de rob_index (l'instruction qui a empilé) : il compte
@@ -199,6 +204,7 @@ is				----------------
 
       STACK_XFER_i		:in  stack_xfer_bus_t;
       STACK_XFER_READY_o	:out std_logic;
+      STACK_XFER_FREE_o	:out natural;			-- entrées libres (réécriture)
 
       STACK_LOOKUP_o	:out stack_lookup_request_bus_t( 0 to MEMORY_LANES - 1 );
       STACK_LOOKUP_i	:in  stack_lookup_response_bus_t( 0 to MEMORY_LANES - 1 );

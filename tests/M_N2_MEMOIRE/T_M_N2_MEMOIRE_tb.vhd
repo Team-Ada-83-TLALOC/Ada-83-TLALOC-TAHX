@@ -125,6 +125,7 @@ of T_M_N2_MEMOIRE_tb is
    type word_array_t		is array( 0 to 2 ** PHYSICAL_TAG_BITS - 1 ) of word64_t;
    signal prf			: word_array_t := ( others => ( others => '0' ) );
    signal xfer_ready, wif	: std_logic;
+   signal xfer_free		: natural;
    signal lookup		: stack_lookup_request_bus_t( 0 to MEMORY_LANES - 1 );
    signal invalidate		: stack_invalidate_bus_t( 0 to MEMORY_LANES - 1 );
    signal read_tags		: read_tags_bus_t( 0 to MEMORY_LANES - 1 );
@@ -155,7 +156,7 @@ begin
          STACK_XFER_i => ( others => ( valid => '0', kind => stack_xfer_kind_t'low, address => ( others => '0' ),
                                        tag => ( others => '0' ), rob_index => ( others => '0' ), committed => '0',
                                        ready => '0', completes => '0' ) ),
-         STACK_XFER_READY_o => xfer_ready,
+         STACK_XFER_READY_o => xfer_ready, STACK_XFER_FREE_o => xfer_free,
          STACK_LOOKUP_o => lookup,
          STACK_LOOKUP_i => ( others => ( valid => '0', hit => '0', tag => ( others => '0' ) ) ),
          STACK_INVALIDATE_o => invalidate, WRITERS_IN_FLIGHT_o => wif,
@@ -765,8 +766,8 @@ begin
             end if;
          end loop;
          -- deux entrées réservées aux échanges
-         if mem_cap = to_unsigned( minimum( 8, maximum( 0, DEPTH - entries - STACK_XFER_WIDTH ) ), mem_cap'length )
-            and cpx_cap = to_unsigned( minimum( 8, maximum( 0, DEPTH - entries - STACK_XFER_WIDTH - to_integer( mem_cap ) ) ),
+         if mem_cap = to_unsigned( minimum( 8, maximum( 0, DEPTH - entries - STACK_XFER_WIDTH - 1 ) ), mem_cap'length )
+            and cpx_cap = to_unsigned( minimum( 8, maximum( 0, DEPTH - entries - STACK_XFER_WIDTH - 1 - to_integer( mem_cap ) ) ),
                                        cpx_cap'length ) then
             CHECK_PASSED( c );
          else

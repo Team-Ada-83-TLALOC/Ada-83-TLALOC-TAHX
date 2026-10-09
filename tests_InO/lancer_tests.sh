@@ -62,7 +62,7 @@ fi
 
 banc_vhdl ()			# $1 : nom du test, $2 : répertoire de travail
 {
-	local NOM=$1 W=$2 f
+	local NOM=$1 W=$2 f VDIR VSRC
 	cd "$W" || return 2
 	ghdl -a --std=08 "$ICI/commun/TB_UTILS.vhd"			|| return 1
 	while read -r f; do
@@ -74,7 +74,12 @@ banc_vhdl ()			# $1 : nom du test, $2 : répertoire de travail
 		fi
 	done < "$ICI/$NOM/sources"
 	ghdl -a --std=08 "$ICI/$NOM/T_${NOM}_tb.vhd"			|| return 1
-	for v in "$ICI/$NOM"/vecteurs/*; do				# vecteurs, décompressés
+	VDIR="$ICI/$NOM/vecteurs"
+	if [ -f "$ICI/$NOM/vecteurs_source" ]; then
+		read -r VSRC < "$ICI/$NOM/vecteurs_source"
+		VDIR=$(cd "$ICI/$NOM" && cd "$VSRC" && pwd) || return 1
+	fi
+	for v in "$VDIR"/*; do					# vecteurs, décompressés
 		[ -e "$v" ] || continue
 		case $v in
 			*.gz)	gunzip -c "$v" > "$(basename "${v%.gz}")"	|| return 1 ;;
