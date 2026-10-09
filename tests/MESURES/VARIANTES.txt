@@ -1,23 +1,21 @@
-Étude des variantes (2026-10-08 22:50, a21f264) : IPC par banc
+Étude des variantes (2026-10-09 03:00, f92ef62) : IPC par banc
 variante        TRI     CRIBLE    CHAINES      ARBRE    MATRICE   FLOTTANT     APPELS       EXPR     cycles     IPC
-L4R128         1.85       1.86       1.94       1.09       3.02       0.85       1.63       1.57     533140    1.63
-I3             1.85       1.86       1.93       1.09       3.02       0.85       1.63       1.57     533642    1.63
-I2             1.84       1.82       1.93       1.09       3.01       0.85       1.60       1.57     536375    1.62
-BR1            1.85       1.86       1.94       1.09       3.02       0.85       1.63       1.55     534042    1.63
-MEM1           1.44       1.41       1.74       0.98       1.75       0.83       1.54       1.27     648162    1.34
-Q32            1.85       1.86       1.92       1.08       3.00       0.85       1.62       1.56     535555    1.62
-C16            1.85       1.86       1.94       1.09       3.02       0.85       1.63       1.57     533140    1.63
-W32            1.85       1.86       1.94       1.09       3.02       0.85       1.60       1.55     534554    1.63
-P256           1.85       1.86       1.94       1.09       3.02       0.85       1.63       1.57     533140    1.63
 MINI           1.82       1.82       1.91       1.08       3.00       0.85       1.56       1.52     541447    1.61
+R64            1.78       1.79       1.75       1.07       2.46       0.84       1.56       1.51     565352    1.54
+Q16            1.58       1.75       1.32       0.77       2.49       0.78       0.97       1.21     681750    1.28
+C8             1.82       1.79       1.91       1.08       2.99       0.85       1.56       1.52     542723    1.60
+W16            1.82       1.82          -       1.06       3.00       0.85       1.49       1.49     476767    1.55
+L3             1.74       1.67       1.87       1.06       2.53       0.85       1.49       1.45     569132    1.53
+IQ16           1.82       1.82       1.91       1.08       2.99       0.85       1.56       1.53     541760    1.61
+DQ16           1.82       1.82       1.91       1.08       3.00       0.85       1.56       1.52     541735    1.61
+MINI2          1.57       1.75       1.33       0.77       2.42       0.78       0.97       1.23     683452    1.27
 
-L4R128 : Référence : TAHX_1 tel quel (largeur 4, quatre voies entières, ROB de 128)
-I3 : L0__exec_types.vhd INTEGER_LANES 3
-I2 : L0__exec_types.vhd INTEGER_LANES 2
-BR1 : L0__exec_types.vhd BRANCH_LANES 1
-MEM1 : L0__exec_types.vhd MEMORY_LANES 1
-Q32 : L0__exec_types.vhd LSQ_DEPTH 32
-C16 : R__rob_types.vhd CHECKPOINT_BITS 4
-W32 : K1a__rename_types.vhd STACK_CACHE_WORDS 32
-P256 : K1a__rename_types.vhd PHYSICAL_TAG_BITS 8
-MINI : L0__exec_types.vhd INTEGER_LANES 2;L0__exec_types.vhd BRANCH_LANES 1;L0__exec_types.vhd LSQ_DEPTH 32;R__rob_types.vhd CHECKPOINT_BITS 4;K1a__rename_types.vhd STACK_CACHE_WORDS 32;K1a__rename_types.vhd PHYSICAL_TAG_BITS 8
+MINI : Référence : TAHX_1 tel quel (MINI : largeur 4, ROB de 128, 2 voies entières, 1 de branchement, 2 mémoire, LSQ de 32, 16 points de reprise, fenêtre de 32 mots, 256 registres)
+R64 : R__rob_types.vhd ROB_INDEX_BITS 6
+Q16 : L0__exec_types.vhd LSQ_DEPTH 16
+C8 : R__rob_types.vhd CHECKPOINT_BITS 3
+W16 : K1a__rename_types.vhd STACK_CACHE_WORDS 16
+L3 : I1__fetch_decode_types.vhd DECODE_WIDTH 3
+IQ16 : L0__exec_types.vhd INTEGER_IQ_DEPTH 16;L0__exec_types.vhd MEMORY_IQ_DEPTH 16;L0__exec_types.vhd BRANCH_IQ_DEPTH 8
+DQ16 : I1__fetch_decode_types.vhd DECODE_QUEUE_DEPTH 16
+MINI2 : R__rob_types.vhd ROB_INDEX_BITS 6;L0__exec_types.vhd LSQ_DEPTH 16;R__rob_types.vhd CHECKPOINT_BITS 3;L0__exec_types.vhd INTEGER_IQ_DEPTH 16;L0__exec_types.vhd MEMORY_IQ_DEPTH 16;L0__exec_types.vhd BRANCH_IQ_DEPTH 8;I1__fetch_decode_types.vhd DECODE_QUEUE_DEPTH 16
