@@ -77,7 +77,7 @@ U_FETCH :
     );
 
 U_BYTES :
-  entity work.FETCH_BYTE_QUEUE
+  entity work.FETCH_BYTE_QUEUE(IN_ORDER)
     port map (
       CLK_i => CLK_i, RESET_i => RESET_i,
       FETCH_VALID_i => fetch_valid, FETCH_READY_o => fetch_ready, FETCH_PC_i => fetch_pc,

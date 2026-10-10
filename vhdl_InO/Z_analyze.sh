@@ -79,6 +79,7 @@ $A I1a_INO_FETCH_RAM64_2R.vhd
 $A I1_FETCH_UNIT_in_order.vhd
 $A ../vhdl/I2_FETCH_BYTE_QUEUE.vhd
 $A ../vhdl/I2_FETCH_BYTE_QUEUE_rtl.vhd
+$A I2_FETCH_BYTE_QUEUE_in_order.vhd
 $A ../vhdl/I3_DECODE_BLOC.vhd
 $A ../vhdl/I3_DECODE_BLOC_rtl.vhd
 $A ../vhdl/I4_BRANCH_PREDICT.vhd

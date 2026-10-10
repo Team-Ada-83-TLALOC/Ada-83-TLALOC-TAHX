@@ -11,7 +11,10 @@ use work.TAHX_1_ISA.all;
 use work.FETCH_DECODE_TYPES.all;
 
                 --------------------------------------------------------------------------------
-                -- FETCH_BYTE_QUEUE, architecture BANKED.
+                -- FETCH_BYTE_QUEUE, architecture IN_ORDER.
+                --
+                -- Derivee de l'architecture BANKED de asic/, avec la semantique
+                -- PRELOAD du frontal courant restauree pour les redirections InO.
                 --
                 -- Organisation physique du tampon:
                 --
@@ -34,7 +37,7 @@ use work.FETCH_DECODE_TYPES.all;
                 -- d'une RAM logique a 32 ports lors de memory_map.
                 --------------------------------------------------------------------------------
 
-architecture BANKED of FETCH_BYTE_QUEUE
+architecture IN_ORDER of FETCH_BYTE_QUEUE
 is
 
    constant BANK_COUNT     : natural := 32;
@@ -111,15 +114,15 @@ is
 begin
 
    assert FETCH_QUEUE_SIZE = 128
-     report "FETCH_BYTE_QUEUE/BANKED : FETCH_QUEUE_SIZE doit valoir 128"
+     report "FETCH_BYTE_QUEUE/IN_ORDER : FETCH_QUEUE_SIZE doit valoir 128"
      severity failure;
 
    assert FETCH_BLOCK_SIZE = 32
-     report "FETCH_BYTE_QUEUE/BANKED : FETCH_BLOCK_SIZE doit valoir 32"
+     report "FETCH_BYTE_QUEUE/IN_ORDER : FETCH_BLOCK_SIZE doit valoir 32"
      severity failure;
 
    assert DECODE_WINDOW_SIZE = 32
-     report "FETCH_BYTE_QUEUE/BANKED : DECODE_WINDOW_SIZE doit valoir 32"
+     report "FETCH_BYTE_QUEUE/IN_ORDER : DECODE_WINDOW_SIZE doit valoir 32"
      severity failure;
 
 
@@ -310,6 +313,19 @@ begin
             count    <= 0;
             pc_known <= '0';
 
+            -- Comme dans l'architecture RTL commune, un FLUSH peut charger
+            -- directement le bloc de cible deja lu par FETCH_UNIT.  La file
+            -- repart alors de l'indice 0 : les 32 octets vont donc dans le
+            -- rang 0 des 32 banques, sans rotation.
+            if RESET_i = '0' and PRELOAD_VALID_i = '1' then
+               for b in 0 to BANK_COUNT - 1 loop
+                  banks( b )( 8 downto 0 ) <= PACK_SLOT( PRELOAD_BLOCK_i( b ), '0' );
+               end loop;
+               count    <= to_integer( PRELOAD_COUNT_i );
+               head_pc  <= PRELOAD_PC_i;
+               pc_known <= '1';
+            end if;
+
             -- pragma translate_off
             assert not ( FLUSH_i = '1' and RESET_i = '0' and FETCH_VALID_i = '1' )
               report "FETCH_BYTE_QUEUE : bloc presente pendant un vidage"
@@ -414,7 +430,7 @@ begin
       end if;
    end process FILE_OCTETS;
 
-end architecture BANKED;
+end architecture IN_ORDER;
 
 ------------------------------------------------------------------------------------------------------------------------
 --      1       2       3       4       5       6       7       8       9       0       1       2
