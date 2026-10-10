@@ -1,0 +1,41 @@
+TAHX InO - synthesis statistics extracted from retained Yosys logs
+
+File                               Module                              Cells      Wire bits   Memory bits
+---------------------------------  ----------------------------------  ----------  ----------  -----------
+branch_predict.txt                 branch_predict                         1311878     2820106            0
+decode_bloc.txt                    decode_bloc                               2877       56798        27648
+decode_queue.txt                   decode_queue                                66        2928         6624
+fetch_byte_queue.txt               fetch_byte_queue                         25287       89417            0
+fetch_unit.txt                     fetch_unit                             1061351     9207091        32768
+fexp_unit.txt                      fexp_unit                                  628        4988            0
+ino_address_unit.txt               ino_address_unit                            20        2098            0
+ino_backend.txt                    ino_backend                                 12        1247            0
+ino_backend_block.txt              ino_backend_block                           24        2351            0
+ino_backend_complex.txt            ino_backend_complex                          9        2073            0
+ino_backend_excm.txt               ino_backend_excm                            13        3751            0
+ino_backend_float.txt              ino_backend_float                            8        1164            0
+ino_backend_memory.txt             ino_backend_memory                          76        2927            0
+ino_block_unit.txt                 ino_block_unit                             391       12931            0
+ino_branch_unit.txt                ino_branch_unit                             24        1358            0
+ino_complex_unit.txt               ino_complex_unit                           170        7249            0
+ino_core_system_64_32.txt          ino_core_system_64_32                       16        8169            0
+ino_excm_unit.txt                  ino_excm_unit                              145       12980            0
+ino_float_unit.txt                 ino_float_unit                            2912       26031            0
+ino_frontend_control.txt           ino_frontend_control                        67        2382        20736
+ino_integer_unit.txt               ino_integer_unit                           340        3943            0
+ino_memory_unit.txt                ino_memory_unit                            141        4655            0
+ino_muldiv_unit.txt                ino_muldiv_unit                             94        3812            0
+ino_system_unit.txt                ino_system_unit                            967       61857            0
+instruction_unit.txt               instruction_unit                             6        3819            0
+stack_unit.txt                     STACK_UNIT                                8743      694101         6912
+stack_unit_64_32.txt               stack_unit_64_32                          8743      694101         6912
+
+Notable observations from the retained logs:
+- branch_predict: 1,311,878 cells, dominated by 786,994 $mux and 524,613 $and.
+- fetch_unit: 1,061,351 cells, including 1,053,771 $mux; only 32,768 memory bits were inferred.
+- instruction_unit hierarchy: 2,401,383 cells (see instruction_unit.txt).
+- fetch_byte_queue (non-banked): 25,287 cells and no inferred memory.
+- stack_unit_64_32: 8,743 cells, 694,101 wire bits, 6,912 memory bits.
+- ino_float_unit: 2,912 cells; ino_system_unit: 967 cells; most other InO execution leaves are small.
+- decode_queue and ino_frontend_control have small final netlists, but their logs show ~12 minutes almost entirely spent in GHDL import/elaboration.
+- DATA_CACHE did not reach stat; see data_cache_INCOMPLETE.txt.
