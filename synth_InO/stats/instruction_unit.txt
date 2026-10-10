@@ -1,0 +1,185 @@
+yosys> stat
+
+11. Printing statistics.
+
+=== branch_predict ===
+
+   Number of wires:             1311886
+   Number of wire bits:         2820106
+   Number of public wires:          50
+   Number of public wire bits:  138589
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:             1311878
+     $add                           23
+     $and                       524613
+     $dffe                           5
+     $eq                            28
+     $ge                            16
+     $gt                             5
+     $le                             8
+     $lt                            20
+     $mux                       786994
+     $ne                             5
+     $not                           99
+     $or                             8
+     $reduce_and                     2
+     $reduce_bool                    2
+     $reduce_or                      1
+     $sdff                           2
+     $sdffe                          4
+     $sub                           35
+     $xor                            8
+
+=== decode_bloc ===
+
+   Number of wires:               2851
+   Number of wire bits:          56498
+   Number of public wires:          26
+   Number of public wire bits:    1349
+   Number of memories:               4
+   Number of memory bits:        27648
+   Number of processes:              0
+   Number of cells:               2865
+     $add                           53
+     $and                          293
+     $eq                            99
+     $ge                             4
+     $gt                            26
+     $logic_not                     16
+     $lt                            60
+     $meminit_v2                     4
+     $memrd_v2                       4
+     $mux                         2105
+     $not                           50
+     $or                            40
+     $pmux                          31
+     $reduce_or                     22
+     $sub                           58
+
+=== fetch_byte_queue ===
+
+   Number of wires:              24988
+   Number of wire bits:          89417
+   Number of public wires:          27
+   Number of public wire bits:    2265
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:              25287
+     $add                           66
+     $and                         8067
+     $dff                            1
+     $dffe                         257
+     $gt                             3
+     $le                             1
+     $logic_not                      2
+     $mux                        16339
+     $ne                           129
+     $not                          226
+     $or                             1
+     $reduce_and                   128
+     $reduce_bool                    1
+     $sdff                           1
+     $sub                           65
+
+=== fetch_unit ===
+
+   Number of wires:             1059555
+   Number of wire bits:         9207091
+   Number of public wires:          66
+   Number of public wire bits:  184673
+   Number of memories:               1
+   Number of memory bits:        32768
+   Number of processes:              0
+   Number of cells:             1061351
+     $add                           77
+     $and                         2576
+     $dffe                        1034
+     $eq                            18
+     $ge                             1
+     $gt                             1
+     $lt                            66
+     $memrd_v2                       4
+     $memwr_v2                       1
+     $mux                       1053771
+     $ne                          1559
+     $not                           70
+     $or                             7
+     $reduce_and                  1294
+     $reduce_bool                    8
+     $sdffe                        778
+     $sub                           84
+     $xor                            2
+
+=== instruction_unit ===
+
+   Number of wires:                 55
+   Number of wire bits:           3819
+   Number of public wires:          51
+   Number of public wire bits:    3808
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                  6
+     $and                            1
+     $or                             1
+     branch_predict                  1
+     decode_bloc                     1
+     fetch_byte_queue                1
+     fetch_unit                      1
+
+=== design hierarchy ===
+
+   instruction_unit                  1
+     branch_predict                  1
+     decode_bloc                     1
+     fetch_byte_queue                1
+     fetch_unit                      1
+
+   Number of wires:             2399335
+   Number of wire bits:         12176931
+   Number of public wires:         220
+   Number of public wire bits:  330684
+   Number of memories:               5
+   Number of memory bits:        60416
+   Number of processes:              0
+   Number of cells:             2401383
+     $add                          219
+     $and                       535550
+     $dff                            1
+     $dffe                        1296
+     $eq                           145
+     $ge                            21
+     $gt                            35
+     $le                             9
+     $logic_not                     18
+     $lt                           146
+     $meminit_v2                     4
+     $memrd_v2                       8
+     $memwr_v2                       1
+     $mux                       1859209
+     $ne                          1693
+     $not                          445
+     $or                            57
+     $pmux                          31
+     $reduce_and                  1424
+     $reduce_bool                   11
+     $reduce_or                     23
+     $sdff                           3
+     $sdffe                        782
+     $sub                          242
+     $xor                           10
+
+
+yosys> write_rtlil /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/instruction_unit_opt.il
+12. Executing RTLIL backend.
+Output filename: /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/instruction_unit_opt.il
+
+yosys> exit
+
+Warnings: 33272 unique messages, 33272 total
+End of script. Logfile hash: 9990d7fa2b, CPU: user 3153.47s system 15.46s, MEM: 19753.78 MB peak
+Yosys 0.33 (git sha1 2584903a060)
+Time spent: 47% 2x opt_dff (1477 sec), 22% 1x ghdl (689 sec), ...

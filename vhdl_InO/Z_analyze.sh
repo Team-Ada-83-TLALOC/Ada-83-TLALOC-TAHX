@@ -1,98 +1,168 @@
 #!/bin/bash
-#	Analyse GHDL de TAHX_1, dans l'ordre des dépendances.
-#	./Z_analyze.sh [93c|08]		(08 par défaut)
-STD=${1:-08}
+#
+# Analyse GHDL du coeur TAHX_1 In-Order, dans l'ordre des dependances.
+#
+# Usage :
+#   ./Z_analyze.sh                  analyse VHDL-2008
+#   ./Z_analyze.sh 08               idem
+#   ./Z_analyze.sh synth            analyse + controle de synthese
+#   ./Z_analyze.sh 08 synth         idem
+#
+# Le coeur InO complet utilise VHDL-2008.
+# Le controle de synthese n'ecrit pas de netlist (--out=none) ; il verifie
+# simplement que TAHX_1(IN_ORDER) est elaborable par le syntheseur GHDL.
+#
 
-#	Fichiers qui reposent sur un paquetage de VHDL-2008 : sautés en 93c.
-#	(Seule liste du dépôt : tests/V0_CABLAGE la relit.)
-VHDL2008_SEULEMENT="L4__float64_pkg.vhd L4_FLOAT_UNIT_rtl.vhd L5a_FEXP_UNIT_rtl.vhd"
+set -e
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$SCRIPT_DIR"
+
+STD=08
+MODE=analyse
+
+case "${1:-}" in
+   "") ;;
+   08) STD=08 ;;
+   synth) MODE=synth ;;
+   *)
+      echo "usage: $0 [08] [synth]" >&2
+      exit 2
+      ;;
+esac
+
+if [ "${2:-}" != "" ]; then
+   case "$2" in
+      synth) MODE=synth ;;
+      *)
+         echo "usage: $0 [08] [synth]" >&2
+         exit 2
+         ;;
+   esac
+fi
 
 analyse ()
 {
-	if [ "$STD" = 93c ] && [[ " $VHDL2008_SEULEMENT " == *" $1 "* ]]; then
-		echo "($1 : VHDL-2008 seulement)"
-		return 0
-	fi
-	ghdl analyze --std=$STD "$1"
+   echo "analyse $1"
+   ghdl analyze --std="$STD" "$1"
 }
 A=analyse
 
-#	Specifications, Definitions
+# -----------------------------------------------------------------------------
+# Definitions architecturales communes.
+# -----------------------------------------------------------------------------
 
-$A ../vhdl/A__TAHX_1_isa.vhd			|| exit 1
-$A ../vhdl/A__TAHX_1_isa_table.vhd		|| exit 1
+$A ../vhdl/A__TAHX_1_isa.vhd
+$A ../vhdl/A__TAHX_1_isa_table.vhd
+$A ../vhdl/B1__arch_types.vhd
+$A ../vhdl/C1__memory_types.vhd
 
-$A ../vhdl/B1__arch_types.vhd			|| exit 1
-$A ../vhdl/C1__memory_types.vhd		|| exit 1
+# Types communs encore utilises par le frontal ou par certaines interfaces.
+$A ../vhdl/I1__fetch_decode_types.vhd
+$A ../vhdl/R__rob_types.vhd
+$A ../vhdl/K1a__rename_types.vhd
+$A ../vhdl/K2a__backend_types.vhd
+$A ../vhdl/L0__exec_types.vhd
 
-#	UNITE INSTRUCTIONS
+# Flottant et exponentiation : blocs communs OoO / InO.
+$A ../vhdl/L4__float64_pkg.vhd
+$A ../vhdl/L5a_FEXP_UNIT.vhd
+$A ../vhdl/L5a_FEXP_UNIT_rtl.vhd
 
-$A ../vhdl/I1__fetch_decode_types.vhd		|| exit 1
-$A ../vhdl/R__rob_types.vhd			|| exit 1
+# -----------------------------------------------------------------------------
+# Frontal commun OoO / InO.
+# -----------------------------------------------------------------------------
 
-$A ../vhdl/I1_FETCH_UNIT.vhd			|| exit 1
-#$A ../vhdl/I1_FETCH_UNIT_rtl.vhd		|| exit 1
-#$A ../vhdl/I2_FETCH_BYTE_QUEUE.vhd		|| exit 1
-#$A ../vhdl/I2_FETCH_BYTE_QUEUE_rtl.vhd	|| exit 1
-#$A ../vhdl/I3_DECODE_BLOC.vhd			|| exit 1
-#$A ../vhdl/I3_DECODE_BLOC_rtl.vhd		|| exit 1
-#$A ../vhdl/I4_BRANCH_PREDICT.vhd		|| exit 1
-#$A ../vhdl/I4_BRANCH_PREDICT_rtl.vhd		|| exit 1
-#$A ../vhdl/I_INSTRUCTION_UNIT.vhd		|| exit 1
-#$A ../vhdl/I_INSTRUCTION_UNIT_structure.vhd	|| exit 1
+$A ../vhdl/I1_FETCH_UNIT.vhd
+$A ../vhdl/I1_FETCH_UNIT_rtl.vhd
+$A ../vhdl/I2_FETCH_BYTE_QUEUE.vhd
+$A ../vhdl/I2_FETCH_BYTE_QUEUE_rtl.vhd
+$A ../vhdl/I3_DECODE_BLOC.vhd
+$A ../vhdl/I3_DECODE_BLOC_rtl.vhd
+$A ../vhdl/I4_BRANCH_PREDICT.vhd
+$A ../vhdl/I4_BRANCH_PREDICT_rtl.vhd
+$A ../vhdl/I_INSTRUCTION_UNIT.vhd
+$A ../vhdl/I_INSTRUCTION_UNIT_structure.vhd
 
-#$A ../vhdl/J1_DECODE_QUEUE.vhd		|| exit 1
-#$A ../vhdl/J1_DECODE_QUEUE_rtl.vhd		|| exit 1
+$A ../vhdl/J1_DECODE_QUEUE.vhd
+$A ../vhdl/J1_DECODE_QUEUE_rtl.vhd
 
-$A K1a__in_order_types.vhd		|| exit 1
-$A K1b_STACK_UNIT.vhd		|| exit 1
-$A K1b_STACK_UNIT_rtl.vhd		|| exit 1
-#$A K1b_RENAME_DISPATCH_rtl.vhd	|| exit 1
-#$A K2a__backend_types.vhd		|| exit 1
-#$A K2b_BACKEND_DISPATCH.vhd		|| exit 1
-#$A K2b_BACKEND_DISPATCH_rtl.vhd	|| exit 1
+# Cache de donnees commun.
+$A ../vhdl/M3_DATA_CACHE.vhd
+$A ../vhdl/M3_DATA_CACHE_rtl.vhd
 
-#	UNITES OPERATIVES
+# Entite de sommet commune aux deux microarchitectures.
+$A ../vhdl/V_TAHX_1.vhd
 
-#$A K_ISSUE_QUEUE.vhd			|| exit 1
-#$A K_ISSUE_QUEUE_rtl.vhd		|| exit 1
-#$A L0__exec_types.vhd			|| exit 1
-#$A L1_INTEGER_UNIT.vhd			|| exit 1
-#$A L1_INTEGER_UNIT_rtl.vhd		|| exit 1
-#$A L2_MULDIV_UNIT.vhd			|| exit 1
-#$A L2_MULDIV_UNIT_rtl.vhd		|| exit 1
-#$A L3_BRANCH_UNIT.vhd			|| exit 1
-#$A L3_BRANCH_UNIT_rtl.vhd		|| exit 1
-#$A L4_FLOAT_UNIT.vhd			|| exit 1
-#$A L4__float64_pkg.vhd		|| exit 1
-#$A L4_FLOAT_UNIT_rtl.vhd		|| exit 1
-#$A L5a_FEXP_UNIT.vhd			|| exit 1
-#$A L5a_FEXP_UNIT_rtl.vhd		|| exit 1
-#$A L5_COMPLEX_UNIT.vhd			|| exit 1
-#$A L5_COMPLEX_UNIT_rtl.vhd		|| exit 1
+# -----------------------------------------------------------------------------
+# Coeur In-Order.
+# -----------------------------------------------------------------------------
 
-#	MEMOIRE DE DONNEES ET REGISTRES
+$A K1a__in_order_types.vhd
+$A K1b_STACK_UNIT.vhd
+$A K1b_STACK_UNIT_rtl.vhd
 
-#$A M1_ADDRESS_UNIT.vhd			|| exit 1
-#$A M1_ADDRESS_UNIT_rtl.vhd		|| exit 1
-#$A M2_LOAD_STORE_QUEUE.vhd		|| exit 1
-#$A M2_LOAD_STORE_QUEUE_rtl.vhd	|| exit 1
-#$A M3_DATA_CACHE.vhd			|| exit 1
-#$A M3_DATA_CACHE_rtl.vhd		|| exit 1
-#$A P_PHYSICAL_REGISTER_FILE.vhd		|| exit 1
-#$A P_PHYSICAL_REGISTER_FILE_rtl.vhd	|| exit 1
+# Unites d'execution elementaires.
+$A L1_INO_INTEGER_UNIT.vhd
+$A L1_INO_INTEGER_UNIT_rtl.vhd
+$A L2_INO_MULDIV_UNIT.vhd
+$A L2_INO_MULDIV_UNIT_rtl.vhd
+$A L3_INO_BRANCH_UNIT.vhd
+$A L3_INO_BRANCH_UNIT_rtl.vhd
 
-#	REMISE EN ORDRE
+# Backend de base.
+$A K2_INO_BACKEND.vhd
+$A K2_INO_BACKEND_rtl.vhd
 
-#$A R_ROB.vhd				|| exit 1
-#$A R_ROB_rtl.vhd			|| exit 1
+# Adresse et memoire.
+$A M1_INO_ADDRESS_UNIT.vhd
+$A M1_INO_ADDRESS_UNIT_rtl.vhd
+$A M2_INO_MEMORY_UNIT.vhd
+$A M2_INO_MEMORY_UNIT_rtl.vhd
+$A K3_INO_BACKEND_MEMORY.vhd
+$A K3_INO_BACKEND_MEMORY_rtl.vhd
 
-#$A S_SYSTEM_UNIT.vhd			|| exit 1
-#$A S_SYSTEM_UNIT_rtl.vhd		|| exit 1
+# Flottant.
+$A L4_INO_FLOAT_UNIT.vhd
+$A L4_INO_FLOAT_UNIT_rtl.vhd
+$A K4_INO_BACKEND_FLOAT.vhd
+$A K4_INO_BACKEND_FLOAT_rtl.vhd
 
-#	SOMMET
+# Operations complexes et frames.
+$A L5_INO_COMPLEX_UNIT.vhd
+$A L5_INO_COMPLEX_UNIT_rtl.vhd
+$A K5_INO_BACKEND_COMPLEX.vhd
+$A K5_INO_BACKEND_COMPLEX_rtl.vhd
 
-#$A V_TAHX_1.vhd				|| exit 1
-#$A V_TAHX_1_structure.vhd		|| exit 1
+# Blocs et comparaisons lexicographiques.
+$A L6_INO_BLOCK_UNIT.vhd
+$A L6_INO_BLOCK_UNIT_rtl.vhd
+$A K6_INO_BACKEND_BLOCK.vhd
+$A K6_INO_BACKEND_BLOCK_rtl.vhd
 
-echo "analyse VHDL-$STD : correcte"
+# EXC_MACH.
+$A L7_INO_EXCM_UNIT.vhd
+$A L7_INO_EXCM_UNIT_rtl.vhd
+$A K7_INO_BACKEND_EXCM.vhd
+$A K7_INO_BACKEND_EXCM_rtl.vhd
+
+# Systeme et assemblage du coeur.
+$A S1_INO_SYSTEM_UNIT.vhd
+$A S1_INO_SYSTEM_UNIT_rtl.vhd
+$A K8_INO_CORE_SYSTEM.vhd
+$A K8_INO_CORE_SYSTEM_rtl.vhd
+
+# Adaptateur vers le frontal / predicteur.
+$A K9_INO_FRONTEND_CONTROL.vhd
+$A K9_INO_FRONTEND_CONTROL_rtl.vhd
+
+# Architecture de sommet InO.
+$A V_TAHX_1_in_order.vhd
+
+echo "analyse TAHX_1(IN_ORDER), VHDL-$STD : correcte"
+
+if [ "$MODE" = synth ]; then
+   echo "controle de synthese TAHX_1(IN_ORDER)..."
+   ghdl synth --std="$STD" --out=none TAHX_1 IN_ORDER
+   echo "synthese TAHX_1(IN_ORDER) : elaboration correcte"
+fi

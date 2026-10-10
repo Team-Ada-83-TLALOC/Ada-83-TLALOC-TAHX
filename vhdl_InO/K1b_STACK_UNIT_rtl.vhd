@@ -214,6 +214,15 @@ of STACK_UNIT is                ---
       return op = x"30" or op = x"31" or op = x"32";  -- DROP, DUP, OVER
    end function;
 
+   function IS_FAST_DIRECT_MEMORY_OP( op : opcode_t ) return boolean is
+   begin
+      -- Famille B : load signé (01), store (10), load non signé (11).
+      -- fmt=11 correspond aux CHK directs, qui restent sur le slow path.
+      return op( 7 downto 6 ) = "01"
+         and op( 5 downto 4 ) /= "00"
+         and op( 3 downto 2 ) /= "11";
+   end function;
+
    function IS_SPECIAL_NOT_YET_SUPPORTED( s : decoded_slot_t; e : isa_entry_t ) return boolean is
       variable op : opcode_t;
    begin
@@ -355,6 +364,8 @@ begin
       variable fast_addr        : address_t;
       variable fast_dst_addr    : address_t;
       variable fast_dst_valid   : boolean;
+      variable fast_mem_base    : address_t;
+      variable fast_mem_len     : address_t;
    begin
       if rising_edge( CLK_i ) then
 
@@ -655,6 +666,14 @@ begin
                         elsif e.issue_class = ISSUE_BRANCH
                            and IS_FAST_BRANCH_OP( s.canon.op ) then
                            fast_ok := true;
+                        elsif e.issue_class = ISSUE_MEMORY
+                           and e.lvl_use = LVL_ADDR
+                           and lvl <= 14
+                           and IS_FAST_DIRECT_MEMORY_OP( s.canon.op ) then
+                           -- Accès direct famille B. L'adresse est déjà connue à partir
+                           -- de DISPLAY[lvl]+val ; seuls les hits de pile et l'absence
+                           -- de cellule sale recouverte permettent de sauter PREPARE/COH.
+                           fast_ok := true;
                         end if;
                      end if;
 
@@ -702,6 +721,30 @@ begin
                               and cells_s( dst_idx ).addr <= frame_s.dsp then
                               fast_ok := false;
                            end if;
+                        end if;
+
+                        -- Un accès direct simple peut éviter ST_COH_SCAN uniquement si
+                        -- aucune cellule de pile sale recouverte n'a besoin d'être
+                        -- réécrite. Trois cellules de 8 octets suffisent pour une plage
+                        -- d'au plus 8 octets, même non alignée. Le store conservera
+                        -- l'invalidation postérieure via coh_invalidate_s au COMMIT.
+                        if fast_ok and e.issue_class = ISSUE_MEMORY then
+                           fast_mem_base := frame_s.display( lvl ) + U64( s.canon.val );
+                           fast_mem_len  := to_unsigned(
+                              2 ** to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ), 64 );
+                           for k in 0 to 2 loop
+                              a := ( fast_mem_base( 63 downto 3 ) & "000" )
+                                   + to_unsigned( 8 * k, 64 );
+                              if a < fast_mem_base + fast_mem_len then
+                                 idx := WIDX( a );
+                                 if cells_s( idx ).valid = '1'
+                                    and cells_s( idx ).addr = a
+                                    and cells_s( idx ).dirty = '1'
+                                    and cells_s( idx ).addr <= frame_s.dsp then
+                                    fast_ok := false;
+                                 end if;
+                              end if;
+                           end loop;
                         end if;
                      end if;
 

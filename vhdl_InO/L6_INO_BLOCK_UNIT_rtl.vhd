@@ -87,10 +87,28 @@ of INO_BLOCK_UNIT is            ---
    function LEX_EXTEND( w : word64_t; sz : natural; sgn : boolean ) return signed is
       variable r : word64_t := ( others => '0' );
    begin
-      r( 8 * sz - 1 downto 0 ) := w( 8 * sz - 1 downto 0 );
-      if sgn and sz < 8 and w( 8 * sz - 1 ) = '1' then
-         r( 63 downto 8 * sz ) := ( others => '1' );
-      end if;
+      case sz is
+         when 1 =>
+            r( 7 downto 0 ) := w( 7 downto 0 );
+            if sgn and w( 7 ) = '1' then
+               r( 63 downto 8 ) := ( others => '1' );
+            end if;
+
+         when 2 =>
+            r( 15 downto 0 ) := w( 15 downto 0 );
+            if sgn and w( 15 ) = '1' then
+               r( 63 downto 16 ) := ( others => '1' );
+            end if;
+
+         when 4 =>
+            r( 31 downto 0 ) := w( 31 downto 0 );
+            if sgn and w( 31 ) = '1' then
+               r( 63 downto 32 ) := ( others => '1' );
+            end if;
+
+         when others =>
+            r := w;
+      end case;
       return signed( r );
    end function;
 

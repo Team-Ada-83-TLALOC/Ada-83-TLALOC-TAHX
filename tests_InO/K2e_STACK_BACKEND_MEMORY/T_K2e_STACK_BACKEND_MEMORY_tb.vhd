@@ -299,6 +299,29 @@ begin
       DO_SYNC;
 
       ------------------------------------------------------------------
+      -- 0. Accès direct propre : aucune cellule sale ne recouvre la zone
+      --    mémoire. Ce cas est éligible au fast path STACK + BACKEND.
+      ------------------------------------------------------------------
+      RUN_OK( SLOT( OP_LI_D32, 0, 16#12345678#, 5 ), BASE + 8 );
+      sw0 := stack_writes; bw0 := back_writes;
+      RUN_OK( SLOT( x"67", 0, 32, 3 ), BASE );                    -- SQ 0,32
+      CHECK( c, stack_writes = sw0, "SQ direct propre : aucun writeback pile" );
+      CHECK( c, back_writes = bw0 + 1, "SQ direct propre : rangement backend" );
+      CHECK( c, memory_s( 4 ) = x"0000000012345678",
+               "SQ direct propre : valeur memoire",
+               HEX( word64_t'(x"0000000012345678") ), HEX( memory_s( 4 ) ) );
+
+      sw0 := stack_writes; br0 := back_reads;
+      RUN_OK( SLOT( x"57", 0, 32, 3 ), BASE + 8 );                -- LQ 0,32
+      CHECK( c, stack_writes = sw0, "LQ direct propre : aucun writeback pile" );
+      CHECK( c, back_reads = br0 + 1, "LQ direct propre : lecture backend" );
+      MAINT_ALL;
+      CHECK( c, memory_s( 1 ) = x"0000000012345678",
+               "LQ direct propre : resultat pile",
+               HEX( word64_t'(x"0000000012345678") ), HEX( memory_s( 1 ) ) );
+      RUN_OK( SLOT( x"30" ), BASE );                              -- DROP
+
+      ------------------------------------------------------------------
       -- 1. Cellule sale, puis LVA connu : elle doit être rangée avant que
       --    son adresse soit rendue au programme.
       ------------------------------------------------------------------

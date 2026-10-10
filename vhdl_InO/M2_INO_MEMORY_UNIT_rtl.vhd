@@ -54,12 +54,29 @@ of INO_MEMORY_UNIT is           ---
 
    function EXTEND( w : word64_t; sz : natural; sgn : boolean ) return word64_t is
       variable r : word64_t := ( others => '0' );
-      constant n : natural := 8 * 2 ** sz;
    begin
-      r( n - 1 downto 0 ) := w( n - 1 downto 0 );
-      if sgn and n < 64 and w( n - 1 ) = '1' then
-         r( 63 downto n ) := ( others => '1' );
-      end if;
+      case sz is
+         when 0 =>
+            r( 7 downto 0 ) := w( 7 downto 0 );
+            if sgn and w( 7 ) = '1' then
+               r( 63 downto 8 ) := ( others => '1' );
+            end if;
+
+         when 1 =>
+            r( 15 downto 0 ) := w( 15 downto 0 );
+            if sgn and w( 15 ) = '1' then
+               r( 63 downto 16 ) := ( others => '1' );
+            end if;
+
+         when 2 =>
+            r( 31 downto 0 ) := w( 31 downto 0 );
+            if sgn and w( 31 ) = '1' then
+               r( 63 downto 32 ) := ( others => '1' );
+            end if;
+
+         when others =>
+            r := w;
+      end case;
       return r;
    end function EXTEND;
 

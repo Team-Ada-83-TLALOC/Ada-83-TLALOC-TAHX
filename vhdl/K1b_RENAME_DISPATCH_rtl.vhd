@@ -1025,9 +1025,9 @@ begin
       variable rx		: rob_index_t;
       variable nbad		: natural;
       variable first		: integer;
+      -- pragma translate_on
       variable nv			: natural range 0 to ROB_SIZE;			-- instructions en vol
       variable nab		: natural range 0 to ROB_SIZE;			--  abandonnées à la reprise
-      -- pragma translate_on
       variable qu		: quar_t;
       variable r		: rob_index_t;
       variable n, ti		: natural;
