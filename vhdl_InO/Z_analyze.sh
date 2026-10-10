@@ -93,6 +93,8 @@ $A I_INSTRUCTION_UNIT_in_order.vhd
 
 $A ../vhdl/J1_DECODE_QUEUE.vhd
 $A ../vhdl/J1_DECODE_QUEUE_rtl.vhd
+$A J1a_INO_DECODE_QUEUE_RAM207.vhd
+$A J1_DECODE_QUEUE_in_order.vhd
 
 # Cache de donnees commun.
 $A ../vhdl/M3_DATA_CACHE.vhd

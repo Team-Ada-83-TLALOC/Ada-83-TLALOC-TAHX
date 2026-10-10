@@ -89,7 +89,7 @@ begin
          OUT_READY_i => fe_ready,
          RECOVERY_i => recovery, RETIRE_i => retire );
 
-   U_DECODE_QUEUE : entity work.DECODE_QUEUE
+   U_DECODE_QUEUE : entity work.DECODE_QUEUE( IN_ORDER )
       port map (
          CLK_i => CLK_i, RESET_i => RESET_i,
          FLUSH_i => recovery.valid,
