@@ -83,6 +83,8 @@ $A ../vhdl/I3_DECODE_BLOC.vhd
 $A ../vhdl/I3_DECODE_BLOC_rtl.vhd
 $A ../vhdl/I4_BRANCH_PREDICT.vhd
 $A ../vhdl/I4_BRANCH_PREDICT_rtl.vhd
+$A I4a_INO_PRED_RAM2_5R.vhd
+$A I4_BRANCH_PREDICT_in_order.vhd
 $A ../vhdl/I_INSTRUCTION_UNIT.vhd
 $A ../vhdl/I_INSTRUCTION_UNIT_structure.vhd
 $A I_INSTRUCTION_UNIT_in_order.vhd

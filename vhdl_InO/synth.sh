@@ -200,10 +200,10 @@ synth_context "TAHX_1 IN_ORDER" ino_core_system_64_32 ino_core_system_64_32_opt.
 ###############################################################################
 
 # Feuilles de INSTRUCTION_UNIT.
-synth_context "INSTRUCTION_UNIT" fetch_unit        fetch_unit_opt.il
-synth_context "INSTRUCTION_UNIT" fetch_byte_queue  fetch_byte_queue_opt.il
-synth_context "INSTRUCTION_UNIT" decode_bloc       decode_bloc_opt.il
-synth_context "INSTRUCTION_UNIT" branch_predict    branch_predict_opt.il
+synth_context "INSTRUCTION_UNIT IN_ORDER" fetch_unit        fetch_unit_opt.il
+synth_context "INSTRUCTION_UNIT IN_ORDER" fetch_byte_queue  fetch_byte_queue_opt.il
+synth_context "INSTRUCTION_UNIT IN_ORDER" decode_bloc       decode_bloc_opt.il
+synth_context "INSTRUCTION_UNIT IN_ORDER" branch_predict    branch_predict_opt.il
 
 # INSTRUCTION_UNIT tel qu'instancie dans TAHX_1.
 synth_context "TAHX_1 IN_ORDER" instruction_unit instruction_unit_opt.il \

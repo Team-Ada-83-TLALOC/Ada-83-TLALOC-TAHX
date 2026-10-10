@@ -1,0 +1,107 @@
+yosys> stat
+
+8. Printing statistics.
+
+=== BRANCH_PREDICT ===
+
+   Number of wires:                817
+   Number of wire bits:          74661
+   Number of public wires:          55
+   Number of public wire bits:   23521
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                792
+     $add                           13
+     $and                          260
+     $dffe                           4
+     $eq                            20
+     $ge                            12
+     $gt                             2
+     $le                             8
+     $logic_not                      4
+     $lt                             5
+     $mux                          386
+     $ne                             5
+     $not                           32
+     $or                             8
+     $reduce_and                     2
+     $reduce_bool                    2
+     $reduce_or                      1
+     $sdff                           1
+     $sdffe                          4
+     $sub                           17
+     $xor                            5
+     ino_pred_ram2_5r_65536          1
+
+=== ino_pred_ram2_5r_65536 ===
+
+   Number of wires:                 20
+   Number of wire bits:            206
+   Number of public wires:          14
+   Number of public wire bits:     110
+   Number of memories:               1
+   Number of memory bits:       131072
+   Number of processes:              0
+   Number of cells:                 13
+     $meminit_v2                     1
+     $memrd_v2                       5
+     $memwr_v2                       1
+     $sub                            6
+
+=== design hierarchy ===
+
+   BRANCH_PREDICT                    1
+     ino_pred_ram2_5r_65536          1
+
+   Number of wires:                837
+   Number of wire bits:          74867
+   Number of public wires:          69
+   Number of public wire bits:   23631
+   Number of memories:               1
+   Number of memory bits:       131072
+   Number of processes:              0
+   Number of cells:                804
+     $add                           13
+     $and                          260
+     $dffe                           4
+     $eq                            20
+     $ge                            12
+     $gt                             2
+     $le                             8
+     $logic_not                      4
+     $lt                             5
+     $meminit_v2                     1
+     $memrd_v2                       5
+     $memwr_v2                       1
+     $mux                          386
+     $ne                             5
+     $not                           32
+     $or                             8
+     $reduce_and                     2
+     $reduce_bool                    2
+     $reduce_or                      1
+     $sdff                           1
+     $sdffe                          4
+     $sub                           23
+     $xor                            5
+
+
+yosys> check
+9. Executing CHECK pass (checking for obvious problems).
+Checking module BRANCH_PREDICT...
+Checking module ino_pred_ram2_5r_65536...
+Found and reported 0 problems.
+
+yosys> scc
+
+10. Executing SCC pass (detecting logic loops).
+Found 0 SCCs in module BRANCH_PREDICT.
+Found 0 SCCs in module ino_pred_ram2_5r_65536.
+Found 0 SCCs.
+
+yosys> exit
+
+End of script. Logfile hash: 882a7e2a4e, CPU: user 5.93s system 0.06s, MEM: 143.63 MB peak
+Yosys 0.33 (git sha1 2584903a060)
+Time spent: 55% 3x opt_dff (3 sec), 16% 2x check (0 sec), ...

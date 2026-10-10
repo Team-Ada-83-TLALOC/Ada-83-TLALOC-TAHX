@@ -102,7 +102,7 @@ U_DECODE :
          NEED_MORE_BYTES_o => open, STOP_o => decode_stop );
 
 U_PREDICT :
-  entity work.BRANCH_PREDICT
+  entity work.BRANCH_PREDICT(IN_ORDER)
     port map (
          CLK_i => CLK_i, RESET_i => RESET_i,
          IN_BLOCK_i => decoded, IN_COUNT_i => decoded_count, IN_VALID_i => decode_valid,
