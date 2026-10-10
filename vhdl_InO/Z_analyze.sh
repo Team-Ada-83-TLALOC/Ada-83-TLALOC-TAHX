@@ -82,6 +82,7 @@ $A ../vhdl/I2_FETCH_BYTE_QUEUE_rtl.vhd
 $A I2_FETCH_BYTE_QUEUE_in_order.vhd
 $A ../vhdl/I3_DECODE_BLOC.vhd
 $A ../vhdl/I3_DECODE_BLOC_rtl.vhd
+$A I3_DECODE_BLOC_in_order.vhd
 $A ../vhdl/I4_BRANCH_PREDICT.vhd
 $A ../vhdl/I4_BRANCH_PREDICT_rtl.vhd
 $A I4a_INO_PRED_RAM2_5R.vhd

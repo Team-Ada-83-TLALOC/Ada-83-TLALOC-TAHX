@@ -1,12 +1,12 @@
 #!/bin/bash
-# Synthese isolee de BRANCH_PREDICT(IN_ORDER).
+# Synthese isolee de DECODE_BLOC(IN_ORDER).
 set -e
 cd "$(dirname "$0")"
 mkdir -p ../synth_InO/stats
 
-yosys -m ghdl <<'YOSYS' | tee ../synth_InO/branch_predict_in_order.log
-ghdl --std=08 BRANCH_PREDICT IN_ORDER
-hierarchy -check -top BRANCH_PREDICT
+yosys -m ghdl <<'YOSYS' | tee ../synth_InO/decode_bloc_in_order.log
+ghdl --std=08 DECODE_BLOC IN_ORDER
+hierarchy -check -top DECODE_BLOC
 proc
 stat
 check
@@ -18,7 +18,7 @@ scc
 exit
 YOSYS
 
-
+# Extraire le dernier bloc de statistiques dans un petit fichier versionnable.
 extract_last_stat()
 {
     module="$1"
@@ -56,6 +56,6 @@ extract_last_stat()
 }
 
 extract_last_stat \
-    "BRANCH_PREDICT" \
-    ../synth_InO/branch_predict_in_order.log \
-    ../synth_InO/stats/branch_predict_in_order.txt
+    "DECODE_BLOC" \
+    ../synth_InO/decode_bloc_in_order.log \
+    ../synth_InO/stats/decode_bloc_in_order.txt

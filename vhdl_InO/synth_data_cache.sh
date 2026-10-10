@@ -21,3 +21,45 @@ check
 scc
 exit
 YOSYS
+
+# Extraire le dernier bloc de statistiques dans un petit fichier versionnable.
+extract_last_stat()
+{
+    module="$1"
+    logfile="$2"
+    outfile="$3"
+
+    awk -v module="$module" '
+    function save_block() {
+        if (keep) {
+            last = buf
+            keep = 0
+        }
+    }
+
+    $0 == "=== " module " ===" {
+        save_block()
+        buf = $0 ORS
+        keep = 1
+        next
+    }
+
+    /^=== .* ===$/ {
+        save_block()
+    }
+
+    keep {
+        buf = buf $0 ORS
+    }
+
+    END {
+        save_block()
+        printf "%s", last
+    }
+    ' "$logfile" > "$outfile"
+}
+
+extract_last_stat \
+    "DATA_CACHE" \
+    ../synth_InO/data_cache_in_order.log \
+    ../synth_InO/stats/data_cache_in_order.txt

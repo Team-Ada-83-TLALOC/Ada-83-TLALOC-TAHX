@@ -21,10 +21,44 @@ scc
 exit
 YOSYS
 
-# Conserver le dernier bloc de statistiques dans un petit fichier versionnable.
-awk '
-  /^=== FETCH_BYTE_QUEUE ===/ {buf=$0 ORS; keep=1; next}
-  keep {buf=buf $0 ORS}
-  keep && /^$/ {last=buf; keep=0}
-  END {if (keep) last=buf; printf "%s", last}
-' "$LOG" > ../synth_InO/stats/fetch_byte_queue_in_order.txt
+# Extraire le dernier bloc de statistiques dans un petit fichier versionnable.
+extract_last_stat()
+{
+    module="$1"
+    logfile="$2"
+    outfile="$3"
+
+    awk -v module="$module" '
+    function save_block() {
+        if (keep) {
+            last = buf
+            keep = 0
+        }
+    }
+
+    $0 == "=== " module " ===" {
+        save_block()
+        buf = $0 ORS
+        keep = 1
+        next
+    }
+
+    /^=== .* ===$/ {
+        save_block()
+    }
+
+    keep {
+        buf = buf $0 ORS
+    }
+
+    END {
+        save_block()
+        printf "%s", last
+    }
+    ' "$logfile" > "$outfile"
+}
+
+extract_last_stat \
+    "FETCH_BYTE_QUEUE" \
+    ../synth_InO/fetch_byte_queue_in_order.log \
+    ../synth_InO/stats/fetch_byte_queue_in_order.txt

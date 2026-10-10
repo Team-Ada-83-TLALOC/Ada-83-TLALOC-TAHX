@@ -20,9 +20,43 @@ exit
 YOSYS
 
 # Extraire le dernier bloc de statistiques dans un petit fichier versionnable.
-awk '
-  /^=== FETCH_UNIT ===/ {buf=$0 ORS; keep=1; next}
-  keep {buf=buf $0 ORS}
-  keep && /^$/ {last=buf; keep=0}
-  END {if (keep) last=buf; printf "%s", last}
-' ../synth_InO/fetch_unit_in_order.log > ../synth_InO/stats/fetch_unit_in_order.txt
+extract_last_stat()
+{
+    module="$1"
+    logfile="$2"
+    outfile="$3"
+
+    awk -v module="$module" '
+    function save_block() {
+        if (keep) {
+            last = buf
+            keep = 0
+        }
+    }
+
+    $0 == "=== " module " ===" {
+        save_block()
+        buf = $0 ORS
+        keep = 1
+        next
+    }
+
+    /^=== .* ===$/ {
+        save_block()
+    }
+
+    keep {
+        buf = buf $0 ORS
+    }
+
+    END {
+        save_block()
+        printf "%s", last
+    }
+    ' "$logfile" > "$outfile"
+}
+
+extract_last_stat \
+    "FETCH_UNIT" \
+    ../synth_InO/fetch_unit_in_order.log \
+    ../synth_InO/stats/fetch_unit_in_order.txt

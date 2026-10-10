@@ -92,7 +92,7 @@ U_BYTES :
     );
 
 U_DECODE :
-  entity work.DECODE_BLOC
+  entity work.DECODE_BLOC(IN_ORDER)
     port map (
          WINDOW_i => window, WINDOW_COUNT_i => window_count, WINDOW_PC_i => window_pc,
          WINDOW_FAULT_i => window_fault,
