@@ -79,7 +79,7 @@ begin
    -- Frontal commun OoO / InO.
    -----------------------------------------------------------------------------
 
-   U_INSTRUCTION : entity work.INSTRUCTION_UNIT
+   U_INSTRUCTION : entity work.INSTRUCTION_UNIT( IN_ORDER )
       port map (
          CLK_i => CLK_i, RESET_i => RESET_i,
          HALT_i => halted,
@@ -140,7 +140,7 @@ begin
    stack_mem_rsp <= dc_rsp( 0 );
    exec_mem_rsp  <= dc_rsp( 1 );
 
-   U_DATA_CACHE : entity work.DATA_CACHE
+   U_DATA_CACHE : entity work.DATA_CACHE(IN_ORDER)
       generic map ( PORTS_G => 2 )
       port map (
          CLK_i => CLK_i, RESET_i => RESET_i,

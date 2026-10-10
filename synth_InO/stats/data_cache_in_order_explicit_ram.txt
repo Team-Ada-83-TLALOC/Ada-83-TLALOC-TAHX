@@ -1,0 +1,111 @@
+# ancienne architecture :
+# >10 h, pas de stat, data 262144 bits aplatie
+
+# nouvelle architecture :
+# 13.36 s CPU
+# 20 RAM
+# 327680 memory bits
+# 25284 cells
+# 8143 mux
+# 0 SCC
+
+yosys> stat
+
+8. Printing statistics.
+
+=== DATA_CACHE ===
+
+   Number of wires:              22957
+   Number of wire bits:          54062
+   Number of public wires:          44
+   Number of public wire bits:    6130
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:              25264
+     $add                           23
+     $and                         6899
+     $eq                            12
+     $ge                             2
+     $gt                             2
+     $le                             1
+     $logic_not                      2
+     $lt                            13
+     $mux                         8143
+     $ne                          5395
+     $not                           82
+     $or                             1
+     $pmux                          13
+     $reduce_and                  2314
+     $reduce_or                      6
+     $sdffe                       2320
+     $shl                            1
+     $sub                           15
+     ino_cache_ram64_256            20
+
+=== ino_cache_ram64_256 ===
+
+   Number of wires:                  6
+   Number of wire bits:            146
+   Number of public wires:           6
+   Number of public wire bits:     146
+   Number of memories:               1
+   Number of memory bits:        16384
+   Number of processes:              0
+   Number of cells:                  2
+     $memrd_v2                       1
+     $memwr_v2                       1
+
+=== design hierarchy ===
+
+   DATA_CACHE                        1
+     ino_cache_ram64_256            20
+
+   Number of wires:              23077
+   Number of wire bits:          56982
+   Number of public wires:         164
+   Number of public wire bits:    9050
+   Number of memories:              20
+   Number of memory bits:       327680
+   Number of processes:              0
+   Number of cells:              25284
+     $add                           23
+     $and                         6899
+     $eq                            12
+     $ge                             2
+     $gt                             2
+     $le                             1
+     $logic_not                      2
+     $lt                            13
+     $memrd_v2                      20
+     $memwr_v2                      20
+     $mux                         8143
+     $ne                          5395
+     $not                           82
+     $or                             1
+     $pmux                          13
+     $reduce_and                  2314
+     $reduce_or                      6
+     $sdffe                       2320
+     $shl                            1
+     $sub                           15
+
+
+yosys> check
+9. Executing CHECK pass (checking for obvious problems).
+Checking module DATA_CACHE...
+Checking module ino_cache_ram64_256...
+Found and reported 0 problems.
+
+yosys> scc
+
+10. Executing SCC pass (detecting logic loops).
+Found 0 SCCs in module DATA_CACHE.
+Found 0 SCCs in module ino_cache_ram64_256.
+Found 0 SCCs.
+
+yosys> exit
+
+End of script. Logfile hash: 4cb791ab43, CPU: user 13.36s system 0.06s, MEM: 180.56 MB peak
+Yosys 0.33 (git sha1 2584903a060)
+Time spent: 31% 5x opt_expr (4 sec), 20% 3x opt_dff (2 sec), ...

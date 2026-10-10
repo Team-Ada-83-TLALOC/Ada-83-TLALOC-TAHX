@@ -75,6 +75,8 @@ $A ../vhdl/L5a_FEXP_UNIT_rtl.vhd
 
 $A ../vhdl/I1_FETCH_UNIT.vhd
 $A ../vhdl/I1_FETCH_UNIT_rtl.vhd
+$A I1a_INO_FETCH_RAM64_2R.vhd
+$A I1_FETCH_UNIT_in_order.vhd
 $A ../vhdl/I2_FETCH_BYTE_QUEUE.vhd
 $A ../vhdl/I2_FETCH_BYTE_QUEUE_rtl.vhd
 $A ../vhdl/I3_DECODE_BLOC.vhd
@@ -83,13 +85,15 @@ $A ../vhdl/I4_BRANCH_PREDICT.vhd
 $A ../vhdl/I4_BRANCH_PREDICT_rtl.vhd
 $A ../vhdl/I_INSTRUCTION_UNIT.vhd
 $A ../vhdl/I_INSTRUCTION_UNIT_structure.vhd
+$A I_INSTRUCTION_UNIT_in_order.vhd
 
 $A ../vhdl/J1_DECODE_QUEUE.vhd
 $A ../vhdl/J1_DECODE_QUEUE_rtl.vhd
 
 # Cache de donnees commun.
 $A ../vhdl/M3_DATA_CACHE.vhd
-$A ../vhdl/M3_DATA_CACHE_rtl.vhd
+$A M3a_INO_CACHE_RAM64.vhd
+$A M3_DATA_CACHE_in_order.vhd
 
 # Entite de sommet commune aux deux microarchitectures.
 $A ../vhdl/V_TAHX_1.vhd
