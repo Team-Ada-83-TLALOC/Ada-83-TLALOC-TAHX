@@ -42,3 +42,25 @@ begin
       end if;
    end process WRITE_RAM;
 end architecture RTL;
+
+------------------------------------------------------------------------------------------------------------------------
+-- Architecture synchrone : les deux adresses de lecture sont echantillonnees
+-- au front montant et les donnees correspondantes deviennent visibles apres ce
+-- front. L'ecriture reste synchrone. Cette architecture sert de contrat temporel
+-- commun aux BRAM FPGA et aux SRAM ASIC (avec replication pour obtenir 2R+1W).
+------------------------------------------------------------------------------------------------------------------------
+architecture SYNC of INO_FETCH_RAM64_2R is
+   type ram_t is array (0 to DEPTH_G - 1) of std_logic_vector(63 downto 0);
+   signal ram : ram_t;
+begin
+   ACCESS_RAM : process(CLK_i)
+   begin
+      if rising_edge(CLK_i) then
+         RDATA0_o <= ram(RADDR0_i);
+         RDATA1_o <= ram(RADDR1_i);
+         if WE_i = '1' then
+            ram(WADDR_i) <= WDATA_i;
+         end if;
+      end if;
+   end process ACCESS_RAM;
+end architecture SYNC;

@@ -43,7 +43,7 @@ architecture			TEST
 of T_I1_FETCH_UNIT_INO_tb is
 
    constant PERIOD		: time		:= 10 ns;
-   constant CYCLES		: positive	:= 60000;
+   constant CYCLES		: positive	:= 70000;
    constant MAX_WAIT		: positive	:= 400;
    constant SEED_1		: positive	:= 1665;
    constant SEED_2		: positive	:= 1789;

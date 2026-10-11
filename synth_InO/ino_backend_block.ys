@@ -1,0 +1,10 @@
+ghdl --std=08 INO_BACKEND_EXCM
+read_rtlil -overwrite /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/ino_backend_complex_opt.il
+read_rtlil -overwrite /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/ino_block_unit_opt.il
+hierarchy -check -top ino_backend_block
+proc
+opt
+check
+scc
+stat
+write_rtlil /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/ino_backend_block_opt.il

@@ -1,0 +1,12 @@
+ghdl --std=08 TAHX_1 IN_ORDER
+read_rtlil -overwrite /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/fetch_unit_opt.il
+read_rtlil -overwrite /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/fetch_byte_queue_opt.il
+read_rtlil -overwrite /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/decode_bloc_opt.il
+read_rtlil -overwrite /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/branch_predict_opt.il
+hierarchy -check -top instruction_unit
+proc
+opt
+check
+scc
+stat
+write_rtlil /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/instruction_unit_opt.il

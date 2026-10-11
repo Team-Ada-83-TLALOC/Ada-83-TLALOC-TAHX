@@ -41,12 +41,13 @@ architecture IN_ORDER of DATA_CACHE is
    type way_bits_t   is array ( 0 to WAYS_G - 1 ) of set_bits_t;
    type rr_array_t   is array ( 0 to SETS - 1 ) of natural range 0 to WAYS_G - 1;
 
-   type state_t is ( LIBRE, PARTIE, RECRITURE, REMPLISSAGE, REPONSE );
+   type state_t is ( LIBRE, LECTURE, PARTIE, RECRITURE, REMPLISSAGE, REPONSE );
 
    signal data_rdata, data_wdata : way_words_t;
    signal data_we                : way_we_t;
    signal tag_rdata, tag_wdata   : way_word_t;
    signal tag_we                 : std_logic_vector( 0 to WAYS_G - 1 );
+   signal ram_re                : std_logic;
    signal ram_rset, ram_wset     : natural range 0 to SETS - 1;
 
    -- Ces petits tableaux sont volontairement des registres : ils doivent etre remis
@@ -115,7 +116,7 @@ begin
          generic map ( DEPTH_G => SETS )
          port map (
             CLK_i => CLK_i,
-            RADDR_i => ram_rset, RDATA_o => tag_rdata( wy ),
+            RE_i => ram_re, RADDR_i => ram_rset, RDATA_o => tag_rdata( wy ),
             WE_i => tag_we( wy ), WADDR_i => ram_wset, WDATA_i => tag_wdata( wy ) );
 
       GEN_WORD : for wd in 0 to WORDS - 1 generate
@@ -123,7 +124,7 @@ begin
             generic map ( DEPTH_G => SETS )
             port map (
                CLK_i => CLK_i,
-               RADDR_i => ram_rset, RDATA_o => data_rdata( wy )( wd ),
+               RE_i => ram_re, RADDR_i => ram_rset, RDATA_o => data_rdata( wy )( wd ),
                WE_i => data_we( wy )( wd ), WADDR_i => ram_wset, WDATA_i => data_wdata( wy )( wd ) );
       end generate GEN_WORD;
    end generate GEN_WAY;
@@ -171,11 +172,11 @@ begin
 
    RAM_READ_ADDRESS : process( all )
    begin
+      ram_re   <= '0';
       ram_rset <= 0;
-      if state = PARTIE then
+      if state = LECTURE then
+         ram_re   <= '1';
          ram_rset <= SET_OF( part_addr );
-      elsif state = RECRITURE then
-         ram_rset <= victim_set;
       end if;
    end process RAM_READ_ADDRESS;
 
@@ -334,9 +335,14 @@ begin
                         part_addr <= REQ_i( pick ).address;
                         part_n <= first_n;
                         rest_n <= n - first_n;
-                        state <= PARTIE;
+                        state <= LECTURE;
                      end if;
                   end if;
+
+               when LECTURE =>
+                  -- Les RAM echantillonnent ram_rset sur ce front. Leurs sorties
+                  -- sont donc valides pendant l'etat PARTIE qui suit.
+                  state <= PARTIE;
 
                when PARTIE =>
                   s := SET_OF( part_addr );
@@ -364,6 +370,7 @@ begin
                         done_n <= done_n + part_n;
                         part_n <= rest_n;
                         rest_n <= 0;
+                        state <= LECTURE;
                      else
                         state <= REPONSE;
                      end if;
@@ -421,7 +428,7 @@ begin
                         else
                            present( victim_way )( victim_set ) <= '1';
                            dirty( victim_way )( victim_set ) <= '0';
-                           state <= PARTIE;
+                           state <= LECTURE;
                         end if;
                      else
                         received <= received + 1;

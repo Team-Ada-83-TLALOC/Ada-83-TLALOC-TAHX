@@ -41,7 +41,7 @@ architecture			TEST
 of T_M3_DATA_CACHE_INO_tb is
 
    constant PERIOD		: time		:= 10 ns;
-   constant CYCLES		: positive	:= 60000;
+   constant CYCLES		: positive	:= 65000;
    constant PORTS		: positive	:= 4;
    constant BASE		: natural	:= 16#10000#;
    constant ZONE		: natural	:= 2048;

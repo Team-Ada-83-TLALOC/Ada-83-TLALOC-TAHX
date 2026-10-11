@@ -58,6 +58,16 @@ architecture IN_ORDER of FETCH_UNIT is
    signal cur_word, tgt_word : words4_t;
    signal bank_we : std_logic_vector(0 to WORDS - 1);
 
+   -- Avec les RAM synchrones, les donnees visibles apres un front correspondent
+   -- aux adresses presentes avant ce front. Conserver ces adresses permet de ne
+   -- presenter un bloc que lorsque donnees et PC/cible sont bien alignes.
+   signal ram_cur_pc_q       : address_t;
+   signal ram_tgt_target_q   : address_t;
+   signal ram_cur_valid_q    : std_logic;
+   signal ram_tgt_valid_q    : std_logic;
+   signal ram_cur_fresh_q    : std_logic;
+   signal ram_tgt_fresh_q    : std_logic;
+
    -- Table de blocs : version materielle explicite.
    -- key/fin/target/ctr sont quatre petites RAM 256 x 64.  Le bit valid reste
    -- dans un vecteur de 256 bits afin que RESET puisse invalider toute la table
@@ -70,6 +80,17 @@ architecture IN_ORDER of FETCH_UNIT is
    signal bt_key_we, bt_fin_we, bt_target_we, bt_ctr_we : std_logic;
    signal bt_ctr_wdata : word64_t;
    signal bt_taken_match, bt_nottaken_match : boolean;
+
+   -- Les deux ports de la BT sont synchrones.  Ces registres identifient
+   -- exactement la requete dont les quatre sorties RAM sont la reponse.
+   signal bt_lookup_valid_q : std_logic;
+   signal bt_lookup_pc_q    : address_t;
+   signal train_valid_q     : std_logic;
+   signal train_taken_q     : std_logic;
+   signal train_key_q       : address_t;
+   signal train_fin_q       : address_t;
+   signal train_target_q    : address_t;
+   signal bt_train_idx_q    : natural range 0 to BT_ENTRIES - 1;
 
    constant TB_ENTRIES : positive := 4;
    type tb_valid_t is array(0 to TB_ENTRIES - 1) of boolean;
@@ -145,15 +166,17 @@ begin
                          and not (fault_valid = '1' and fault_line = next1) else '0';
    miss2      <= '1' when (present(INDEX_OF(next2)) = '0' or tag(INDEX_OF(next2)) /= next2)
                          and not (fault_valid = '1' and fault_line = next2) else '0';
-   show       <= active and (hit or faulty_hit) and not redirect;
-
+   show <= active and (hit or faulty_hit) and not redirect
+        and ram_cur_valid_q and ram_cur_fresh_q
+        when ram_cur_pc_q = pc
+        else '0';
    FLUSH_o <= redirect;
 
    -- Les quatre RAM de donnees. Un mot de reponse est ecrit directement dans sa banque.
    GEN_BANKS : for k in 0 to WORDS - 1 generate
       bank_we(k) <= '1' when filling = '1' and I_RVALID_i = '1' and resp_k = k else '0';
 
-      U_RAM : entity work.INO_FETCH_RAM64_2R(RTL)
+      U_RAM : entity work.INO_FETCH_RAM64_2R(SYNC)
          generic map (DEPTH_G => LINES)
          port map (
             CLK_i    => CLK_i,
@@ -168,55 +191,62 @@ begin
 
    -- Table de blocs : quatre RAM explicites 256 x 64, deux lectures
    -- (lookup du PC et apprentissage) et une ecriture synchrone.
-   U_BT_KEY : entity work.INO_FETCH_RAM64_2R(RTL)
+   U_BT_KEY : entity work.INO_FETCH_RAM64_2R(SYNC)
       generic map (DEPTH_G => BT_ENTRIES)
       port map (
          CLK_i => CLK_i,
          RADDR0_i => bt_lookup_idx, RDATA0_o => bt_key_cur,
          RADDR1_i => bt_train_idx,  RDATA1_o => bt_key_train,
-         WE_i => bt_key_we, WADDR_i => bt_train_idx, WDATA_i => std_logic_vector(TRAIN_KEY_i) );
+         WE_i => bt_key_we, WADDR_i => bt_train_idx_q, WDATA_i => std_logic_vector(train_key_q) );
 
-   U_BT_FIN : entity work.INO_FETCH_RAM64_2R(RTL)
+   U_BT_FIN : entity work.INO_FETCH_RAM64_2R(SYNC)
       generic map (DEPTH_G => BT_ENTRIES)
       port map (
          CLK_i => CLK_i,
          RADDR0_i => bt_lookup_idx, RDATA0_o => bt_fin_cur,
          RADDR1_i => bt_train_idx,  RDATA1_o => bt_fin_train,
-         WE_i => bt_fin_we, WADDR_i => bt_train_idx, WDATA_i => std_logic_vector(TRAIN_FIN_i) );
+         WE_i => bt_fin_we, WADDR_i => bt_train_idx_q, WDATA_i => std_logic_vector(train_fin_q) );
 
-   U_BT_TARGET : entity work.INO_FETCH_RAM64_2R(RTL)
+   U_BT_TARGET : entity work.INO_FETCH_RAM64_2R(SYNC)
       generic map (DEPTH_G => BT_ENTRIES)
       port map (
          CLK_i => CLK_i,
          RADDR0_i => bt_lookup_idx, RDATA0_o => bt_target_cur,
          RADDR1_i => bt_train_idx,  RDATA1_o => bt_target_train,
-         WE_i => bt_target_we, WADDR_i => bt_train_idx, WDATA_i => std_logic_vector(TRAIN_TARGET_i) );
+         WE_i => bt_target_we, WADDR_i => bt_train_idx_q, WDATA_i => std_logic_vector(train_target_q) );
 
-   U_BT_CTR : entity work.INO_FETCH_RAM64_2R(RTL)
+   U_BT_CTR : entity work.INO_FETCH_RAM64_2R(SYNC)
       generic map (DEPTH_G => BT_ENTRIES)
       port map (
          CLK_i => CLK_i,
          RADDR0_i => bt_lookup_idx, RDATA0_o => bt_ctr_cur,
          RADDR1_i => bt_train_idx,  RDATA1_o => bt_ctr_train,
-         WE_i => bt_ctr_we, WADDR_i => bt_train_idx, WDATA_i => bt_ctr_wdata );
+         WE_i => bt_ctr_we, WADDR_i => bt_train_idx_q, WDATA_i => bt_ctr_wdata );
 
    bt_target <= unsigned(bt_target_cur);
-   bt_load   <= active = '1' and bt_valid(bt_lookup_idx) = '1' and unsigned(bt_key_cur) = pc
+   bt_load   <= bt_lookup_valid_q = '1' and active = '1'
+                and bt_lookup_pc_q = pc
+                and bt_valid(BT_IDX(bt_lookup_pc_q)) = '1'
+                and unsigned(bt_key_cur) = bt_lookup_pc_q
                 and unsigned(bt_ctr_cur(1 downto 0)) >= to_unsigned(2, 2)
                 and present(INDEX_OF(unsigned(bt_target_cur))) = '1'
-                and tag(INDEX_OF(unsigned(bt_target_cur))) = LINE_OF(unsigned(bt_target_cur));
+                and tag(INDEX_OF(unsigned(bt_target_cur))) = LINE_OF(unsigned(bt_target_cur))
+                and ram_tgt_valid_q = '1' and ram_tgt_target_q = bt_target
+                and ram_tgt_fresh_q = '1';
 
-   bt_taken_match <= bt_valid(bt_train_idx) = '1'
-                     and unsigned(bt_key_train) = TRAIN_KEY_i
-                     and unsigned(bt_fin_train) = TRAIN_FIN_i
-                     and unsigned(bt_target_train) = TRAIN_TARGET_i;
-   bt_nottaken_match <= bt_valid(bt_train_idx) = '1'
-                        and unsigned(bt_key_train) = TRAIN_KEY_i
-                        and unsigned(bt_fin_train) = TRAIN_FIN_i;
+   bt_taken_match <= train_valid_q = '1'
+                     and bt_valid(bt_train_idx_q) = '1'
+                     and unsigned(bt_key_train) = train_key_q
+                     and unsigned(bt_fin_train) = train_fin_q
+                     and unsigned(bt_target_train) = train_target_q;
+   bt_nottaken_match <= train_valid_q = '1'
+                        and bt_valid(bt_train_idx_q) = '1'
+                        and unsigned(bt_key_train) = train_key_q
+                        and unsigned(bt_fin_train) = train_fin_q;
 
    -- Signaux d'ecriture de l'apprentissage.  Le contenu des RAM n'a pas besoin
    -- d'etre initialise : bt_valid masque les entrees apres RESET.
-   BT_TRAIN_WRITE : process(RESET_i, TRAIN_VALID_i, TRAIN_TAKEN_i,
+   BT_TRAIN_WRITE : process(RESET_i, train_valid_q, train_taken_q,
                             bt_taken_match, bt_nottaken_match, bt_ctr_train)
       variable c : unsigned(1 downto 0);
    begin
@@ -227,8 +257,8 @@ begin
       bt_ctr_wdata <= (others => '0');
       c := unsigned(bt_ctr_train(1 downto 0));
 
-      if RESET_i = '0' and TRAIN_VALID_i = '1' then
-         if TRAIN_TAKEN_i = '1' then
+      if RESET_i = '0' and train_valid_q = '1' then
+         if train_taken_q = '1' then
             if bt_taken_match then
                if c < to_unsigned(3, 2) then
                   bt_ctr_we <= '1';
@@ -310,12 +340,54 @@ begin
             tb_valid <= (others => false);
             tb_next <= 0;
             bt_valid <= (others => '0');
+            bt_lookup_valid_q <= '0';
+            train_valid_q <= '0';
+            train_taken_q <= '0';
+            bt_train_idx_q <= 0;
+            ram_cur_valid_q <= '0';
+            ram_tgt_valid_q <= '0';
+            ram_cur_fresh_q <= '0';
+            ram_tgt_fresh_q <= '0';
             fault_valid <= '0';
             filling <= '0';
             fill_fault <= '0';
             req_k <= 0;
             resp_k <= 0;
          else
+            -- Alignement des requetes de la BT avec les sorties de ses RAM
+            -- synchrones. Les valeurs capturees ici sont celles dont les RAM
+            -- fournissent la reponse juste apres ce meme front.
+            bt_lookup_pc_q    <= pc;
+            bt_lookup_valid_q <= active;
+            train_valid_q     <= TRAIN_VALID_i;
+            train_taken_q     <= TRAIN_TAKEN_i;
+            train_key_q       <= TRAIN_KEY_i;
+            train_fin_q       <= TRAIN_FIN_i;
+            train_target_q    <= TRAIN_TARGET_i;
+            bt_train_idx_q    <= BT_IDX(TRAIN_KEY_i);
+
+            -- Les sorties des quatre banques apres ce front correspondent aux
+            -- adresses qui etaient presentes avant le front.
+            ram_cur_pc_q     <= pc;
+            ram_tgt_target_q <= bt_target;
+            ram_cur_valid_q  <= '1';
+            ram_tgt_valid_q  <= '1';
+
+            -- Une lecture et une ecriture de la meme case au meme front rendent
+            -- l'ancienne valeur dans notre modele synchrone (et le comportement
+            -- physique dependrait de la macro). La ligne n'est donc declaree
+            -- fraiche qu'apres un front supplementaire sans ecriture sur sa case.
+            if filling = '1' and I_RVALID_i = '1' and fill_index = index then
+               ram_cur_fresh_q <= '0';
+            else
+               ram_cur_fresh_q <= '1';
+            end if;
+            if filling = '1' and I_RVALID_i = '1' and fill_index = target_index then
+               ram_tgt_fresh_q <= '0';
+            else
+               ram_tgt_fresh_q <= '1';
+            end if;
+
             -- Remplissage : les banques ecrivent chaque reponse directement.
             if filling = '1' then
                if req_k < WORDS and I_READY_i = '1' then
@@ -370,11 +442,11 @@ begin
             -- Tampon de cible : second port de lecture des quatre banques.
             if bt_load and not tb_has then
                tb_valid(tb_next) <= true;
-               tb_pc(tb_next) <= bt_target;
+               tb_pc(tb_next) <= ram_tgt_target_q;
                tb_next <= (tb_next + 1) mod TB_ENTRIES;
                for i in 0 to FETCH_BLOCK_SIZE - 1 loop
-                  if to_integer(bt_target(4 downto 0)) + i < FETCH_BLOCK_SIZE then
-                     tb_block(tb_next)(i) <= BYTE_OF_LINE(tgt_word, to_integer(bt_target(4 downto 0)) + i);
+                  if to_integer(ram_tgt_target_q(4 downto 0)) + i < FETCH_BLOCK_SIZE then
+                     tb_block(tb_next)(i) <= BYTE_OF_LINE(tgt_word, to_integer(ram_tgt_target_q(4 downto 0)) + i);
                   else
                      tb_block(tb_next)(i) <= (others => '0');
                   end if;
@@ -383,23 +455,30 @@ begin
 
             -- Le contenu key/fin/target/ctr est ecrit par les quatre RAM ci-dessus.
             -- Seul valid est un etat local remis a zero globalement.
-            if TRAIN_VALID_i = '1' and TRAIN_TAKEN_i = '1' and not bt_taken_match then
-               bt_valid(bt_train_idx) <= '1';
+            if train_valid_q = '1' and train_taken_q = '1' and not bt_taken_match then
+               bt_valid(bt_train_idx_q) <= '1';
             end if;
 
             -- PC : priorites identiques a RTL.
             if RECOVERY_i.valid = '1' then
                pc <= RECOVERY_i.new_pc;
                active <= '1';
+
             elsif PREDICT_VALID_i = '1' and preload = '1' then
                pc <= LINE_OF(PREDICT_PC_i) + FETCH_BLOCK_SIZE;
+               active <= '1';
+
             elsif PREDICT_VALID_i = '1' then
                pc <= PREDICT_PC_i;
+               active <= '1';
+
             elsif STOP_i = '1' then
                active <= '0';
+
             elsif show = '1' and FETCH_READY_i = '1' then
                pc <= line_base + FETCH_BLOCK_SIZE;
             end if;
+
          end if;
       end if;
    end process CHARGEMENT;
