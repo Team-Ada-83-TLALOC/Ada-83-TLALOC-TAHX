@@ -16,7 +16,8 @@ use work.IN_ORDER_TYPES.all;
 architecture                    RTL
 of INO_CORE_SYSTEM is           ---
 
-   signal decode_count_s        : decode_count_t;
+   signal decode_valid_s        : std_logic;
+   signal decode_take_s         : std_logic;
 
    signal issue_valid_s         : std_logic;
    signal issue_ready_s         : std_logic;
@@ -54,7 +55,10 @@ of INO_CORE_SYSTEM is           ---
 
 begin
 
-   decode_count_s <= ( others => '0' ) when system_hold_s = '1' else DECODE_COUNT_i;
+   -- STACK_UNIT ne voit que le premier slot de DECODE_QUEUE (une prise par cycle au plus).
+   decode_valid_s <= '1' when system_hold_s = '0' and DECODE_COUNT_i /= 0 and DECODE_BLOCK_i( 0 ).valid = '1'
+                     else '0';
+   DECODE_TAKE_o  <= to_unsigned( 1, DECODE_TAKE_o'length ) when decode_take_s = '1' else ( others => '0' );
 
    system_issue_valid_s <= issue_valid_s when IS_SYSTEM_OP( issue_s.slot.canon.op ) else '0';
    backend_issue_valid_s <= issue_valid_s when not IS_SYSTEM_OP( issue_s.slot.canon.op ) else '0';
@@ -83,27 +87,30 @@ U_STACK :
     port map (
       CLK_i => CLK_i, RESET_i => RESET_i,
 
-      DECODE_BLOCK_i	=> DECODE_BLOCK_i,
-      DECODE_COUNT_i	=> decode_count_s,
-      DECODE_TAKE_o		=> DECODE_TAKE_o,
+      DECODE_VALID_i	=> decode_valid_s,
+      DECODE_SLOT_i		=> DECODE_BLOCK_i( 0 ),
+      DECODE_TAKE_o		=> decode_take_s,
 
-      ISSUE_VALID_o => issue_valid_s,
-      ISSUE_o => issue_s,
-      ISSUE_READY_i => issue_ready_s,
+      ISSUE_VALID_o		=> issue_valid_s,
+      ISSUE_o		=> issue_s,
+      ISSUE_READY_i		=> issue_ready_s,
 
-      COMPLETE_i => complete_s,
-      COMMIT_o => commit_s,
-      FRAME_o => frame_s,
-      LIMITS_i => limits_s,
-      SYNC_VALID_i => sync_valid_s,
-      SYNC_FRAME_i => sync_frame_s,
-      MAINT_i => stack_maint_s,
-      MAINT_DONE_o => stack_maint_done_s,
+      COMPLETE_i		=> complete_s,
+      COMMIT_o		=> commit_s,
 
-      MEM_REQ_o => STACK_MEM_REQ_o,
-      MEM_READY_i => STACK_MEM_READY_i,
-      MEM_RSP_i => STACK_MEM_RSP_i,
-      IDLE_o => stack_idle_s
+      FRAME_o		=> frame_s,
+      LIM_DSP_i		=> limits_s.lim_dsp,
+      LIM_RSP_i		=> limits_s.lim_rsp,
+
+      SYNC_VALID_i		=> sync_valid_s,
+      SYNC_FRAME_i		=> sync_frame_s,
+      MAINT_i		=> stack_maint_s,
+      MAINT_DONE_o		=> stack_maint_done_s,
+
+      MEM_REQ_o		=> STACK_MEM_REQ_o,
+      MEM_READY_i		=> STACK_MEM_READY_i,
+      MEM_RSP_i		=> STACK_MEM_RSP_i,
+      IDLE_o		=> stack_idle_s
     );
 
    U_BACKEND : entity work.INO_BACKEND_EXCM

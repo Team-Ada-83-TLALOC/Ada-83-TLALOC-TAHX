@@ -28,13 +28,15 @@ is                    	          ----------
       ------------------------------------------------------------------
       -- Entrée venant directement de DECODE_QUEUE.
       --
-      -- La première version InO ne prend que zéro ou une instruction
-      -- par cycle : DECODE_TAKE_o vaut donc seulement 0 ou 1.
+      -- La version InO ne prend que zéro ou une instruction par cycle :
+      -- seul le premier slot du bloc décodé est présenté.
+      -- DECODE_VALID_i : DECODE_QUEUE offre ce slot (compte /= 0 et slot valide).
+      -- DECODE_TAKE_o  : le slot est retiré de DECODE_QUEUE.
       ------------------------------------------------------------------
 
-      DECODE_BLOCK_i     : in  decoded_block_t;
-      DECODE_COUNT_i     : in  decode_count_t;
-      DECODE_TAKE_o      : out decode_count_t;
+      DECODE_VALID_i     : in  std_logic;
+      DECODE_SLOT_i      : in  decoded_slot_t;
+      DECODE_TAKE_o      : out std_logic;
 
       ------------------------------------------------------------------
       -- Instruction préparée pour l'unité d'exécution.
@@ -71,7 +73,10 @@ is                    	          ----------
       ------------------------------------------------------------------
 
       FRAME_o            : out frame_state_t;
-      LIMITS_i           : in  limits_t;
+
+      -- Limites de pile (SYSTEM_UNIT) : seules celles de DSP et RSP servent ici.
+      LIM_DSP_i          : in  address_t;
+      LIM_RSP_i          : in  address_t;
 
       ------------------------------------------------------------------
       -- Resynchronisation complète par SYSTEM_UNIT :

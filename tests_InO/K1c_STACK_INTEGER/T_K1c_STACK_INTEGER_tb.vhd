@@ -67,6 +67,8 @@ of T_K1c_STACK_INTEGER_tb is    ----
    signal decode_block         : decoded_block_t := ( others => NO_SLOT );
    signal decode_count         : decode_count_t := ( others => '0' );
    signal decode_take          : decode_count_t;
+   signal decode_valid         : std_logic;
+   signal decode_take_b        : std_logic;
 
    signal issue_valid          : std_logic;
    signal issue                : ino_issue_t;
@@ -143,14 +145,19 @@ of T_K1c_STACK_INTEGER_tb is    ----
 
 begin
 
+   -- STACK_UNIT ne voit que le premier slot du bloc decode.
+   decode_valid <= '1' when decode_count /= 0 and decode_block( 0 ).valid = '1' else '0';
+   decode_take  <= to_unsigned( 1, decode_take'length ) when decode_take_b = '1' else ( others => '0' );
+
    U_STACK : entity work.STACK_UNIT
       port map (
          CLK_i              => clk,
          RESET_i            => reset,
 
-         DECODE_BLOCK_i     => decode_block,
-         DECODE_COUNT_i     => decode_count,
-         DECODE_TAKE_o      => decode_take,
+         DECODE_VALID_i     => decode_valid,
+
+         DECODE_SLOT_i      => decode_block( 0 ),
+         DECODE_TAKE_o      => decode_take_b,
 
          ISSUE_VALID_o      => issue_valid,
          ISSUE_o            => issue,
@@ -160,7 +167,8 @@ begin
          COMMIT_o           => commit,
 
          FRAME_o            => frame,
-         LIMITS_i           => limits,
+         LIM_DSP_i          => limits.lim_dsp,
+         LIM_RSP_i          => limits.lim_rsp,
 
          SYNC_VALID_i       => sync_valid,
          SYNC_FRAME_i       => sync_frame,

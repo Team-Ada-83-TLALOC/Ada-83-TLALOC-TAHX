@@ -308,7 +308,7 @@ begin
       variable issue_v : ino_issue_t;
       variable mem_v   : mem_request_t;
    begin
-      DECODE_TAKE_o <= ( others => '0' );
+      DECODE_TAKE_o <= '0';
 
       issue_v.slot          := ( valid => '0', canon => CANON_NOP,
                                  pc => ( others => '0' ), pred => NO_PREDICTION );
@@ -325,8 +325,8 @@ begin
       -- Une instruction est retirée de DECODE_QUEUE dès qu'elle devient l'unique
       -- instruction interne de STACK_UNIT. Les FILL éventuels sont ensuite privés.
       if state_s = ST_IDLE and RESET_i = '0' and SYNC_VALID_i = '0'
-         and MAINT_i.valid = '0' and DECODE_COUNT_i /= 0 and DECODE_BLOCK_i( 0 ).valid = '1' then
-         DECODE_TAKE_o <= to_unsigned( 1, DECODE_TAKE_o'length );
+         and MAINT_i.valid = '0' and DECODE_VALID_i = '1' then
+         DECODE_TAKE_o <= '1';
       end if;
 
       if state_s = ST_ISSUE then
@@ -422,7 +422,7 @@ begin
          ------------------------------------------------------------------------------
          -- Décodage de l'instruction offerte par DECODE_QUEUE (utilisé en ST_IDLE).
          ------------------------------------------------------------------------------
-            s := DECODE_BLOCK_i( 0 );
+            s := DECODE_SLOT_i;
             e := ISA_TABLE( to_integer( unsigned( s.canon.op ) ) );
             if s.canon.op = UOP_LIHI then
                e := ( true, 9, FMT_NONE, ISSUE_INTEGER, 1, 1, STACK_LINEAR,
@@ -502,9 +502,9 @@ begin
                nrsp := frame_s.rsp - 8;
             end if;
 
-            if f.valid = '0' and ndsp > LIMITS_i.lim_dsp and ndsp > frame_s.dsp then
+            if f.valid = '0' and ndsp > LIM_DSP_i and ndsp > frame_s.dsp then
                f := ( valid => '1', code => FAULT_DSP_LIMIT );
-            elsif f.valid = '0' and nrsp < LIMITS_i.lim_rsp and nrsp < frame_s.rsp then
+            elsif f.valid = '0' and nrsp < LIM_RSP_i and nrsp < frame_s.rsp then
                f := ( valid => '1', code => FAULT_RSP_LIMIT );
             elsif f.valid = '0' and not PA_OK( ndsp ) then
                -- Espace physique InO : DSP hors de l'espace realise.
@@ -700,7 +700,7 @@ begin
                      maint_return_exec_s  <= '0';
                      state_s              <= ST_MAINT_SCAN;
 
-                  elsif DECODE_COUNT_i /= 0 and DECODE_BLOCK_i( 0 ).valid = '1' then
+                  elsif DECODE_VALID_i = '1' then
                      -- s, e, f, npop, lvl, ndsp, nrsp : décodage de la prise, calculé
                      -- avant le case (il sert aussi aux indices des ports de lecture).
 
