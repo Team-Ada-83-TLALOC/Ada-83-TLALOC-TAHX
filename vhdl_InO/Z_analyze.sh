@@ -64,6 +64,9 @@ $A ../vhdl/K1a__rename_types.vhd
 $A ../vhdl/K2a__backend_types.vhd
 $A ../vhdl/L0__exec_types.vhd
 
+# Espace d'adressage physique de l'implantation InO.
+$A A0_INO_PADDR.vhd
+
 # Flottant et exponentiation : blocs communs OoO / InO.
 $A ../vhdl/L4__float64_pkg.vhd
 $A ../vhdl/L5a_FEXP_UNIT.vhd

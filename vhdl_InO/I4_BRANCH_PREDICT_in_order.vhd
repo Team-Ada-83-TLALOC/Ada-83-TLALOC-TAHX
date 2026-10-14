@@ -8,18 +8,24 @@ use ieee.numeric_std.all;
 use work.TAHX_1_ISA.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.ROB_TYPES.all;
+use work.INO_PADDR.all;
 
 architecture IN_ORDER of BRANCH_PREDICT is
 
    constant GSHARE : positive := 2 ** ghist_t'length;
    constant OP_CALLI : opcode_t := x"33";
 
-   type ras_array_t is array(0 to RAS_DEPTH - 1) of address_t;
+   -- Pile des retours propre a l'InO : RAS_N entrees (RAS_DEPTH, partage avec l'OoO,
+   -- vaut 32). Le pointeur transporte dans pred.ras_ptr reste un ras_ptr_t modulo
+   -- 2**ras_ptr_t'length ; RAS_N doit diviser ce modulo pour que la reprise
+   -- (pointeur reduit modulo RAS_N) soit exacte.
+   constant RAS_N : positive := 8;
+   type ras_array_t is array(0 to RAS_N - 1) of address_t;
    type state_t is (IDLE, EVAL, OUTPUT);
 
    type pred_work_t is record
       g           : ghist_t;
-      p           : natural range 0 to RAS_DEPTH - 1;
+      p           : natural range 0 to RAS_N - 1;
       rs          : ras_array_t;
       blk         : decoded_block_t;
       n           : natural range 0 to DECODE_WIDTH;
@@ -32,7 +38,7 @@ architecture IN_ORDER of BRANCH_PREDICT is
 
    signal ghist : ghist_t := (others => '0');
    signal ras : ras_array_t := (others => (others => '0'));
-   signal ras_ptr : natural range 0 to RAS_DEPTH - 1 := 0;
+   signal ras_ptr : natural range 0 to RAS_N - 1 := 0;
    signal dentry : address_t := (others => '0');
 
    signal state_q : state_t := IDLE;
@@ -69,12 +75,52 @@ architecture IN_ORDER of BRANCH_PREDICT is
       return unsigned(op) >= 16#E0# and unsigned(op) <= 16#E3#;
    end function;
 
+   -- Espace physique InO (INO_PADDR) : toute adresse memorisee (bloc en cours, pile
+   -- des retours, entree attendue, apprentissage) ne garde que PA_BITS bits.
+   function CUT_BLOCK(b : decoded_block_t) return decoded_block_t is
+      variable r : decoded_block_t := b;
+   begin
+      for k in r'range loop
+         r(k).pc := CUT(b(k).pc);
+         r(k).pred.target := CUT(b(k).pred.target);
+      end loop;
+      return r;
+   end function;
+
+   -- Toutes les adresses de l'etat de travail. La synthese ne propage les zeros de
+   -- CUT qu'a travers un registre : il faut donc couper a chaque ecriture de
+   -- registre, y compris dans les boucles ras <-> work_q.rs et dentry <-> work_q.e.
+   function CUT_RAS(r : ras_array_t) return ras_array_t is
+      variable x : ras_array_t;
+   begin
+      for k in r'range loop
+         x(k) := CUT(r(k));
+      end loop;
+      return x;
+   end function;
+
+   function CUT_WORK(w : pred_work_t) return pred_work_t is
+      variable x : pred_work_t := w;
+   begin
+      x.rs          := CUT_RAS(w.rs);
+      x.blk         := CUT_BLOCK(w.blk);
+      x.redirect_pc := CUT(w.redirect_pc);
+      x.e           := CUT(w.e);
+      x.ck          := CUT(w.ck);
+      x.cf          := CUT(w.cf);
+      x.cg          := CUT(w.cg);
+      return x;
+   end function;
+
    function INDEX(pc : address_t; h : ghist_t) return natural is
    begin
       return to_integer(unsigned(std_logic_vector(pc(15 downto 0)) xor h));
    end function;
 
 begin
+
+   assert ( 2 ** ras_ptr_t'length ) mod RAS_N = 0
+      report "BRANCH_PREDICT(IN_ORDER) : RAS_N doit diviser 2**ras_ptr_t'length" severity failure;
 
    assert DECODE_WIDTH = 4
       report "BRANCH_PREDICT(IN_ORDER) : DECODE_WIDTH doit valoir 4"
@@ -127,7 +173,7 @@ begin
       variable taken : boolean;
       variable target, fin : address_t;
       variable op : opcode_t;
-      variable pnew : natural range 0 to RAS_DEPTH - 1;
+      variable pnew : natural range 0 to RAS_N - 1;
    begin
       v := work_q;
       i := slot_q;
@@ -136,8 +182,8 @@ begin
 
       if i < v.n then
          op := v.blk(i).canon.op;
-         target := v.blk(i).pc + v.blk(i).canon.len + unsigned(resize(v.blk(i).canon.val, 64));
-         fin := v.blk(i).pc + v.blk(i).canon.len - 1;
+         target := CUT(v.blk(i).pc + v.blk(i).canon.len + unsigned(resize(v.blk(i).canon.val, 64)));
+         fin := CUT(v.blk(i).pc + v.blk(i).canon.len - 1);
 
          if v.e(63 downto 5) /= fin(63 downto 5) then
             v.e := fin(63 downto 5) & "00000";
@@ -170,11 +216,11 @@ begin
                taken := true;
                v.blk(i).pred.target := target;
             end if;
-            v.rs(v.p) := v.blk(i).pc + v.blk(i).canon.len;
-            if v.p = RAS_DEPTH - 1 then pnew := 0; else pnew := v.p + 1; end if;
+            v.rs(v.p) := CUT(v.blk(i).pc + v.blk(i).canon.len);
+            if v.p = RAS_N - 1 then pnew := 0; else pnew := v.p + 1; end if;
             v.p := pnew;
          elsif op = OP_RTD_0 or op = OP_RTD_N then
-            if v.p = 0 then pnew := RAS_DEPTH - 1; else pnew := v.p - 1; end if;
+            if v.p = 0 then pnew := RAS_N - 1; else pnew := v.p - 1; end if;
             v.p := pnew;
             taken := true;
             v.blk(i).pred.target := v.rs(pnew);
@@ -276,8 +322,8 @@ begin
 
             if RECOVERY_i.valid = '1' then
                ghist <= RECOVERY_i.ghist;
-               ras_ptr <= to_integer(RECOVERY_i.ras_ptr);
-               dentry <= RECOVERY_i.new_pc;
+               ras_ptr <= to_integer(RECOVERY_i.ras_ptr) mod RAS_N;
+               dentry <= CUT(RECOVERY_i.new_pc);
                state_q <= IDLE;
                slot_q <= 0;
             else
@@ -287,7 +333,7 @@ begin
                         v.g := ghist;
                         v.p := ras_ptr;
                         v.rs := ras;
-                        v.blk := IN_BLOCK_i;
+                        v.blk := CUT_BLOCK(IN_BLOCK_i);
                         n0 := to_integer(IN_COUNT_i);
                         if n0 > DECODE_WIDTH then v.n := DECODE_WIDTH; else v.n := n0; end if;
                         v.redirect := '0';
@@ -298,13 +344,13 @@ begin
                         v.ck := (others => '0');
                         v.cf := (others => '0');
                         v.cg := (others => '0');
-                        work_q <= v;
+                        work_q <= CUT_WORK(v);
                         slot_q <= 0;
                         if n0 = 0 then state_q <= OUTPUT; else state_q <= EVAL; end if;
                      end if;
 
                   when EVAL =>
-                     work_q <= step_work;
+                     work_q <= CUT_WORK(step_work);
                      if step_done = '1' then
                         state_q <= OUTPUT;
                      else
@@ -314,14 +360,14 @@ begin
                   when OUTPUT =>
                      if OUT_READY_i = '1' then
                         ghist <= work_q.g;
-                        ras <= work_q.rs;
+                        ras <= CUT_RAS(work_q.rs);
                         ras_ptr <= work_q.p;
-                        dentry <= work_q.e;
+                        dentry <= CUT(work_q.e);
                         tr_valid <= work_q.cv;
                         tr_taken <= work_q.ct;
-                        tr_key <= work_q.ck;
-                        tr_fin <= work_q.cf;
-                        tr_target <= work_q.cg;
+                        tr_key <= CUT(work_q.ck);
+                        tr_fin <= CUT(work_q.cf);
+                        tr_target <= CUT(work_q.cg);
                         state_q <= IDLE;
                      end if;
                end case;

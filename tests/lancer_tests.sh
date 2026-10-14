@@ -23,6 +23,10 @@
 #	Les tests sont analysés depuis une copie de vhdl/ ainsi modifiée (travail/<nom>/_vhdl,
 #	chaque remplacement est vérifié), dans travail/<nom>/ ; les mesures vont dans
 #	MESURES/<nom>/. Sans VARIANTE, rien ne change.
+
+echo "----- TESTS TAHX OoO -----"
+echo ""
+
 debutT=$(date +%s)
 
 cd "$(dirname "$0")" || exit 2

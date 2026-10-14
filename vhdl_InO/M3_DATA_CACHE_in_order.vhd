@@ -26,6 +26,7 @@ use work.TAHX_1_ISA.all;
 use work.MEMORY_TYPES.all;
 use work.BACKEND_TYPES.all;
 use work.EXEC_TYPES.all;
+use work.INO_PADDR.all;
 
 architecture IN_ORDER of DATA_CACHE is
 
@@ -61,7 +62,9 @@ architecture IN_ORDER of DATA_CACHE is
    signal cur_port       : natural range 0 to PORTS_G - 1;
    signal cur            : mem_request_t;
 
-   signal part_addr      : address_t;
+   -- Adresses internes sur PA_BITS bits (INO_PADDR) : un acces n'est admis que s'il
+   -- tient entierement sous 2 ** PA_BITS (VALID_ACCESS).
+   signal part_addr      : paddr_t;
    signal part_n         : natural range 0 to 8;
    signal done_n         : natural range 0 to 8;
    signal rest_n         : natural range 0 to 8;
@@ -70,21 +73,27 @@ architecture IN_ORDER of DATA_CACHE is
 
    signal victim_set     : natural range 0 to SETS - 1;
    signal victim_way     : natural range 0 to WAYS_G - 1;
-   signal line_addr      : address_t;
+   signal line_addr      : paddr_t;
    signal issued         : natural range 0 to WORDS;
    signal received       : natural range 0 to WORDS;
    signal fill_fault     : std_logic;
 
    signal hit_way        : integer range -1 to WAYS_G - 1;
 
-   function LINE_OF( a : address_t ) return address_t is
+   function LINE_OF( a : paddr_t ) return paddr_t is
    begin
       return a - ( a mod LINE_BYTES_G );
    end function;
 
-   function SET_OF( a : address_t ) return natural is
+   function SET_OF( a : paddr_t ) return natural is
    begin
       return to_integer( ( a / LINE_BYTES_G ) mod SETS );
+   end function;
+
+   -- Tag lu dans une RAM de tags : seuls les PA_BITS bits faibles sont ecrits non nuls.
+   function TAG_OF( t : word64_t ) return paddr_t is
+   begin
+      return unsigned( t( PA_BITS - 1 downto 0 ) );
    end function;
 
    function VALID_ACCESS( a : address_t; n : natural ) return boolean is
@@ -92,6 +101,9 @@ architecture IN_ORDER of DATA_CACHE is
       if VALID_LIMIT_G < n then
          return false;
       elsif a < VALID_BASE_G then
+         return false;
+      elsif not PA_OK( a ) or a > PA_LIMIT - n then
+         -- Hors de l'espace physique realise par l'implantation InO : faute 132.
          return false;
       else
          return a <= VALID_LIMIT_G - n;
@@ -188,7 +200,7 @@ begin
       if state = PARTIE then
          s := SET_OF( part_addr );
          for wy in 0 to WAYS_G - 1 loop
-            if present( wy )( s ) = '1' and unsigned( tag_rdata( wy ) ) = LINE_OF( part_addr ) then
+            if present( wy )( s ) = '1' and TAG_OF( tag_rdata( wy ) ) = LINE_OF( part_addr ) then
                h := wy;
             end if;
          end loop;
@@ -235,7 +247,7 @@ begin
             data_we( victim_way )( received ) <= '1';
          end if;
          if received = WORDS - 1 and fill_fault = '0' and D_FAULT_i = '0' then
-            tag_wdata( victim_way ) <= std_logic_vector( line_addr );
+            tag_wdata( victim_way ) <= std_logic_vector( TO_VA( line_addr ) );
             tag_we( victim_way ) <= '1';
          end if;
       end if;
@@ -265,12 +277,12 @@ begin
          end case;
          D_REQ_o   <= '1';
          D_WRITE_o <= '1';
-         D_ADDR_o  <= unsigned( tag_rdata( victim_way ) ) + 8 * issued;
+         D_ADDR_o  <= TO_VA( TAG_OF( tag_rdata( victim_way ) ) + 8 * issued );
          D_WDATA_o <= w;
 
       elsif state = REMPLISSAGE and issued < WORDS then
          D_REQ_o  <= '1';
-         D_ADDR_o <= line_addr + 8 * issued;
+         D_ADDR_o <= TO_VA( line_addr + 8 * issued );
       end if;
    end process MEMOIRE;
 
@@ -332,7 +344,7 @@ begin
                         if first_n > n then
                            first_n := n;
                         end if;
-                        part_addr <= REQ_i( pick ).address;
+                        part_addr <= TO_PA( REQ_i( pick ).address );
                         part_n <= first_n;
                         rest_n <= n - first_n;
                         state <= LECTURE;

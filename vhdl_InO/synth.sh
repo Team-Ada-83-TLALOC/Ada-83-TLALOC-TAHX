@@ -3,16 +3,20 @@ set -euo pipefail
 
 # Synthese hierarchique de TAHX InO avec GHDL/Yosys.
 #
-# Principe important : un module reutilisable est toujours synthetise dans
-# le contexte dans lequel GHDL l'instancie.  Ainsi le nom du module ET les
-# noms de ses ports RTLIL sont exactement ceux qu'attend le parent.
-# On evite donc de synthetiser un top VHDL en majuscules puis de seulement
-# renommer le module : les ports garderaient alors leur casse de top
-# (R_o, ISSUE_i, ...) alors que les sous-modules GHDL utilisent r_o,
-# issue_i, ... ; Yosys est sensible a la casse.
+# Cette version commence toujours par reanalyser l'ensemble des sources VHDL
+# avec Z_analyze.sh.  Elle n'utilise plus le mode interactif de Yosys sur stdin :
+# chaque etape est executee par un script .ys en mode batch, de sorte qu'une
+# erreur GHDL/Yosys arrete reellement la synthese.
 #
-# Le script est prevu dans vhdl_InO/ et ecrit les resultats dans
-# ../synth_InO/.
+# Un fichier RTLIL produit est en outre controle : il doit contenir au moins
+# un module.  Cela interdit la propagation des anciens fichiers de 59 octets
+# contenant seulement l'entete Yosys/autoidx.
+#
+# Principe important : un module reutilisable est toujours synthetise dans
+# le contexte dans lequel GHDL l'instancie. Ainsi le nom du module ET les noms
+# de ses ports RTLIL sont exactement ceux qu'attend le parent.
+#
+# Le script est prevu dans vhdl_InO/ et ecrit les resultats dans ../synth_InO/.
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 cd "$HERE"
@@ -25,14 +29,49 @@ mkdir -p "$SYNTH_DIR"
 #   DATA_CACHE_MOD=... ./synth.sh
 DATA_CACHE_MOD="${DATA_CACHE_MOD:-data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e}"
 
-run_yosys()
+###############################################################################
+# Preparation : repartir d'une bibliotheque GHDL coherente avec les sources.
+###############################################################################
+
+echo
+echo "================================================================"
+echo " ANALYSE GHDL DES SOURCES TAHX InO"
+echo "================================================================"
+
+# Z_analyze.sh contient l'ordre de dependance de reference et est maintenu avec
+# les sources (notamment les primitives RAM synchrones du frontal/cache).
+./Z_analyze.sh 08
+
+# Eviter qu'un ancien resultat soit pris pour le resultat de cette execution.
+# On ne touche pas aux autres fichiers eventuels de synth_InO (stats, etc.).
+rm -f "$SYNTH_DIR"/*_opt.il "$SYNTH_DIR"/*.log "$SYNTH_DIR"/*.ys
+
+validate_rtlil()
+{
+   local file="$1"
+   local module="$2"
+
+   if [ ! -s "$file" ]; then
+      echo "ERREUR : fichier RTLIL absent ou vide : $file" >&2
+      exit 1
+   fi
+
+   if ! grep -q '^module ' "$file"; then
+      echo "ERREUR : synthese vide pour $module : $file ne contient aucun module" >&2
+      exit 1
+   fi
+}
+
+run_yosys_script()
 {
    local tag="$1"
-   shift
+   local ys="$2"
    local log="$SYNTH_DIR/${tag}.log"
 
-   # pipefail fait echouer le script si yosys echoue meme a travers tee.
-   yosys -m ghdl "$@" | tee "$log"
+   # -s execute Yosys en mode batch. Contrairement a l'ancien flux interactif
+   # alimente par stdin, une erreur de commande (par ex. import GHDL impossible)
+   # fait echouer Yosys et, grace a pipefail, fait echouer ce script.
+   yosys -m ghdl -s "$ys" 2>&1 | tee "$log"
 }
 
 # Synthetise MODULE tel qu'il est reellement importe par GHDL dans PARENT.
@@ -44,12 +83,17 @@ synth_context()
    local module="$2"
    local out="$3"
    shift 3
-   local log="$SYNTH_DIR/${module}.log"
+
+   local ys="$SYNTH_DIR/${module}.ys"
+   local outfile="$SYNTH_DIR/$out"
 
    echo
    echo "================================================================"
    echo " SYNTH CONTEXT : $parent / $module  ->  $out"
    echo "================================================================"
+
+   # Supprimer explicitement la cible avant l'etape : aucun reliquat possible.
+   rm -f "$outfile"
 
    {
       echo "ghdl --std=08 $parent"
@@ -62,12 +106,14 @@ synth_context()
       echo "check"
       echo "scc"
       echo "stat"
-      echo "write_rtlil $SYNTH_DIR/$out"
-      echo "exit"
-   } | yosys -m ghdl | tee "$log"
+      echo "write_rtlil $outfile"
+   } > "$ys"
+
+   run_yosys_script "$module" "$ys"
+   validate_rtlil "$outfile" "$module"
 }
 
-# Synthetise le top final.  Contrairement aux blocs reutilisables, son nom et
+# Synthetise le top final. Contrairement aux blocs reutilisables, son nom et
 # ses ports externes sont ceux du top GHDL lui-meme ; aucun renommage n'est
 # necessaire.
 synth_top()
@@ -76,12 +122,16 @@ synth_top()
    local module="$2"
    local out="$3"
    shift 3
-   local log="$SYNTH_DIR/${module}.log"
+
+   local ys="$SYNTH_DIR/${module}.ys"
+   local outfile="$SYNTH_DIR/$out"
 
    echo
    echo "================================================================"
    echo " SYNTH TOP : $parent / $module  ->  $out"
    echo "================================================================"
+
+   rm -f "$outfile"
 
    {
       echo "ghdl --std=08 $parent"
@@ -94,9 +144,11 @@ synth_top()
       echo "check"
       echo "scc"
       echo "stat"
-      echo "write_rtlil $SYNTH_DIR/$out"
-      echo "exit"
-   } | yosys -m ghdl | tee "$log"
+      echo "write_rtlil $outfile"
+   } > "$ys"
+
+   run_yosys_script "$module" "$ys"
+   validate_rtlil "$outfile" "$module"
 }
 
 ###############################################################################
@@ -115,8 +167,7 @@ synth_context "INO_BACKEND_MEMORY" ino_memory_unit  ino_memory_unit_opt.il
 # INO_BACKEND_FLOAT contient l'unite flottante.
 synth_context "INO_BACKEND_FLOAT" ino_float_unit ino_float_unit_opt.il
 
-# FEXP est un enfant de INO_COMPLEX_UNIT.  C'est precisement ce contexte qui
-# garantit les ports r_o/start_i/... attendus par la cellule u_fexp.
+# FEXP est un enfant de INO_COMPLEX_UNIT.
 synth_context "INO_COMPLEX_UNIT" fexp_unit fexp_unit_opt.il
 
 # Feuilles des niveaux suivants.
@@ -133,7 +184,6 @@ synth_context "INO_BACKEND_COMPLEX" ino_complex_unit ino_complex_unit_opt.il \
 
 ###############################################################################
 # NIVEAU 2 : backend entier / muldiv / branche
-# On materialise ino_backend comme enfant de INO_BACKEND_MEMORY.
 ###############################################################################
 
 synth_context "INO_BACKEND_MEMORY" ino_backend ino_backend_opt.il \
@@ -187,17 +237,25 @@ synth_context "INO_CORE_SYSTEM" ino_backend_excm ino_backend_excm_opt.il \
 ###############################################################################
 
 # GHDL materialise la variante effective du stack dans INO_CORE_SYSTEM.
-synth_context "INO_CORE_SYSTEM" stack_unit_64_32 stack_unit_64_32_opt.il
+#synth_context "INO_CORE_SYSTEM" stack_unit_64_32 stack_unit_64_32_opt.il
+synth_context "INO_CORE_SYSTEM" stack_unit_16_8 stack_unit_16_8_opt.il
 
 # Dans le top TAHX_1, INO_CORE_SYSTEM est lui-meme specialise 64/32.
-synth_context "TAHX_1 IN_ORDER" ino_core_system_64_32 ino_core_system_64_32_opt.il \
+#synth_context "TAHX_1 IN_ORDER" ino_core_system_64_32 ino_core_system_64_32_opt.il \
+synth_context "TAHX_1 IN_ORDER" ino_core_system_16_8 ino_core_system_16_8_opt.il \
    ino_backend_excm_opt.il \
    ino_system_unit_opt.il \
-   stack_unit_64_32_opt.il
+   stack_unit_16_8_opt.il
+#   stack_unit_64_32_opt.il
 
 ###############################################################################
-# NIVEAU 9 : frontal commun, egalement extrait de son contexte reel
+# NIVEAU 9 : frontal commun, extrait de son contexte reel
 ###############################################################################
+
+# Les primitives RAM synchrones sont analysees par Z_analyze.sh et sont
+# importees par GHDL comme descendants de ces blocs. Elles restent donc dans
+# les RTLIL de contexte sans qu'il soit necessaire de deviner leurs noms
+# specialises (profondeur/generiques) ici.
 
 # Feuilles de INSTRUCTION_UNIT.
 synth_context "INSTRUCTION_UNIT IN_ORDER" fetch_unit        fetch_unit_opt.il
@@ -224,7 +282,7 @@ synth_context "TAHX_1 IN_ORDER" "$DATA_CACHE_MOD" data_cache_opt.il
 synth_top "TAHX_1 IN_ORDER" TAHX_1 tahx_1_in_order_opt.il \
    instruction_unit_opt.il \
    decode_queue_opt.il \
-   ino_core_system_64_32_opt.il \
+   ino_core_system_16_8_opt.il \
    ino_frontend_control_opt.il \
    data_cache_opt.il
 
@@ -237,7 +295,11 @@ cat <<EOF2
  Principal resultat :
    $SYNTH_DIR/tahx_1_in_order_opt.il
 
+ Verification rapide conseillee :
+   yosys -p 'read_ilang $SYNTH_DIR/tahx_1_in_order_opt.il; ls; hierarchy -check -top TAHX_1; stat'
+
  Les fichiers *.log contiennent check / scc / stat de chaque etage.
+ Les fichiers *.ys permettent de reproduire exactement chaque etape.
  Aucune commande flatten n'est utilisee : la hierarchie reste visible.
 ================================================================
 EOF2

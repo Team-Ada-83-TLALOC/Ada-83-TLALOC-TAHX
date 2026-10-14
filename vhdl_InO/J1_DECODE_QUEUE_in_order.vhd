@@ -7,26 +7,36 @@ use ieee.numeric_std.all;
 ------------------------------------------------------------------------------------------------------------------------
 use work.TAHX_1_ISA.all;
 use work.FETCH_DECODE_TYPES.all;
+use work.INO_PADDR.all;
 
 --------------------------------------------------------------------------------
 -- DECODE_QUEUE, architecture IN_ORDER.
 --
--- Meme contrat que RTL, mais les 32 entrees de 207 bits sont rangees dans
--- quatre RAM 8 x 207. Les quatre cases consecutives lues et les quatre cases
--- consecutives eventuellement ecrites touchent toujours quatre banques
--- distinctes : chaque banque n'a donc besoin que de 1R/1W.
+-- Meme contrat que RTL, mais les DQ_DEPTH entrees de 207 bits sont rangees
+-- dans quatre RAM ( DQ_DEPTH / 4 ) x 207. Les quatre cases consecutives lues et
+-- les quatre cases consecutives eventuellement ecrites touchent toujours quatre
+-- banques distinctes : chaque banque n'a donc besoin que de 1R/1W.
+--
+-- DQ_DEPTH est propre a l'InO (une instruction retiree par cycle) et peut etre
+-- inferieure a DECODE_QUEUE_DEPTH, dimensionnee pour l'OoO. Ces entrees sont en
+-- bascules : PACKED_W bits chacune. Espace physique InO (INO_PADDR) : pc et cible
+-- predite n'y gardent que PA_BITS bits (143 bits par entree au lieu de 207).
 --------------------------------------------------------------------------------
 
 architecture IN_ORDER of DECODE_QUEUE is
 
-   subtype index_t is natural range 0 to DECODE_QUEUE_DEPTH - 1;
-   subtype packed_slot_t is std_logic_vector( 206 downto 0 );
-   type row_array_t is array( 0 to DECODE_WIDTH - 1 ) of unsigned( 2 downto 0 );
+   constant DQ_DEPTH : positive := 8;                   -- multiple de DECODE_WIDTH
+   constant DQ_ROWS  : positive := DQ_DEPTH / DECODE_WIDTH;
+
+   subtype index_t is natural range 0 to DQ_DEPTH - 1;
+   constant PACKED_W : positive := 79 + 2 * PA_BITS;          -- 143 (207 sur 64 bits)
+   subtype packed_slot_t is std_logic_vector( PACKED_W - 1 downto 0 );
+   type row_array_t is array( 0 to DECODE_WIDTH - 1 ) of natural range 0 to DQ_ROWS - 1;
    type packed_array_t is array( 0 to DECODE_WIDTH - 1 ) of packed_slot_t;
    type bit_array_t is array( 0 to DECODE_WIDTH - 1 ) of std_logic;
 
    signal head  : index_t;
-   signal count : natural range 0 to DECODE_QUEUE_DEPTH;
+   signal count : natural range 0 to DQ_DEPTH;
    signal ready : std_logic;
 
    signal ram_raddr : row_array_t;
@@ -43,25 +53,38 @@ architecture IN_ORDER of DECODE_QUEUE is
          & std_logic_vector( s.canon.ofs )
          & std_logic_vector( s.canon.val )
          & std_logic_vector( s.canon.len )
-         & std_logic_vector( s.pc )
+         & std_logic_vector( TO_PA( s.pc ) )
          & s.pred.taken
-         & std_logic_vector( s.pred.target )
+         & std_logic_vector( TO_PA( s.pred.target ) )
          & s.pred.ghist
          & std_logic_vector( s.pred.ras_ptr );
    end function;
 
    function UNPACK_SLOT( v : packed_slot_t ) return decoded_slot_t is
       variable s : decoded_slot_t;
+      -- Champs, des poids faibles aux poids forts (P = PA_BITS) :
+      --   ras_ptr 5 | ghist 16 | target P | taken 1 | pc P | len 4 | val 32 | ofs 8
+      --   | lvl 4 | op 8 | valid 1        (total 79 + 2 P = PACKED_W)
+      constant P   : positive := PA_BITS;
+      constant TG  : natural  := 21;                 -- target
+      constant TK  : natural  := TG + P;             -- taken
+      constant PC0 : natural  := TK + 1;             -- pc
+      constant LN  : natural  := PC0 + P;            -- len
+      constant VL  : natural  := LN + 4;             -- val
+      constant OF0 : natural  := VL + 32;            -- ofs
+      constant LV  : natural  := OF0 + 8;            -- lvl
+      constant OP0 : natural  := LV + 4;             -- op
+      constant VA  : natural  := OP0 + 8;            -- valid
    begin
-      s.valid       := v( 206 );
-      s.canon.op    := v( 205 downto 198 );
-      s.canon.lvl   := unsigned( v( 197 downto 194 ) );
-      s.canon.ofs   := unsigned( v( 193 downto 186 ) );
-      s.canon.val   := signed( v( 185 downto 154 ) );
-      s.canon.len   := unsigned( v( 153 downto 150 ) );
-      s.pc          := unsigned( v( 149 downto 86 ) );
-      s.pred.taken  := v( 85 );
-      s.pred.target := unsigned( v( 84 downto 21 ) );
+      s.valid       := v( VA );
+      s.canon.op    := v( OP0 + 7 downto OP0 );
+      s.canon.lvl   := unsigned( v( LV + 3 downto LV ) );
+      s.canon.ofs   := unsigned( v( OF0 + 7 downto OF0 ) );
+      s.canon.val   := signed( v( VL + 31 downto VL ) );
+      s.canon.len   := unsigned( v( LN + 3 downto LN ) );
+      s.pc          := TO_VA( unsigned( v( PC0 + P - 1 downto PC0 ) ) );
+      s.pred.taken  := v( TK );
+      s.pred.target := TO_VA( unsigned( v( TG + P - 1 downto TG ) ) );
       s.pred.ghist  := v( 20 downto 5 );
       s.pred.ras_ptr:= unsigned( v( 4 downto 0 ) );
       return s;
@@ -69,12 +92,16 @@ architecture IN_ORDER of DECODE_QUEUE is
 
 begin
 
-   ready        <= '1' when DECODE_QUEUE_DEPTH - count >= DECODE_WIDTH else '0';
+   assert DQ_DEPTH mod DECODE_WIDTH = 0 and DQ_DEPTH <= DECODE_QUEUE_DEPTH
+      report "DECODE_QUEUE(IN_ORDER) : DQ_DEPTH invalide" severity failure;
+
+   ready        <= '1' when DQ_DEPTH - count >= DECODE_WIDTH else '0';
    PUSH_READY_o <= ready;
    COUNT_o      <= to_unsigned( count, COUNT_o'length );
 
    GEN_BANKS : for b in 0 to DECODE_WIDTH - 1 generate
       U_RAM : entity work.INO_DECODE_QUEUE_RAM207( RTL )
+         generic map ( ROWS_G => DQ_ROWS, WIDTH_G => PACKED_W )
          port map (
             CLK_i   => CLK_i,
             RADDR_i => ram_raddr( b ),
@@ -89,16 +116,16 @@ begin
    -- une banque differente.
    -----------------------------------------------------------------------------
    READ_ADDRESS : process( head )
-      variable idx  : natural range 0 to DECODE_QUEUE_DEPTH - 1;
+      variable idx  : natural range 0 to DQ_DEPTH - 1;
       variable bank : natural range 0 to DECODE_WIDTH - 1;
    begin
       for b in 0 to DECODE_WIDTH - 1 loop
-         ram_raddr( b ) <= ( others => '0' );
+         ram_raddr( b ) <= 0;
       end loop;
       for i in 0 to DECODE_WIDTH - 1 loop
-         idx := ( head + i ) mod DECODE_QUEUE_DEPTH;
+         idx := ( head + i ) mod DQ_DEPTH;
          bank := idx mod DECODE_WIDTH;
-         ram_raddr( bank ) <= to_unsigned( idx / DECODE_WIDTH, ram_raddr( bank )'length );
+         ram_raddr( bank ) <= idx / DECODE_WIDTH;
       end loop;
    end process;
 
@@ -107,7 +134,7 @@ begin
    -----------------------------------------------------------------------------
    OUTPUTS : process( ram_rdata, head, count, PUSH_VALID_i, PUSH_BLOCK_i,
                       PUSH_COUNT_i, FLUSH_i, RESET_i )
-      variable idx  : natural range 0 to DECODE_QUEUE_DEPTH - 1;
+      variable idx  : natural range 0 to DQ_DEPTH - 1;
       variable bank : natural range 0 to DECODE_WIDTH - 1;
       variable s    : decoded_slot_t;
    begin
@@ -123,7 +150,7 @@ begin
          POP_COUNT_o <= PUSH_COUNT_i;
       else
          for i in 0 to DECODE_WIDTH - 1 loop
-            idx := ( head + i ) mod DECODE_QUEUE_DEPTH;
+            idx := ( head + i ) mod DQ_DEPTH;
             bank := idx mod DECODE_WIDTH;
             s := UNPACK_SLOT( ram_rdata( bank ) );
             POP_BLOCK_o( i ) <= s;
@@ -154,19 +181,19 @@ begin
    begin
       for b in 0 to DECODE_WIDTH - 1 loop
          ram_we( b )    <= '0';
-         ram_waddr( b ) <= ( others => '0' );
+         ram_waddr( b ) <= 0;
          ram_wdata( b ) <= ( others => '0' );
       end loop;
 
       if RESET_i = '0' and FLUSH_i = '0' and PUSH_VALID_i = '1' and ready = '1' then
          push := to_integer( PUSH_COUNT_i );
-         tail := ( head + count ) mod DECODE_QUEUE_DEPTH;
+         tail := ( head + count ) mod DQ_DEPTH;
          for j in 0 to DECODE_WIDTH - 1 loop
             if j < push then
-               idx := ( tail + j ) mod DECODE_QUEUE_DEPTH;
+               idx := ( tail + j ) mod DQ_DEPTH;
                bank := idx mod DECODE_WIDTH;
                ram_we( bank )    <= '1';
-               ram_waddr( bank ) <= to_unsigned( idx / DECODE_WIDTH, ram_waddr( bank )'length );
+               ram_waddr( bank ) <= idx / DECODE_WIDTH;
                ram_wdata( bank ) <= PACK_SLOT( PUSH_BLOCK_i( j ) );
             end if;
          end loop;
@@ -205,7 +232,7 @@ begin
                take := count;
             end if;
 
-            head <= ( head + take ) mod DECODE_QUEUE_DEPTH;
+            head <= ( head + take ) mod DQ_DEPTH;
             count <= count - take + push;
          end if;
       end if;

@@ -273,7 +273,7 @@ begin
       variable op		: opcode_t;
       variable sz65		: unsigned( 64 downto 0 );
       variable nxt		: unsigned( 65 downto 0 );
-      variable b		: byte_t;
+      variable bb		: byte_t;
       variable cg, cd		: signed( 63 downto 0 );
       variable sz		: natural;
       variable done_acc	: boolean;
@@ -675,7 +675,7 @@ begin
                   when S_ACC_WAIT =>
                      if MEM_RSP_i.valid = '1' then
                         op := instr.slot.canon.op;
-                        b := MEM_RSP_i.rdata( 7 downto 0 );
+                        bb := MEM_RSP_i.rdata( 7 downto 0 );
                         if MEM_RSP_i.fault = '1' then
                            FINISH( ( others => '0' ), 132, false );			-- (LEXCMP : rien n'est écrit)
                         elsif IS_LEX( op ) then
@@ -695,7 +695,7 @@ begin
                               end if;
                            end if;
                         else
-                           if wstep then w := MEM_RSP_i.rdata; else w := x"00000000000000" & b; end if;
+                           if wstep then w := MEM_RSP_i.rdata; else w := x"00000000000000" & bb; end if;
                            if wstep then n := 8; else n := 1; end if;
                            case sub is
                               when 0 =>

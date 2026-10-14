@@ -13,6 +13,7 @@ use work.FETCH_DECODE_TYPES.all;
 use work.ARCH_TYPES.all;
 use work.MEMORY_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.INO_PADDR.all;
 
         --------------------------------------------------------------------------------
         -- STACK_UNIT, architecture RTL -- première étape du backend InO.
@@ -37,6 +38,18 @@ use work.IN_ORDER_TYPES.all;
         -- réussi invalide les copies cache recouvertes. LVA connu réécrit la cellule exposée.
         -- Les accès calculés suivent les invariants V8 des cellules de calcul et n'ont pas à
         -- sonder le cache. LINK/UNLINK et les opérations système sérialisantes restent à faire.
+        --
+        -- Espace physique InO (INO_PADDR) : DSP, RSP, DISPLAY, adresses des cellules, des
+        -- sources, de la destination, des FILL/SPILL et cibles de retour ne gardent que
+        -- PA_BITS bits (CUT a chaque ecriture de registre). Elles sont realisables par
+        -- construction :
+        --   - un nouveau DSP / RSP non realisable faute (DSP_LIMIT / RSP_LIMIT) ;
+        --   - UNLINK dont le FP sauvegarde n'est pas realisable faute (132) avant emission ;
+        --   - une adresse de retour relue en memoire non realisable fait fauter RTD (132) ;
+        --   - le frame d'une SYNC est controle par SYSTEM_UNIT.
+        -- Les adresses d'acces direct (DISPLAY + val) restent sur 64 bits jusqu'a
+        -- DATA_CACHE, qui fait fauter un acces non realisable. La plage de maintenance
+        -- (maint_s) reste sur 64 bits.
         --------------------------------------------------------------------------------
 
                                 ---
@@ -86,6 +99,19 @@ of STACK_UNIT is                ---
 
    subtype operand_index_t is natural range 0 to 4;
    type source_address_array_t is array( 0 to 3 ) of address_t;
+
+   -- Ports de lecture du cache de pile data. Un indice dynamique dans cells_s coûte
+   -- un multiplexeur 64:1 de 130 bits ; on multiplexe donc les indices (6 bits) selon
+   -- l'état et on ne lit le tableau qu'en READ_PORTS endroits fixes.
+   --   ST_IDLE      : 0..3 sources du fast path (accès direct : 0 source, 1..3
+   --                  cellules recouvertes), 4 destination
+   --   ST_PREPARE   : 0 source ou destination, 1 ancien sommet (DROP)
+   --   ST_WAIT_EXEC : 0..3 sources dépilées, 2..4 cellules d'un rangement direct
+   --   autres       : 0
+   constant READ_PORTS : positive := 5;
+   subtype cell_index_t is natural range 0 to STACK_CACHE_WORDS_G - 1;
+   type cell_index_array_t is array( 0 to READ_PORTS - 1 ) of cell_index_t;
+   type mem_cell_address_array_t is array( 0 to 2 ) of address_t;
 
    signal state_s              : state_t := ST_IDLE;
    signal frame_s              : frame_state_t;
@@ -241,13 +267,26 @@ of STACK_UNIT is                ---
       end if;
    end function;
 
+   function CUT_FRAME( f : frame_state_t ) return frame_state_t is
+      variable r : frame_state_t;
+   begin
+      r.dsp := CUT( f.dsp );
+      r.rsp := CUT( f.rsp );
+      for i in r.display'range loop
+         r.display( i ) := CUT( f.display( i ) );
+      end loop;
+      return r;
+   end function;
+
+   -- r est la cellule d'indice WIDX( a ), lue par un port de lecture.
    procedure INVALIDATE_CELL(
       signal c : inout stack_cell_array_t;
+      constant r : in stack_cell_t;
       constant a : in address_t ) is
       variable i : natural;
    begin
       i := WIDX( a );
-      if c( i ).valid = '1' and c( i ).addr = a then
+      if r.valid = '1' and r.addr = a then
          c( i ).valid <= '0';
          c( i ).dirty <= '0';
       end if;
@@ -366,8 +405,236 @@ begin
       variable fast_dst_valid   : boolean;
       variable fast_mem_base    : address_t;
       variable fast_mem_len     : address_t;
+      -- Ports de lecture des deux caches de pile.
+      variable fast_src         : source_address_array_t;
+      variable fast_mem         : mem_cell_address_array_t;
+      variable ri               : cell_index_array_t;
+      variable rd               : stack_cell_array_t( 0 to READ_PORTS - 1 );
+      variable rri              : natural range 0 to RETURN_CACHE_WORDS_G - 1;
+      variable rrd              : stack_cell_t;
+      -- Parcours de plage commun à LINK, UNLINK/UNLINKR et RTD.
+      variable range_lo         : address_t;
+      variable range_hi         : address_t;
+      variable range_keep       : boolean;
    begin
       if rising_edge( CLK_i ) then
+
+         ------------------------------------------------------------------------------
+         -- Décodage de l'instruction offerte par DECODE_QUEUE (utilisé en ST_IDLE).
+         ------------------------------------------------------------------------------
+            s := DECODE_BLOCK_i( 0 );
+            e := ISA_TABLE( to_integer( unsigned( s.canon.op ) ) );
+            if s.canon.op = UOP_LIHI then
+               e := ( true, 9, FMT_NONE, ISSUE_INTEGER, 1, 1, STACK_LINEAR,
+                      LVL_NONE, false, false, false, false );
+            elsif s.canon.op = OP_TRAP then
+               -- Les services système ont un effet de pile dynamique qui n'est
+               -- pas encodé dans ISA_TABLE :
+               --   0 EXIT et 17 CTX_RESTORE lisent le sommet sans le dépiler ;
+               --   16 CTX_SAVE et 18 SET_IMASK font ( x -- r ) ;
+               --   les autres services n'ont pas d'effet propre sur la pile.
+               case to_integer( s.canon.val ) is
+                  when 0 | 17 =>
+                     e.pops := 1; e.pushes := 1; e.stack_action := STACK_KEEP_TOP;
+                  when 16 | 18 =>
+                     e.pops := 1; e.pushes := 1; e.stack_action := STACK_LINEAR;
+                  when others =>
+                     e.pops := 0; e.pushes := 0; e.stack_action := STACK_LINEAR;
+               end case;
+            end if;
+
+            f := NO_FAULT;
+            if s.canon.op = UOP_FETCH_FAULT then
+               f := ( valid => '1', code => FAULT_ACCESS );
+            elsif s.canon.op = UOP_ILLEGAL or not e.defined then
+               f := ( valid => '1', code => FAULT_UNDEFINED );
+            elsif e.lvl_use = LVL_FRAME and s.canon.lvl = LEVEL_STACK then
+               f := ( valid => '1', code => FAULT_UNDEFINED );
+            end if;
+
+            npop := e.pops;
+            if e.lvl_use = LVL_ADDR and s.canon.lvl = LEVEL_STACK then
+               npop := npop + 1;
+            end if;
+
+            ndsp := frame_s.dsp;
+            lvl := to_integer( s.canon.lvl );
+            case e.stack_action is
+               when STACK_LINEAR =>
+                  if npop > e.pushes then
+                     ndsp := frame_s.dsp - 8 * ( npop - e.pushes );
+                  elsif e.pushes > npop then
+                     ndsp := frame_s.dsp + 8 * ( e.pushes - npop );
+                  end if;
+               when STACK_DROP =>
+                  ndsp := frame_s.dsp - 8;
+               when STACK_DUP | STACK_OVER =>
+                  ndsp := frame_s.dsp + 8;
+               when STACK_KEEP_TOP =>
+                  null;
+            end case;
+
+            -- Effet de frame, non décrit par pops/pushes dans ISA_TABLE.
+            -- LINK lvl>0 pousse l'ancien DISPLAY[lvl], puis réserve alloc octets ;
+            -- lvl=0 ne pousse rien. UNLINK/UNLINKR reviennent à DISPLAY[lvl],
+            -- dépilent le FP sauvé et laissent DSP juste en dessous.
+            if IS_LINK_OP( s.canon.op ) then
+               alloc65 := resize( unsigned( std_logic_vector( s.canon.val ) ), 65 ) + 7;
+               alloc65( 2 downto 0 ) := "000";
+               ndsp65 := resize( frame_s.dsp, 65 ) + alloc65;
+               if lvl > 0 then
+                  ndsp65 := ndsp65 + 8;
+               end if;
+               ndsp := ndsp65( 63 downto 0 );
+               if ndsp65( 64 ) = '1' then
+                  f := ( valid => '1', code => FAULT_DSP_LIMIT );
+               end if;
+            elsif IS_UNLINK_OP( s.canon.op ) and lvl <= 14 then
+               -- Décodage évalué à chaque cycle : protéger l'indice de DISPLAY.
+               ndsp := frame_s.display( lvl ) - 8;
+            elsif IS_RTD_OP( s.canon.op ) then
+               -- RTD n : n est un nombre d'octets à abandonner.
+               ndsp := frame_s.dsp - U64( s.canon.val );
+            end if;
+
+            nrsp := frame_s.rsp;
+            if IS_CALL_OP( s.canon.op ) then
+               nrsp := frame_s.rsp - 8;
+            end if;
+
+            if f.valid = '0' and ndsp > LIMITS_i.lim_dsp and ndsp > frame_s.dsp then
+               f := ( valid => '1', code => FAULT_DSP_LIMIT );
+            elsif f.valid = '0' and nrsp < LIMITS_i.lim_rsp and nrsp < frame_s.rsp then
+               f := ( valid => '1', code => FAULT_RSP_LIMIT );
+            elsif f.valid = '0' and not PA_OK( ndsp ) then
+               -- Espace physique InO : DSP hors de l'espace realise.
+               f := ( valid => '1', code => FAULT_DSP_LIMIT );
+            elsif f.valid = '0' and not PA_OK( nrsp ) then
+               f := ( valid => '1', code => FAULT_RSP_LIMIT );
+            end if;
+
+         -- Sources et cellules mémoire examinées par le fast path de ST_IDLE : même
+         -- nombre de sources que ST_IDLE (nsrc), mêmes adresses que fast_addr.
+         nsrc := 0;
+         if IS_LINK_OP( s.canon.op ) then
+            nsrc := 0;
+         elsif IS_UNLINK_OP( s.canon.op ) then
+            nsrc := 1;
+         else
+            case e.stack_action is
+               when STACK_LINEAR                => nsrc := npop;
+               when STACK_KEEP_TOP | STACK_DUP  => nsrc := 1;
+               when STACK_OVER                  => nsrc := 1;
+               when STACK_DROP                  => nsrc := 0;
+            end case;
+         end if;
+         fast_src := ( others => ( others => '0' ) );
+         for j in 0 to 3 loop
+            case e.stack_action is
+               when STACK_LINEAR =>
+                  if j < npop then
+                     fast_src( j ) := frame_s.dsp - 8 * ( npop - 1 - j );
+                  end if;
+               when STACK_KEEP_TOP | STACK_DUP =>
+                  fast_src( j ) := frame_s.dsp;
+               when STACK_OVER =>
+                  fast_src( j ) := frame_s.dsp - 8;
+               when STACK_DROP =>
+                  fast_src( j ) := frame_s.dsp;
+            end case;
+         end loop;
+         -- DISPLAY n'a que 15 niveaux (0..14) ; lvl = 15 désigne la pile.
+         fast_mem_base := ( others => '0' );
+         if lvl <= 14 then
+            fast_mem_base := frame_s.display( lvl ) + U64( s.canon.val );
+         end if;
+         for k in 0 to 2 loop
+            fast_mem( k ) := ( fast_mem_base( 63 downto 3 ) & "000" ) + to_unsigned( 8 * k, 64 );
+         end loop;
+
+         ------------------------------------------------------------------------------
+         -- Indices des ports de lecture selon l'état, puis lectures (seuls accès à
+         -- cells_s / return_cells_s par indice dynamique en lecture).
+         ------------------------------------------------------------------------------
+         ri  := ( others => 0 );
+         rri := 0;
+         case state_s is
+            when ST_IDLE =>
+               for j in 0 to 3 loop
+                  if j < nsrc then
+                     ri( j ) := WIDX( fast_src( j ) );
+                  end if;
+               end loop;
+               if e.issue_class = ISSUE_MEMORY then
+                  for k in 0 to 2 loop
+                     ri( 1 + k ) := WIDX( fast_mem( k ) );
+                  end loop;
+               end if;
+               ri( 4 ) := WIDX( ndsp );
+
+            when ST_FAST_COMMIT =>
+               ri( 0 ) := WIDX( old_dsp_s );
+
+            when ST_PREPARE =>
+               if source_index_s < source_count_s then
+                  ri( 0 ) := WIDX( source_address_s( source_index_s ) );
+               else
+                  ri( 0 ) := WIDX( destination_address_s );
+               end if;
+               ri( 1 ) := WIDX( old_dsp_s );
+               if IS_CALL_OP( slot_s.canon.op ) then
+                  rri := RWIDX( new_rsp_s );
+               else
+                  rri := RWIDX( frame_s.rsp );
+               end if;
+
+            when ST_COH_SCAN =>
+               ri( 0 ) := WIDX( ( coh_base_s( 63 downto 3 ) & "000" ) + to_unsigned( 8 * coh_index_s, 64 ) );
+
+            when ST_WAIT_EXEC =>
+               for j in 0 to 3 loop
+                  ri( j ) := WIDX( source_address_s( j ) );
+               end loop;
+               if coh_invalidate_s = '1' then
+                  for k in 0 to 2 loop
+                     ri( 2 + k ) := WIDX( ( coh_base_s( 63 downto 3 ) & "000" ) + to_unsigned( 8 * k, 64 ) );
+                  end loop;
+               end if;
+               rri := RWIDX( frame_s.rsp );
+
+            when ST_MAINT_SCAN =>
+               if maint_index_s < STACK_CACHE_WORDS_G then
+                  ri( 0 ) := maint_index_s;
+               end if;
+
+            when ST_MAINT_SPILL_RSP =>
+               ri( 0 ) := mem_cell_index_s;
+
+            when ST_MAINT_RET_SCAN =>
+               if ret_maint_index_s < RETURN_CACHE_WORDS_G then
+                  rri := ret_maint_index_s;
+               end if;
+
+            when ST_MAINT_RET_SPILL_RSP =>
+               rri := ret_mem_cell_index_s;
+
+            when others =>
+               null;
+         end case;
+
+         for k in 0 to READ_PORTS - 1 loop
+            rd( k ) := cells_s( ri( k ) );
+         end loop;
+         rrd := return_cells_s( rri );
+
+         -- pragma translate_off
+         -- Les cellules 2..4 d'un rangement direct partagent les ports des sources 2..3.
+         if state_s = ST_WAIT_EXEC and coh_invalidate_s = '1' then
+            assert source_count_s <= 2
+               report "STACK_UNIT: rangement direct avec plus de deux sources"
+               severity failure;
+         end if;
+         -- pragma translate_on
 
          -- Impulsions par défaut.
          commit_s.valid     <= '0';
@@ -405,7 +672,7 @@ begin
                report "STACK_UNIT: SYNC pendant une instruction ou une maintenance"
                severity failure;
             -- pragma translate_on
-            frame_s         <= SYNC_FRAME_i;
+            frame_s         <= CUT_FRAME( SYNC_FRAME_i );
             cells_s         <= ( others => NO_CELL );
             return_cells_s  <= ( others => NO_CELL );
             state_s         <= ST_IDLE;
@@ -434,96 +701,14 @@ begin
                      state_s              <= ST_MAINT_SCAN;
 
                   elsif DECODE_COUNT_i /= 0 and DECODE_BLOCK_i( 0 ).valid = '1' then
-                     s := DECODE_BLOCK_i( 0 );
-                     e := ISA_TABLE( to_integer( unsigned( s.canon.op ) ) );
-                     if s.canon.op = UOP_LIHI then
-                        e := ( true, 9, FMT_NONE, ISSUE_INTEGER, 1, 1, STACK_LINEAR,
-                               LVL_NONE, false, false, false, false );
-                     elsif s.canon.op = OP_TRAP then
-                        -- Les services système ont un effet de pile dynamique qui n'est
-                        -- pas encodé dans ISA_TABLE :
-                        --   0 EXIT et 17 CTX_RESTORE lisent le sommet sans le dépiler ;
-                        --   16 CTX_SAVE et 18 SET_IMASK font ( x -- r ) ;
-                        --   les autres services n'ont pas d'effet propre sur la pile.
-                        case to_integer( s.canon.val ) is
-                           when 0 | 17 =>
-                              e.pops := 1; e.pushes := 1; e.stack_action := STACK_KEEP_TOP;
-                           when 16 | 18 =>
-                              e.pops := 1; e.pushes := 1; e.stack_action := STACK_LINEAR;
-                           when others =>
-                              e.pops := 0; e.pushes := 0; e.stack_action := STACK_LINEAR;
-                        end case;
-                     end if;
-
-                     f := NO_FAULT;
-                     if s.canon.op = UOP_FETCH_FAULT then
-                        f := ( valid => '1', code => FAULT_ACCESS );
-                     elsif s.canon.op = UOP_ILLEGAL or not e.defined then
-                        f := ( valid => '1', code => FAULT_UNDEFINED );
-                     elsif e.lvl_use = LVL_FRAME and s.canon.lvl = LEVEL_STACK then
-                        f := ( valid => '1', code => FAULT_UNDEFINED );
-                     end if;
-
-                     npop := e.pops;
-                     if e.lvl_use = LVL_ADDR and s.canon.lvl = LEVEL_STACK then
-                        npop := npop + 1;
-                     end if;
-
-                     ndsp := frame_s.dsp;
-                     lvl := to_integer( s.canon.lvl );
-                     case e.stack_action is
-                        when STACK_LINEAR =>
-                           if npop > e.pushes then
-                              ndsp := frame_s.dsp - 8 * ( npop - e.pushes );
-                           elsif e.pushes > npop then
-                              ndsp := frame_s.dsp + 8 * ( e.pushes - npop );
-                           end if;
-                        when STACK_DROP =>
-                           ndsp := frame_s.dsp - 8;
-                        when STACK_DUP | STACK_OVER =>
-                           ndsp := frame_s.dsp + 8;
-                        when STACK_KEEP_TOP =>
-                           null;
-                     end case;
-
-                     -- Effet de frame, non décrit par pops/pushes dans ISA_TABLE.
-                     -- LINK lvl>0 pousse l'ancien DISPLAY[lvl], puis réserve alloc octets ;
-                     -- lvl=0 ne pousse rien. UNLINK/UNLINKR reviennent à DISPLAY[lvl],
-                     -- dépilent le FP sauvé et laissent DSP juste en dessous.
-                     if IS_LINK_OP( s.canon.op ) then
-                        alloc65 := resize( unsigned( std_logic_vector( s.canon.val ) ), 65 ) + 7;
-                        alloc65( 2 downto 0 ) := "000";
-                        ndsp65 := resize( frame_s.dsp, 65 ) + alloc65;
-                        if lvl > 0 then
-                           ndsp65 := ndsp65 + 8;
-                        end if;
-                        ndsp := ndsp65( 63 downto 0 );
-                        if ndsp65( 64 ) = '1' then
-                           f := ( valid => '1', code => FAULT_DSP_LIMIT );
-                        end if;
-                     elsif IS_UNLINK_OP( s.canon.op ) then
-                        ndsp := frame_s.display( lvl ) - 8;
-                     elsif IS_RTD_OP( s.canon.op ) then
-                        -- RTD n : n est un nombre d'octets à abandonner.
-                        ndsp := frame_s.dsp - U64( s.canon.val );
-                     end if;
-
-                     nrsp := frame_s.rsp;
-                     if IS_CALL_OP( s.canon.op ) then
-                        nrsp := frame_s.rsp - 8;
-                     end if;
-
-                     if f.valid = '0' and ndsp > LIMITS_i.lim_dsp and ndsp > frame_s.dsp then
-                        f := ( valid => '1', code => FAULT_DSP_LIMIT );
-                     elsif f.valid = '0' and nrsp < LIMITS_i.lim_rsp and nrsp < frame_s.rsp then
-                        f := ( valid => '1', code => FAULT_RSP_LIMIT );
-                     end if;
+                     -- s, e, f, npop, lvl, ndsp, nrsp : décodage de la prise, calculé
+                     -- avant le case (il sert aussi aux indices des ports de lecture).
 
                      slot_s              <= s;
                      entry_s             <= e;
-                     old_dsp_s           <= frame_s.dsp;
-                     new_dsp_s           <= ndsp;
-                     new_rsp_s           <= nrsp;
+                     old_dsp_s           <= CUT( frame_s.dsp );
+                     new_dsp_s           <= CUT( ndsp );
+                     new_rsp_s           <= CUT( nrsp );
                      return_target_s     <= ( others => '0' );
                      ret_after_spill_fill_s <= '0';
                      initial_fault_s     <= f;
@@ -547,7 +732,7 @@ begin
                         -- implantation à écriture différée doit la rendre propre.
                         a := frame_s.display( to_integer( s.canon.lvl ) ) + U64( s.canon.val );
                         coh_required_s <= '1';
-                        coh_base_s     <= a( 63 downto 3 ) & "000";
+                        coh_base_s     <= CUT( a( 63 downto 3 ) & "000" );
                         coh_length_s   <= to_unsigned( 8, 64 );
 
                      elsif e.memory and not e.frame and not IS_SYSTEM_OP( s.canon.op )
@@ -558,7 +743,7 @@ begin
                         -- générique du cache de pile.
                         a := frame_s.display( to_integer( s.canon.lvl ) ) + U64( s.canon.val );
                         coh_required_s <= '1';
-                        coh_base_s     <= a;
+                        coh_base_s     <= CUT( a );
 
                         if s.canon.op( 7 downto 6 ) = "10" then
                            -- Famille C : avant toute chose l'unité mémoire lit la
@@ -588,41 +773,41 @@ begin
                         if lvl > 0 then
                            -- Réserver la cellule qui sauvera l'ancien DISPLAY[lvl].
                            destination_valid_s   <= '1';
-                           destination_address_s <= frame_s.dsp + 8;
+                           destination_address_s <= CUT( frame_s.dsp + 8 );
                         end if;
                      elsif IS_UNLINK_OP( s.canon.op ) then
                         -- FP sauvegardé par LINK, restauré au commit si la lecture de co-pile réussit.
                         nsrc := 1;
-                        source_address_s( 0 ) <= frame_s.display( lvl );
+                        source_address_s( 0 ) <= CUT( frame_s.display( lvl ) );
                      else
                         case e.stack_action is
                            when STACK_LINEAR =>
                               nsrc := npop;
                               for j in 0 to 3 loop
                                  if j < npop then
-                                    source_address_s( j ) <= frame_s.dsp - 8 * ( npop - 1 - j );
+                                    source_address_s( j ) <= CUT( frame_s.dsp - 8 * ( npop - 1 - j ) );
                                  end if;
                               end loop;
                               if e.pushes = 1 then
                                  destination_valid_s   <= '1';
-                                 destination_address_s <= ndsp;
+                                 destination_address_s <= CUT( ndsp );
                               end if;
 
                            when STACK_KEEP_TOP =>
                               nsrc := 1;
-                              source_address_s( 0 ) <= frame_s.dsp;
+                              source_address_s( 0 ) <= CUT( frame_s.dsp );
 
                            when STACK_DUP =>
                               nsrc := 1;
-                              source_address_s( 0 ) <= frame_s.dsp;
+                              source_address_s( 0 ) <= CUT( frame_s.dsp );
                               destination_valid_s   <= '1';
-                              destination_address_s <= ndsp;
+                              destination_address_s <= CUT( ndsp );
 
                            when STACK_OVER =>
                               nsrc := 1;
-                              source_address_s( 0 ) <= frame_s.dsp - 8;
+                              source_address_s( 0 ) <= CUT( frame_s.dsp - 8 );
                               destination_valid_s   <= '1';
-                              destination_address_s <= ndsp;
+                              destination_address_s <= CUT( ndsp );
 
                            when STACK_DROP =>
                               nsrc := 0;
@@ -669,7 +854,9 @@ begin
                         elsif e.issue_class = ISSUE_MEMORY
                            and e.lvl_use = LVL_ADDR
                            and lvl <= 14
-                           and IS_FAST_DIRECT_MEMORY_OP( s.canon.op ) then
+                           and IS_FAST_DIRECT_MEMORY_OP( s.canon.op )
+                           -- Les ports 1..3 servent aux cellules recouvertes.
+                           and nsrc <= 1 then
                            -- Accès direct famille B. L'adresse est déjà connue à partir
                            -- de DISPLAY[lvl]+val ; seuls les hits de pile et l'absence
                            -- de cellule sale recouverte permettent de sauter PREPARE/COH.
@@ -693,10 +880,10 @@ begin
                                     fast_addr := frame_s.dsp; -- non utilisé (nsrc=0)
                               end case;
 
-                              idx := WIDX( fast_addr );
-                              if cells_s( idx ).valid = '1'
-                                 and cells_s( idx ).addr = fast_addr then
-                                 fast_values( j ) := cells_s( idx ).data;
+                              -- Port j : cellule WIDX( fast_src( j ) ), fast_src( j ) = fast_addr.
+                              if rd( j ).valid = '1'
+                                 and rd( j ).addr = fast_addr then
+                                 fast_values( j ) := rd( j ).data;
                               else
                                  fast_ok := false;
                               end if;
@@ -714,11 +901,11 @@ begin
                         end if;
 
                         if fast_dst_valid then
-                           dst_idx := WIDX( fast_dst_addr );
-                           if cells_s( dst_idx ).valid = '1'
-                              and cells_s( dst_idx ).addr /= fast_dst_addr
-                              and cells_s( dst_idx ).dirty = '1'
-                              and cells_s( dst_idx ).addr <= frame_s.dsp then
+                           -- Port 4 : cellule WIDX( ndsp ), et fast_dst_addr = ndsp.
+                           if rd( 4 ).valid = '1'
+                              and rd( 4 ).addr /= fast_dst_addr
+                              and rd( 4 ).dirty = '1'
+                              and rd( 4 ).addr <= frame_s.dsp then
                               fast_ok := false;
                            end if;
                         end if;
@@ -736,11 +923,11 @@ begin
                               a := ( fast_mem_base( 63 downto 3 ) & "000" )
                                    + to_unsigned( 8 * k, 64 );
                               if a < fast_mem_base + fast_mem_len then
-                                 idx := WIDX( a );
-                                 if cells_s( idx ).valid = '1'
-                                    and cells_s( idx ).addr = a
-                                    and cells_s( idx ).dirty = '1'
-                                    and cells_s( idx ).addr <= frame_s.dsp then
+                                 -- Port 1 + k : cellule WIDX( fast_mem( k ) ), fast_mem( k ) = a.
+                                 if rd( 1 + k ).valid = '1'
+                                    and rd( 1 + k ).addr = a
+                                    and rd( 1 + k ).dirty = '1'
+                                    and rd( 1 + k ).addr <= frame_s.dsp then
                                     fast_ok := false;
                                  end if;
                               end if;
@@ -779,13 +966,13 @@ begin
                when ST_FAST_COMMIT =>
                   case entry_s.stack_action is
                      when STACK_DROP =>
-                        INVALIDATE_CELL( cells_s, old_dsp_s );
+                        INVALIDATE_CELL( cells_s, rd( 0 ), old_dsp_s );
                         frame_s.dsp <= new_dsp_s;
 
                      when STACK_DUP | STACK_OVER =>
                         idx := WIDX( destination_address_s );
                         cells_s( idx ) <= ( valid => '1', dirty => '1',
-                                            addr => destination_address_s,
+                                            addr => CUT( destination_address_s ),
                                             data => source_value_s( 0 ) );
                         frame_s.dsp <= new_dsp_s;
 
@@ -815,48 +1002,50 @@ begin
                   elsif source_index_s < source_count_s then
                      a   := source_address_s( source_index_s );
                      idx := WIDX( a );
-                     if cells_s( idx ).valid = '1' and cells_s( idx ).addr = a then
-                        source_value_s( source_index_s ) <= cells_s( idx ).data;
+                     -- Port 0 : cellule idx.
+                     if rd( 0 ).valid = '1' and rd( 0 ).addr = a then
+                        source_value_s( source_index_s ) <= rd( 0 ).data;
                         source_index_s <= source_index_s + 1;
                      else
                         -- Avant de prendre l'entrée, sauver son occupant sale s'il est
                         -- encore une cellule vivante de la pile architecturale.
-                        live_collision := cells_s( idx ).valid = '1'
-                                          and cells_s( idx ).dirty = '1'
-                                          and cells_s( idx ).addr <= old_dsp_s;
+                        live_collision := rd( 0 ).valid = '1'
+                                          and rd( 0 ).dirty = '1'
+                                          and rd( 0 ).addr <= old_dsp_s;
                         mem_cell_index_s <= idx;
                         if live_collision then
-                           mem_address_s <= cells_s( idx ).addr;
-                           mem_data_s    <= cells_s( idx ).data;
+                           mem_address_s <= CUT( rd( 0 ).addr );
+                           mem_data_s    <= rd( 0 ).data;
                            state_s       <= ST_SRC_SPILL_REQ;
                         else
-                           mem_address_s <= a;
+                           mem_address_s <= CUT( a );
                            state_s       <= ST_SRC_FILL_REQ;
                         end if;
                      end if;
 
                   elsif destination_valid_s = '1' then
                      dst_idx := WIDX( destination_address_s );
-                     if cells_s( dst_idx ).valid = '1'
-                        and cells_s( dst_idx ).addr /= destination_address_s
-                        and cells_s( dst_idx ).dirty = '1'
-                        and cells_s( dst_idx ).addr <= old_dsp_s then
+                     -- Port 0 : cellule dst_idx.
+                     if rd( 0 ).valid = '1'
+                        and rd( 0 ).addr /= destination_address_s
+                        and rd( 0 ).dirty = '1'
+                        and rd( 0 ).addr <= old_dsp_s then
                         mem_cell_index_s <= dst_idx;
-                        mem_address_s    <= cells_s( dst_idx ).addr;
-                        mem_data_s       <= cells_s( dst_idx ).data;
+                        mem_address_s    <= CUT( rd( 0 ).addr );
+                        mem_data_s       <= rd( 0 ).data;
                         state_s          <= ST_DST_SPILL_REQ;
                      else
                         -- L'entrée pourra être remplacée au commit.
                         if entry_s.issue_class = ISSUE_NONE then
                            case entry_s.stack_action is
                               when STACK_DROP =>
-                                 INVALIDATE_CELL( cells_s, old_dsp_s );
+                                 INVALIDATE_CELL( cells_s, rd( 1 ), old_dsp_s );
                                  frame_s.dsp <= new_dsp_s;
 
                               when STACK_DUP | STACK_OVER =>
                                  idx := WIDX( destination_address_s );
                                  cells_s( idx ) <= ( valid => '1', dirty => '1',
-                                                     addr => destination_address_s,
+                                                     addr => CUT( destination_address_s ),
                                                      data => source_value_s( 0 ) );
                                  frame_s.dsp <= new_dsp_s;
 
@@ -880,14 +1069,23 @@ begin
                      -- Pile de retours séparée. CALL/CALLI réservent la cellule du
                      -- futur RSP ; RTD obtient la cible au RSP courant. Une collision
                      -- sale est rangée avant remplacement.
-                     if IS_CALL_OP( slot_s.canon.op ) then
+                     if IS_UNLINK_OP( slot_s.canon.op )
+                        and not PA_OK( unsigned( source_value_s( 0 ) ) ) then
+                        -- FP sauvegardé non réalisable (INO_PADDR) : UNLINK faute avant
+                        -- toute émission, donc avant l'effet de co-pile de COMPLEX_UNIT.
+                        commit_s <= ( valid => '1', slot => slot_s,
+                                      fault => ( valid => '1', code => FAULT_ACCESS ),
+                                      taken => '0', target => ( others => '0' ) );
+                        state_s <= ST_FAULT_HOLD;
+
+                     elsif IS_CALL_OP( slot_s.canon.op ) then
                         ridx := RWIDX( new_rsp_s );
-                        if return_cells_s( ridx ).valid = '1'
-                           and return_cells_s( ridx ).addr /= new_rsp_s
-                           and return_cells_s( ridx ).dirty = '1' then
+                        if rrd.valid = '1'
+                           and rrd.addr /= new_rsp_s
+                           and rrd.dirty = '1' then
                            ret_mem_cell_index_s   <= ridx;
-                           mem_address_s          <= return_cells_s( ridx ).addr;
-                           mem_data_s             <= return_cells_s( ridx ).data;
+                           mem_address_s          <= CUT( rrd.addr );
+                           mem_data_s             <= rrd.data;
                            ret_after_spill_fill_s <= '0';
                            state_s                <= ST_RET_SPILL_REQ;
                         else
@@ -901,32 +1099,32 @@ begin
 
                      elsif IS_RTD_OP( slot_s.canon.op ) then
                         ridx := RWIDX( frame_s.rsp );
-                        if return_cells_s( ridx ).valid = '1'
-                           and return_cells_s( ridx ).addr = frame_s.rsp then
-                           return_target_s <= unsigned( return_cells_s( ridx ).data );
+                        if rrd.valid = '1'
+                           and rrd.addr = frame_s.rsp then
+                           return_target_s <= CUT( unsigned( rrd.data ) );
                            if coh_required_s = '1' then
                               coh_index_s <= 0;
                               state_s <= ST_COH_SCAN;
                            else
                               state_s <= ST_ISSUE;
                            end if;
-                        elsif return_cells_s( ridx ).valid = '1'
-                           and return_cells_s( ridx ).dirty = '1' then
+                        elsif rrd.valid = '1'
+                           and rrd.dirty = '1' then
                            ret_mem_cell_index_s   <= ridx;
-                           mem_address_s          <= return_cells_s( ridx ).addr;
-                           mem_data_s             <= return_cells_s( ridx ).data;
+                           mem_address_s          <= CUT( rrd.addr );
+                           mem_data_s             <= rrd.data;
                            ret_after_spill_fill_s <= '1';
                            state_s                <= ST_RET_SPILL_REQ;
                         else
                            ret_mem_cell_index_s   <= ridx;
-                           mem_address_s          <= frame_s.rsp;
+                           mem_address_s          <= CUT( frame_s.rsp );
                            state_s                <= ST_RET_FILL_REQ;
                         end if;
 
                      elsif entry_s.issue_class = ISSUE_NONE then
                         case entry_s.stack_action is
                            when STACK_DROP =>
-                              INVALIDATE_CELL( cells_s, old_dsp_s );
+                              INVALIDATE_CELL( cells_s, rd( 1 ), old_dsp_s );
                               frame_s.dsp <= new_dsp_s;
                            when others =>
                               null;
@@ -963,7 +1161,7 @@ begin
                      else
                         cells_s( mem_cell_index_s ).valid <= '0';
                         cells_s( mem_cell_index_s ).dirty <= '0';
-                        mem_address_s <= source_address_s( source_index_s );
+                        mem_address_s <= CUT( source_address_s( source_index_s ) );
                         state_s <= ST_SRC_FILL_REQ;
                      end if;
                   end if;
@@ -983,7 +1181,7 @@ begin
                      else
                         idx := WIDX( source_address_s( source_index_s ) );
                         cells_s( idx ) <= ( valid => '1', dirty => '0',
-                                            addr => source_address_s( source_index_s ),
+                                            addr => CUT( source_address_s( source_index_s ) ),
                                             data => MEM_RSP_i.rdata );
                         source_value_s( source_index_s ) <= MEM_RSP_i.rdata;
                         source_index_s <= source_index_s + 1;
@@ -1034,7 +1232,7 @@ begin
                         return_cells_s( ret_mem_cell_index_s ).valid <= '0';
                         return_cells_s( ret_mem_cell_index_s ).dirty <= '0';
                         if ret_after_spill_fill_s = '1' then
-                           mem_address_s <= frame_s.rsp;
+                           mem_address_s <= CUT( frame_s.rsp );
                            state_s <= ST_RET_FILL_REQ;
                         else
                            state_s <= ST_PREPARE;
@@ -1049,7 +1247,8 @@ begin
 
                when ST_RET_FILL_RSP =>
                   if MEM_RSP_i.valid = '1' then
-                     if MEM_RSP_i.fault = '1' then
+                     -- Adresse de retour non realisable (INO_PADDR) : RTD faute (132).
+                     if MEM_RSP_i.fault = '1' or not PA_OK( unsigned( MEM_RSP_i.rdata ) ) then
                         commit_s <= ( valid => '1', slot => slot_s,
                                       fault => ( valid => '1', code => FAULT_ACCESS ),
                                       taken => '0', target => ( others => '0' ) );
@@ -1057,9 +1256,9 @@ begin
                      else
                         ridx := RWIDX( frame_s.rsp );
                         return_cells_s( ridx ) <=
-                           ( valid => '1', dirty => '0', addr => frame_s.rsp,
-                             data => MEM_RSP_i.rdata );
-                        return_target_s <= unsigned( MEM_RSP_i.rdata );
+                           ( valid => '1', dirty => '0', addr => CUT( frame_s.rsp ),
+                             data => std_logic_vector( CUT( unsigned( MEM_RSP_i.rdata ) ) ) );
+                        return_target_s <= CUT( unsigned( MEM_RSP_i.rdata ) );
                         state_s <= ST_PREPARE;
                      end if;
                   end if;
@@ -1077,13 +1276,14 @@ begin
                      state_s <= ST_ISSUE;
                   else
                      idx := WIDX( a );
-                     if cells_s( idx ).valid = '1'
-                        and cells_s( idx ).addr = a
-                        and cells_s( idx ).dirty = '1'
-                        and cells_s( idx ).addr <= old_dsp_s then
+                     -- Port 0 : cellule idx.
+                     if rd( 0 ).valid = '1'
+                        and rd( 0 ).addr = a
+                        and rd( 0 ).dirty = '1'
+                        and rd( 0 ).addr <= old_dsp_s then
                         mem_cell_index_s <= idx;
-                        mem_address_s    <= a;
-                        mem_data_s       <= cells_s( idx ).data;
+                        mem_address_s    <= CUT( a );
+                        mem_data_s       <= rd( 0 ).data;
                         state_s          <= ST_COH_SPILL_REQ;
                      else
                         coh_index_s <= coh_index_s + 1;
@@ -1147,7 +1347,42 @@ begin
                            for k in 0 to 2 loop
                               a := ( coh_base_s( 63 downto 3 ) & "000" ) + to_unsigned( 8 * k, 64 );
                               if a < coh_base_s + coh_length_s then
-                                 INVALIDATE_CELL( cells_s, a );
+                                 INVALIDATE_CELL( cells_s, rd( 2 + k ), a );
+                              end if;
+                           end loop;
+                        end if;
+
+                        -- Parcours unique des cellules pour LINK, UNLINK/UNLINKR et RTD :
+                        -- les correspondances d'une plage ( range_lo, range_hi ] deviennent
+                        -- invalides.
+                        --   LINK       : ( old_dsp, new_dsp ], sauf pour lvl > 0 la cellule
+                        --                old_dsp + 8, dans laquelle on installe juste après
+                        --                l'ancien DISPLAY[lvl]. Ne pas programmer à la fois son
+                        --                invalidation et son remplacement : avec un index de
+                        --                tableau dynamique, ces affectations partielles
+                        --                concurrentes peuvent laisser la cellule invalidée
+                        --                après le delta-cycle.
+                        --   UNLINK     : ( new_dsp, old_dsp ], cellule du FP sauvé comprise.
+                        --   RTD n      : ( new_dsp, old_dsp ] ; ces cellules mortes ne doivent
+                        --                surtout pas être rangées.
+                        if IS_LINK_OP( slot_s.canon.op ) or IS_UNLINK_OP( slot_s.canon.op )
+                           or IS_RTD_OP( slot_s.canon.op ) then
+                           if IS_LINK_OP( slot_s.canon.op ) then
+                              range_lo   := old_dsp_s;
+                              range_hi   := new_dsp_s;
+                              range_keep := to_integer( slot_s.canon.lvl ) > 0;
+                           else
+                              range_lo   := new_dsp_s;
+                              range_hi   := old_dsp_s;
+                              range_keep := false;
+                           end if;
+                           for j in 0 to STACK_CACHE_WORDS_G - 1 loop
+                              if cells_s( j ).valid = '1'
+                                 and cells_s( j ).addr > range_lo
+                                 and cells_s( j ).addr <= range_hi
+                                 and not ( range_keep and cells_s( j ).addr = old_dsp_s + 8 ) then
+                                 cells_s( j ).valid <= '0';
+                                 cells_s( j ).dirty <= '0';
                               end if;
                            end loop;
                         end if;
@@ -1157,45 +1392,22 @@ begin
                         -- l'état de frame ne devient visible qu'ici, après succès complet.
                         if IS_LINK_OP( slot_s.canon.op ) then
                            lvl := to_integer( slot_s.canon.lvl );
-                           -- Les anciennes correspondances de la zone locale nouvellement allouée
-                           -- ne sont plus valides. La cellule du FP sauvegardé est réinstallée ensuite.
-                           for j in 0 to STACK_CACHE_WORDS_G - 1 loop
-                              if cells_s( j ).valid = '1'
-                                 and cells_s( j ).addr > old_dsp_s
-                                 and cells_s( j ).addr <= new_dsp_s
-                                 -- Pour LINK lvl>0, old_dsp+8 est précisément la cellule
-                                 -- dans laquelle on installe juste après l'ancien DISPLAY[lvl].
-                                 -- Ne pas programmer simultanément son invalidation et son
-                                 -- remplacement : avec un index de tableau dynamique, ces
-                                 -- affectations partielles concurrentes peuvent laisser la
-                                 -- cellule invalidée après le delta-cycle.
-                                 and not ( lvl > 0 and cells_s( j ).addr = old_dsp_s + 8 ) then
-                                 cells_s( j ).valid <= '0';
-                                 cells_s( j ).dirty <= '0';
-                              end if;
-                           end loop;
+                           -- Zone locale invalidée par le parcours commun ci-dessus. La
+                           -- cellule du FP sauvegardé est réinstallée ici.
                            if lvl > 0 then
                               a := old_dsp_s + 8;
                               idx := WIDX( a );
-                              cells_s( idx ) <= ( valid => '1', dirty => '1', addr => a,
+                              cells_s( idx ) <= ( valid => '1', dirty => '1', addr => CUT( a ),
                                                   data => std_logic_vector( frame_s.display( lvl ) ) );
-                              frame_s.display( lvl ) <= a;
+                              frame_s.display( lvl ) <= CUT( a );
                            end if;
                            frame_s.dsp <= new_dsp_s;
 
                         elsif IS_UNLINK_OP( slot_s.canon.op ) then
                            lvl := to_integer( slot_s.canon.lvl );
-                           -- Tout le frame courant devient mort, cellule du FP sauvé comprise.
-                           for j in 0 to STACK_CACHE_WORDS_G - 1 loop
-                              if cells_s( j ).valid = '1'
-                                 and cells_s( j ).addr > new_dsp_s
-                                 and cells_s( j ).addr <= old_dsp_s then
-                                 cells_s( j ).valid <= '0';
-                                 cells_s( j ).dirty <= '0';
-                              end if;
-                           end loop;
+                           -- Tout le frame courant est mort : parcours commun ci-dessus.
                            frame_s.dsp <= new_dsp_s;
-                           frame_s.display( lvl ) <= unsigned( source_value_s( 0 ) );
+                           frame_s.display( lvl ) <= CUT( unsigned( source_value_s( 0 ) ) );
 
                         -- CALL/CALLI et RTD ont un effet architectural supplémentaire
                         -- sur RSP et sur la pile de retours. Rien n'a été modifié avant
@@ -1205,43 +1417,35 @@ begin
                            -- touche pas. L'adresse de retour est le PC suivant.
                            for j in 0 to 3 loop
                               if j < source_count_s then
-                                 INVALIDATE_CELL( cells_s, source_address_s( j ) );
+                                 INVALIDATE_CELL( cells_s, rd( j ), source_address_s( j ) );
                               end if;
                            end loop;
                            frame_s.dsp <= new_dsp_s;
                            frame_s.rsp <= new_rsp_s;
                            ridx := RWIDX( new_rsp_s );
                            return_cells_s( ridx ) <=
-                              ( valid => '1', dirty => '1', addr => new_rsp_s,
-                                data => std_logic_vector(
-                                   slot_s.pc + resize( slot_s.canon.len, 64 ) ) );
+                              ( valid => '1', dirty => '1', addr => CUT( new_rsp_s ),
+                                data => std_logic_vector( CUT(
+                                   slot_s.pc + resize( slot_s.canon.len, 64 ) ) ) );
 
                         elsif IS_RTD_OP( slot_s.canon.op ) then
-                           -- RTD n abandonne n octets de pile data : les cellules
-                           -- cachées devenues mortes ne doivent surtout pas être rangées.
-                           for j in 0 to STACK_CACHE_WORDS_G - 1 loop
-                              if cells_s( j ).valid = '1'
-                                 and cells_s( j ).addr > new_dsp_s
-                                 and cells_s( j ).addr <= old_dsp_s then
-                                 cells_s( j ).valid <= '0';
-                                 cells_s( j ).dirty <= '0';
-                              end if;
-                           end loop;
+                           -- RTD n abandonne n octets de pile data : cellules mortes
+                           -- invalidées par le parcours commun ci-dessus.
                            frame_s.dsp <= new_dsp_s;
                            ridx := RWIDX( frame_s.rsp );
-                           if return_cells_s( ridx ).valid = '1'
-                              and return_cells_s( ridx ).addr = frame_s.rsp then
+                           if rrd.valid = '1'
+                              and rrd.addr = frame_s.rsp then
                               return_cells_s( ridx ).valid <= '0';
                               return_cells_s( ridx ).dirty <= '0';
                            end if;
-                           frame_s.rsp <= frame_s.rsp + 8;
+                           frame_s.rsp <= CUT( frame_s.rsp + 8 );
 
                         -- Les cellules réellement dépilées deviennent mortes. Le résultat,
                         -- s'il existe, est ensuite installé à sa nouvelle adresse.
                         elsif entry_s.stack_action = STACK_LINEAR then
                            for j in 0 to 3 loop
                               if j < source_count_s then
-                                 INVALIDATE_CELL( cells_s, source_address_s( j ) );
+                                 INVALIDATE_CELL( cells_s, rd( j ), source_address_s( j ) );
                               end if;
                            end loop;
                            frame_s.dsp <= new_dsp_s;
@@ -1254,7 +1458,7 @@ begin
                               -- pragma translate_on
                               idx := WIDX( destination_address_s );
                               cells_s( idx ) <= ( valid => '1', dirty => '1',
-                                                  addr => destination_address_s,
+                                                  addr => CUT( destination_address_s ),
                                                   data => COMPLETE_i.result );
                            end if;
 
@@ -1318,19 +1522,20 @@ begin
                      end if;
                   else
                      idx := maint_index_s;
-                     if cells_s( idx ).valid = '1'
+                     -- Port 0 : cellule idx.
+                     if rd( 0 ).valid = '1'
                         and ( maint_s.kind = MAINT_WRITEBACK_ALL
-                              or IN_RANGE( cells_s( idx ).addr, maint_s.base, maint_s.length ) ) then
+                              or IN_RANGE( rd( 0 ).addr, maint_s.base, maint_s.length ) ) then
 
                         if maint_s.kind = MAINT_INVALIDATE_RANGE then
                            cells_s( idx ).valid <= '0';
                            cells_s( idx ).dirty <= '0';
                            maint_index_s <= maint_index_s + 1;
 
-                        elsif cells_s( idx ).dirty = '1' and cells_s( idx ).addr <= frame_s.dsp then
+                        elsif rd( 0 ).dirty = '1' and rd( 0 ).addr <= frame_s.dsp then
                            mem_cell_index_s <= idx;
-                           mem_address_s    <= cells_s( idx ).addr;
-                           mem_data_s       <= cells_s( idx ).data;
+                           mem_address_s    <= CUT( rd( 0 ).addr );
+                           mem_data_s       <= rd( 0 ).data;
                            state_s          <= ST_MAINT_SPILL_REQ;
 
                         else
@@ -1356,8 +1561,8 @@ begin
                         severity failure;
                      -- pragma translate_on
                      if MEM_RSP_i.fault = '0' then
-                        if cells_s( mem_cell_index_s ).valid = '1'
-                           and cells_s( mem_cell_index_s ).addr = mem_address_s then
+                        if rd( 0 ).valid = '1'
+                           and rd( 0 ).addr = mem_address_s then
                            cells_s( mem_cell_index_s ).dirty <= '0';
                         end if;
                      end if;
@@ -1381,11 +1586,11 @@ begin
                      end if;
                   else
                      ridx := ret_maint_index_s;
-                     if return_cells_s( ridx ).valid = '1'
-                        and return_cells_s( ridx ).dirty = '1' then
+                     if rrd.valid = '1'
+                        and rrd.dirty = '1' then
                         ret_mem_cell_index_s <= ridx;
-                        mem_address_s        <= return_cells_s( ridx ).addr;
-                        mem_data_s           <= return_cells_s( ridx ).data;
+                        mem_address_s        <= CUT( rrd.addr );
+                        mem_data_s           <= rrd.data;
                         state_s              <= ST_MAINT_RET_SPILL_REQ;
                      else
                         ret_maint_index_s <= ret_maint_index_s + 1;
@@ -1405,8 +1610,8 @@ begin
                         severity failure;
                      -- pragma translate_on
                      if MEM_RSP_i.fault = '0' then
-                        if return_cells_s( ret_mem_cell_index_s ).valid = '1'
-                           and return_cells_s( ret_mem_cell_index_s ).addr = mem_address_s then
+                        if rrd.valid = '1'
+                           and rrd.addr = mem_address_s then
                            return_cells_s( ret_mem_cell_index_s ).dirty <= '0';
                         end if;
                      end if;

@@ -36,6 +36,9 @@ end entity			T_J1_DECODE_QUEUE_INO_tb;
 architecture			TEST
 of T_J1_DECODE_QUEUE_INO_tb is
 
+   -- Profondeur de DECODE_QUEUE(IN_ORDER) : doit valoir DQ_DEPTH de J1_DECODE_QUEUE_in_order.vhd.
+   constant DQ_DEPTH_T : positive := 8;
+
    constant PERIOD		: time		:= 10 ns;
    constant CYCLES		: positive	:= 60000;
    constant PHASE_LENGTH	: positive	:= 2000;
@@ -189,7 +192,7 @@ begin
                    integer'image( to_integer( pop_count ) ) & " case(s), écart à la case "
                       & integer'image( bad ) );
          end if;
-         if push_ready = B( DECODE_QUEUE_DEPTH - n >= DECODE_WIDTH ) then CHECK_PASSED( c ); else
+         if push_ready = B( DQ_DEPTH_T - n >= DECODE_WIDTH ) then CHECK_PASSED( c ); else
             CHECK( c, false, "cycle " & integer'image( cycle ) & " : PUSH_READY_o avec "
                              & integer'image( n ) & " cases" );
          end if;
@@ -212,7 +215,7 @@ begin
             end if;
             n := n - take;
          end if;
-         if n > DECODE_QUEUE_DEPTH - DECODE_WIDTH then full_seen := full_seen + 1; end if;
+         if n > DQ_DEPTH_T - DECODE_WIDTH then full_seen := full_seen + 1; end if;
          if n = 0 then empty_seen := empty_seen + 1; end if;
          wait until falling_edge( clk );
       end loop;

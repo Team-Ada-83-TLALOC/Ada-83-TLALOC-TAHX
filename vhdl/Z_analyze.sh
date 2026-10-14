@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -x
 #	Analyse GHDL de TAHX_1, dans l'ordre des dépendances.
 #	./Z_analyze.sh [93c|08]		(08 par défaut)
 STD=${1:-08}

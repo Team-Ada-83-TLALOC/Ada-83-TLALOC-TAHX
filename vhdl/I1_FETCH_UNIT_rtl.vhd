@@ -131,17 +131,22 @@ begin
 			   and tag( INDEX_OF( bt( BT_IDX( pc ) ).target ) ) = LINE_OF( bt( BT_IDX( pc ) ).target );
    -- redirection par BRANCH_PREDICT vers la cible du tampon : la file d'octets la prend
    TAMPONS : process( tb_valid, tb_pc, PREDICT_VALID_i, PREDICT_PC_i, RECOVERY_i, bt_target )
-      variable hit : boolean;
+      variable hit_flag : boolean;
       variable sel : natural range 0 to TB_ENTRIES - 1;
    begin
-      hit := false; sel := 0; tb_has <= false;
+      hit_flag := false; sel := 0; tb_has <= false;
       for k in 0 to TB_ENTRIES - 1 loop
-         if tb_valid( k ) and tb_pc( k ) = PREDICT_PC_i then hit := true; sel := k; end if;
+         if tb_valid( k ) and tb_pc( k ) = PREDICT_PC_i then hit_flag := true; sel := k; end if;
          if tb_valid( k ) and tb_pc( k ) = bt_target then tb_has <= true; end if;
       end loop;
       tb_sel <= sel;
-      if PREDICT_VALID_i = '1' and RECOVERY_i.valid = '0' and hit then preload <= '1'; else preload <= '0'; end if;
+      if  PREDICT_VALID_i = '1'  and  RECOVERY_i.valid = '0'  and  hit_flag  then
+        preload <= '1';
+      else
+        preload <= '0';
+      end if;
    end process;
+
    PRELOAD_VALID_o	<= preload;
    PRELOAD_PC_o		<= tb_pc( tb_sel );
    PRELOAD_BLOCK_o	<= tb_block( tb_sel );

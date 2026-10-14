@@ -74,20 +74,37 @@ begin
    SYSTEM_HOLD_o <= system_hold_s;
    STACK_IDLE_o  <= stack_idle_s;
 
-   U_STACK : entity work.STACK_UNIT
-      generic map (
-         STACK_CACHE_WORDS_G => STACK_CACHE_WORDS_G,
-         RETURN_CACHE_WORDS_G => RETURN_CACHE_WORDS_G )
-      port map (
-         CLK_i => CLK_i, RESET_i => RESET_i,
-         DECODE_BLOCK_i => DECODE_BLOCK_i, DECODE_COUNT_i => decode_count_s, DECODE_TAKE_o => DECODE_TAKE_o,
-         ISSUE_VALID_o => issue_valid_s, ISSUE_o => issue_s, ISSUE_READY_i => issue_ready_s,
-         COMPLETE_i => complete_s, COMMIT_o => commit_s,
-         FRAME_o => frame_s, LIMITS_i => limits_s,
-         SYNC_VALID_i => sync_valid_s, SYNC_FRAME_i => sync_frame_s,
-         MAINT_i => stack_maint_s, MAINT_DONE_o => stack_maint_done_s,
-         MEM_REQ_o => STACK_MEM_REQ_o, MEM_READY_i => STACK_MEM_READY_i, MEM_RSP_i => STACK_MEM_RSP_i,
-         IDLE_o => stack_idle_s );
+U_STACK :
+  entity work.STACK_UNIT
+    generic map (
+      STACK_CACHE_WORDS_G => STACK_CACHE_WORDS_G,
+      RETURN_CACHE_WORDS_G => RETURN_CACHE_WORDS_G
+    )
+    port map (
+      CLK_i => CLK_i, RESET_i => RESET_i,
+
+      DECODE_BLOCK_i	=> DECODE_BLOCK_i,
+      DECODE_COUNT_i	=> decode_count_s,
+      DECODE_TAKE_o		=> DECODE_TAKE_o,
+
+      ISSUE_VALID_o => issue_valid_s,
+      ISSUE_o => issue_s,
+      ISSUE_READY_i => issue_ready_s,
+
+      COMPLETE_i => complete_s,
+      COMMIT_o => commit_s,
+      FRAME_o => frame_s,
+      LIMITS_i => limits_s,
+      SYNC_VALID_i => sync_valid_s,
+      SYNC_FRAME_i => sync_frame_s,
+      MAINT_i => stack_maint_s,
+      MAINT_DONE_o => stack_maint_done_s,
+
+      MEM_REQ_o => STACK_MEM_REQ_o,
+      MEM_READY_i => STACK_MEM_READY_i,
+      MEM_RSP_i => STACK_MEM_RSP_i,
+      IDLE_o => stack_idle_s
+    );
 
    U_BACKEND : entity work.INO_BACKEND_EXCM
       port map (

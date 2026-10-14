@@ -1,0 +1,1988 @@
+
+ /----------------------------------------------------------------------------\
+ |                                                                            |
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |                                                                            |
+ |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |                                                                            |
+ |  Permission to use, copy, modify, and/or distribute this software for any  |
+ |  purpose with or without fee is hereby granted, provided that the above    |
+ |  copyright notice and this permission notice appear in all copies.         |
+ |                                                                            |
+ |  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |
+ |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |
+ |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |
+ |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |
+ |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |
+ |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |
+ |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |
+ |                                                                            |
+ \----------------------------------------------------------------------------/
+
+ Yosys 0.33 (git sha1 2584903a060)
+
+
+-- Running command `
+         read_rtlil ../synth_InO/par_module/brut.il
+         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc decode_queue fetch_byte_queue fetch_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch_ram64_2r_256 ino_fetch_ram64_2r_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_ram2_2r_65536 ino_system_unit instruction_unit stack_unit_16_8
+         hierarchy -top fexp_unit
+         synth -top fexp_unit -noshare
+         dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
+         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
+         opt_clean
+         tee -q -o ../synth_InO/par_module/fexp_unit.stat stat -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib' --
+
+1. Executing RTLIL frontend.
+Input filename: ../synth_InO/par_module/brut.il
+
+2. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1. Analyzing design hierarchy..
+Top module:  \fexp_unit
+
+2.2. Analyzing design hierarchy..
+Top module:  \fexp_unit
+Removed 0 unused modules.
+Module fexp_unit directly or indirectly contains formal properties -> setting "keep" attribute.
+
+3. Executing SYNTH pass.
+
+3.1. Executing HIERARCHY pass (managing design hierarchy).
+
+3.1.1. Analyzing design hierarchy..
+Top module:  \fexp_unit
+
+3.1.2. Analyzing design hierarchy..
+Top module:  \fexp_unit
+Removed 0 unused modules.
+Module fexp_unit directly or indirectly contains formal properties -> setting "keep" attribute.
+
+3.2. Executing PROC pass (convert processes to netlists).
+
+3.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+3.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+3.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+3.2.4. Executing PROC_INIT pass (extract init attributes).
+
+3.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+3.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+3.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+3.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+3.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+3.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+3.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+3.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+<suppressed ~1117 debug messages>
+
+3.3. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+<suppressed ~6 debug messages>
+
+3.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 150 unused cells and 1232 unused wires.
+<suppressed ~151 debug messages>
+
+3.5. Executing CHECK pass (checking for obvious problems).
+Checking module fexp_unit...
+Found and reported 0 problems.
+
+3.6. Executing OPT pass (performing simple optimizations).
+
+3.6.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+
+3.6.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+<suppressed ~108 debug messages>
+Removed a total of 37 cells.
+
+3.6.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \fexp_unit..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+    dead port 1/5 on $pmux \127404.
+    dead port 2/5 on $pmux \127404.
+    dead port 3/5 on $pmux \127404.
+    dead port 4/5 on $pmux \127404.
+Removed 4 multiplexer ports.
+<suppressed ~93 debug messages>
+
+3.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \fexp_unit.
+    New ctrl vector for $pmux cell \122533: $auto$opt_reduce.cc:134:opt_pmux$71909
+    New ctrl vector for $pmux cell \122537: { $auto$ghdl.cc:806:import_module$69202 $auto$opt_reduce.cc:134:opt_pmux$71911 }
+    New ctrl vector for $pmux cell \122541: $auto$ghdl.cc:806:import_module$69202
+    New ctrl vector for $pmux cell \122604: $auto$opt_reduce.cc:134:opt_pmux$71913
+    New ctrl vector for $pmux cell \122608: { $auto$ghdl.cc:806:import_module$69222 $auto$opt_reduce.cc:134:opt_pmux$71915 }
+    New ctrl vector for $pmux cell \122612: $auto$ghdl.cc:806:import_module$69222
+    New ctrl vector for $pmux cell \127452: { $auto$ghdl.cc:806:import_module$69861 $auto$ghdl.cc:806:import_module$69857 $auto$ghdl.cc:806:import_module$69853 }
+    New ctrl vector for $pmux cell \127455: { $auto$ghdl.cc:806:import_module$69853 $auto$ghdl.cc:806:import_module$69850 }
+    New ctrl vector for $pmux cell \127556: { $auto$opt_reduce.cc:134:opt_pmux$71917 $auto$ghdl.cc:806:import_module$69052 }
+    New ctrl vector for $pmux cell \127558: { $auto$opt_reduce.cc:134:opt_pmux$71919 $auto$ghdl.cc:806:import_module$69822 $auto$ghdl.cc:806:import_module$69052 }
+    New ctrl vector for $pmux cell \127560: { $auto$opt_reduce.cc:134:opt_pmux$71921 $auto$ghdl.cc:806:import_module$69822 $auto$ghdl.cc:806:import_module$69052 }
+    New ctrl vector for $pmux cell \127562: { $auto$opt_reduce.cc:134:opt_pmux$71923 $auto$ghdl.cc:806:import_module$69052 }
+    New ctrl vector for $pmux cell \127564: { $auto$ghdl.cc:806:import_module$70803 $auto$opt_reduce.cc:134:opt_pmux$71925 }
+  Optimizing cells in module \fexp_unit.
+Performed a total of 13 changes.
+
+3.6.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+<suppressed ~99 debug messages>
+Removed a total of 33 cells.
+
+3.6.6. Executing OPT_DFF pass (perform DFF optimizations).
+Setting constant 1-bit at position 0 on \127632 ($dff) from module fexp_unit.
+
+3.6.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 0 unused cells and 69 unused wires.
+<suppressed ~1 debug messages>
+
+3.6.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+<suppressed ~2 debug messages>
+
+3.6.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.6.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \fexp_unit..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~92 debug messages>
+
+3.6.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \fexp_unit.
+Performed a total of 0 changes.
+
+3.6.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+Removed a total of 0 cells.
+
+3.6.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.6.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+
+3.6.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+
+3.6.16. Finished OPT passes. (There is nothing left to do.)
+
+3.7. Executing FSM pass (extract and optimize FSM).
+
+3.7.1. Executing FSM_DETECT pass (finding FSMs in design).
+Found FSM state register fexp_unit.state.
+
+3.7.2. Executing FSM_EXTRACT pass (extracting FSM from design).
+Extracting FSM `\state' from module `\fexp_unit'.
+  found $dff cell for state register: \127644
+  root of input selection tree: $auto$ghdl.cc:806:import_module$70815
+  found reset state: 2'00 (guessed from mux tree)
+  found ctrl input: $auto$ghdl.cc:806:import_module$69056
+  found ctrl input: $auto$ghdl.cc:806:import_module$69052
+  found ctrl input: $auto$ghdl.cc:806:import_module$69822
+  found ctrl input: $auto$ghdl.cc:806:import_module$70803
+  found ctrl input: $auto$ghdl.cc:806:import_module$69054
+  found ctrl input: \start_i
+  found state code: 2'01
+  found ctrl input: $auto$ghdl.cc:806:import_module$69067
+  found ctrl input: $auto$ghdl.cc:806:import_module$69076
+  found state code: 2'10
+  found state code: 2'11
+  found state code: 2'00
+  found ctrl output: $auto$ghdl.cc:806:import_module$69052
+  found ctrl output: $auto$ghdl.cc:806:import_module$69054
+  found ctrl output: $auto$ghdl.cc:806:import_module$69822
+  found ctrl output: $auto$ghdl.cc:806:import_module$70803
+  ctrl inputs: { \start_i $auto$ghdl.cc:806:import_module$69076 $auto$ghdl.cc:806:import_module$69067 $auto$ghdl.cc:806:import_module$69056 }
+  ctrl outputs: { $auto$ghdl.cc:806:import_module$70815 $auto$ghdl.cc:806:import_module$70803 $auto$ghdl.cc:806:import_module$69822 $auto$ghdl.cc:806:import_module$69054 $auto$ghdl.cc:806:import_module$69052 }
+  transition:       2'00 4'0--0 ->       2'00 6'000001
+  transition:       2'00 4'1--0 ->       2'01 6'010001
+  transition:       2'00 4'---1 ->       2'00 6'000001
+  transition:       2'10 4'---0 ->       2'11 6'111000
+  transition:       2'10 4'---1 ->       2'00 6'001000
+  transition:       2'01 4'-000 ->       2'01 6'010100
+  transition:       2'01 4'-100 ->       2'10 6'100100
+  transition:       2'01 4'--10 ->       2'10 6'100100
+  transition:       2'01 4'---1 ->       2'00 6'000100
+  transition:       2'11 4'---0 ->       2'00 6'000010
+  transition:       2'11 4'---1 ->       2'00 6'000010
+
+3.7.3. Executing FSM_OPT pass (simple optimizations of FSMs).
+Optimizing FSM `$fsm$\state$71926' from module `\fexp_unit'.
+  Merging pattern 4'---0 and 4'---1 from group (3 0 6'000010).
+  Merging pattern 4'---1 and 4'---0 from group (3 0 6'000010).
+
+3.7.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 10 unused cells and 10 unused wires.
+<suppressed ~11 debug messages>
+
+3.7.5. Executing FSM_OPT pass (simple optimizations of FSMs).
+Optimizing FSM `$fsm$\state$71926' from module `\fexp_unit'.
+  Removing unused output signal $auto$ghdl.cc:806:import_module$70815 [0].
+  Removing unused output signal $auto$ghdl.cc:806:import_module$70815 [1].
+
+3.7.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
+Recoding FSM `$fsm$\state$71926' from module `\fexp_unit' using `auto' encoding:
+  mapping auto encoding to `one-hot` for this FSM.
+  00 -> ---1
+  10 -> --1-
+  01 -> -1--
+  11 -> 1---
+
+3.7.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
+
+FSM `$fsm$\state$71926' from module `fexp_unit':
+-------------------------------------
+
+  Information on FSM $fsm$\state$71926 (\state):
+
+  Number of input signals:    4
+  Number of output signals:   4
+  Number of state bits:       4
+
+  Input signals:
+    0: $auto$ghdl.cc:806:import_module$69056
+    1: $auto$ghdl.cc:806:import_module$69067
+    2: $auto$ghdl.cc:806:import_module$69076
+    3: \start_i
+
+  Output signals:
+    0: $auto$ghdl.cc:806:import_module$69052
+    1: $auto$ghdl.cc:806:import_module$69054
+    2: $auto$ghdl.cc:806:import_module$69822
+    3: $auto$ghdl.cc:806:import_module$70803
+
+  State encoding:
+    0:     4'---1  <RESET STATE>
+    1:     4'--1-
+    2:     4'-1--
+    3:     4'1---
+
+  Transition Table (state_in, ctrl_in, state_out, ctrl_out):
+      0:     0 4'0--0   ->     0 4'0001
+      1:     0 4'---1   ->     0 4'0001
+      2:     0 4'1--0   ->     2 4'0001
+      3:     1 4'---1   ->     0 4'1000
+      4:     1 4'---0   ->     3 4'1000
+      5:     2 4'---1   ->     0 4'0100
+      6:     2 4'-100   ->     1 4'0100
+      7:     2 4'--10   ->     1 4'0100
+      8:     2 4'-000   ->     2 4'0100
+      9:     3 4'----   ->     0 4'0010
+
+-------------------------------------
+
+3.7.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
+Mapping FSM `$fsm$\state$71926' from module `\fexp_unit'.
+
+3.8. Executing OPT pass (performing simple optimizations).
+
+3.8.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+<suppressed ~4 debug messages>
+
+3.8.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+Removed a total of 0 cells.
+
+3.8.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \fexp_unit..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~91 debug messages>
+
+3.8.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \fexp_unit.
+Performed a total of 0 changes.
+
+3.8.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+Removed a total of 0 cells.
+
+3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
+Adding EN signal on \127649 ($dff) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$70810, Q = \result).
+Adding EN signal on \127648 ($dff) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$70809, Q = \negative).
+Adding EN signal on \127647 ($dff) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$70808, Q = \left).
+Adding EN signal on \127646 ($dff) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$70807 [62:0], Q = \p [62:0]).
+Adding EN signal on \127646 ($dff) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$70807 [63], Q = \p [63]).
+Adding EN signal on \127645 ($dff) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$70806, Q = \x).
+
+3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 5 unused cells and 13 unused wires.
+<suppressed ~6 debug messages>
+
+3.8.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+<suppressed ~6 debug messages>
+
+3.8.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.8.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \fexp_unit..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~91 debug messages>
+
+3.8.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \fexp_unit.
+    New ctrl vector for $pmux cell \127556: \state [0]
+    New ctrl vector for $pmux cell \127558: { \state [2] \state [0] }
+    New ctrl vector for $pmux cell \127560: { \state [2] \state [0] }
+    New ctrl vector for $pmux cell \127562: \state [0]
+    New ctrl vector for $pmux cell \127564: \state [1]
+  Optimizing cells in module \fexp_unit.
+Performed a total of 5 changes.
+
+3.8.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+<suppressed ~48 debug messages>
+Removed a total of 16 cells.
+
+3.8.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.8.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 0 unused cells and 16 unused wires.
+<suppressed ~1 debug messages>
+
+3.8.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+
+3.8.16. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.8.17. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \fexp_unit..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~91 debug messages>
+
+3.8.18. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \fexp_unit.
+Performed a total of 0 changes.
+
+3.8.19. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+Removed a total of 0 cells.
+
+3.8.20. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.8.21. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+
+3.8.22. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+
+3.8.23. Finished OPT passes. (There is nothing left to do.)
+
+3.9. Executing WREDUCE pass (reducing word size of cells).
+Removed top 1 bits (of 2) from port B of cell fexp_unit.$auto$opt_dff.cc:195:make_patterns_logic$71974 ($ne).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.$auto$opt_dff.cc:195:make_patterns_logic$72007 ($ne).
+Removed top 63 bits (of 64) from port B of cell fexp_unit.\121706 ($lt).
+Removed top 1 bits (of 63) from port B of cell fexp_unit.\121751 ($eq).
+Removed top 3 bits (of 4) from mux cell fexp_unit.\121862 ($mux).
+Removed top 2 bits (of 4) from mux cell fexp_unit.\121891 ($mux).
+Removed top 2 bits (of 4) from mux cell fexp_unit.\121896 ($mux).
+Removed top 2 bits (of 4) from mux cell fexp_unit.\121897 ($mux).
+Removed top 3 bits (of 4) from mux cell fexp_unit.\121960 ($mux).
+Removed top 2 bits (of 4) from mux cell fexp_unit.\121989 ($mux).
+Removed top 2 bits (of 4) from mux cell fexp_unit.\121994 ($mux).
+Removed top 2 bits (of 4) from mux cell fexp_unit.\121995 ($mux).
+Removed top 3 bits (of 4) from port B of cell fexp_unit.\122013 ($eq).
+Removed top 3 bits (of 4) from port B of cell fexp_unit.\122019 ($eq).
+Removed top 2 bits (of 4) from port B of cell fexp_unit.\122025 ($eq).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.\122028 ($eq).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.\122030 ($eq).
+Removed top 2 bits (of 4) from port B of cell fexp_unit.\122036 ($eq).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.\122039 ($eq).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.\122041 ($eq).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.\122500 ($eq).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.\122502 ($eq).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.\122506 ($eq).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.\122508 ($eq).
+Removed top 2 bits (of 4) from port B of cell fexp_unit.\122518 ($eq).
+Removed top 2 bits (of 4) from port B of cell fexp_unit.\122524 ($eq).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.\122571 ($eq).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.\122573 ($eq).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.\122577 ($eq).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.\122579 ($eq).
+Removed top 2 bits (of 4) from port B of cell fexp_unit.\122589 ($eq).
+Removed top 2 bits (of 4) from port B of cell fexp_unit.\122595 ($eq).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\122841 ($sub).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123065 ($sub).
+Removed top 19 bits (of 32) from mux cell fexp_unit.\123073 ($mux).
+Removed top 12 bits (of 13) from port B of cell fexp_unit.\123080 ($add).
+Removed top 53 bits (of 106) from port A of cell fexp_unit.\123083 ($mul).
+Removed top 53 bits (of 106) from port B of cell fexp_unit.\123083 ($mul).
+Removed top 26 bits (of 32) from port B of cell fexp_unit.\123336 ($sub).
+Removed top 30 bits (of 32) from port B of cell fexp_unit.\123338 ($sub).
+Removed top 2 bits (of 13) from port B of cell fexp_unit.\123346 ($le).
+Removed top 1 bits (of 13) from port B of cell fexp_unit.\123354 ($ge).
+Removed top 3 bits (of 13) from port B of cell fexp_unit.\123359 ($add).
+Removed top 19 bits (of 32) from port A of cell fexp_unit.\123361 ($neg).
+Removed top 2 bits (of 13) from port B of cell fexp_unit.\123370 ($gt).
+Removed top 2 bits (of 57) from mux cell fexp_unit.\123394 ($mux).
+Removed top 31 bits (of 32) from port B of cell fexp_unit.\123396 ($gt).
+Removed top 31 bits (of 32) from port B of cell fexp_unit.\123399 ($sub).
+Removed top 1 bits (of 32) from port Y of cell fexp_unit.\123399 ($sub).
+Removed top 1 bits (of 32) from port A of cell fexp_unit.\123399 ($sub).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123412 ($lt).
+Converting cell fexp_unit.\123412 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123412 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123412 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123418 ($lt).
+Converting cell fexp_unit.\123418 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123418 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123418 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123424 ($lt).
+Converting cell fexp_unit.\123424 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123424 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123424 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123430 ($lt).
+Converting cell fexp_unit.\123430 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123430 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123430 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123436 ($lt).
+Converting cell fexp_unit.\123436 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123436 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123436 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123442 ($lt).
+Converting cell fexp_unit.\123442 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123442 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123442 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123448 ($lt).
+Converting cell fexp_unit.\123448 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123448 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123448 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123454 ($lt).
+Converting cell fexp_unit.\123454 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123454 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123454 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123460 ($lt).
+Converting cell fexp_unit.\123460 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123460 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123460 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123466 ($lt).
+Converting cell fexp_unit.\123466 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123466 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123466 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123472 ($lt).
+Converting cell fexp_unit.\123472 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123472 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123472 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123478 ($lt).
+Converting cell fexp_unit.\123478 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123478 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123478 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123484 ($lt).
+Converting cell fexp_unit.\123484 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123484 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123484 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123490 ($lt).
+Converting cell fexp_unit.\123490 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123490 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123490 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123496 ($lt).
+Converting cell fexp_unit.\123496 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123496 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123496 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123502 ($lt).
+Converting cell fexp_unit.\123502 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123502 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123502 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123508 ($lt).
+Converting cell fexp_unit.\123508 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123508 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123508 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123514 ($lt).
+Converting cell fexp_unit.\123514 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123514 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123514 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123520 ($lt).
+Converting cell fexp_unit.\123520 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123520 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123520 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123526 ($lt).
+Converting cell fexp_unit.\123526 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123526 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123526 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123532 ($lt).
+Converting cell fexp_unit.\123532 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123532 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123532 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123538 ($lt).
+Converting cell fexp_unit.\123538 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123538 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123538 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123544 ($lt).
+Converting cell fexp_unit.\123544 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123544 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123544 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123550 ($lt).
+Converting cell fexp_unit.\123550 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123550 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123550 ($lt).
+Removed top 25 bits (of 32) from port A of cell fexp_unit.\123556 ($lt).
+Converting cell fexp_unit.\123556 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell fexp_unit.\123556 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123556 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123562 ($lt).
+Converting cell fexp_unit.\123562 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123562 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123562 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123568 ($lt).
+Converting cell fexp_unit.\123568 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123568 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123568 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123574 ($lt).
+Converting cell fexp_unit.\123574 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123574 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123574 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123580 ($lt).
+Converting cell fexp_unit.\123580 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123580 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123580 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123586 ($lt).
+Converting cell fexp_unit.\123586 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123586 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123586 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123592 ($lt).
+Converting cell fexp_unit.\123592 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123592 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123592 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123598 ($lt).
+Converting cell fexp_unit.\123598 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123598 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123598 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123604 ($lt).
+Converting cell fexp_unit.\123604 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123604 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123604 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123610 ($lt).
+Converting cell fexp_unit.\123610 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123610 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123610 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123616 ($lt).
+Converting cell fexp_unit.\123616 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123616 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123616 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123622 ($lt).
+Converting cell fexp_unit.\123622 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123622 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123622 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123628 ($lt).
+Converting cell fexp_unit.\123628 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123628 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123628 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123634 ($lt).
+Converting cell fexp_unit.\123634 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123634 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123634 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123640 ($lt).
+Converting cell fexp_unit.\123640 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123640 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123640 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123646 ($lt).
+Converting cell fexp_unit.\123646 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123646 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123646 ($lt).
+Removed top 26 bits (of 32) from port A of cell fexp_unit.\123652 ($lt).
+Converting cell fexp_unit.\123652 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell fexp_unit.\123652 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123652 ($lt).
+Removed top 27 bits (of 32) from port A of cell fexp_unit.\123658 ($lt).
+Converting cell fexp_unit.\123658 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell fexp_unit.\123658 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123658 ($lt).
+Removed top 27 bits (of 32) from port A of cell fexp_unit.\123664 ($lt).
+Converting cell fexp_unit.\123664 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell fexp_unit.\123664 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123664 ($lt).
+Removed top 27 bits (of 32) from port A of cell fexp_unit.\123670 ($lt).
+Converting cell fexp_unit.\123670 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell fexp_unit.\123670 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123670 ($lt).
+Removed top 27 bits (of 32) from port A of cell fexp_unit.\123676 ($lt).
+Converting cell fexp_unit.\123676 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell fexp_unit.\123676 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123676 ($lt).
+Removed top 27 bits (of 32) from port A of cell fexp_unit.\123682 ($lt).
+Converting cell fexp_unit.\123682 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell fexp_unit.\123682 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123682 ($lt).
+Removed top 27 bits (of 32) from port A of cell fexp_unit.\123688 ($lt).
+Converting cell fexp_unit.\123688 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell fexp_unit.\123688 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123688 ($lt).
+Removed top 27 bits (of 32) from port A of cell fexp_unit.\123694 ($lt).
+Converting cell fexp_unit.\123694 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell fexp_unit.\123694 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123694 ($lt).
+Removed top 27 bits (of 32) from port A of cell fexp_unit.\123700 ($lt).
+Converting cell fexp_unit.\123700 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell fexp_unit.\123700 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123700 ($lt).
+Removed top 28 bits (of 32) from port A of cell fexp_unit.\123706 ($lt).
+Converting cell fexp_unit.\123706 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell fexp_unit.\123706 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123706 ($lt).
+Removed top 28 bits (of 32) from port A of cell fexp_unit.\123712 ($lt).
+Converting cell fexp_unit.\123712 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell fexp_unit.\123712 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123712 ($lt).
+Removed top 28 bits (of 32) from port A of cell fexp_unit.\123718 ($lt).
+Converting cell fexp_unit.\123718 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell fexp_unit.\123718 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123718 ($lt).
+Removed top 28 bits (of 32) from port A of cell fexp_unit.\123724 ($lt).
+Converting cell fexp_unit.\123724 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell fexp_unit.\123724 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123724 ($lt).
+Removed top 29 bits (of 32) from port A of cell fexp_unit.\123730 ($lt).
+Converting cell fexp_unit.\123730 ($lt) from signed to unsigned.
+Removed top 1 bits (of 3) from port A of cell fexp_unit.\123730 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123730 ($lt).
+Removed top 29 bits (of 32) from port A of cell fexp_unit.\123736 ($lt).
+Converting cell fexp_unit.\123736 ($lt) from signed to unsigned.
+Removed top 1 bits (of 3) from port A of cell fexp_unit.\123736 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123736 ($lt).
+Removed top 30 bits (of 32) from port A of cell fexp_unit.\123742 ($lt).
+Converting cell fexp_unit.\123742 ($lt) from signed to unsigned.
+Removed top 1 bits (of 2) from port A of cell fexp_unit.\123742 ($lt).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123742 ($lt).
+Removed top 31 bits (of 32) from port A of cell fexp_unit.\123748 ($lt).
+Converting cell fexp_unit.\123748 ($lt) from signed to unsigned.
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123748 ($lt).
+Removed top 12 bits (of 13) from port B of cell fexp_unit.\123785 ($add).
+Removed top 51 bits (of 52) from port B of cell fexp_unit.\123787 ($add).
+Removed top 2 bits (of 13) from mux cell fexp_unit.\123790 ($mux).
+Removed top 1 bits (of 64) from mux cell fexp_unit.\123853 ($mux).
+Removed top 63 bits (of 64) from port B of cell fexp_unit.\124003 ($sub).
+Removed top 1 bits (of 32) from port Y of cell fexp_unit.\122841 ($sub).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\122841 ($sub).
+Removed top 19 bits (of 32) from mux cell fexp_unit.\123070 ($mux).
+Removed top 2 bits (of 57) from port Y of cell fexp_unit.\123390 ($shr).
+Removed top 2 bits (of 57) from port Y of cell fexp_unit.\123392 ($shl).
+Removed top 2 bits (of 13) from port Y of cell fexp_unit.\123785 ($add).
+Removed top 2 bits (of 13) from port A of cell fexp_unit.\123785 ($add).
+Removed top 1 bits (of 32) from port Y of cell fexp_unit.\123065 ($sub).
+Removed top 1 bits (of 32) from port B of cell fexp_unit.\123065 ($sub).
+Removed top 2 bits (of 13) from mux cell fexp_unit.\123380 ($mux).
+Removed top 2 bits (of 13) from mux cell fexp_unit.\123363 ($mux).
+Removed top 3 bits (of 4) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69089.
+Removed top 2 bits (of 4) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69098.
+Removed top 2 bits (of 4) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69100.
+Removed top 3 bits (of 4) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69111.
+Removed top 2 bits (of 4) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69120.
+Removed top 2 bits (of 4) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69122.
+Removed top 1 bits (of 32) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69338.
+Removed top 1 bits (of 32) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69449.
+Removed top 19 bits (of 32) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69455.
+Removed top 2 bits (of 13) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69587.
+Removed top 2 bits (of 13) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69596.
+Removed top 2 bits (of 57) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69600.
+Removed top 2 bits (of 57) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69602.
+Removed top 2 bits (of 57) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69603.
+Removed top 1 bits (of 32) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69605.
+Removed top 2 bits (of 13) from wire fexp_unit.$auto$ghdl.cc:806:import_module$69788.
+
+3.10. Executing PEEPOPT pass (run peephole optimizers).
+
+3.11. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 0 unused cells and 16 unused wires.
+<suppressed ~1 debug messages>
+
+3.12. Executing ALUMACC pass (create $alu and $macc cells).
+Extracting $alu and $macc cells in module fexp_unit:
+  creating $macc model for \121707 ($neg).
+  creating $macc model for \122841 ($sub).
+  creating $macc model for \123065 ($sub).
+  creating $macc model for \123076 ($add).
+  creating $macc model for \123078 ($sub).
+  creating $macc model for \123080 ($add).
+  creating $macc model for \123083 ($mul).
+  creating $macc model for \123336 ($sub).
+  creating $macc model for \123338 ($sub).
+  creating $macc model for \123341 ($add).
+  creating $macc model for \123359 ($add).
+  creating $macc model for \123361 ($neg).
+  creating $macc model for \123391 ($neg).
+  creating $macc model for \123399 ($sub).
+  creating $macc model for \123785 ($add).
+  creating $macc model for \123787 ($add).
+  creating $macc model for \124003 ($sub).
+  merging $macc model for \123336 into \123338.
+  merging $macc model for \123078 into \123080.
+  merging $macc model for \123076 into \123080.
+  creating $alu model for $macc \123399.
+  creating $alu model for $macc \123391.
+  creating $alu model for $macc \123359.
+  creating $alu model for $macc \123341.
+  creating $alu model for $macc \123785.
+  creating $alu model for $macc \123787.
+  creating $alu model for $macc \124003.
+  creating $alu model for $macc \123065.
+  creating $alu model for $macc \122841.
+  creating $alu model for $macc \121707.
+  creating $macc cell for \123083: $auto$alumacc.cc:365:replace_macc$72043
+  creating $macc cell for \123361: $auto$alumacc.cc:365:replace_macc$72044
+  creating $macc cell for \123080: $auto$alumacc.cc:365:replace_macc$72045
+  creating $macc cell for \123338: $auto$alumacc.cc:365:replace_macc$72046
+  creating $alu model for \121706 ($lt): new $alu
+  creating $alu model for \123346 ($le): new $alu
+  creating $alu model for \123354 ($ge): new $alu
+  creating $alu model for \123370 ($gt): new $alu
+  creating $alu model for \123396 ($gt): new $alu
+  creating $alu model for \123412 ($lt): new $alu
+  creating $alu model for \123418 ($lt): new $alu
+  creating $alu model for \123424 ($lt): new $alu
+  creating $alu model for \123430 ($lt): new $alu
+  creating $alu model for \123436 ($lt): new $alu
+  creating $alu model for \123442 ($lt): new $alu
+  creating $alu model for \123448 ($lt): new $alu
+  creating $alu model for \123454 ($lt): new $alu
+  creating $alu model for \123460 ($lt): new $alu
+  creating $alu model for \123466 ($lt): new $alu
+  creating $alu model for \123472 ($lt): new $alu
+  creating $alu model for \123478 ($lt): new $alu
+  creating $alu model for \123484 ($lt): new $alu
+  creating $alu model for \123490 ($lt): new $alu
+  creating $alu model for \123496 ($lt): new $alu
+  creating $alu model for \123502 ($lt): new $alu
+  creating $alu model for \123508 ($lt): new $alu
+  creating $alu model for \123514 ($lt): new $alu
+  creating $alu model for \123520 ($lt): new $alu
+  creating $alu model for \123526 ($lt): new $alu
+  creating $alu model for \123532 ($lt): new $alu
+  creating $alu model for \123538 ($lt): new $alu
+  creating $alu model for \123544 ($lt): new $alu
+  creating $alu model for \123550 ($lt): new $alu
+  creating $alu model for \123556 ($lt): new $alu
+  creating $alu model for \123562 ($lt): new $alu
+  creating $alu model for \123568 ($lt): new $alu
+  creating $alu model for \123574 ($lt): new $alu
+  creating $alu model for \123580 ($lt): new $alu
+  creating $alu model for \123586 ($lt): new $alu
+  creating $alu model for \123592 ($lt): new $alu
+  creating $alu model for \123598 ($lt): new $alu
+  creating $alu model for \123604 ($lt): new $alu
+  creating $alu model for \123610 ($lt): new $alu
+  creating $alu model for \123616 ($lt): new $alu
+  creating $alu model for \123622 ($lt): new $alu
+  creating $alu model for \123628 ($lt): new $alu
+  creating $alu model for \123634 ($lt): new $alu
+  creating $alu model for \123640 ($lt): new $alu
+  creating $alu model for \123646 ($lt): new $alu
+  creating $alu model for \123652 ($lt): new $alu
+  creating $alu model for \123658 ($lt): new $alu
+  creating $alu model for \123664 ($lt): new $alu
+  creating $alu model for \123670 ($lt): new $alu
+  creating $alu model for \123676 ($lt): new $alu
+  creating $alu model for \123682 ($lt): new $alu
+  creating $alu model for \123688 ($lt): new $alu
+  creating $alu model for \123694 ($lt): new $alu
+  creating $alu model for \123700 ($lt): new $alu
+  creating $alu model for \123706 ($lt): new $alu
+  creating $alu model for \123712 ($lt): new $alu
+  creating $alu model for \123718 ($lt): new $alu
+  creating $alu model for \123724 ($lt): new $alu
+  creating $alu model for \123730 ($lt): new $alu
+  creating $alu model for \123736 ($lt): new $alu
+  creating $alu model for \123742 ($lt): new $alu
+  creating $alu model for \123748 ($lt): new $alu
+  creating $alu cell for \123748: $auto$alumacc.cc:485:replace_alu$72109
+  creating $alu cell for \123742: $auto$alumacc.cc:485:replace_alu$72114
+  creating $alu cell for \123736: $auto$alumacc.cc:485:replace_alu$72119
+  creating $alu cell for \123730: $auto$alumacc.cc:485:replace_alu$72124
+  creating $alu cell for \123724: $auto$alumacc.cc:485:replace_alu$72129
+  creating $alu cell for \123718: $auto$alumacc.cc:485:replace_alu$72134
+  creating $alu cell for \123712: $auto$alumacc.cc:485:replace_alu$72139
+  creating $alu cell for \123706: $auto$alumacc.cc:485:replace_alu$72144
+  creating $alu cell for \123700: $auto$alumacc.cc:485:replace_alu$72149
+  creating $alu cell for \123694: $auto$alumacc.cc:485:replace_alu$72154
+  creating $alu cell for \123688: $auto$alumacc.cc:485:replace_alu$72159
+  creating $alu cell for \123682: $auto$alumacc.cc:485:replace_alu$72164
+  creating $alu cell for \123676: $auto$alumacc.cc:485:replace_alu$72169
+  creating $alu cell for \123670: $auto$alumacc.cc:485:replace_alu$72174
+  creating $alu cell for \123664: $auto$alumacc.cc:485:replace_alu$72179
+  creating $alu cell for \123658: $auto$alumacc.cc:485:replace_alu$72184
+  creating $alu cell for \123652: $auto$alumacc.cc:485:replace_alu$72189
+  creating $alu cell for \123646: $auto$alumacc.cc:485:replace_alu$72194
+  creating $alu cell for \123640: $auto$alumacc.cc:485:replace_alu$72199
+  creating $alu cell for \123634: $auto$alumacc.cc:485:replace_alu$72204
+  creating $alu cell for \123628: $auto$alumacc.cc:485:replace_alu$72209
+  creating $alu cell for \123622: $auto$alumacc.cc:485:replace_alu$72214
+  creating $alu cell for \123616: $auto$alumacc.cc:485:replace_alu$72219
+  creating $alu cell for \123610: $auto$alumacc.cc:485:replace_alu$72224
+  creating $alu cell for \123604: $auto$alumacc.cc:485:replace_alu$72229
+  creating $alu cell for \123598: $auto$alumacc.cc:485:replace_alu$72234
+  creating $alu cell for \123592: $auto$alumacc.cc:485:replace_alu$72239
+  creating $alu cell for \123586: $auto$alumacc.cc:485:replace_alu$72244
+  creating $alu cell for \123580: $auto$alumacc.cc:485:replace_alu$72249
+  creating $alu cell for \123574: $auto$alumacc.cc:485:replace_alu$72254
+  creating $alu cell for \123568: $auto$alumacc.cc:485:replace_alu$72259
+  creating $alu cell for \123562: $auto$alumacc.cc:485:replace_alu$72264
+  creating $alu cell for \123556: $auto$alumacc.cc:485:replace_alu$72269
+  creating $alu cell for \123550: $auto$alumacc.cc:485:replace_alu$72274
+  creating $alu cell for \123544: $auto$alumacc.cc:485:replace_alu$72279
+  creating $alu cell for \123538: $auto$alumacc.cc:485:replace_alu$72284
+  creating $alu cell for \123532: $auto$alumacc.cc:485:replace_alu$72289
+  creating $alu cell for \123526: $auto$alumacc.cc:485:replace_alu$72294
+  creating $alu cell for \123520: $auto$alumacc.cc:485:replace_alu$72299
+  creating $alu cell for \123514: $auto$alumacc.cc:485:replace_alu$72304
+  creating $alu cell for \123508: $auto$alumacc.cc:485:replace_alu$72309
+  creating $alu cell for \123502: $auto$alumacc.cc:485:replace_alu$72314
+  creating $alu cell for \123496: $auto$alumacc.cc:485:replace_alu$72319
+  creating $alu cell for \123490: $auto$alumacc.cc:485:replace_alu$72324
+  creating $alu cell for \123484: $auto$alumacc.cc:485:replace_alu$72329
+  creating $alu cell for \123478: $auto$alumacc.cc:485:replace_alu$72334
+  creating $alu cell for \123472: $auto$alumacc.cc:485:replace_alu$72339
+  creating $alu cell for \123466: $auto$alumacc.cc:485:replace_alu$72344
+  creating $alu cell for \123460: $auto$alumacc.cc:485:replace_alu$72349
+  creating $alu cell for \123454: $auto$alumacc.cc:485:replace_alu$72354
+  creating $alu cell for \123448: $auto$alumacc.cc:485:replace_alu$72359
+  creating $alu cell for \123442: $auto$alumacc.cc:485:replace_alu$72364
+  creating $alu cell for \123436: $auto$alumacc.cc:485:replace_alu$72369
+  creating $alu cell for \123430: $auto$alumacc.cc:485:replace_alu$72374
+  creating $alu cell for \123424: $auto$alumacc.cc:485:replace_alu$72379
+  creating $alu cell for \123418: $auto$alumacc.cc:485:replace_alu$72384
+  creating $alu cell for \123412: $auto$alumacc.cc:485:replace_alu$72389
+  creating $alu cell for \123396: $auto$alumacc.cc:485:replace_alu$72394
+  creating $alu cell for \123370: $auto$alumacc.cc:485:replace_alu$72401
+  creating $alu cell for \123354: $auto$alumacc.cc:485:replace_alu$72408
+  creating $alu cell for \123346: $auto$alumacc.cc:485:replace_alu$72419
+  creating $alu cell for \121706: $auto$alumacc.cc:485:replace_alu$72434
+  creating $alu cell for \121707: $auto$alumacc.cc:485:replace_alu$72447
+  creating $alu cell for \122841: $auto$alumacc.cc:485:replace_alu$72450
+  creating $alu cell for \123065: $auto$alumacc.cc:485:replace_alu$72453
+  creating $alu cell for \124003: $auto$alumacc.cc:485:replace_alu$72456
+  creating $alu cell for \123787: $auto$alumacc.cc:485:replace_alu$72459
+  creating $alu cell for \123785: $auto$alumacc.cc:485:replace_alu$72462
+  creating $alu cell for \123341: $auto$alumacc.cc:485:replace_alu$72465
+  creating $alu cell for \123359: $auto$alumacc.cc:485:replace_alu$72468
+  creating $alu cell for \123391: $auto$alumacc.cc:485:replace_alu$72471
+  creating $alu cell for \123399: $auto$alumacc.cc:485:replace_alu$72474
+  created 72 $alu and 4 $macc cells.
+
+3.13. Executing OPT pass (performing simple optimizations).
+
+3.13.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+<suppressed ~59 debug messages>
+
+3.13.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+Removed a total of 0 cells.
+
+3.13.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \fexp_unit..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~91 debug messages>
+
+3.13.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \fexp_unit.
+Performed a total of 0 changes.
+
+3.13.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+Removed a total of 0 cells.
+
+3.13.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.13.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 61 unused cells and 123 unused wires.
+<suppressed ~62 debug messages>
+
+3.13.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+
+3.13.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.13.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \fexp_unit..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~91 debug messages>
+
+3.13.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \fexp_unit.
+Performed a total of 0 changes.
+
+3.13.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+Removed a total of 0 cells.
+
+3.13.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.13.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+
+3.13.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+
+3.13.16. Finished OPT passes. (There is nothing left to do.)
+
+3.14. Executing MEMORY pass.
+
+3.14.1. Executing OPT_MEM pass (optimize memories).
+Performed a total of 0 transformations.
+
+3.14.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
+Performed a total of 0 transformations.
+
+3.14.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
+
+3.14.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
+
+3.14.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+
+3.14.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+
+3.14.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
+
+3.14.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
+Performed a total of 0 transformations.
+
+3.14.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+
+3.14.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+3.15. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+
+3.16. Executing OPT pass (performing simple optimizations).
+
+3.16.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+<suppressed ~57 debug messages>
+
+3.16.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+<suppressed ~144 debug messages>
+Removed a total of 48 cells.
+
+3.16.3. Executing OPT_DFF pass (perform DFF optimizations).
+Adding SRST signal on $auto$ff.cc:266:slice$72005 ($dffe) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$69818 [63], Q = \p [63], rval = 1'0).
+Adding SRST signal on $auto$ff.cc:266:slice$71992 ($dffe) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$69818 [62:0], Q = \p [62:0], rval = 63'011111111110000000000000000000000000000000000000000000000000000).
+
+3.16.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 9 unused cells and 71 unused wires.
+<suppressed ~10 debug messages>
+
+3.16.5. Rerunning OPT passes. (Removed registers in this run.)
+
+3.16.6. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+
+3.16.7. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+Removed a total of 0 cells.
+
+3.16.8. Executing OPT_DFF pass (perform DFF optimizations).
+Adding SRST signal on $auto$ff.cc:266:slice$72584 ($sdffce) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$69797 [61:52], Q = \p [61:52], rval = 10'1111111111).
+Adding SRST signal on $auto$ff.cc:266:slice$72584 ($sdffce) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$69789 [51:1], Q = \p [51:1], rval = 51'000000000000000000000000000000000000000000000000000).
+Adding SRST signal on $auto$ff.cc:266:slice$71965 ($dffe) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$70796, Q = \result, rval = 64'0111111111111000000000000000000000000000000000000000000000000000).
+
+3.16.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 1 unused cells and 1 unused wires.
+<suppressed ~2 debug messages>
+
+3.16.10. Rerunning OPT passes. (Removed registers in this run.)
+
+3.16.11. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+
+3.16.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+Removed a total of 0 cells.
+
+3.16.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.16.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+
+3.16.15. Finished fast OPT passes.
+
+3.17. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
+
+3.18. Executing OPT pass (performing simple optimizations).
+
+3.18.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+
+3.18.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+Removed a total of 0 cells.
+
+3.18.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \fexp_unit..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~85 debug messages>
+
+3.18.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \121867:
+      Old ports: A=4'1001, B=4'0010, Y=$auto$ghdl.cc:806:import_module$69091
+      New ports: A=2'01, B=2'10, Y=$auto$ghdl.cc:806:import_module$69091 [1:0]
+      New connections: $auto$ghdl.cc:806:import_module$69091 [3:2] = { $auto$ghdl.cc:806:import_module$69091 [0] 1'0 }
+    Consolidated identical input bits for $mux cell \121896:
+      Old ports: A=2'11, B=2'00, Y=$auto$ghdl.cc:806:import_module$69100
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$69100 [0]
+      New connections: $auto$ghdl.cc:806:import_module$69100 [1] = $auto$ghdl.cc:806:import_module$69100 [0]
+    Consolidated identical input bits for $mux cell \121902:
+      Old ports: A=4'1000, B=4'0011, Y=$auto$ghdl.cc:806:import_module$69103
+      New ports: A=2'10, B=2'01, Y={ $auto$ghdl.cc:806:import_module$69103 [3] $auto$ghdl.cc:806:import_module$69103 [0] }
+      New connections: $auto$ghdl.cc:806:import_module$69103 [2:1] = { 1'0 $auto$ghdl.cc:806:import_module$69103 [0] }
+    Consolidated identical input bits for $mux cell \121965:
+      Old ports: A=4'1001, B=4'0010, Y=$auto$ghdl.cc:806:import_module$69113
+      New ports: A=2'01, B=2'10, Y=$auto$ghdl.cc:806:import_module$69113 [1:0]
+      New connections: $auto$ghdl.cc:806:import_module$69113 [3:2] = { $auto$ghdl.cc:806:import_module$69113 [0] 1'0 }
+    Consolidated identical input bits for $mux cell \121994:
+      Old ports: A=2'11, B=2'00, Y=$auto$ghdl.cc:806:import_module$69122
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$69122 [0]
+      New connections: $auto$ghdl.cc:806:import_module$69122 [1] = $auto$ghdl.cc:806:import_module$69122 [0]
+    Consolidated identical input bits for $mux cell \122000:
+      Old ports: A=4'1000, B=4'0011, Y=$auto$ghdl.cc:806:import_module$69125
+      New ports: A=2'10, B=2'01, Y={ $auto$ghdl.cc:806:import_module$69125 [3] $auto$ghdl.cc:806:import_module$69125 [0] }
+      New connections: $auto$ghdl.cc:806:import_module$69125 [2:1] = { 1'0 $auto$ghdl.cc:806:import_module$69125 [0] }
+    Consolidated identical input bits for $mux cell \122630:
+      Old ports: A=7'1111111, B=7'0000000, Y=$auto$ghdl.cc:806:import_module$69233
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$69233 [0]
+      New connections: $auto$ghdl.cc:806:import_module$69233 [6:1] = { $auto$ghdl.cc:806:import_module$69233 [0] $auto$ghdl.cc:806:import_module$69233 [0] $auto$ghdl.cc:806:import_module$69233 [0] $auto$ghdl.cc:806:import_module$69233 [0] $auto$ghdl.cc:806:import_module$69233 [0] $auto$ghdl.cc:806:import_module$69233 [0] }
+    Consolidated identical input bits for $mux cell \122854:
+      Old ports: A=7'1111111, B=7'0000000, Y=$auto$ghdl.cc:806:import_module$69344
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$69344 [0]
+      New connections: $auto$ghdl.cc:806:import_module$69344 [6:1] = { $auto$ghdl.cc:806:import_module$69344 [0] $auto$ghdl.cc:806:import_module$69344 [0] $auto$ghdl.cc:806:import_module$69344 [0] $auto$ghdl.cc:806:import_module$69344 [0] $auto$ghdl.cc:806:import_module$69344 [0] $auto$ghdl.cc:806:import_module$69344 [0] }
+    Consolidated identical input bits for $mux cell \123109:
+      Old ports: A=7'1111111, B=7'0000000, Y=$auto$ghdl.cc:806:import_module$69462
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$69462 [0]
+      New connections: $auto$ghdl.cc:806:import_module$69462 [6:1] = { $auto$ghdl.cc:806:import_module$69462 [0] $auto$ghdl.cc:806:import_module$69462 [0] $auto$ghdl.cc:806:import_module$69462 [0] $auto$ghdl.cc:806:import_module$69462 [0] $auto$ghdl.cc:806:import_module$69462 [0] $auto$ghdl.cc:806:import_module$69462 [0] }
+    Consolidated identical input bits for $pmux cell \127452:
+      Old ports: A=63'111111111110000000000000000000000000000000000000000000000000000, B=126'000000000000000000000000000000000000000000000000000000000000000111111111110000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$70792
+      New ports: A=2'10, B=4'0011, Y={ $auto$ghdl.cc:806:import_module$70792 [52] $auto$ghdl.cc:806:import_module$70792 [0] }
+      New connections: { $auto$ghdl.cc:806:import_module$70792 [62:53] $auto$ghdl.cc:806:import_module$70792 [51:1] } = { $auto$ghdl.cc:806:import_module$70792 [52] $auto$ghdl.cc:806:import_module$70792 [52] $auto$ghdl.cc:806:import_module$70792 [52] $auto$ghdl.cc:806:import_module$70792 [52] $auto$ghdl.cc:806:import_module$70792 [52] $auto$ghdl.cc:806:import_module$70792 [52] $auto$ghdl.cc:806:import_module$70792 [52] $auto$ghdl.cc:806:import_module$70792 [52] $auto$ghdl.cc:806:import_module$70792 [52] $auto$ghdl.cc:806:import_module$70792 [52] 51'000000000000000000000000000000000000000000000000000 }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \121868:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69091, B={ 3'000 $auto$ghdl.cc:806:import_module$69089 }, Y=$auto$ghdl.cc:806:import_module$69092
+      New ports: A={ $auto$ghdl.cc:806:import_module$69091 [0] $auto$ghdl.cc:806:import_module$69091 [1:0] }, B={ 2'00 $auto$ghdl.cc:806:import_module$69089 }, Y={ $auto$ghdl.cc:806:import_module$69092 [3] $auto$ghdl.cc:806:import_module$69092 [1:0] }
+      New connections: $auto$ghdl.cc:806:import_module$69092 [2] = 1'0
+    Consolidated identical input bits for $mux cell \121966:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69113, B={ 3'000 $auto$ghdl.cc:806:import_module$69111 }, Y=$auto$ghdl.cc:806:import_module$69114
+      New ports: A={ $auto$ghdl.cc:806:import_module$69113 [0] $auto$ghdl.cc:806:import_module$69113 [1:0] }, B={ 2'00 $auto$ghdl.cc:806:import_module$69111 }, Y={ $auto$ghdl.cc:806:import_module$69114 [3] $auto$ghdl.cc:806:import_module$69114 [1:0] }
+      New connections: $auto$ghdl.cc:806:import_module$69114 [2] = 1'0
+    Consolidated identical input bits for $mux cell \122634:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69233, B=7'0000001, Y=$auto$ghdl.cc:806:import_module$69235
+      New ports: A={ $auto$ghdl.cc:806:import_module$69233 [0] $auto$ghdl.cc:806:import_module$69233 [0] }, B=2'01, Y=$auto$ghdl.cc:806:import_module$69235 [1:0]
+      New connections: $auto$ghdl.cc:806:import_module$69235 [6:2] = { $auto$ghdl.cc:806:import_module$69235 [1] $auto$ghdl.cc:806:import_module$69235 [1] $auto$ghdl.cc:806:import_module$69235 [1] $auto$ghdl.cc:806:import_module$69235 [1] $auto$ghdl.cc:806:import_module$69235 [1] }
+    Consolidated identical input bits for $mux cell \122858:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69344, B=7'0000001, Y=$auto$ghdl.cc:806:import_module$69346
+      New ports: A={ $auto$ghdl.cc:806:import_module$69344 [0] $auto$ghdl.cc:806:import_module$69344 [0] }, B=2'01, Y=$auto$ghdl.cc:806:import_module$69346 [1:0]
+      New connections: $auto$ghdl.cc:806:import_module$69346 [6:2] = { $auto$ghdl.cc:806:import_module$69346 [1] $auto$ghdl.cc:806:import_module$69346 [1] $auto$ghdl.cc:806:import_module$69346 [1] $auto$ghdl.cc:806:import_module$69346 [1] $auto$ghdl.cc:806:import_module$69346 [1] }
+    Consolidated identical input bits for $mux cell \123113:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69462, B=7'0000001, Y=$auto$ghdl.cc:806:import_module$69464
+      New ports: A={ $auto$ghdl.cc:806:import_module$69462 [0] $auto$ghdl.cc:806:import_module$69462 [0] }, B=2'01, Y=$auto$ghdl.cc:806:import_module$69464 [1:0]
+      New connections: $auto$ghdl.cc:806:import_module$69464 [6:2] = { $auto$ghdl.cc:806:import_module$69464 [1] $auto$ghdl.cc:806:import_module$69464 [1] $auto$ghdl.cc:806:import_module$69464 [1] $auto$ghdl.cc:806:import_module$69464 [1] $auto$ghdl.cc:806:import_module$69464 [1] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122638:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69235, B=7'0000010, Y=$auto$ghdl.cc:806:import_module$69237
+      New ports: A={ $auto$ghdl.cc:806:import_module$69235 [1] $auto$ghdl.cc:806:import_module$69235 [1:0] }, B=3'010, Y=$auto$ghdl.cc:806:import_module$69237 [2:0]
+      New connections: $auto$ghdl.cc:806:import_module$69237 [6:3] = { $auto$ghdl.cc:806:import_module$69237 [2] $auto$ghdl.cc:806:import_module$69237 [2] $auto$ghdl.cc:806:import_module$69237 [2] $auto$ghdl.cc:806:import_module$69237 [2] }
+    Consolidated identical input bits for $mux cell \122862:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69346, B=7'0000010, Y=$auto$ghdl.cc:806:import_module$69348
+      New ports: A={ $auto$ghdl.cc:806:import_module$69346 [1] $auto$ghdl.cc:806:import_module$69346 [1:0] }, B=3'010, Y=$auto$ghdl.cc:806:import_module$69348 [2:0]
+      New connections: $auto$ghdl.cc:806:import_module$69348 [6:3] = { $auto$ghdl.cc:806:import_module$69348 [2] $auto$ghdl.cc:806:import_module$69348 [2] $auto$ghdl.cc:806:import_module$69348 [2] $auto$ghdl.cc:806:import_module$69348 [2] }
+    Consolidated identical input bits for $mux cell \123117:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69464, B=7'0000010, Y=$auto$ghdl.cc:806:import_module$69466
+      New ports: A={ $auto$ghdl.cc:806:import_module$69464 [1] $auto$ghdl.cc:806:import_module$69464 [1:0] }, B=3'010, Y=$auto$ghdl.cc:806:import_module$69466 [2:0]
+      New connections: $auto$ghdl.cc:806:import_module$69466 [6:3] = { $auto$ghdl.cc:806:import_module$69466 [2] $auto$ghdl.cc:806:import_module$69466 [2] $auto$ghdl.cc:806:import_module$69466 [2] $auto$ghdl.cc:806:import_module$69466 [2] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122642:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69237, B=7'0000011, Y=$auto$ghdl.cc:806:import_module$69239
+      New ports: A=$auto$ghdl.cc:806:import_module$69237 [2:0], B=3'011, Y=$auto$ghdl.cc:806:import_module$69239 [2:0]
+      New connections: $auto$ghdl.cc:806:import_module$69239 [6:3] = { $auto$ghdl.cc:806:import_module$69239 [2] $auto$ghdl.cc:806:import_module$69239 [2] $auto$ghdl.cc:806:import_module$69239 [2] $auto$ghdl.cc:806:import_module$69239 [2] }
+    Consolidated identical input bits for $mux cell \122866:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69348, B=7'0000011, Y=$auto$ghdl.cc:806:import_module$69350
+      New ports: A=$auto$ghdl.cc:806:import_module$69348 [2:0], B=3'011, Y=$auto$ghdl.cc:806:import_module$69350 [2:0]
+      New connections: $auto$ghdl.cc:806:import_module$69350 [6:3] = { $auto$ghdl.cc:806:import_module$69350 [2] $auto$ghdl.cc:806:import_module$69350 [2] $auto$ghdl.cc:806:import_module$69350 [2] $auto$ghdl.cc:806:import_module$69350 [2] }
+    Consolidated identical input bits for $mux cell \123121:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69466, B=7'0000011, Y=$auto$ghdl.cc:806:import_module$69468
+      New ports: A=$auto$ghdl.cc:806:import_module$69466 [2:0], B=3'011, Y=$auto$ghdl.cc:806:import_module$69468 [2:0]
+      New connections: $auto$ghdl.cc:806:import_module$69468 [6:3] = { $auto$ghdl.cc:806:import_module$69468 [2] $auto$ghdl.cc:806:import_module$69468 [2] $auto$ghdl.cc:806:import_module$69468 [2] $auto$ghdl.cc:806:import_module$69468 [2] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122646:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69239, B=7'0000100, Y=$auto$ghdl.cc:806:import_module$69241
+      New ports: A={ $auto$ghdl.cc:806:import_module$69239 [2] $auto$ghdl.cc:806:import_module$69239 [2:0] }, B=4'0100, Y=$auto$ghdl.cc:806:import_module$69241 [3:0]
+      New connections: $auto$ghdl.cc:806:import_module$69241 [6:4] = { $auto$ghdl.cc:806:import_module$69241 [3] $auto$ghdl.cc:806:import_module$69241 [3] $auto$ghdl.cc:806:import_module$69241 [3] }
+    Consolidated identical input bits for $mux cell \122870:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69350, B=7'0000100, Y=$auto$ghdl.cc:806:import_module$69352
+      New ports: A={ $auto$ghdl.cc:806:import_module$69350 [2] $auto$ghdl.cc:806:import_module$69350 [2:0] }, B=4'0100, Y=$auto$ghdl.cc:806:import_module$69352 [3:0]
+      New connections: $auto$ghdl.cc:806:import_module$69352 [6:4] = { $auto$ghdl.cc:806:import_module$69352 [3] $auto$ghdl.cc:806:import_module$69352 [3] $auto$ghdl.cc:806:import_module$69352 [3] }
+    Consolidated identical input bits for $mux cell \123125:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69468, B=7'0000100, Y=$auto$ghdl.cc:806:import_module$69470
+      New ports: A={ $auto$ghdl.cc:806:import_module$69468 [2] $auto$ghdl.cc:806:import_module$69468 [2:0] }, B=4'0100, Y=$auto$ghdl.cc:806:import_module$69470 [3:0]
+      New connections: $auto$ghdl.cc:806:import_module$69470 [6:4] = { $auto$ghdl.cc:806:import_module$69470 [3] $auto$ghdl.cc:806:import_module$69470 [3] $auto$ghdl.cc:806:import_module$69470 [3] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122650:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69241, B=7'0000101, Y=$auto$ghdl.cc:806:import_module$69243
+      New ports: A=$auto$ghdl.cc:806:import_module$69241 [3:0], B=4'0101, Y=$auto$ghdl.cc:806:import_module$69243 [3:0]
+      New connections: $auto$ghdl.cc:806:import_module$69243 [6:4] = { $auto$ghdl.cc:806:import_module$69243 [3] $auto$ghdl.cc:806:import_module$69243 [3] $auto$ghdl.cc:806:import_module$69243 [3] }
+    Consolidated identical input bits for $mux cell \122874:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69352, B=7'0000101, Y=$auto$ghdl.cc:806:import_module$69354
+      New ports: A=$auto$ghdl.cc:806:import_module$69352 [3:0], B=4'0101, Y=$auto$ghdl.cc:806:import_module$69354 [3:0]
+      New connections: $auto$ghdl.cc:806:import_module$69354 [6:4] = { $auto$ghdl.cc:806:import_module$69354 [3] $auto$ghdl.cc:806:import_module$69354 [3] $auto$ghdl.cc:806:import_module$69354 [3] }
+    Consolidated identical input bits for $mux cell \123129:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69470, B=7'0000101, Y=$auto$ghdl.cc:806:import_module$69472
+      New ports: A=$auto$ghdl.cc:806:import_module$69470 [3:0], B=4'0101, Y=$auto$ghdl.cc:806:import_module$69472 [3:0]
+      New connections: $auto$ghdl.cc:806:import_module$69472 [6:4] = { $auto$ghdl.cc:806:import_module$69472 [3] $auto$ghdl.cc:806:import_module$69472 [3] $auto$ghdl.cc:806:import_module$69472 [3] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122654:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69243, B=7'0000110, Y=$auto$ghdl.cc:806:import_module$69245
+      New ports: A=$auto$ghdl.cc:806:import_module$69243 [3:0], B=4'0110, Y=$auto$ghdl.cc:806:import_module$69245 [3:0]
+      New connections: $auto$ghdl.cc:806:import_module$69245 [6:4] = { $auto$ghdl.cc:806:import_module$69245 [3] $auto$ghdl.cc:806:import_module$69245 [3] $auto$ghdl.cc:806:import_module$69245 [3] }
+    Consolidated identical input bits for $mux cell \122878:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69354, B=7'0000110, Y=$auto$ghdl.cc:806:import_module$69356
+      New ports: A=$auto$ghdl.cc:806:import_module$69354 [3:0], B=4'0110, Y=$auto$ghdl.cc:806:import_module$69356 [3:0]
+      New connections: $auto$ghdl.cc:806:import_module$69356 [6:4] = { $auto$ghdl.cc:806:import_module$69356 [3] $auto$ghdl.cc:806:import_module$69356 [3] $auto$ghdl.cc:806:import_module$69356 [3] }
+    Consolidated identical input bits for $mux cell \123133:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69472, B=7'0000110, Y=$auto$ghdl.cc:806:import_module$69474
+      New ports: A=$auto$ghdl.cc:806:import_module$69472 [3:0], B=4'0110, Y=$auto$ghdl.cc:806:import_module$69474 [3:0]
+      New connections: $auto$ghdl.cc:806:import_module$69474 [6:4] = { $auto$ghdl.cc:806:import_module$69474 [3] $auto$ghdl.cc:806:import_module$69474 [3] $auto$ghdl.cc:806:import_module$69474 [3] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122658:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69245, B=7'0000111, Y=$auto$ghdl.cc:806:import_module$69247
+      New ports: A=$auto$ghdl.cc:806:import_module$69245 [3:0], B=4'0111, Y=$auto$ghdl.cc:806:import_module$69247 [3:0]
+      New connections: $auto$ghdl.cc:806:import_module$69247 [6:4] = { $auto$ghdl.cc:806:import_module$69247 [3] $auto$ghdl.cc:806:import_module$69247 [3] $auto$ghdl.cc:806:import_module$69247 [3] }
+    Consolidated identical input bits for $mux cell \122882:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69356, B=7'0000111, Y=$auto$ghdl.cc:806:import_module$69358
+      New ports: A=$auto$ghdl.cc:806:import_module$69356 [3:0], B=4'0111, Y=$auto$ghdl.cc:806:import_module$69358 [3:0]
+      New connections: $auto$ghdl.cc:806:import_module$69358 [6:4] = { $auto$ghdl.cc:806:import_module$69358 [3] $auto$ghdl.cc:806:import_module$69358 [3] $auto$ghdl.cc:806:import_module$69358 [3] }
+    Consolidated identical input bits for $mux cell \123137:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69474, B=7'0000111, Y=$auto$ghdl.cc:806:import_module$69476
+      New ports: A=$auto$ghdl.cc:806:import_module$69474 [3:0], B=4'0111, Y=$auto$ghdl.cc:806:import_module$69476 [3:0]
+      New connections: $auto$ghdl.cc:806:import_module$69476 [6:4] = { $auto$ghdl.cc:806:import_module$69476 [3] $auto$ghdl.cc:806:import_module$69476 [3] $auto$ghdl.cc:806:import_module$69476 [3] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122662:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69247, B=7'0001000, Y=$auto$ghdl.cc:806:import_module$69249
+      New ports: A={ $auto$ghdl.cc:806:import_module$69247 [3] $auto$ghdl.cc:806:import_module$69247 [3:0] }, B=5'01000, Y=$auto$ghdl.cc:806:import_module$69249 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69249 [6:5] = { $auto$ghdl.cc:806:import_module$69249 [4] $auto$ghdl.cc:806:import_module$69249 [4] }
+    Consolidated identical input bits for $mux cell \122886:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69358, B=7'0001000, Y=$auto$ghdl.cc:806:import_module$69360
+      New ports: A={ $auto$ghdl.cc:806:import_module$69358 [3] $auto$ghdl.cc:806:import_module$69358 [3:0] }, B=5'01000, Y=$auto$ghdl.cc:806:import_module$69360 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69360 [6:5] = { $auto$ghdl.cc:806:import_module$69360 [4] $auto$ghdl.cc:806:import_module$69360 [4] }
+    Consolidated identical input bits for $mux cell \123141:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69476, B=7'0001000, Y=$auto$ghdl.cc:806:import_module$69478
+      New ports: A={ $auto$ghdl.cc:806:import_module$69476 [3] $auto$ghdl.cc:806:import_module$69476 [3:0] }, B=5'01000, Y=$auto$ghdl.cc:806:import_module$69478 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69478 [6:5] = { $auto$ghdl.cc:806:import_module$69478 [4] $auto$ghdl.cc:806:import_module$69478 [4] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122666:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69249, B=7'0001001, Y=$auto$ghdl.cc:806:import_module$69251
+      New ports: A=$auto$ghdl.cc:806:import_module$69249 [4:0], B=5'01001, Y=$auto$ghdl.cc:806:import_module$69251 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69251 [6:5] = { $auto$ghdl.cc:806:import_module$69251 [4] $auto$ghdl.cc:806:import_module$69251 [4] }
+    Consolidated identical input bits for $mux cell \122890:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69360, B=7'0001001, Y=$auto$ghdl.cc:806:import_module$69362
+      New ports: A=$auto$ghdl.cc:806:import_module$69360 [4:0], B=5'01001, Y=$auto$ghdl.cc:806:import_module$69362 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69362 [6:5] = { $auto$ghdl.cc:806:import_module$69362 [4] $auto$ghdl.cc:806:import_module$69362 [4] }
+    Consolidated identical input bits for $mux cell \123145:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69478, B=7'0001001, Y=$auto$ghdl.cc:806:import_module$69480
+      New ports: A=$auto$ghdl.cc:806:import_module$69478 [4:0], B=5'01001, Y=$auto$ghdl.cc:806:import_module$69480 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69480 [6:5] = { $auto$ghdl.cc:806:import_module$69480 [4] $auto$ghdl.cc:806:import_module$69480 [4] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122670:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69251, B=7'0001010, Y=$auto$ghdl.cc:806:import_module$69253
+      New ports: A=$auto$ghdl.cc:806:import_module$69251 [4:0], B=5'01010, Y=$auto$ghdl.cc:806:import_module$69253 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69253 [6:5] = { $auto$ghdl.cc:806:import_module$69253 [4] $auto$ghdl.cc:806:import_module$69253 [4] }
+    Consolidated identical input bits for $mux cell \122894:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69362, B=7'0001010, Y=$auto$ghdl.cc:806:import_module$69364
+      New ports: A=$auto$ghdl.cc:806:import_module$69362 [4:0], B=5'01010, Y=$auto$ghdl.cc:806:import_module$69364 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69364 [6:5] = { $auto$ghdl.cc:806:import_module$69364 [4] $auto$ghdl.cc:806:import_module$69364 [4] }
+    Consolidated identical input bits for $mux cell \123149:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69480, B=7'0001010, Y=$auto$ghdl.cc:806:import_module$69482
+      New ports: A=$auto$ghdl.cc:806:import_module$69480 [4:0], B=5'01010, Y=$auto$ghdl.cc:806:import_module$69482 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69482 [6:5] = { $auto$ghdl.cc:806:import_module$69482 [4] $auto$ghdl.cc:806:import_module$69482 [4] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122674:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69253, B=7'0001011, Y=$auto$ghdl.cc:806:import_module$69255
+      New ports: A=$auto$ghdl.cc:806:import_module$69253 [4:0], B=5'01011, Y=$auto$ghdl.cc:806:import_module$69255 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69255 [6:5] = { $auto$ghdl.cc:806:import_module$69255 [4] $auto$ghdl.cc:806:import_module$69255 [4] }
+    Consolidated identical input bits for $mux cell \122898:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69364, B=7'0001011, Y=$auto$ghdl.cc:806:import_module$69366
+      New ports: A=$auto$ghdl.cc:806:import_module$69364 [4:0], B=5'01011, Y=$auto$ghdl.cc:806:import_module$69366 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69366 [6:5] = { $auto$ghdl.cc:806:import_module$69366 [4] $auto$ghdl.cc:806:import_module$69366 [4] }
+    Consolidated identical input bits for $mux cell \123153:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69482, B=7'0001011, Y=$auto$ghdl.cc:806:import_module$69484
+      New ports: A=$auto$ghdl.cc:806:import_module$69482 [4:0], B=5'01011, Y=$auto$ghdl.cc:806:import_module$69484 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69484 [6:5] = { $auto$ghdl.cc:806:import_module$69484 [4] $auto$ghdl.cc:806:import_module$69484 [4] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122678:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69255, B=7'0001100, Y=$auto$ghdl.cc:806:import_module$69257
+      New ports: A=$auto$ghdl.cc:806:import_module$69255 [4:0], B=5'01100, Y=$auto$ghdl.cc:806:import_module$69257 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69257 [6:5] = { $auto$ghdl.cc:806:import_module$69257 [4] $auto$ghdl.cc:806:import_module$69257 [4] }
+    Consolidated identical input bits for $mux cell \122902:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69366, B=7'0001100, Y=$auto$ghdl.cc:806:import_module$69368
+      New ports: A=$auto$ghdl.cc:806:import_module$69366 [4:0], B=5'01100, Y=$auto$ghdl.cc:806:import_module$69368 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69368 [6:5] = { $auto$ghdl.cc:806:import_module$69368 [4] $auto$ghdl.cc:806:import_module$69368 [4] }
+    Consolidated identical input bits for $mux cell \123157:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69484, B=7'0001100, Y=$auto$ghdl.cc:806:import_module$69486
+      New ports: A=$auto$ghdl.cc:806:import_module$69484 [4:0], B=5'01100, Y=$auto$ghdl.cc:806:import_module$69486 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69486 [6:5] = { $auto$ghdl.cc:806:import_module$69486 [4] $auto$ghdl.cc:806:import_module$69486 [4] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122682:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69257, B=7'0001101, Y=$auto$ghdl.cc:806:import_module$69259
+      New ports: A=$auto$ghdl.cc:806:import_module$69257 [4:0], B=5'01101, Y=$auto$ghdl.cc:806:import_module$69259 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69259 [6:5] = { $auto$ghdl.cc:806:import_module$69259 [4] $auto$ghdl.cc:806:import_module$69259 [4] }
+    Consolidated identical input bits for $mux cell \122906:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69368, B=7'0001101, Y=$auto$ghdl.cc:806:import_module$69370
+      New ports: A=$auto$ghdl.cc:806:import_module$69368 [4:0], B=5'01101, Y=$auto$ghdl.cc:806:import_module$69370 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69370 [6:5] = { $auto$ghdl.cc:806:import_module$69370 [4] $auto$ghdl.cc:806:import_module$69370 [4] }
+    Consolidated identical input bits for $mux cell \123161:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69486, B=7'0001101, Y=$auto$ghdl.cc:806:import_module$69488
+      New ports: A=$auto$ghdl.cc:806:import_module$69486 [4:0], B=5'01101, Y=$auto$ghdl.cc:806:import_module$69488 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69488 [6:5] = { $auto$ghdl.cc:806:import_module$69488 [4] $auto$ghdl.cc:806:import_module$69488 [4] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122686:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69259, B=7'0001110, Y=$auto$ghdl.cc:806:import_module$69261
+      New ports: A=$auto$ghdl.cc:806:import_module$69259 [4:0], B=5'01110, Y=$auto$ghdl.cc:806:import_module$69261 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69261 [6:5] = { $auto$ghdl.cc:806:import_module$69261 [4] $auto$ghdl.cc:806:import_module$69261 [4] }
+    Consolidated identical input bits for $mux cell \122910:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69370, B=7'0001110, Y=$auto$ghdl.cc:806:import_module$69372
+      New ports: A=$auto$ghdl.cc:806:import_module$69370 [4:0], B=5'01110, Y=$auto$ghdl.cc:806:import_module$69372 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69372 [6:5] = { $auto$ghdl.cc:806:import_module$69372 [4] $auto$ghdl.cc:806:import_module$69372 [4] }
+    Consolidated identical input bits for $mux cell \123165:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69488, B=7'0001110, Y=$auto$ghdl.cc:806:import_module$69490
+      New ports: A=$auto$ghdl.cc:806:import_module$69488 [4:0], B=5'01110, Y=$auto$ghdl.cc:806:import_module$69490 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69490 [6:5] = { $auto$ghdl.cc:806:import_module$69490 [4] $auto$ghdl.cc:806:import_module$69490 [4] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122690:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69261, B=7'0001111, Y=$auto$ghdl.cc:806:import_module$69263
+      New ports: A=$auto$ghdl.cc:806:import_module$69261 [4:0], B=5'01111, Y=$auto$ghdl.cc:806:import_module$69263 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69263 [6:5] = { $auto$ghdl.cc:806:import_module$69263 [4] $auto$ghdl.cc:806:import_module$69263 [4] }
+    Consolidated identical input bits for $mux cell \122914:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69372, B=7'0001111, Y=$auto$ghdl.cc:806:import_module$69374
+      New ports: A=$auto$ghdl.cc:806:import_module$69372 [4:0], B=5'01111, Y=$auto$ghdl.cc:806:import_module$69374 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69374 [6:5] = { $auto$ghdl.cc:806:import_module$69374 [4] $auto$ghdl.cc:806:import_module$69374 [4] }
+    Consolidated identical input bits for $mux cell \123169:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69490, B=7'0001111, Y=$auto$ghdl.cc:806:import_module$69492
+      New ports: A=$auto$ghdl.cc:806:import_module$69490 [4:0], B=5'01111, Y=$auto$ghdl.cc:806:import_module$69492 [4:0]
+      New connections: $auto$ghdl.cc:806:import_module$69492 [6:5] = { $auto$ghdl.cc:806:import_module$69492 [4] $auto$ghdl.cc:806:import_module$69492 [4] }
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122694:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69263, B=7'0010000, Y=$auto$ghdl.cc:806:import_module$69265
+      New ports: A={ $auto$ghdl.cc:806:import_module$69263 [4] $auto$ghdl.cc:806:import_module$69263 [4:0] }, B=6'010000, Y=$auto$ghdl.cc:806:import_module$69265 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69265 [6] = $auto$ghdl.cc:806:import_module$69265 [5]
+    Consolidated identical input bits for $mux cell \122918:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69374, B=7'0010000, Y=$auto$ghdl.cc:806:import_module$69376
+      New ports: A={ $auto$ghdl.cc:806:import_module$69374 [4] $auto$ghdl.cc:806:import_module$69374 [4:0] }, B=6'010000, Y=$auto$ghdl.cc:806:import_module$69376 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69376 [6] = $auto$ghdl.cc:806:import_module$69376 [5]
+    Consolidated identical input bits for $mux cell \123173:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69492, B=7'0010000, Y=$auto$ghdl.cc:806:import_module$69494
+      New ports: A={ $auto$ghdl.cc:806:import_module$69492 [4] $auto$ghdl.cc:806:import_module$69492 [4:0] }, B=6'010000, Y=$auto$ghdl.cc:806:import_module$69494 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69494 [6] = $auto$ghdl.cc:806:import_module$69494 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122698:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69265, B=7'0010001, Y=$auto$ghdl.cc:806:import_module$69267
+      New ports: A=$auto$ghdl.cc:806:import_module$69265 [5:0], B=6'010001, Y=$auto$ghdl.cc:806:import_module$69267 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69267 [6] = $auto$ghdl.cc:806:import_module$69267 [5]
+    Consolidated identical input bits for $mux cell \122922:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69376, B=7'0010001, Y=$auto$ghdl.cc:806:import_module$69378
+      New ports: A=$auto$ghdl.cc:806:import_module$69376 [5:0], B=6'010001, Y=$auto$ghdl.cc:806:import_module$69378 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69378 [6] = $auto$ghdl.cc:806:import_module$69378 [5]
+    Consolidated identical input bits for $mux cell \123177:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69494, B=7'0010001, Y=$auto$ghdl.cc:806:import_module$69496
+      New ports: A=$auto$ghdl.cc:806:import_module$69494 [5:0], B=6'010001, Y=$auto$ghdl.cc:806:import_module$69496 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69496 [6] = $auto$ghdl.cc:806:import_module$69496 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122702:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69267, B=7'0010010, Y=$auto$ghdl.cc:806:import_module$69269
+      New ports: A=$auto$ghdl.cc:806:import_module$69267 [5:0], B=6'010010, Y=$auto$ghdl.cc:806:import_module$69269 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69269 [6] = $auto$ghdl.cc:806:import_module$69269 [5]
+    Consolidated identical input bits for $mux cell \122926:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69378, B=7'0010010, Y=$auto$ghdl.cc:806:import_module$69380
+      New ports: A=$auto$ghdl.cc:806:import_module$69378 [5:0], B=6'010010, Y=$auto$ghdl.cc:806:import_module$69380 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69380 [6] = $auto$ghdl.cc:806:import_module$69380 [5]
+    Consolidated identical input bits for $mux cell \123181:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69496, B=7'0010010, Y=$auto$ghdl.cc:806:import_module$69498
+      New ports: A=$auto$ghdl.cc:806:import_module$69496 [5:0], B=6'010010, Y=$auto$ghdl.cc:806:import_module$69498 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69498 [6] = $auto$ghdl.cc:806:import_module$69498 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122706:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69269, B=7'0010011, Y=$auto$ghdl.cc:806:import_module$69271
+      New ports: A=$auto$ghdl.cc:806:import_module$69269 [5:0], B=6'010011, Y=$auto$ghdl.cc:806:import_module$69271 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69271 [6] = $auto$ghdl.cc:806:import_module$69271 [5]
+    Consolidated identical input bits for $mux cell \122930:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69380, B=7'0010011, Y=$auto$ghdl.cc:806:import_module$69382
+      New ports: A=$auto$ghdl.cc:806:import_module$69380 [5:0], B=6'010011, Y=$auto$ghdl.cc:806:import_module$69382 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69382 [6] = $auto$ghdl.cc:806:import_module$69382 [5]
+    Consolidated identical input bits for $mux cell \123185:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69498, B=7'0010011, Y=$auto$ghdl.cc:806:import_module$69500
+      New ports: A=$auto$ghdl.cc:806:import_module$69498 [5:0], B=6'010011, Y=$auto$ghdl.cc:806:import_module$69500 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69500 [6] = $auto$ghdl.cc:806:import_module$69500 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122710:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69271, B=7'0010100, Y=$auto$ghdl.cc:806:import_module$69273
+      New ports: A=$auto$ghdl.cc:806:import_module$69271 [5:0], B=6'010100, Y=$auto$ghdl.cc:806:import_module$69273 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69273 [6] = $auto$ghdl.cc:806:import_module$69273 [5]
+    Consolidated identical input bits for $mux cell \122934:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69382, B=7'0010100, Y=$auto$ghdl.cc:806:import_module$69384
+      New ports: A=$auto$ghdl.cc:806:import_module$69382 [5:0], B=6'010100, Y=$auto$ghdl.cc:806:import_module$69384 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69384 [6] = $auto$ghdl.cc:806:import_module$69384 [5]
+    Consolidated identical input bits for $mux cell \123189:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69500, B=7'0010100, Y=$auto$ghdl.cc:806:import_module$69502
+      New ports: A=$auto$ghdl.cc:806:import_module$69500 [5:0], B=6'010100, Y=$auto$ghdl.cc:806:import_module$69502 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69502 [6] = $auto$ghdl.cc:806:import_module$69502 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122714:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69273, B=7'0010101, Y=$auto$ghdl.cc:806:import_module$69275
+      New ports: A=$auto$ghdl.cc:806:import_module$69273 [5:0], B=6'010101, Y=$auto$ghdl.cc:806:import_module$69275 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69275 [6] = $auto$ghdl.cc:806:import_module$69275 [5]
+    Consolidated identical input bits for $mux cell \122938:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69384, B=7'0010101, Y=$auto$ghdl.cc:806:import_module$69386
+      New ports: A=$auto$ghdl.cc:806:import_module$69384 [5:0], B=6'010101, Y=$auto$ghdl.cc:806:import_module$69386 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69386 [6] = $auto$ghdl.cc:806:import_module$69386 [5]
+    Consolidated identical input bits for $mux cell \123193:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69502, B=7'0010101, Y=$auto$ghdl.cc:806:import_module$69504
+      New ports: A=$auto$ghdl.cc:806:import_module$69502 [5:0], B=6'010101, Y=$auto$ghdl.cc:806:import_module$69504 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69504 [6] = $auto$ghdl.cc:806:import_module$69504 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122718:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69275, B=7'0010110, Y=$auto$ghdl.cc:806:import_module$69277
+      New ports: A=$auto$ghdl.cc:806:import_module$69275 [5:0], B=6'010110, Y=$auto$ghdl.cc:806:import_module$69277 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69277 [6] = $auto$ghdl.cc:806:import_module$69277 [5]
+    Consolidated identical input bits for $mux cell \122942:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69386, B=7'0010110, Y=$auto$ghdl.cc:806:import_module$69388
+      New ports: A=$auto$ghdl.cc:806:import_module$69386 [5:0], B=6'010110, Y=$auto$ghdl.cc:806:import_module$69388 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69388 [6] = $auto$ghdl.cc:806:import_module$69388 [5]
+    Consolidated identical input bits for $mux cell \123197:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69504, B=7'0010110, Y=$auto$ghdl.cc:806:import_module$69506
+      New ports: A=$auto$ghdl.cc:806:import_module$69504 [5:0], B=6'010110, Y=$auto$ghdl.cc:806:import_module$69506 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69506 [6] = $auto$ghdl.cc:806:import_module$69506 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122722:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69277, B=7'0010111, Y=$auto$ghdl.cc:806:import_module$69279
+      New ports: A=$auto$ghdl.cc:806:import_module$69277 [5:0], B=6'010111, Y=$auto$ghdl.cc:806:import_module$69279 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69279 [6] = $auto$ghdl.cc:806:import_module$69279 [5]
+    Consolidated identical input bits for $mux cell \122946:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69388, B=7'0010111, Y=$auto$ghdl.cc:806:import_module$69390
+      New ports: A=$auto$ghdl.cc:806:import_module$69388 [5:0], B=6'010111, Y=$auto$ghdl.cc:806:import_module$69390 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69390 [6] = $auto$ghdl.cc:806:import_module$69390 [5]
+    Consolidated identical input bits for $mux cell \123201:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69506, B=7'0010111, Y=$auto$ghdl.cc:806:import_module$69508
+      New ports: A=$auto$ghdl.cc:806:import_module$69506 [5:0], B=6'010111, Y=$auto$ghdl.cc:806:import_module$69508 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69508 [6] = $auto$ghdl.cc:806:import_module$69508 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122726:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69279, B=7'0011000, Y=$auto$ghdl.cc:806:import_module$69281
+      New ports: A=$auto$ghdl.cc:806:import_module$69279 [5:0], B=6'011000, Y=$auto$ghdl.cc:806:import_module$69281 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69281 [6] = $auto$ghdl.cc:806:import_module$69281 [5]
+    Consolidated identical input bits for $mux cell \122950:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69390, B=7'0011000, Y=$auto$ghdl.cc:806:import_module$69392
+      New ports: A=$auto$ghdl.cc:806:import_module$69390 [5:0], B=6'011000, Y=$auto$ghdl.cc:806:import_module$69392 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69392 [6] = $auto$ghdl.cc:806:import_module$69392 [5]
+    Consolidated identical input bits for $mux cell \123205:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69508, B=7'0011000, Y=$auto$ghdl.cc:806:import_module$69510
+      New ports: A=$auto$ghdl.cc:806:import_module$69508 [5:0], B=6'011000, Y=$auto$ghdl.cc:806:import_module$69510 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69510 [6] = $auto$ghdl.cc:806:import_module$69510 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122730:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69281, B=7'0011001, Y=$auto$ghdl.cc:806:import_module$69283
+      New ports: A=$auto$ghdl.cc:806:import_module$69281 [5:0], B=6'011001, Y=$auto$ghdl.cc:806:import_module$69283 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69283 [6] = $auto$ghdl.cc:806:import_module$69283 [5]
+    Consolidated identical input bits for $mux cell \122954:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69392, B=7'0011001, Y=$auto$ghdl.cc:806:import_module$69394
+      New ports: A=$auto$ghdl.cc:806:import_module$69392 [5:0], B=6'011001, Y=$auto$ghdl.cc:806:import_module$69394 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69394 [6] = $auto$ghdl.cc:806:import_module$69394 [5]
+    Consolidated identical input bits for $mux cell \123209:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69510, B=7'0011001, Y=$auto$ghdl.cc:806:import_module$69512
+      New ports: A=$auto$ghdl.cc:806:import_module$69510 [5:0], B=6'011001, Y=$auto$ghdl.cc:806:import_module$69512 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69512 [6] = $auto$ghdl.cc:806:import_module$69512 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122734:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69283, B=7'0011010, Y=$auto$ghdl.cc:806:import_module$69285
+      New ports: A=$auto$ghdl.cc:806:import_module$69283 [5:0], B=6'011010, Y=$auto$ghdl.cc:806:import_module$69285 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69285 [6] = $auto$ghdl.cc:806:import_module$69285 [5]
+    Consolidated identical input bits for $mux cell \122958:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69394, B=7'0011010, Y=$auto$ghdl.cc:806:import_module$69396
+      New ports: A=$auto$ghdl.cc:806:import_module$69394 [5:0], B=6'011010, Y=$auto$ghdl.cc:806:import_module$69396 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69396 [6] = $auto$ghdl.cc:806:import_module$69396 [5]
+    Consolidated identical input bits for $mux cell \123213:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69512, B=7'0011010, Y=$auto$ghdl.cc:806:import_module$69514
+      New ports: A=$auto$ghdl.cc:806:import_module$69512 [5:0], B=6'011010, Y=$auto$ghdl.cc:806:import_module$69514 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69514 [6] = $auto$ghdl.cc:806:import_module$69514 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122738:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69285, B=7'0011011, Y=$auto$ghdl.cc:806:import_module$69287
+      New ports: A=$auto$ghdl.cc:806:import_module$69285 [5:0], B=6'011011, Y=$auto$ghdl.cc:806:import_module$69287 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69287 [6] = $auto$ghdl.cc:806:import_module$69287 [5]
+    Consolidated identical input bits for $mux cell \122962:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69396, B=7'0011011, Y=$auto$ghdl.cc:806:import_module$69398
+      New ports: A=$auto$ghdl.cc:806:import_module$69396 [5:0], B=6'011011, Y=$auto$ghdl.cc:806:import_module$69398 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69398 [6] = $auto$ghdl.cc:806:import_module$69398 [5]
+    Consolidated identical input bits for $mux cell \123217:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69514, B=7'0011011, Y=$auto$ghdl.cc:806:import_module$69516
+      New ports: A=$auto$ghdl.cc:806:import_module$69514 [5:0], B=6'011011, Y=$auto$ghdl.cc:806:import_module$69516 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69516 [6] = $auto$ghdl.cc:806:import_module$69516 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122742:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69287, B=7'0011100, Y=$auto$ghdl.cc:806:import_module$69289
+      New ports: A=$auto$ghdl.cc:806:import_module$69287 [5:0], B=6'011100, Y=$auto$ghdl.cc:806:import_module$69289 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69289 [6] = $auto$ghdl.cc:806:import_module$69289 [5]
+    Consolidated identical input bits for $mux cell \122966:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69398, B=7'0011100, Y=$auto$ghdl.cc:806:import_module$69400
+      New ports: A=$auto$ghdl.cc:806:import_module$69398 [5:0], B=6'011100, Y=$auto$ghdl.cc:806:import_module$69400 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69400 [6] = $auto$ghdl.cc:806:import_module$69400 [5]
+    Consolidated identical input bits for $mux cell \123221:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69516, B=7'0011100, Y=$auto$ghdl.cc:806:import_module$69518
+      New ports: A=$auto$ghdl.cc:806:import_module$69516 [5:0], B=6'011100, Y=$auto$ghdl.cc:806:import_module$69518 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69518 [6] = $auto$ghdl.cc:806:import_module$69518 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122746:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69289, B=7'0011101, Y=$auto$ghdl.cc:806:import_module$69291
+      New ports: A=$auto$ghdl.cc:806:import_module$69289 [5:0], B=6'011101, Y=$auto$ghdl.cc:806:import_module$69291 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69291 [6] = $auto$ghdl.cc:806:import_module$69291 [5]
+    Consolidated identical input bits for $mux cell \122970:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69400, B=7'0011101, Y=$auto$ghdl.cc:806:import_module$69402
+      New ports: A=$auto$ghdl.cc:806:import_module$69400 [5:0], B=6'011101, Y=$auto$ghdl.cc:806:import_module$69402 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69402 [6] = $auto$ghdl.cc:806:import_module$69402 [5]
+    Consolidated identical input bits for $mux cell \123225:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69518, B=7'0011101, Y=$auto$ghdl.cc:806:import_module$69520
+      New ports: A=$auto$ghdl.cc:806:import_module$69518 [5:0], B=6'011101, Y=$auto$ghdl.cc:806:import_module$69520 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69520 [6] = $auto$ghdl.cc:806:import_module$69520 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122750:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69291, B=7'0011110, Y=$auto$ghdl.cc:806:import_module$69293
+      New ports: A=$auto$ghdl.cc:806:import_module$69291 [5:0], B=6'011110, Y=$auto$ghdl.cc:806:import_module$69293 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69293 [6] = $auto$ghdl.cc:806:import_module$69293 [5]
+    Consolidated identical input bits for $mux cell \122974:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69402, B=7'0011110, Y=$auto$ghdl.cc:806:import_module$69404
+      New ports: A=$auto$ghdl.cc:806:import_module$69402 [5:0], B=6'011110, Y=$auto$ghdl.cc:806:import_module$69404 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69404 [6] = $auto$ghdl.cc:806:import_module$69404 [5]
+    Consolidated identical input bits for $mux cell \123229:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69520, B=7'0011110, Y=$auto$ghdl.cc:806:import_module$69522
+      New ports: A=$auto$ghdl.cc:806:import_module$69520 [5:0], B=6'011110, Y=$auto$ghdl.cc:806:import_module$69522 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69522 [6] = $auto$ghdl.cc:806:import_module$69522 [5]
+  Optimizing cells in module \fexp_unit.
+    Consolidated identical input bits for $mux cell \122754:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69293, B=7'0011111, Y=$auto$ghdl.cc:806:import_module$69295
+      New ports: A=$auto$ghdl.cc:806:import_module$69293 [5:0], B=6'011111, Y=$auto$ghdl.cc:806:import_module$69295 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69295 [6] = $auto$ghdl.cc:806:import_module$69295 [5]
+    Consolidated identical input bits for $mux cell \122978:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69404, B=7'0011111, Y=$auto$ghdl.cc:806:import_module$69406
+      New ports: A=$auto$ghdl.cc:806:import_module$69404 [5:0], B=6'011111, Y=$auto$ghdl.cc:806:import_module$69406 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69406 [6] = $auto$ghdl.cc:806:import_module$69406 [5]
+    Consolidated identical input bits for $mux cell \123233:
+      Old ports: A=$auto$ghdl.cc:806:import_module$69522, B=7'0011111, Y=$auto$ghdl.cc:806:import_module$69524
+      New ports: A=$auto$ghdl.cc:806:import_module$69522 [5:0], B=6'011111, Y=$auto$ghdl.cc:806:import_module$69524 [5:0]
+      New connections: $auto$ghdl.cc:806:import_module$69524 [6] = $auto$ghdl.cc:806:import_module$69524 [5]
+  Optimizing cells in module \fexp_unit.
+Performed a total of 105 changes.
+
+3.18.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+<suppressed ~6 debug messages>
+Removed a total of 2 cells.
+
+3.18.6. Executing OPT_SHARE pass.
+
+3.18.7. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.18.8. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 0 unused cells and 2 unused wires.
+<suppressed ~1 debug messages>
+
+3.18.9. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+<suppressed ~5 debug messages>
+
+3.18.10. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.18.11. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \fexp_unit..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~87 debug messages>
+
+3.18.12. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \fexp_unit.
+Performed a total of 0 changes.
+
+3.18.13. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+<suppressed ~3 debug messages>
+Removed a total of 1 cells.
+
+3.18.14. Executing OPT_SHARE pass.
+
+3.18.15. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.18.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 0 unused cells and 1 unused wires.
+<suppressed ~1 debug messages>
+
+3.18.17. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+
+3.18.18. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.18.19. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \fexp_unit..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~87 debug messages>
+
+3.18.20. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \fexp_unit.
+Performed a total of 0 changes.
+
+3.18.21. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+Removed a total of 0 cells.
+
+3.18.22. Executing OPT_SHARE pass.
+
+3.18.23. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.18.24. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+
+3.18.25. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+
+3.18.26. Finished OPT passes. (There is nothing left to do.)
+
+3.19. Executing TECHMAP pass (map to technology primitives).
+
+3.19.1. Executing Verilog-2005 frontend: /usr/bin/../share/yosys/techmap.v
+Parsing Verilog input from `/usr/bin/../share/yosys/techmap.v' to AST representation.
+Generating RTLIL representation for module `\_90_simplemap_bool_ops'.
+Generating RTLIL representation for module `\_90_simplemap_reduce_ops'.
+Generating RTLIL representation for module `\_90_simplemap_logic_ops'.
+Generating RTLIL representation for module `\_90_simplemap_compare_ops'.
+Generating RTLIL representation for module `\_90_simplemap_various'.
+Generating RTLIL representation for module `\_90_simplemap_registers'.
+Generating RTLIL representation for module `\_90_shift_ops_shr_shl_sshl_sshr'.
+Generating RTLIL representation for module `\_90_shift_shiftx'.
+Generating RTLIL representation for module `\_90_fa'.
+Generating RTLIL representation for module `\_90_lcu'.
+Generating RTLIL representation for module `\_90_alu'.
+Generating RTLIL representation for module `\_90_macc'.
+Generating RTLIL representation for module `\_90_alumacc'.
+Generating RTLIL representation for module `\$__div_mod_u'.
+Generating RTLIL representation for module `\$__div_mod_trunc'.
+Generating RTLIL representation for module `\_90_div'.
+Generating RTLIL representation for module `\_90_mod'.
+Generating RTLIL representation for module `\$__div_mod_floor'.
+Generating RTLIL representation for module `\_90_divfloor'.
+Generating RTLIL representation for module `\_90_modfloor'.
+Generating RTLIL representation for module `\_90_pow'.
+Generating RTLIL representation for module `\_90_pmux'.
+Generating RTLIL representation for module `\_90_demux'.
+Generating RTLIL representation for module `\_90_lut'.
+Successfully finished Verilog frontend.
+
+3.19.2. Continuing TECHMAP pass.
+Using extmapper simplemap for cells of type $mux.
+Using extmapper simplemap for cells of type $logic_not.
+Using extmapper simplemap for cells of type $reduce_or.
+Using extmapper simplemap for cells of type $and.
+Using extmapper simplemap for cells of type $eq.
+Using extmapper simplemap for cells of type $not.
+Using extmapper simplemap for cells of type $reduce_and.
+Using extmapper simplemap for cells of type $ne.
+Using extmapper simplemap for cells of type $sdffce.
+Using extmapper simplemap for cells of type $or.
+Using extmapper simplemap for cells of type $xor.
+Using template $paramod$38ea46ffd892378bfaf8febe0c8ac03b94ee7ee9\_90_alu for cells of type $alu.
+Using template $paramod$46064f572ac2aa4a964068601f62fbcb8348ada7\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $reduce_bool.
+Using template $paramod$5fa769bd6f6ca230a24c9bbc0e120f15bcfea838\_90_pmux for cells of type $pmux.
+Using extmapper simplemap for cells of type $dff.
+Using template $paramod$constmap:8ade3174822881101e572edc0658a1a933b85a74$paramod$b11334f8980de68123f920e65b9ffd128a6cc755\_90_shift_ops_shr_shl_sshl_sshr for cells of type $shl.
+Using template $paramod$54969db7f41ab9ffc93887c2d8e2d7f68e10b42f\_90_alu for cells of type $alu.
+Using extmapper maccmap for cells of type $macc.
+  add { $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 [6] $auto$ghdl.cc:806:import_module$69574 } (32 bits, unsigned)
+  add 32'11111111111111111111111111001001 (32 bits, unsigned)
+  sub $auto$ghdl.cc:806:import_module$69585 (13 bits, signed)
+Using template $paramod$c3722232e837c1cdc21bf4710f7979c1b518b721\_90_alu for cells of type $alu.
+Using template $paramod$c66b509f0dbff04a70da2bd22d8e6a343f873dbd\_90_alu for cells of type $alu.
+Using template $paramod$2780480d52179e2db572a6e5133edf36e733d32e\_90_alu for cells of type $alu.
+Using template $paramod$2070c097f37cdf976f397d27fccf6cef94274e43\_90_alu for cells of type $alu.
+Using template $paramod$c6baa65225090ac0a120feab1b920965244aa496\_90_alu for cells of type $alu.
+  add { $auto$ghdl.cc:806:import_module$69207 $auto$ghdl.cc:806:import_module$69207 $auto$ghdl.cc:806:import_module$69207 $auto$ghdl.cc:806:import_module$69206 } (13 bits, unsigned)
+  sub $auto$ghdl.cc:806:import_module$69455 (13 bits, unsigned)
+  add { $auto$ghdl.cc:806:import_module$69227 $auto$ghdl.cc:806:import_module$69227 $auto$ghdl.cc:806:import_module$69227 $auto$ghdl.cc:806:import_module$69226 } (13 bits, unsigned)
+  add 13'0000000000001 (13 bits, unsigned)
+  packed 2 (1) bits / 1 words into adder tree
+Using template $paramod$02840841180f0f2c25fa480eac550c929233ef32\_90_alu for cells of type $alu.
+Using template $paramod$constmap:1710021f6c7bb06fd1350720d382b410324315cb$paramod$46c8d89215b0f82c4676bddf817f1cf9d666cd7c\_90_shift_ops_shr_shl_sshl_sshr for cells of type $shr.
+Using template $paramod$7a879e600cfb66edc319701e3d60cd93f323b9dc\_90_alu for cells of type $alu.
+Using template $paramod$constmap:1710021f6c7bb06fd1350720d382b410324315cb$paramod$af1ffe2fe5fdd68231ff88444fb7c24fd952be40\_90_shift_ops_shr_shl_sshl_sshr for cells of type $shl.
+Using template $paramod$7b00947614a4c48e09c066dca449366ddfa907a5\_90_alu for cells of type $alu.
+Using template $paramod$02cc4ce3dc7f708a1b55d13c35a794c78de7babf\_90_alu for cells of type $alu.
+Using template $paramod$3636e5d13d08d3cf711b7983cc61849c8abc3f53\_90_alu for cells of type $alu.
+Using template $paramod$23edaf81cda39cbb13a3734dfe898b3135f41d99\_90_alu for cells of type $alu.
+Using template $paramod$076b6674fdf0bca63289ca0e2a276d2e13ebeccd\_90_alu for cells of type $alu.
+Using template $paramod$aa6d001a71e5e2aa7a3da43e4af2ce7de15174c9\_90_alu for cells of type $alu.
+Using template $paramod$e44e91c5fe26938517b87dc00a8b3041c8cd06e0\_90_alu for cells of type $alu.
+Using template $paramod$7dce730435e7851fd9880afeb03137a3a368409e\_90_alu for cells of type $alu.
+Using template $paramod$8c43a4b340292425d0e15ee12ac6b01ca30bc5f3\_90_alu for cells of type $alu.
+Using template $paramod$91d221ab30cdffcc2bc32b32963a4bcaf2333b13\_90_alu for cells of type $alu.
+Using template $paramod$3b9d57d9eb1fb223c41ccc99ab43e03a535cf811\_90_alu for cells of type $alu.
+Using template $paramod$11081856fd082fd8b60e458299087f04f429e62c\_90_alu for cells of type $alu.
+Using template $paramod$b51307e1ab724bf92e9e9974941ccd154031df99\_90_alu for cells of type $alu.
+Using template $paramod$fabe4686810c068bfebc953fb5d9a42efc9c9f1b\_90_alu for cells of type $alu.
+Using template $paramod$b428551475981eb3841439c41ff02dfe9ed0c0f2\_90_alu for cells of type $alu.
+Using template $paramod$0084fe719dfe5764ea498b16710fd7fd71f6c8a6\_90_alu for cells of type $alu.
+Using template $paramod$b7d8bc51a9f2c27358a2ecf6b8f69c0b21118b89\_90_alu for cells of type $alu.
+Using template $paramod$75ee2a7d1dce202ddefff1b163aa7312265b7619\_90_alu for cells of type $alu.
+Using template $paramod$d901baf1fb63991ac0a40d2e3f4807d372bb57a2\_90_alu for cells of type $alu.
+Using template $paramod$a5a8ebb2cfc80f0cacfac1e42aa531c9aa5fbb36\_90_alu for cells of type $alu.
+Using template $paramod$2f5fb04daf2da94d981bf9455fa4454c6ec8b705\_90_alu for cells of type $alu.
+Using template $paramod$c0020f6f1eab11aa2b9a367494ef02240e7491a2\_90_alu for cells of type $alu.
+Using template $paramod$788c3d57e5abb3a3f89aea6d4acd665be37f4e9b\_90_alu for cells of type $alu.
+  add $auto$ghdl.cc:806:import_module$69453 * $auto$ghdl.cc:806:import_module$69454 (53x53 bits, unsigned)
+Using template $paramod$521ce43182eecb9f60c72393a788160d2c356bf5\_90_pmux for cells of type $pmux.
+Using extmapper simplemap for cells of type $dffe.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000001101010 for cells of type $fa.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000001101001 for cells of type $fa.
+Using template $paramod$62e74e5d77aab722a53c83171bc352e6dd9d1500\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $pos.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000011111 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000110100 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000001011 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000011110 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000011101 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000011100 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000011011 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000011010 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000100000 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000001101 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000001101 for cells of type $fa.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000001000000 for cells of type $lcu.
+Using template $paramod$fbc7873bff55778c0b3173955b7e4bce1d9d6834\_90_alu for cells of type $alu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000001101010 for cells of type $lcu.
+No more expansions possible.
+<suppressed ~16182 debug messages>
+
+3.20. Executing OPT pass (performing simple optimizations).
+
+3.20.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+<suppressed ~28807 debug messages>
+
+3.20.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+<suppressed ~13164 debug messages>
+Removed a total of 4388 cells.
+
+3.20.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.20.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 3347 unused cells and 9787 unused wires.
+<suppressed ~3348 debug messages>
+
+3.20.5. Finished fast OPT passes.
+
+3.21. Executing ABC pass (technology mapping using ABC).
+
+3.21.1. Extracting gate netlist of module `\fexp_unit' to `<abc-temp-dir>/input.blif'..
+Extracted 24059 gates and 24325 wires to a netlist network with 264 inputs and 206 outputs.
+
+3.21.1.1. Executing ABC.
+Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
+ABC: ABC command line: "source <abc-temp-dir>/abc.script".
+ABC: 
+ABC: + read_blif <abc-temp-dir>/input.blif 
+ABC: + read_library <abc-temp-dir>/stdcells.genlib 
+ABC: Entered genlib library with 13 gates from file "<abc-temp-dir>/stdcells.genlib".
+ABC: + strash 
+ABC: + dretime 
+ABC: + map 
+ABC: + write_blif <abc-temp-dir>/output.blif 
+
+3.21.1.2. Re-integrating ABC results.
+ABC RESULTS:             ORNOT cells:     1258
+ABC RESULTS:               NOT cells:      488
+ABC RESULTS:               NOR cells:     3107
+ABC RESULTS:              NAND cells:      313
+ABC RESULTS:               XOR cells:     4354
+ABC RESULTS:              XNOR cells:     1796
+ABC RESULTS:               MUX cells:     1681
+ABC RESULTS:               AND cells:      216
+ABC RESULTS:                OR cells:     4277
+ABC RESULTS:            ANDNOT cells:     6191
+ABC RESULTS:        internal signals:    23855
+ABC RESULTS:           input signals:      264
+ABC RESULTS:          output signals:      206
+Removing temp directory.
+
+3.22. Executing OPT pass (performing simple optimizations).
+
+3.22.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module fexp_unit.
+<suppressed ~197 debug messages>
+
+3.22.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\fexp_unit'.
+<suppressed ~198 debug messages>
+Removed a total of 66 cells.
+
+3.22.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.22.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 2 unused cells and 2541 unused wires.
+<suppressed ~20 debug messages>
+
+3.22.5. Finished fast OPT passes.
+
+3.23. Executing HIERARCHY pass (managing design hierarchy).
+
+3.23.1. Analyzing design hierarchy..
+Top module:  \fexp_unit
+
+3.23.2. Analyzing design hierarchy..
+Top module:  \fexp_unit
+Removed 0 unused modules.
+Module fexp_unit directly or indirectly contains formal properties -> setting "keep" attribute.
+
+3.24. Printing statistics.
+
+=== fexp_unit ===
+
+   Number of wires:              23674
+   Number of wire bits:          32551
+   Number of public wires:          62
+   Number of public wire bits:    8939
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:              23875
+     $_ANDNOT_                    6178
+     $_AND_                        214
+     $_DFFE_PP_                    129
+     $_DFF_P_                        4
+     $_MUX_                       1677
+     $_NAND_                       311
+     $_NOR_                       3070
+     $_NOT_                        485
+     $_ORNOT_                     1255
+     $_OR_                        4274
+     $_SDFFCE_PP0P_                106
+     $_SDFFCE_PP1P_                 22
+     $_XNOR_                      1796
+     $_XOR_                       4353
+     $assert                         1
+
+3.25. Executing CHECK pass (checking for obvious problems).
+Checking module fexp_unit...
+Found and reported 0 problems.
+
+4. Executing DFFLIBMAP pass (mapping DFF cells to sequential cells from liberty file).
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_2' - skipping.
+  cell sg13g2_dfrbpq_1 (noninv, pins=4, area=48.99) is a direct match for cell type $_DFF_PN0_.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbp_2' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_1' - skipping.
+Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 'sg13g2_sdfrbpq_2' - skipping.
+  final dff cell mappings:
+    unmapped dff cell: $_DFF_N_
+    unmapped dff cell: $_DFF_P_
+    unmapped dff cell: $_DFF_NN0_
+    unmapped dff cell: $_DFF_NN1_
+    unmapped dff cell: $_DFF_NP0_
+    unmapped dff cell: $_DFF_NP1_
+    \sg13g2_dfrbpq_1 _DFF_PN0_ (.CLK( C), .D( D), .Q( Q), .RESET_B( R));
+    unmapped dff cell: $_DFF_PN1_
+    unmapped dff cell: $_DFF_PP0_
+    unmapped dff cell: $_DFF_PP1_
+    unmapped dff cell: $_DFFSR_NNN_
+    unmapped dff cell: $_DFFSR_NNP_
+    unmapped dff cell: $_DFFSR_NPN_
+    unmapped dff cell: $_DFFSR_NPP_
+    unmapped dff cell: $_DFFSR_PNN_
+    unmapped dff cell: $_DFFSR_PNP_
+    unmapped dff cell: $_DFFSR_PPN_
+    unmapped dff cell: $_DFFSR_PPP_
+
+4.1. Executing DFFLEGALIZE pass (convert FFs to types supported by the target).
+Mapping DFF cells in module `\fexp_unit':
+  mapped 261 $_DFF_PN0_ cells to \sg13g2_dfrbpq_1 cells.
+
+5. Executing ABC pass (technology mapping using ABC).
+
+5.1. Extracting gate netlist of module `\fexp_unit' to `<abc-temp-dir>/input.blif'..
+Extracted 23998 gates and 24392 wires to a netlist network with 392 inputs and 262 outputs.
+
+5.1.1. Executing ABC.
+Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
+ABC: ABC command line: "source <abc-temp-dir>/abc.script".
+ABC: 
+ABC: + read_blif <abc-temp-dir>/input.blif 
+ABC: + read_lib -w /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib 
+ABC: Parsing finished successfully.  Parsing time =     0.02 sec
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_antennanp" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_decap_4" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_decap_8" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_dfrbp_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_dfrbp_2".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_dfrbpq_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_dfrbpq_2".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_dlhq_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_dlhr_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_dlhrq_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_dllr_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_dllrq_1".
+ABC: Scl_LibertyReadGenlib() skipped three-state cell "sg13g2_ebufn_2".
+ABC: Scl_LibertyReadGenlib() skipped three-state cell "sg13g2_ebufn_4".
+ABC: Scl_LibertyReadGenlib() skipped three-state cell "sg13g2_ebufn_8".
+ABC: Scl_LibertyReadGenlib() skipped three-state cell "sg13g2_einvn_2".
+ABC: Scl_LibertyReadGenlib() skipped three-state cell "sg13g2_einvn_4".
+ABC: Scl_LibertyReadGenlib() skipped three-state cell "sg13g2_einvn_8".
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_fill_1" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_fill_2" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_fill_4" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_fill_8" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_lgcp_1" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfbbp_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbp_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbp_2".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
+ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
+ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
+ABC: Memory =    2.86 MB. Time =     0.02 sec
+ABC: + strash 
+ABC: + &get -n 
+ABC: + &fraig -x 
+ABC: + &put 
+ABC: + scorr 
+ABC: Warning: The network is combinational (run "fraig" or "fraig_sweep").
+ABC: + dc2 
+ABC: + dretime 
+ABC: + strash 
+ABC: + &get -n 
+ABC: + &dch -f 
+ABC: + &nf 
+ABC: + &put 
+ABC: + write_blif <abc-temp-dir>/output.blif 
+
+5.1.2. Re-integrating ABC results.
+ABC RESULTS:     sg13g2_and4_1 cells:      178
+ABC RESULTS:     sg13g2_and3_1 cells:       41
+ABC RESULTS:     sg13g2_mux4_1 cells:      136
+ABC RESULTS:      sg13g2_or3_1 cells:      272
+ABC RESULTS:      sg13g2_or4_1 cells:       15
+ABC RESULTS:      sg13g2_inv_1 cells:      451
+ABC RESULTS:   sg13g2_nand3b_1 cells:       15
+ABC RESULTS:    sg13g2_nand4_1 cells:      150
+ABC RESULTS:     sg13g2_a21o_1 cells:      550
+ABC RESULTS:     sg13g2_nor4_1 cells:      338
+ABC RESULTS:   sg13g2_a221oi_1 cells:       40
+ABC RESULTS:     sg13g2_and2_1 cells:      564
+ABC RESULTS:      sg13g2_or2_1 cells:      636
+ABC RESULTS:     sg13g2_xor2_1 cells:     1820
+ABC RESULTS:    sg13g2_xnor2_1 cells:     2508
+ABC RESULTS:   sg13g2_nand2b_1 cells:     1291
+ABC RESULTS:    sg13g2_nand3_1 cells:      679
+ABC RESULTS:     sg13g2_nor2_1 cells:     1769
+ABC RESULTS:    sg13g2_a22oi_1 cells:      564
+ABC RESULTS:    sg13g2_nor2b_1 cells:      876
+ABC RESULTS:    sg13g2_nand2_1 cells:     2983
+ABC RESULTS:     sg13g2_nor3_1 cells:      469
+ABC RESULTS:    sg13g2_a21oi_1 cells:     1239
+ABC RESULTS:    sg13g2_o21ai_1 cells:     1681
+ABC RESULTS:     sg13g2_mux2_1 cells:      462
+ABC RESULTS:        internal signals:    23738
+ABC RESULTS:           input signals:      392
+ABC RESULTS:          output signals:      262
+Removing temp directory.
+
+6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \fexp_unit..
+Removed 0 unused cells and 24390 unused wires.
+<suppressed ~1 debug messages>
+Warnings: 4 unique messages, 36 total
+End of script. Logfile hash: 9198f21857, CPU: user 15.21s system 0.09s, MEM: 199.23 MB peak
+Yosys 0.33 (git sha1 2584903a060)
+Time spent: 93% 2x abc (216 sec), 1% 51x opt_expr (4 sec), ...

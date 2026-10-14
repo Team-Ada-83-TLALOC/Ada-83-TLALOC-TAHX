@@ -11,6 +11,7 @@ use work.TAHX_1_ISA.all;
 use work.ARCH_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.INO_PADDR.all;
 
         --------------------------------------------------------------------------------
         -- INO_BRANCH_UNIT, architecture RTL.
@@ -25,6 +26,12 @@ use work.IN_ORDER_TYPES.all;
         --   RTD 0/n    : toujours pris, cible = ISSUE_i.address (pile retours)
         --
         -- target rendu = adresse où l'exécution continue.
+        --
+        -- Espace physique InO (INO_PADDR) : si l'adresse de continuation n'est pas
+        -- réalisable (bits 63..PA_BITS non nuls), le transfert faute (132) ; FPC est
+        -- alors l'adresse de l'instruction de transfert. CALL / CALLI fautent aussi si
+        -- leur adresse de retour (pc + len) n'est pas réalisable : la pile des retours
+        -- ne garde que PA_BITS bits.
         --
         -- Un cycle, comme INO_INTEGER_UNIT.
         --------------------------------------------------------------------------------
@@ -83,6 +90,12 @@ of INO_BRANCH_UNIT is           ---
       else
          r.taken  := '0';
          r.target := fall;
+      end if;
+      if not PA_OK( r.target )
+         or ( ( op = OP_CALL or op = OP_CALLI ) and not PA_OK( fall ) ) then
+         r.fault  := ( valid => '1', code => FAULT_ACCESS );
+         r.taken  := '0';
+         r.target := ( others => '0' );
       end if;
       return r;
    end function;

@@ -217,8 +217,8 @@ U_DECODE_QUEUE :
       PUSH_READY_o		=> fe_ready,
       POP_TAKE_i		=> dq_take,
       POP_BLOCK_o		=> dq_block,
-      POP_COUNT_o		=> dq_count,
-      COUNT_o		=> open
+      POP_COUNT_o		=> dq_count
+--      COUNT_o		=> open
     );
 
 		--------------------------------------------------------------------------------

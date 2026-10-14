@@ -73,39 +73,53 @@ of TAHX_1 is                    --------
 
 begin
 
-   HALTED_o <= halted;
+  HALTED_o <= halted;
 
    -----------------------------------------------------------------------------
    -- Frontal commun OoO / InO.
    -----------------------------------------------------------------------------
 
-   U_INSTRUCTION : entity work.INSTRUCTION_UNIT( IN_ORDER )
-      port map (
+U_INSTRUCTION :
+  entity work.INSTRUCTION_UNIT( IN_ORDER )
+  port map (
          CLK_i => CLK_i, RESET_i => RESET_i,
          HALT_i => halted,
          I_REQ_o => I_REQ_o, I_ADDR_o => I_ADDR_o, I_READY_i => I_READY_i,
          I_RVALID_i => I_RVALID_i, I_RDATA_i => I_RDATA_i, I_FAULT_i => I_FAULT_i,
          OUT_VALID_o => fe_valid, OUT_BLOCK_o => fe_block, OUT_COUNT_o => fe_count,
          OUT_READY_i => fe_ready,
-         RECOVERY_i => recovery, RETIRE_i => retire );
+         RECOVERY_i => recovery, RETIRE_i => retire
+  );
 
-   U_DECODE_QUEUE : entity work.DECODE_QUEUE( IN_ORDER )
-      port map (
-         CLK_i => CLK_i, RESET_i => RESET_i,
-         FLUSH_i => recovery.valid,
-         PUSH_BLOCK_i => fe_block, PUSH_COUNT_i => fe_count,
-         PUSH_VALID_i => fe_valid, PUSH_READY_o => fe_ready,
-         POP_TAKE_i => dq_take, POP_BLOCK_o => dq_block, POP_COUNT_o => dq_count,
-         COUNT_o => dq_occupancy );
+U_DECODE_QUEUE :
+  entity work.DECODE_QUEUE( IN_ORDER )
+  port map (
+    CLK_i => CLK_i, RESET_i => RESET_i,
+    FLUSH_i => recovery.valid,
+    PUSH_BLOCK_i => fe_block, PUSH_COUNT_i => fe_count,
+    PUSH_VALID_i => fe_valid, PUSH_READY_o => fe_ready,
+
+		-- Vers U_CORE
+    POP_TAKE_i	=> dq_take,
+    POP_BLOCK_o	=> dq_block,
+    POP_COUNT_o	=> dq_count,
+    COUNT_o	=> dq_occupancy
+  );
 
    -----------------------------------------------------------------------------
    -- Coeur InO + systeme.
    -----------------------------------------------------------------------------
 
-   U_CORE : entity work.INO_CORE_SYSTEM
-      port map (
-         CLK_i => CLK_i, RESET_i => RESET_i, BOOT_BLOCK_i => BOOT_BLOCK_i,
-         DECODE_BLOCK_i => dq_block, DECODE_COUNT_i => dq_count, DECODE_TAKE_o => dq_take,
+U_CORE :
+  entity work.INO_CORE_SYSTEM
+  port map (
+    CLK_i => CLK_i, RESET_i => RESET_i, BOOT_BLOCK_i => BOOT_BLOCK_i,
+
+    DECODE_BLOCK_i => dq_block,
+    DECODE_COUNT_i => dq_count,
+    DECODE_TAKE_o => dq_take,
+
+
          COMMIT_o => commit,
          BOUNDARY_VALID_i => boundary_valid, BOUNDARY_PC_i => boundary_pc,
          REDIRECT_VALID_o => redirect_valid, REDIRECT_PC_o => redirect_pc,

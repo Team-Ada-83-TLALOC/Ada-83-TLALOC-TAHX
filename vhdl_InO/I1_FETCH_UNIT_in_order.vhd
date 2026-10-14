@@ -8,6 +8,7 @@ use ieee.numeric_std.all;
 use work.TAHX_1_ISA.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.ROB_TYPES.all;
+use work.INO_PADDR.all;
 
         --------------------------------------------------------------------------------
         -- FETCH_UNIT, architecture IN_ORDER.
@@ -21,6 +22,20 @@ use work.ROB_TYPES.all;
         -- La table BT est elle aussi materiellement explicite : key, fin, target et
         -- compteur sont quatre RAM 256 x 64 a deux lectures ; seul le vecteur valid
         -- (256 bits) est remis a zero au RESET.
+        --
+        -- Espace physique InO (INO_PADDR) : le PC est toujours realisable (les
+        -- transferts vers une adresse non realisable fautent a l'execution). Toute
+        -- adresse memorisee ici (registres, tags, table de blocs, tampon de cible)
+        -- passe par CUT et ne garde que PA_BITS bits ; les sorties des RAM de tags et
+        -- de la table de blocs sont relues par CUT. Une cible predite non realisable
+        -- (speculative) est donc tronquee : le transfert fautera avant qu'aucune
+        -- instruction chargee a sa suite ne s'execute.
+        --
+        -- Les tags sont eux aussi en RAM synchrone (deux instances 512 x 64 a deux
+        -- lectures) : U_TAG lit les lignes du PC et de la cible BT, aux memes
+        -- adresses et au meme front que les banques de donnees ; U_TAG_NX lit les
+        -- deux lignes suivantes pour le prechargement. Seul present (512 bits)
+        -- reste en bascules, pour le RESET.
         --------------------------------------------------------------------------------
 
 architecture IN_ORDER of FETCH_UNIT is
@@ -28,9 +43,19 @@ architecture IN_ORDER of FETCH_UNIT is
    constant LINES : positive := 512;
    constant WORDS : positive := FETCH_BLOCK_SIZE / 8;
 
-   type tag_array_t is array(0 to LINES - 1) of address_t;
-   signal tag      : tag_array_t;
    signal present  : std_logic_vector(0 to LINES - 1);
+
+   -- Sorties des RAM de tags. Comme pour les donnees, elles correspondent aux
+   -- adresses presentes avant le dernier front.
+   signal cur_tag, tgt_tag  : word64_t;
+   signal nx1_tag, nx2_tag  : word64_t;
+   signal tag_we            : std_logic;
+   signal nx1_index         : natural range 0 to LINES - 1;
+   signal nx2_index         : natural range 0 to LINES - 1;
+   signal ram_nx1_fresh_q   : std_logic;
+   signal ram_nx2_fresh_q   : std_logic;
+   -- Les sorties de U_TAG (port 0) correspondent au PC courant et sont fraiches.
+   signal cur_lookup        : std_logic;
 
    signal pc       : address_t;
    signal active   : std_logic;
@@ -157,19 +182,29 @@ begin
    bt_train_idx  <= BT_IDX(TRAIN_KEY_i);
    target_index  <= INDEX_OF(bt_target);
 
-   hit        <= '1' when present(index) = '1' and tag(index) = line_base else '0';
+   -- Le tag lu au front precedent n'est utilisable que s'il correspond au PC
+   -- courant et qu'aucune ecriture n'a eu lieu sur sa case a ce front. Dans ce
+   -- cas il est egal au contenu actuel : hit est alors identique a l'ancien hit
+   -- calcule sur un tableau asynchrone.
+   cur_lookup <= '1' when ram_cur_valid_q = '1' and ram_cur_fresh_q = '1'
+                          and ram_cur_pc_q = pc else '0';
+   hit        <= '1' when cur_lookup = '1' and present(index) = '1'
+                          and CUT(unsigned(cur_tag)) = line_base else '0';
    faulty_hit <= '1' when fault_valid = '1' and fault_line = line_base else '0';
    redirect   <= RECOVERY_i.valid or PREDICT_VALID_i or STOP_i;
-   next1      <= line_base + FETCH_BLOCK_SIZE;
-   next2      <= line_base + 2 * FETCH_BLOCK_SIZE;
-   miss1      <= '1' when (present(INDEX_OF(next1)) = '0' or tag(INDEX_OF(next1)) /= next1)
-                         and not (fault_valid = '1' and fault_line = next1) else '0';
-   miss2      <= '1' when (present(INDEX_OF(next2)) = '0' or tag(INDEX_OF(next2)) /= next2)
-                         and not (fault_valid = '1' and fault_line = next2) else '0';
-   show <= active and (hit or faulty_hit) and not redirect
-        and ram_cur_valid_q and ram_cur_fresh_q
-        when ram_cur_pc_q = pc
-        else '0';
+   next1      <= CUT(line_base + FETCH_BLOCK_SIZE);
+   next2      <= CUT(line_base + 2 * FETCH_BLOCK_SIZE);
+   nx1_index  <= INDEX_OF(next1);
+   nx2_index  <= INDEX_OF(next2);
+   -- miss1/miss2 ne servent qu'avec hit = '1', donc quand nx1_tag/nx2_tag ont ete
+   -- lus pour le PC courant. Une sortie non fraiche suspend le prechargement.
+   miss1      <= '1' when ram_nx1_fresh_q = '1'
+                          and (present(nx1_index) = '0' or CUT(unsigned(nx1_tag)) /= next1)
+                          and not (fault_valid = '1' and fault_line = next1) else '0';
+   miss2      <= '1' when ram_nx2_fresh_q = '1'
+                          and (present(nx2_index) = '0' or CUT(unsigned(nx2_tag)) /= next2)
+                          and not (fault_valid = '1' and fault_line = next2) else '0';
+   show <= active and (hit or faulty_hit) and not redirect and cur_lookup;
    FLUSH_o <= redirect;
 
    -- Les quatre RAM de donnees. Un mot de reponse est ecrit directement dans sa banque.
@@ -188,6 +223,38 @@ begin
             WADDR_i  => fill_index,
             WDATA_i  => I_RDATA_i );
    end generate GEN_BANKS;
+
+   -- Le tag est ecrit au front du dernier mot d'un remplissage sans faute, en
+   -- meme temps que present(fill_index) passe a '1'.
+   tag_we <= '1' when filling = '1' and I_RVALID_i = '1' and resp_k = WORDS - 1
+                      and fill_fault = '0' and I_FAULT_i = '0' else '0';
+
+   -- Tags de la ligne du PC et de la ligne cible BT : memes adresses que les
+   -- banques, donc meme alignement temporel que cur_word / tgt_word.
+   U_TAG : entity work.INO_FETCH_RAM64_2R(SYNC)
+      generic map (DEPTH_G => LINES)
+      port map (
+         CLK_i    => CLK_i,
+         RADDR0_i => index,
+         RDATA0_o => cur_tag,
+         RADDR1_i => target_index,
+         RDATA1_o => tgt_tag,
+         WE_i     => tag_we,
+         WADDR_i  => fill_index,
+         WDATA_i  => std_logic_vector(fill_line) );
+
+   -- Replique pour le prechargement des deux lignes suivantes.
+   U_TAG_NX : entity work.INO_FETCH_RAM64_2R(SYNC)
+      generic map (DEPTH_G => LINES)
+      port map (
+         CLK_i    => CLK_i,
+         RADDR0_i => nx1_index,
+         RDATA0_o => nx1_tag,
+         RADDR1_i => nx2_index,
+         RDATA1_o => nx2_tag,
+         WE_i     => tag_we,
+         WADDR_i  => fill_index,
+         WDATA_i  => std_logic_vector(fill_line) );
 
    -- Table de blocs : quatre RAM explicites 256 x 64, deux lectures
    -- (lookup du PC et apprentissage) et une ecriture synchrone.
@@ -223,26 +290,27 @@ begin
          RADDR1_i => bt_train_idx,  RDATA1_o => bt_ctr_train,
          WE_i => bt_ctr_we, WADDR_i => bt_train_idx_q, WDATA_i => bt_ctr_wdata );
 
-   bt_target <= unsigned(bt_target_cur);
+   bt_target <= CUT(unsigned(bt_target_cur));
    bt_load   <= bt_lookup_valid_q = '1' and active = '1'
                 and bt_lookup_pc_q = pc
                 and bt_valid(BT_IDX(bt_lookup_pc_q)) = '1'
-                and unsigned(bt_key_cur) = bt_lookup_pc_q
+                and CUT(unsigned(bt_key_cur)) = bt_lookup_pc_q
                 and unsigned(bt_ctr_cur(1 downto 0)) >= to_unsigned(2, 2)
-                and present(INDEX_OF(unsigned(bt_target_cur))) = '1'
-                and tag(INDEX_OF(unsigned(bt_target_cur))) = LINE_OF(unsigned(bt_target_cur))
+                and present(INDEX_OF(bt_target)) = '1'
+                -- tgt_tag a ete lu pour ram_tgt_target_q, egal a bt_target ci-dessous.
+                and CUT(unsigned(tgt_tag)) = LINE_OF(bt_target)
                 and ram_tgt_valid_q = '1' and ram_tgt_target_q = bt_target
                 and ram_tgt_fresh_q = '1';
 
    bt_taken_match <= train_valid_q = '1'
                      and bt_valid(bt_train_idx_q) = '1'
-                     and unsigned(bt_key_train) = train_key_q
-                     and unsigned(bt_fin_train) = train_fin_q
-                     and unsigned(bt_target_train) = train_target_q;
+                     and CUT(unsigned(bt_key_train)) = train_key_q
+                     and CUT(unsigned(bt_fin_train)) = train_fin_q
+                     and CUT(unsigned(bt_target_train)) = train_target_q;
    bt_nottaken_match <= train_valid_q = '1'
                         and bt_valid(bt_train_idx_q) = '1'
-                        and unsigned(bt_key_train) = train_key_q
-                        and unsigned(bt_fin_train) = train_fin_q;
+                        and CUT(unsigned(bt_key_train)) = train_key_q
+                        and CUT(unsigned(bt_fin_train)) = train_fin_q;
 
    -- Signaux d'ecriture de l'apprentissage.  Le contenu des RAM n'a pas besoin
    -- d'etre initialise : bt_valid masque les entrees apres RESET.
@@ -286,7 +354,7 @@ begin
       sel := 0;
       tb_has <= false;
       for k in 0 to TB_ENTRIES - 1 loop
-         if tb_valid(k) and tb_pc(k) = PREDICT_PC_i then
+         if tb_valid(k) and tb_pc(k) = CUT(PREDICT_PC_i) then
             found := true;
             sel := k;
          end if;
@@ -348,6 +416,8 @@ begin
             ram_tgt_valid_q <= '0';
             ram_cur_fresh_q <= '0';
             ram_tgt_fresh_q <= '0';
+            ram_nx1_fresh_q <= '0';
+            ram_nx2_fresh_q <= '0';
             fault_valid <= '0';
             filling <= '0';
             fill_fault <= '0';
@@ -361,9 +431,9 @@ begin
             bt_lookup_valid_q <= active;
             train_valid_q     <= TRAIN_VALID_i;
             train_taken_q     <= TRAIN_TAKEN_i;
-            train_key_q       <= TRAIN_KEY_i;
-            train_fin_q       <= TRAIN_FIN_i;
-            train_target_q    <= TRAIN_TARGET_i;
+            train_key_q       <= CUT(TRAIN_KEY_i);
+            train_fin_q       <= CUT(TRAIN_FIN_i);
+            train_target_q    <= CUT(TRAIN_TARGET_i);
             bt_train_idx_q    <= BT_IDX(TRAIN_KEY_i);
 
             -- Les sorties des quatre banques apres ce front correspondent aux
@@ -387,6 +457,17 @@ begin
             else
                ram_tgt_fresh_q <= '1';
             end if;
+            -- Meme regle pour la replique des tags : seule l'ecriture de tag compte.
+            if tag_we = '1' and fill_index = nx1_index then
+               ram_nx1_fresh_q <= '0';
+            else
+               ram_nx1_fresh_q <= '1';
+            end if;
+            if tag_we = '1' and fill_index = nx2_index then
+               ram_nx2_fresh_q <= '0';
+            else
+               ram_nx2_fresh_q <= '1';
+            end if;
 
             -- Remplissage : les banques ecrivent chaque reponse directement.
             if filling = '1' then
@@ -404,7 +485,7 @@ begin
                         fault_line <= fill_line;
                         present(fill_index) <= '0';
                      else
-                        tag(fill_index) <= fill_line;
+                        -- Le tag est ecrit dans U_TAG/U_TAG_NX par tag_we.
                         present(fill_index) <= '1';
                      end if;
                   else
@@ -412,7 +493,9 @@ begin
                   end if;
                end if;
 
-            elsif active = '1' and hit = '0' and faulty_hit = '0' and redirect = '0' then
+            -- Un defaut n'est constate que sur un tag lu pour le PC courant.
+            elsif active = '1' and cur_lookup = '1' and hit = '0' and faulty_hit = '0'
+                  and redirect = '0' then
                new_line := line_base;
                new_idx := INDEX_OF(new_line);
                filling <= '1';
@@ -461,22 +544,22 @@ begin
 
             -- PC : priorites identiques a RTL.
             if RECOVERY_i.valid = '1' then
-               pc <= RECOVERY_i.new_pc;
+               pc <= CUT(RECOVERY_i.new_pc);
                active <= '1';
 
             elsif PREDICT_VALID_i = '1' and preload = '1' then
-               pc <= LINE_OF(PREDICT_PC_i) + FETCH_BLOCK_SIZE;
+               pc <= CUT(LINE_OF(PREDICT_PC_i) + FETCH_BLOCK_SIZE);
                active <= '1';
 
             elsif PREDICT_VALID_i = '1' then
-               pc <= PREDICT_PC_i;
+               pc <= CUT(PREDICT_PC_i);
                active <= '1';
 
             elsif STOP_i = '1' then
                active <= '0';
 
             elsif show = '1' and FETCH_READY_i = '1' then
-               pc <= line_base + FETCH_BLOCK_SIZE;
+               pc <= CUT(line_base + FETCH_BLOCK_SIZE);
             end if;
 
          end if;

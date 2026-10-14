@@ -31,8 +31,8 @@ use work.IN_ORDER_TYPES.all;
 entity                          INO_CORE_SYSTEM
 is                              ---------------
    generic (
-      STACK_CACHE_WORDS_G  : positive := 64;
-      RETURN_CACHE_WORDS_G : positive := 32
+      STACK_CACHE_WORDS_G  : positive := 16;
+      RETURN_CACHE_WORDS_G : positive := 8
    );
    port (
       CLK_i             : in  std_logic;

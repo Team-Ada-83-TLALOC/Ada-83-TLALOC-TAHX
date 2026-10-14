@@ -15,13 +15,17 @@ use work.FETCH_DECODE_TYPES.all;
         -- DECODE_BLOC, architecture IN_ORDER.
         --
         -- Meme semantique que RTL, mais la chaine de quatre instructions est exprimee
-        -- comme quatre etages combinatoires distincts.  Chaque etage lit uniquement
-        -- l'etat produit par l'etage precedent.  Cette forme evite les retroactions de
-        -- multiplexeurs que GHDL/Yosys peut construire a partir de la boucle imperative
-        -- de l'architecture RTL.
+        -- comme quatre etages combinatoires distincts.
         --
         -- Un etage traite au plus une instruction.  LI D64 peut toujours produire deux
         -- formes dans le meme etage, exactement comme RTL.
+        --
+        -- Forme orientee synthese : un etage ne manipule pas le bloc de sortie. Il ne
+        -- recoit que sa position p dans la fenetre et le nombre n de formes deja
+        -- produites, et rend un petit resultat (au plus deux formes canoniques, sa
+        -- longueur, ses drapeaux). Les quatre cases de sortie ne sont assemblees
+        -- qu'une fois, a la fin. Recopier tout le bloc a chaque sortie anticipee d'un
+        -- etage multipliait les multiplexeurs larges.
         --------------------------------------------------------------------------------
 
 architecture IN_ORDER of DECODE_BLOC is
@@ -45,17 +49,19 @@ architecture IN_ORDER of DECODE_BLOC is
    constant EMPTY_SLOT : decoded_slot_t :=
       ( valid => '0', canon => CANON_NOP, pc => ( others => '0' ), pred => NO_PREDICTION );
 
-   type decode_state_t is record
-      slots : decoded_block_t;
-      n     : natural range 0 to DECODE_WIDTH;
-      p     : natural range 0 to DECODE_WINDOW_SIZE;
+   -- Resultat d'un etage.
+   type stage_result_t is record
+      nprod : natural range 0 to 2;       -- formes produites (2 : LI D64)
+      f0    : canon_t;                    -- premiere forme
+      f1    : canon_t;                    -- seconde forme (LI D64 : LIHI)
+      adv   : natural range 0 to 9;       -- octets consommes
       need  : std_logic;
       stop  : std_logic;
-      done  : std_logic;
+      done  : std_logic;                  -- etage terminal
    end record;
 
-   constant INITIAL_STATE : decode_state_t :=
-      ( slots => ( others => EMPTY_SLOT ), n => 0, p => 0,
+   constant NO_RESULT : stage_result_t :=
+      ( nprod => 0, f0 => CANON_NOP, f1 => CANON_NOP, adv => 0,
         need => '0', stop => '0', done => '0' );
 
    function BYTE_AT( w : decode_window_t; i : natural ) return byte_t is
@@ -67,14 +73,15 @@ architecture IN_ORDER of DECODE_BLOC is
       end if;
    end function;
 
+   -- Un etage actif : decode l'instruction en position p, n formes etant deja produites.
    function STEP(
-      si      : decode_state_t;
+      p       : natural;
+      n       : natural;
       window  : decode_window_t;
       count   : natural;
-      base_pc : address_t;
-      faults  : window_flags_t ) return decode_state_t
+      faults  : window_flags_t ) return stage_result_t
    is
-      variable s                    : decode_state_t := si;
+      variable r                    : stage_result_t := NO_RESULT;
       variable e                    : isa_entry_t;
       variable op                   : opcode_t;
       variable b1, b2, b3, b4       : byte_t;
@@ -84,54 +91,44 @@ architecture IN_ORDER of DECODE_BLOC is
       variable family               : std_logic_vector( 1 downto 0 );
       variable is_link              : boolean;
       variable c                    : canon_t;
-
-      procedure PRODUCE( variable st : inout decode_state_t; f : canon_t ) is
-      begin
-         st.slots( st.n ) :=
-            ( valid => '1', canon => f, pc => base_pc + st.p, pred => NO_PREDICTION );
-         st.n := st.n + 1;
-      end procedure;
    begin
-      -- Un etage devenu terminal est simplement propage aux etages suivants.
-      if s.done = '1' then
-         return s;
-      end if;
-
-      if s.n = DECODE_WIDTH then
-         s.done := '1';
-         return s;
+      if n = DECODE_WIDTH then
+         r.done := '1';
+         return r;
       end if;
 
       -- Fenetre epuisee.
-      if s.p >= count then
-         s.need := '1';
-         s.done := '1';
-         return s;
+      if p >= count then
+         r.need := '1';
+         r.done := '1';
+         return r;
       end if;
 
       -- Opcode en faute de lecture, puis opcode reserve.
-      op := window( s.p );
-      if faults( s.p ) = '1' then
-         PRODUCE( s, FORM( UOP_FETCH_FAULT, "0000", x"00", ( others => '0' ), 0 ) );
-         s.stop := '1';
-         s.done := '1';
-         return s;
+      op := window( p );
+      if faults( p ) = '1' then
+         r.nprod := 1;
+         r.f0    := FORM( UOP_FETCH_FAULT, "0000", x"00", ( others => '0' ), 0 );
+         r.stop  := '1';
+         r.done  := '1';
+         return r;
       end if;
 
       e := ISA_TABLE( to_integer( unsigned( op ) ) );
       if not e.defined then
-         PRODUCE( s, FORM( UOP_ILLEGAL, "0000", x"00", ZEXT( op ), 0 ) );
-         s.stop := '1';
-         s.done := '1';
-         return s;
+         r.nprod := 1;
+         r.f0    := FORM( UOP_ILLEGAL, "0000", x"00", ZEXT( op ), 0 );
+         r.stop  := '1';
+         r.done  := '1';
+         return r;
       end if;
 
       -- Instruction incomplete.
       l := e.length;
-      if s.p + l > count then
-         s.need := '1';
-         s.done := '1';
-         return s;
+      if p + l > count then
+         r.need := '1';
+         r.done := '1';
+         return r;
       end if;
 
       -- Complement en faute de lecture. L'instruction etant entiere, tout indice
@@ -139,23 +136,24 @@ architecture IN_ORDER of DECODE_BLOC is
       faulted := false;
       for k in 1 to 8 loop
          if k < l then
-            if faults( s.p + k ) = '1' then
+            if faults( p + k ) = '1' then
                faulted := true;
             end if;
          end if;
       end loop;
       if faulted then
-         PRODUCE( s, FORM( UOP_FETCH_FAULT, "0000", x"00", ( others => '0' ), 0 ) );
-         s.stop := '1';
-         s.done := '1';
-         return s;
+         r.nprod := 1;
+         r.f0    := FORM( UOP_FETCH_FAULT, "0000", x"00", ( others => '0' ), 0 );
+         r.stop  := '1';
+         r.done  := '1';
+         return r;
       end if;
 
       -- Complements utiles aux formats jusqu'a 32 bits.
-      b1 := BYTE_AT( window, s.p + 1 );
-      b2 := BYTE_AT( window, s.p + 2 );
-      b3 := BYTE_AT( window, s.p + 3 );
-      b4 := BYTE_AT( window, s.p + 4 );
+      b1 := BYTE_AT( window, p + 1 );
+      b2 := BYTE_AT( window, p + 2 );
+      b3 := BYTE_AT( window, p + 3 );
+      b4 := BYTE_AT( window, p + 4 );
       family := op( 7 downto 6 );
 
       -- Faute 137 connue au decodage.
@@ -177,22 +175,24 @@ architecture IN_ORDER of DECODE_BLOC is
             null;
       end case;
       if illegal then
-         PRODUCE( s, FORM( UOP_ILLEGAL, "0000", x"00", ZEXT( op ), 0 ) );
-         s.stop := '1';
-         s.done := '1';
-         return s;
+         r.nprod := 1;
+         r.f0    := FORM( UOP_ILLEGAL, "0000", x"00", ZEXT( op ), 0 );
+         r.stop  := '1';
+         r.done  := '1';
+         return r;
       end if;
 
       -- LI D64 a besoin de deux cases ; s'il n'en reste qu'une, le bloc se termine
       -- sans consommer l'instruction et sans demander davantage d'octets.
-      if e.format = FMT_D64 and s.n > DECODE_WIDTH - 2 then
-         s.done := '1';
-         return s;
+      if e.format = FMT_D64 and n > DECODE_WIDTH - 2 then
+         r.done := '1';
+         return r;
       end if;
 
       -- Extraction des champs.
       c := FORM( op, "0000", x"00", ( others => '0' ), l );
       is_link := family = "01" and op( 5 downto 4 ) = "00" and op( 1 downto 0 ) = "00";
+      r.nprod := 1;
       case e.format is
          when FMT_NONE =>
             if family = "01" or family = "10" then
@@ -251,43 +251,78 @@ architecture IN_ORDER of DECODE_BLOC is
             c.val := SEXT( std_logic_vector'( b1 & b2 & b3 ) );
          when FMT_D64 =>
             -- Poids faible en premiere forme, poids fort en seconde.
-            PRODUCE( s, FORM( OP_LI_D32, "0000", x"00",
-               signed( std_logic_vector'(
-                  BYTE_AT( window, s.p + 5 ) & BYTE_AT( window, s.p + 6 ) &
-                  BYTE_AT( window, s.p + 7 ) & BYTE_AT( window, s.p + 8 ) ) ), 0 ) );
-            c := FORM( UOP_LIHI, "0000", x"00",
+            r.nprod := 2;
+            r.f1 := FORM( UOP_LIHI, "0000", x"00",
                signed( std_logic_vector'( b1 & b2 & b3 & b4 ) ), l );
+            c := FORM( OP_LI_D32, "0000", x"00",
+               signed( std_logic_vector'(
+                  BYTE_AT( window, p + 5 ) & BYTE_AT( window, p + 6 ) &
+                  BYTE_AT( window, p + 7 ) & BYTE_AT( window, p + 8 ) ) ), 0 );
       end case;
 
-      PRODUCE( s, c );
-      s.p := s.p + l;
-      if s.n = DECODE_WIDTH then
-         s.done := '1';
+      r.f0  := c;
+      r.adv := l;
+      if n + r.nprod = DECODE_WIDTH then
+         r.done := '1';
       end if;
-      return s;
+      return r;
    end function;
 
    signal count_s : natural range 0 to DECODE_WINDOW_SIZE;
-   signal s0, s1, s2, s3, s4 : decode_state_t;
 
 begin
 
    count_s <= DECODE_WINDOW_SIZE when to_integer( WINDOW_COUNT_i ) > DECODE_WINDOW_SIZE
               else to_integer( WINDOW_COUNT_i );
 
-   s0 <= INITIAL_STATE;
-   s1 <= STEP( s0, WINDOW_i, count_s, WINDOW_PC_i, WINDOW_FAULT_i );
-   s2 <= STEP( s1, WINDOW_i, count_s, WINDOW_PC_i, WINDOW_FAULT_i );
-   s3 <= STEP( s2, WINDOW_i, count_s, WINDOW_PC_i, WINDOW_FAULT_i );
-   s4 <= STEP( s3, WINDOW_i, count_s, WINDOW_PC_i, WINDOW_FAULT_i );
+   CHAINE : process( all )
+      variable p     : natural range 0 to DECODE_WINDOW_SIZE;
+      variable n     : natural range 0 to DECODE_WIDTH;
+      variable done  : std_logic;
+      variable need  : std_logic;
+      variable stop  : std_logic;
+      variable r     : stage_result_t;
+      variable pc    : address_t;
+      variable slots : decoded_block_t;
+   begin
+      p     := 0;
+      n     := 0;
+      done  := '0';
+      need  := '0';
+      stop  := '0';
+      slots := ( others => EMPTY_SLOT );
 
-   DECODED_o          <= s4.slots;
-   DECODED_COUNT_o    <= to_unsigned( s4.n, DECODED_COUNT_o'length );
-   CONSUMED_BYTES_o   <= to_unsigned( s4.p, CONSUMED_BYTES_o'length );
-   NEED_MORE_BYTES_o  <= s4.need;
-   STOP_o             <= s4.stop;
-   DECODE_VALID_o     <= '1' when s4.n > 0 else '0';
-   CONSUME_o          <= DECODE_READY_i when s4.n > 0 else '0';
+      for i in 0 to DECODE_WIDTH - 1 loop
+         if done = '0' then
+            r  := STEP( p, n, WINDOW_i, count_s, WINDOW_FAULT_i );
+            pc := WINDOW_PC_i + p;
+            if r.nprod >= 1 then
+               slots( n ) := ( valid => '1', canon => r.f0, pc => pc, pred => NO_PREDICTION );
+            end if;
+            if r.nprod = 2 then
+               slots( n + 1 ) := ( valid => '1', canon => r.f1, pc => pc, pred => NO_PREDICTION );
+            end if;
+            n    := n + r.nprod;
+            p    := p + r.adv;
+            need := need or r.need;
+            stop := stop or r.stop;
+            done := r.done;
+         end if;
+      end loop;
+
+      DECODED_o          <= slots;
+      DECODED_COUNT_o    <= to_unsigned( n, DECODED_COUNT_o'length );
+      CONSUMED_BYTES_o   <= to_unsigned( p, CONSUMED_BYTES_o'length );
+      NEED_MORE_BYTES_o  <= need;
+      STOP_o             <= stop;
+      if n > 0 then
+         DECODE_VALID_o  <= '1';
+         CONSUME_o       <= DECODE_READY_i;
+      else
+         DECODE_VALID_o  <= '0';
+         CONSUME_o       <= '0';
+      end if;
+   end process CHAINE;
 
 end architecture IN_ORDER;
 

@@ -9,6 +9,7 @@ use ieee.numeric_std.all;
 --
 use work.TAHX_1_ISA.all;
 use work.FETCH_DECODE_TYPES.all;
+use work.INO_PADDR.all;
 
                 --------------------------------------------------------------------------------
                 -- FETCH_BYTE_QUEUE, architecture IN_ORDER.
@@ -322,7 +323,7 @@ begin
                   banks( b )( 8 downto 0 ) <= PACK_SLOT( PRELOAD_BLOCK_i( b ), '0' );
                end loop;
                count    <= to_integer( PRELOAD_COUNT_i );
-               head_pc  <= PRELOAD_PC_i;
+               head_pc  <= CUT(PRELOAD_PC_i);
                pc_known <= '1';
             end if;
 
@@ -354,7 +355,7 @@ begin
               report "FETCH_BYTE_QUEUE : bloc de plus de 32 octets"
               severity error;
 
-            assert push = 0 or pc_known = '0' or FETCH_PC_i = head_pc + count
+            assert push = 0 or pc_known = '0' or CUT(FETCH_PC_i) = CUT(head_pc + count)
               report "FETCH_BYTE_QUEUE : bloc non consecutif"
               severity error;
             -- pragma translate_on
@@ -418,9 +419,9 @@ begin
             count <= remaining + push;
 
             if remaining = 0 and push > 0 then
-               head_pc <= FETCH_PC_i;
+               head_pc <= CUT(FETCH_PC_i);
             else
-               head_pc <= head_pc + pop;
+               head_pc <= CUT(head_pc + pop);
             end if;
 
             if push > 0 then

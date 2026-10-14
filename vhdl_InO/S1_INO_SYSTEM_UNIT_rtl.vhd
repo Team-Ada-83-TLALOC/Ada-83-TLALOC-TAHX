@@ -12,6 +12,7 @@ use work.ARCH_TYPES.all;
 use work.MEMORY_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.INO_PADDR.all;
 
                                 ---
 architecture                    RTL
@@ -88,15 +89,55 @@ of INO_SYSTEM_UNIT is           ---
       return std_logic_vector( a );
    end function;
 
-   function A( w : word64_t ) return address_t is
+   function A( wrd : word64_t ) return address_t is
    begin
-      return unsigned( w );
+      return unsigned( wrd );
    end function;
 
-   function NDISP( w : word64_t ) return natural is
+   -- Espace physique InO (INO_PADDR) : PC (pc_s, pcs_s, fpc_s, vecteur, redirection),
+   -- frames (copie courante, frame de SYNC), VTB et FSCR ne gardent que PA_BITS bits
+   -- (CUT a chaque ecriture). Ils sont realisables par construction : PC des
+   -- instructions, cibles et frames controles ci-dessous, VTB et FSCR controles au
+   -- BOOT. Les limites (limits_s) et l'etat de co-pile restent sur 64 bits.
+   function CUT_FRAME( f : frame_state_t ) return frame_state_t is
+      variable r : frame_state_t;
    begin
-      if unsigned( w ) > 15 then return 15; end if;
-      return to_integer( unsigned( w( 3 downto 0 ) ) );
+      r.dsp := CUT( f.dsp );
+      r.rsp := CUT( f.rsp );
+      for i in r.display'range loop
+         r.display( i ) := CUT( f.display( i ) );
+      end loop;
+      return r;
+   end function;
+
+   function CUT_ISSUE( i : ino_issue_t ) return ino_issue_t is
+      variable r : ino_issue_t := i;
+   begin
+      r.slot.pc          := CUT( i.slot.pc );
+      r.slot.pred.target := CUT( i.slot.pred.target );
+      return r;
+   end function;
+
+   -- Espace physique InO (INO_PADDR) : un frame installe par SYNC (DSP, RSP et les
+   -- nd premieres entrees de DISPLAY, lus dans buf) doit etre realisable ; sinon la
+   -- sequence le traite comme une faute d'acces. dsp_ofs : decalage ajoute a DSP.
+   function FRAME_OK( b : buf_t; i_dsp, i_rsp, i_disp, nd, dsp_ofs : natural ) return boolean is
+   begin
+      if not PA_OK( unsigned( b( i_dsp ) ) + dsp_ofs ) or not PA_OK( unsigned( b( i_rsp ) ) ) then
+         return false;
+      end if;
+      for i in 0 to 14 loop
+         if i < nd and not PA_OK( unsigned( b( i_disp + i ) ) ) then
+            return false;
+         end if;
+      end loop;
+      return true;
+   end function;
+
+   function NDISP( wrd : word64_t ) return natural is
+   begin
+      if unsigned( wrd ) > 15 then return 15; end if;
+      return to_integer( unsigned( wrd( 3 downto 0 ) ) );
    end function;
 
    function IRQ_PICK( pending : irq_vector_t; mask : irq_mask_t ) return integer is
@@ -339,8 +380,8 @@ begin
                      if dr_s = '1' then
                         HALT( HALT_DOUBLE_FAULT );
                      else
-                        frame_c_s <= FRAME_i; copile_c_s <= COPILE_i;
-                        pc_s <= FAULT_PC_i; fpc_s <= FAULT_PC_i; fcode_s <= FAULT_i.code; dr_s <= '1';
+                        frame_c_s <= CUT_FRAME( FRAME_i ); copile_c_s <= COPILE_i;
+                        pc_s <= CUT( FAULT_PC_i ); fpc_s <= CUT( FAULT_PC_i ); fcode_s <= FAULT_i.code; dr_s <= '1';
                         seq_s <= Q_FAULT; state_s <= S_MAINT_PULSE;
                      end if;
 
@@ -348,8 +389,8 @@ begin
                      if FRAME_i.rsp - 8 < limits_s.lim_rsp - RESERVE_RSP then
                         HALT( HALT_DELIVERY );
                      else
-                        frame_c_s <= FRAME_i; copile_c_s <= COPILE_i;
-                        pc_s <= BOUNDARY_PC_i; fpc_s <= BOUNDARY_PC_i;
+                        frame_c_s <= CUT_FRAME( FRAME_i ); copile_c_s <= COPILE_i;
+                        pc_s <= CUT( BOUNDARY_PC_i ); fpc_s <= CUT( BOUNDARY_PC_i );
                         irq_code_s <= to_unsigned( IRQ_FIRST + k, 8 );
                         fcode_s <= to_unsigned( IRQ_FIRST + k, 8 ); dr_s <= '1';
                         seq_s <= Q_IRQ; state_s <= S_MAINT_PULSE;
@@ -360,9 +401,14 @@ begin
                      assert IS_SYSTEM_OP( ISSUE_i.slot.canon.op )
                         report "INO_SYSTEM_UNIT : opcode non systeme" severity failure;
                      -- pragma translate_on
-                     req_s <= ISSUE_i; frame_c_s <= FRAME_i; copile_c_s <= COPILE_i;
-                     pc_s <= ISSUE_i.slot.pc;
-                     pcs_s <= ISSUE_i.slot.pc + resize( ISSUE_i.slot.canon.len, 64 );
+                     req_s <= CUT_ISSUE( ISSUE_i ); frame_c_s <= CUT_FRAME( FRAME_i ); copile_c_s <= COPILE_i;
+                     pc_s <= CUT( ISSUE_i.slot.pc );
+                     pcs_s <= CUT( ISSUE_i.slot.pc + resize( ISSUE_i.slot.canon.len, 64 ) );
+                     -- pragma translate_off
+                     assert PA_OK( ISSUE_i.slot.pc + resize( ISSUE_i.slot.canon.len, 64 ) )
+                        report "INO_SYSTEM_UNIT : instruction finissant hors de l'espace realise (regle de plateforme INO_PADDR)"
+                        severity failure;
+                     -- pragma translate_on
                      svc := to_integer( ISSUE_i.slot.canon.val );
 
                      if ISSUE_i.slot.canon.op = OP_TRAP and svc >= 0 and svc <= 14 then
@@ -416,20 +462,24 @@ begin
 
                   case seq_s is
                      when Q_BOOT =>
-                        if acc_fault_s = '1' then
+                        -- Une cible non realisable (INO_PADDR) est traitee comme une
+                        -- faute d'acces de la sequence, ici et dans les suivantes.
+                        if acc_fault_s = '1' or not PA_OK( A( buf_s( 0 ) ) )
+                           or not FRAME_OK( buf_s, 1, 2, 9, 15, 0 )
+                           or not PA_OK( A( buf_s( 26 ) ) ) or not PA_OK( A( buf_s( 27 ) ) ) then
                            HALT( HALT_DELIVERY );
                         else
                            dr_s <= buf_s( 5 )( 0 );
                            limits_s <= ( lim_dsp => A( buf_s( 6 ) ), lim_rsp => A( buf_s( 7 ) ),
                                          lim_csp => A( buf_s( 8 ) ), lim_hp => A( buf_s( 25 ) ) );
-                           vtb_s <= A( buf_s( 26 ) ); fscr_s <= A( buf_s( 27 ) );
+                           vtb_s <= CUT( A( buf_s( 26 ) ) ); fscr_s <= CUT( A( buf_s( 27 ) ) );
                            imask_s <= buf_s( 28 )( 31 downto 0 );
                            sf.dsp := A( buf_s( 1 ) ); sf.rsp := A( buf_s( 2 ) );
                            for i in 0 to 14 loop sf.display( i ) := A( buf_s( 9 + i ) ); end loop;
                            sc := ( cfp => A( buf_s( 3 ) ), csp => A( buf_s( 4 ) ),
                                    hp => A( buf_s( 24 ) ), hp_valid => '1' );
-                           sync_frame_s <= sf; sync_copile_s <= sc; sync_pending_s <= '1';
-                           redirect_pc_s <= A( buf_s( 0 ) ); redirect_pending_s <= '1';
+                           sync_frame_s <= CUT_FRAME( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           redirect_pc_s <= CUT( A( buf_s( 0 ) ) ); redirect_pending_s <= '1';
                            state_s <= S_REDIRECT;
                         end if;
 
@@ -438,9 +488,11 @@ begin
                            HALT( HALT_DELIVERY );
                         elsif unsigned( buf_s( 2 ) ) = 0 then
                            HALT( HALT_NULL_VECTOR );
+                        elsif not PA_OK( A( buf_s( 2 ) ) ) then
+                           HALT( HALT_DELIVERY );
                         else
-                           sync_frame_s <= frame_c_s; sync_copile_s <= sc; sync_pending_s <= '1';
-                           redirect_pc_s <= A( buf_s( 2 ) ); redirect_pending_s <= '1';
+                           sync_frame_s <= CUT_FRAME( frame_c_s ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           redirect_pc_s <= CUT( A( buf_s( 2 ) ) ); redirect_pending_s <= '1';
                            state_s <= S_REDIRECT;
                         end if;
 
@@ -449,10 +501,12 @@ begin
                            HALT( HALT_DELIVERY );
                         elsif unsigned( buf_s( 3 ) ) = 0 then
                            HALT( HALT_NULL_VECTOR );
+                        elsif not PA_OK( A( buf_s( 3 ) ) ) then
+                           HALT( HALT_DELIVERY );
                         else
                            sf.rsp := frame_c_s.rsp - 8;
-                           sync_frame_s <= sf; sync_copile_s <= sc; sync_pending_s <= '1';
-                           redirect_pc_s <= A( buf_s( 3 ) ); redirect_pending_s <= '1';
+                           sync_frame_s <= CUT_FRAME( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           redirect_pc_s <= CUT( A( buf_s( 3 ) ) ); redirect_pending_s <= '1';
                            state_s <= S_REDIRECT;
                         end if;
 
@@ -460,12 +514,14 @@ begin
                         if acc_fault_s = '1' then
                            COMPLETE_FAULT( FAULT_ACCESS );
                         elsif unsigned( buf_s( 0 ) ) /= 0 then
-                           if dr_s = '1' then
+                           if not PA_OK( A( buf_s( 0 ) ) ) then
+                              COMPLETE_FAULT( FAULT_ACCESS );
+                           elsif dr_s = '1' then
                               HALT( HALT_DOUBLE_FAULT );
                            elsif frame_c_s.rsp - 8 < limits_s.lim_rsp then
                               COMPLETE_FAULT( FAULT_RSP_LIMIT );
                            else
-                              vector_s <= A( buf_s( 0 ) );
+                              vector_s <= CUT( A( buf_s( 0 ) ) );
                               seq_s <= Q_TRAPPUSH; phase_s <= 0; acc_fault_s <= '0'; state_s <= S_MAINT_PULSE;
                            end if;
                         elsif req_s.slot.canon.val = 0 then
@@ -480,8 +536,8 @@ begin
                            COMPLETE_FAULT( FAULT_ACCESS );
                         else
                            sf.rsp := frame_c_s.rsp - 8;
-                           sync_frame_s <= sf; sync_copile_s <= sc; sync_pending_s <= '1';
-                           redirect_pc_s <= vector_s; redirect_pending_s <= '1';
+                           sync_frame_s <= CUT_FRAME( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           redirect_pc_s <= CUT( vector_s ); redirect_pending_s <= '1';
                            SET_COMPLETE( NO_FAULT, '0', ( others => '0' ) );
                         end if;
 
@@ -489,12 +545,13 @@ begin
                         if acc_fault_s = '1' then
                            COMPLETE_FAULT( FAULT_ACCESS );
                         else
-                           redirect_pc_s <= pcs_s; redirect_pending_s <= '1';
+                           redirect_pc_s <= CUT( pcs_s ); redirect_pending_s <= '1';
                            SET_COMPLETE( NO_FAULT, '1', ( others => '0' ) );
                         end if;
 
                      when Q_CTX_RESTORE =>
-                        if acc_fault_s = '1' then
+                        if acc_fault_s = '1' or not PA_OK( A( buf_s( 0 ) ) )
+                           or not FRAME_OK( buf_s, 1, 2, 9, 15, 8 ) then
                            COMPLETE_FAULT( FAULT_ACCESS );
                         else
                            dr_s <= buf_s( 5 )( 0 );
@@ -503,28 +560,29 @@ begin
                            sf.dsp := A( buf_s( 1 ) ) + 8; sf.rsp := A( buf_s( 2 ) );
                            for i in 0 to 14 loop sf.display( i ) := A( buf_s( 9 + i ) ); end loop;
                            sc.cfp := A( buf_s( 3 ) ); sc.csp := A( buf_s( 4 ) );
-                           sync_frame_s <= sf; sync_copile_s <= sc; sync_pending_s <= '1';
-                           redirect_pc_s <= A( buf_s( 0 ) ); redirect_pending_s <= '1';
+                           sync_frame_s <= CUT_FRAME( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           redirect_pc_s <= CUT( A( buf_s( 0 ) ) ); redirect_pending_s <= '1';
                            SET_COMPLETE( NO_FAULT, '0', ( others => '0' ) );
                         end if;
 
                      when Q_SET_IMASK =>
                         imask_s <= req_s.operand( 0 )( 31 downto 0 );
-                        redirect_pc_s <= pcs_s; redirect_pending_s <= '1';
+                        redirect_pc_s <= CUT( pcs_s ); redirect_pending_s <= '1';
                         SET_COMPLETE( NO_FAULT, '1', std_logic_vector( resize( unsigned( imask_s ), 64 ) ) );
 
                      when Q_RTX =>
-                        if acc_fault_s = '1' then
+                        if acc_fault_s = '1' or not PA_OK( A( buf_s( 0 ) ) ) then
                            COMPLETE_FAULT( FAULT_ACCESS );
                         else
                            dr_s <= '0'; sf.rsp := frame_c_s.rsp + 8;
-                           sync_frame_s <= sf; sync_copile_s <= sc; sync_pending_s <= '1';
-                           redirect_pc_s <= A( buf_s( 0 ) ); redirect_pending_s <= '1';
+                           sync_frame_s <= CUT_FRAME( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           redirect_pc_s <= CUT( A( buf_s( 0 ) ) ); redirect_pending_s <= '1';
                            SET_COMPLETE( NO_FAULT, '0', ( others => '0' ) );
                         end if;
 
                      when Q_EXC_RAISE =>
-                        if acc_fault_s = '1' then
+                        if acc_fault_s = '1' or not PA_OK( A( buf_s( 2 ) ) )
+                           or not FRAME_OK( buf_s, 3, 4, 8, NDISP( buf_s( 7 ) ), 0 ) then
                            COMPLETE_FAULT( FAULT_ACCESS );
                         else
                            dr_s <= '0'; nd := NDISP( buf_s( 7 ) );
@@ -533,8 +591,8 @@ begin
                               if i < nd then sf.display( i ) := A( buf_s( 8 + i ) ); end if;
                            end loop;
                            sc.cfp := A( buf_s( 5 ) ); sc.csp := A( buf_s( 6 ) );
-                           sync_frame_s <= sf; sync_copile_s <= sc; sync_pending_s <= '1';
-                           redirect_pc_s <= A( buf_s( 2 ) ); redirect_pending_s <= '1';
+                           sync_frame_s <= CUT_FRAME( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           redirect_pc_s <= CUT( A( buf_s( 2 ) ) ); redirect_pending_s <= '1';
                            SET_COMPLETE( NO_FAULT, '0', ( others => '0' ) );
                         end if;
 

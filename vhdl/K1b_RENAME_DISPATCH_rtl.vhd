@@ -221,9 +221,9 @@ of RENAME_DISPATCH is		---
       return unsigned( std_logic_vector( resize( v, 64 ) ) );
    end function;
 
-   function OLDER( a, b : seq_t ) return boolean is				-- a plus ancien que b
+   function OLDER( as, bs : seq_t ) return boolean is				-- a plus ancien que b
    begin
-      return a < b;
+      return as < bs;
    end function;
 
    function TAG_N( n : natural ) return physical_tag_t is

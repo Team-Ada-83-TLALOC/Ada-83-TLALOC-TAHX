@@ -133,6 +133,53 @@ begin
          CHECK( c, complete.valid = '0', name & " : impulsion complete" );
       end procedure EXEC;
 
+      -- Espace physique InO (INO_PADDR, PA_BITS = 32) : adresses 64 bits quelconques.
+      -- faute = '1' : l'adresse de continuation n'est pas realisable, faute 132.
+      procedure EXEC64(
+         constant op              : in opcode_t;
+         constant pc              : in address_t;
+         constant len             : in natural;
+         constant val             : in integer;
+         constant operand0        : in word64_t;
+         constant address         : in address_t;
+         constant faute           : in std_logic;
+         constant expected_taken  : in std_logic;
+         constant expected_target : in address_t;
+         constant name            : in string ) is
+      begin
+         wait until falling_edge( clk );
+         issue                 <= NO_ISSUE;
+         issue.slot            <= SLOT( op, 0, len, val );
+         issue.slot.pc         <= pc;
+         issue.issue_class     <= ISSUE_BRANCH;
+         issue.operand_count   <= 1;
+         issue.operand( 0 )    <= operand0;
+         issue.address_known   <= '1';
+         issue.address         <= address;
+         issue_valid           <= '1';
+
+         wait until rising_edge( clk );
+         issue_valid <= '0';
+         issue       <= NO_ISSUE;
+         wait for 1 ns;
+
+         CHECK( c, complete.valid = '1', name & " : complete.valid" );
+         CHECK( c, complete.fault.valid = faute, name & " : faute",
+                std_logic'image( faute ), std_logic'image( complete.fault.valid ) );
+         if faute = '1' then
+            CHECK( c, complete.fault.code = FAULT_ACCESS, name & " : code 132" );
+         else
+            CHECK( c, complete.taken = expected_taken, name & " : taken" );
+            CHECK( c, complete.target = expected_target,
+                   name & " : target", HEX( expected_target ), HEX( complete.target ) );
+         end if;
+         wait until rising_edge( clk );
+      end procedure EXEC64;
+
+      constant HAUT : address_t := x"0000000100000000";        -- 2**PA_BITS
+      constant ZERO : word64_t := ( others => '0' );
+      constant ZERO_A : address_t := ( others => '0' );
+
    begin
       wait for 3 * PERIOD;
       wait until falling_edge( clk );
@@ -166,6 +213,29 @@ begin
       EXEC( OP_RTD_N, 16#7100#, 4, 16, expected_taken => '1',
             expected_target => 16#4567#, name => "RTD n", noperand => 0,
             address_known => '1', address => 16#4567# );
+
+      -- Espace physique InO : continuation non realisable => faute 132 sur le transfert.
+      EXEC64( OP_CALLI_T, x"0000000000006000", 1, 0, std_logic_vector( HAUT + x"1234" ), ZERO_A, '1', '0', ZERO_A,
+              "CALLI vers 2**32 + 0x1234" );
+      EXEC64( OP_CALLI_T, x"0000000000006000", 1, 0, x"8000000000001234", ZERO_A, '1', '0', ZERO_A,
+              "CALLI vers bit 63" );
+      EXEC64( OP_CALLI_T, x"0000000000006000", 1, 0, x"00000000FFFFFFF0", ZERO_A, '0', '1', x"00000000FFFFFFF0",
+              "CALLI vers le haut de l'espace realise" );
+      EXEC64( OP_RTD_0, x"0000000000007000", 1, 0, ZERO, HAUT, '1', '0', ZERO_A,
+              "RTD vers 2**32" );
+      EXEC64( OP_BRA8_T, x"00000000FFFFFFF0", 2, 100, ZERO, ZERO_A, '1', '0', ZERO_A,
+              "BRA qui franchit 2**32" );
+      EXEC64( OP_BRA8_T, x"00000000FFFFFFF0", 2, -100, ZERO, ZERO_A, '0', '1', x"00000000FFFFFF8E",
+              "BRA arriere depuis le haut de l'espace" );
+      EXEC64( OP_BT8_T, x"00000000FFFFFFFE", 2, -10, ZERO, ZERO_A, '1', '0', ZERO_A,
+              "BT non pris dont la suite est 2**32" );
+      EXEC64( OP_BT8_T, x"00000000FFFFFFFE", 2, -10, x"0000000000000001", ZERO_A, '0', '1', x"00000000FFFFFFF6",
+              "BT pris en arriere depuis la fin de l'espace" );
+      -- CALL / CALLI : l'adresse de retour (pc + len) doit aussi etre realisable.
+      EXEC64( OP_CALLI_T, x"00000000FFFFFFFF", 1, 0, x"0000000000001234", ZERO_A, '1', '0', ZERO_A,
+              "CALLI dont l'adresse de retour est 2**32" );
+      EXEC64( OP_CALLI_T, x"00000000FFFFFFFE", 1, 0, x"0000000000001234", ZERO_A, '0', '1', x"0000000000001234",
+              "CALLI dont l'adresse de retour est la derniere realisee" );
 
       running <= false;
       FINISH( c, "T_L3_INO_BRANCH_UNIT_tb" );
