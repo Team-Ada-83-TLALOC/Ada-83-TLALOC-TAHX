@@ -11,6 +11,7 @@ use work.ARCH_TYPES.all;
 use work.MEMORY_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.INO_PORTS_PA.all;
 
                                 ---
 architecture                    RTL
@@ -58,6 +59,7 @@ of INO_EXCM_UNIT is             ---
       constant k      : natural;
       constant lvl    : natural;
       constant f      : frame_state_t;
+      constant disp   : address_t;           -- DISPLAY( k - 5 ), lu par DISP_SEL_o
       constant co     : copile_state_t ) return word64_t is
    begin
       case k is
@@ -66,7 +68,7 @@ of INO_EXCM_UNIT is             ---
          when 2 => return std_logic_vector( co.cfp );
          when 3 => return std_logic_vector( co.csp );
          when 4 => return std_logic_vector( to_unsigned( lvl + 1, 64 ) );
-         when others => return std_logic_vector( f.display( k - 5 ) );
+         when others => return std_logic_vector( disp );
       end case;
    end function;
 
@@ -96,6 +98,11 @@ begin
       STACK_MAINT_o <= m;
    end process MAINT_OUT;
 
+   -- DISPLAY n'est pas copié : il est lu dans STACK_UNIT pendant l'écriture des
+   -- mots 5 .. 5 + lvl (STACK_UNIT ne le modifie pas, l'instruction est en vol).
+   DISP_SEL_o <= to_unsigned( index_s - 5, 4 ) when state_s = S_WRITE_REQ and index_s >= 5
+                 else ( others => '0' );
+
    MEM_OUT : process( all )
       variable r : mem_request_t;
    begin
@@ -112,7 +119,7 @@ begin
          r.probe   := '0';
          r.address := base_s + 16 + 8 * index_s;
          r.size    := "11";
-         r.wdata   := WORD_DATA( index_s, lvl_s, frame_s, copile_s );
+         r.wdata   := WORD_DATA( index_s, lvl_s, frame_s, DISP_i, copile_s );
       end if;
       MEM_REQ_o <= r;
    end process MEM_OUT;
@@ -159,7 +166,8 @@ begin
                         lvl_s        <= l;
                         word_count_s <= 6 + l;
                         index_s      <= 0;
-                        frame_s      <= FRAME_i;
+                        frame_s.dsp  <= FRAME_DSP_i;
+                        frame_s.rsp  <= FRAME_RSP_i;
                         copile_s     <= COPILE_i;
                         state_s      <= S_PROBE_REQ;
                      end if;

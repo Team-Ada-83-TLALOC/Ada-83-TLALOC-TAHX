@@ -11,6 +11,7 @@ use work.FETCH_DECODE_TYPES.all;
 use work.ARCH_TYPES.all;
 use work.MEMORY_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.INO_PORTS_PA.all;
 use work.TB_UTILS.all;
 
 entity T_L7_INO_EXCM_UNIT_tb is end entity;
@@ -40,6 +41,7 @@ architecture TEST of T_L7_INO_EXCM_UNIT_tb is
       cfp => to_unsigned( 16#4440#, 64 ), csp => to_unsigned( 16#5550#, 64 ),
       hp => ( others => '0' ), hp_valid => '0' );
    signal sync_valid : std_logic := '0';
+   signal disp_sel : disp_sel_t; signal disp : address_t;
    signal maint : stack_maint_t; signal maint_done : std_logic := '0';
    signal mem_req : mem_request_t; signal mem_rsp : mem_response_t := NO_MEM_RESPONSE;
    signal complete : ino_complete_t;
@@ -60,12 +62,15 @@ architecture TEST of T_L7_INO_EXCM_UNIT_tb is
 
 begin
    clk <= not clk after PERIOD / 2 when running;
+   -- Port de lecture de DISPLAY de STACK_UNIT.
+   disp <= frame.display( to_integer( disp_sel ) ) when disp_sel <= 14 else ( others => '0' );
 
    U_DUT : entity work.INO_EXCM_UNIT
       port map (
          CLK_i => clk, RESET_i => reset,
          ISSUE_VALID_i => issue_valid, ISSUE_i => issue, ISSUE_READY_o => issue_ready,
-         FRAME_i => frame, COPILE_i => copile, SYNC_VALID_i => sync_valid,
+         FRAME_DSP_i => frame.dsp, FRAME_RSP_i => frame.rsp, DISP_SEL_o => disp_sel, DISP_i => disp,
+         COPILE_i => copile, SYNC_VALID_i => sync_valid,
          STACK_MAINT_o => maint, STACK_MAINT_DONE_i => maint_done,
          MEM_REQ_o => mem_req, MEM_READY_i => '1', MEM_RSP_i => mem_rsp,
          COMPLETE_o => complete );

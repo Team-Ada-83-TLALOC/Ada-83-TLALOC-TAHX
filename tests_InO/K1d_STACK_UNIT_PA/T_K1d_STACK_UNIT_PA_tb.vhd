@@ -162,7 +162,7 @@ begin
    decode_valid <= '1' when decode_count /= 0 and decode_block( 0 ).valid = '1' else '0';
    decode_take  <= to_unsigned( 1, decode_take'length ) when decode_take_b = '1' else ( others => '0' );
 
-   DUT : entity work.STACK_UNIT
+   DUT : entity work.STACK_UNIT_WIDE
       port map (
          CLK_i              => clk,
          RESET_i            => reset,

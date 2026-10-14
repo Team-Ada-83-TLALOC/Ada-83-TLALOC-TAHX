@@ -11,6 +11,7 @@ use work.ARCH_TYPES.all;
 use work.MEMORY_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.INO_PORTS_PA.all;
 
                                 ---
 architecture                    RTL
@@ -59,7 +60,8 @@ begin
       port map (
          CLK_i => CLK_i, RESET_i => RESET_i,
          ISSUE_VALID_i => excm_issue_valid_s, ISSUE_i => ISSUE_i, ISSUE_READY_o => excm_issue_ready_s,
-         FRAME_i => FRAME_i, COPILE_i => base_copile_s, SYNC_VALID_i => SYNC_VALID_i,
+         FRAME_DSP_i => FRAME_DSP_i, FRAME_RSP_i => FRAME_RSP_i, DISP_SEL_o => DISP_SEL_o, DISP_i => DISP_i,
+         COPILE_i => base_copile_s, SYNC_VALID_i => SYNC_VALID_i,
          STACK_MAINT_o => excm_maint_s, STACK_MAINT_DONE_i => STACK_MAINT_DONE_i,
          MEM_REQ_o => excm_mem_req_s, MEM_READY_i => MEM_READY_i, MEM_RSP_i => MEM_RSP_i,
          COMPLETE_o => excm_complete_s );

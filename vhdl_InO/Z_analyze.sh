@@ -113,6 +113,7 @@ $A ../vhdl/V_TAHX_1.vhd
 # -----------------------------------------------------------------------------
 
 $A K1a__in_order_types.vhd
+$A K1a_INO_PORTS_PA.vhd
 $A K1b_STACK_UNIT.vhd
 $A K1b_STACK_UNIT_rtl.vhd
 

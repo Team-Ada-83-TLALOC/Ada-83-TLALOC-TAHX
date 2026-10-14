@@ -14,6 +14,7 @@ use work.ARCH_TYPES.all;
 use work.MEMORY_TYPES.all;
 use work.IN_ORDER_TYPES.all;
 use work.INO_PADDR.all;
+use work.INO_PORTS_PA.all;
 
         --------------------------------------------------------------------------------
         -- STACK_UNIT, architecture RTL -- première étape du backend InO.
@@ -154,6 +155,7 @@ of STACK_UNIT is                ---
    signal ret_maint_index_s    : natural range 0 to RETURN_CACHE_WORDS_G := 0;
 
    signal commit_s             : ino_commit_t;
+   signal complete_w           : ino_complete_t;      -- COMPLETE_i en adresses de 64 bits
    signal maint_done_s         : std_logic := '0';
    -- Une maintenance peut aussi être lancée après une faute précise. Dans ce cas,
    -- MAINT_DONE ne libère pas le backend : on revient attendre la SYNC d'exception.
@@ -161,6 +163,16 @@ of STACK_UNIT is                ---
    -- Maintenance lancée pendant ST_WAIT_EXEC (blocs complexes) :
    -- revenir attendre COMPLETE au lieu de libérer STACK_UNIT.
    signal maint_return_exec_s  : std_logic := '0';
+
+   -- Emission vers le port a adresses physiques. L'adresse emise est realisable
+   -- (cible de retour, ou base DISPLAY(lvl) quand ofs = '1').
+   function ISSUE_PORT( i : ino_issue_t; ofs : std_logic ) return issue_pa_t is
+   begin
+      return ( slot => TO_PA( i.slot ), issue_class => i.issue_class,
+               operand_count => i.operand_count, operand => i.operand,
+               address_known => i.address_known, address_ofs => ofs,
+               address => TO_PA( i.address ) );
+   end function;
 
    function U64( v : signed ) return address_t is
    begin
@@ -267,17 +279,6 @@ of STACK_UNIT is                ---
       end if;
    end function;
 
-   function CUT_FRAME( f : frame_state_t ) return frame_state_t is
-      variable r : frame_state_t;
-   begin
-      r.dsp := CUT( f.dsp );
-      r.rsp := CUT( f.rsp );
-      for i in r.display'range loop
-         r.display( i ) := CUT( f.display( i ) );
-      end loop;
-      return r;
-   end function;
-
    -- r est la cellule d'indice WIDX( a ), lue par un port de lecture.
    procedure INVALIDATE_CELL(
       signal c : inout stack_cell_array_t;
@@ -294,8 +295,13 @@ of STACK_UNIT is                ---
 
 begin
 
-   FRAME_o      <= frame_s;
-   COMMIT_o     <= commit_s;
+   -- Ports a adresses physiques : frame_s et commit_s sont realisables (CUT).
+   FRAME_DSP_o  <= TO_PA( frame_s.dsp );
+   FRAME_RSP_o  <= TO_PA( frame_s.rsp );
+   DISP_o       <= TO_PA( frame_s.display( to_integer( DISP_SEL_i ) ) ) when DISP_SEL_i <= 14
+                   else ( others => '0' );
+   COMMIT_o     <= TO_PA( commit_s );
+   complete_w   <= TO_VA( COMPLETE_i );
    MAINT_DONE_o <= maint_done_s;
 
    IDLE_o <= '1' when state_s = ST_IDLE or state_s = ST_FAULT_HOLD else '0';
@@ -306,6 +312,7 @@ begin
 
    OUTPUTS : process( all )
       variable issue_v : ino_issue_t;
+      variable ofs_v   : std_logic;
       variable mem_v   : mem_request_t;
    begin
       DECODE_TAKE_o <= '0';
@@ -315,9 +322,10 @@ begin
       issue_v.issue_class   := ISSUE_NONE;
       issue_v.operand_count := 0;
       issue_v.operand       := ( others => ( others => '0' ) );
+      ofs_v := '0';
       issue_v.address_known := '0';
       issue_v.address       := ( others => '0' );
-      ISSUE_o               <= issue_v;
+      ISSUE_o               <= ISSUE_PORT( issue_v, '0' );
       ISSUE_VALID_o         <= '0';
 
       mem_v := NO_MEM_REQUEST;
@@ -343,10 +351,13 @@ begin
          elsif ( entry_s.lvl_use = LVL_ADDR or entry_s.lvl_use = LVL_FRAME )
             and to_integer( slot_s.canon.lvl ) <= 14 then
             issue_v.address_known := '1';
-            issue_v.address := frame_s.display( to_integer( slot_s.canon.lvl ) ) + U64( slot_s.canon.val );
+            -- Le port transporte la base DISPLAY(lvl) ; le decalage canon.val est
+            -- ajoute en 64 bits par TO_VA (INO_PORTS_PA).
+            issue_v.address := frame_s.display( to_integer( slot_s.canon.lvl ) );
+            ofs_v := '1';
          end if;
 
-         ISSUE_o       <= issue_v;
+         ISSUE_o       <= ISSUE_PORT( issue_v, ofs_v );
          ISSUE_VALID_o <= '1';
       end if;
 
@@ -372,7 +383,7 @@ begin
             null;
       end case;
 
-      MEM_REQ_o <= mem_v;
+      MEM_REQ_o <= TO_PA( mem_v );
    end process OUTPUTS;
 
         --------------------------------------------------------------------------------
@@ -422,7 +433,7 @@ begin
          ------------------------------------------------------------------------------
          -- Décodage de l'instruction offerte par DECODE_QUEUE (utilisé en ST_IDLE).
          ------------------------------------------------------------------------------
-            s := DECODE_SLOT_i;
+            s := TO_VA( DECODE_SLOT_i );
             e := ISA_TABLE( to_integer( unsigned( s.canon.op ) ) );
             if s.canon.op = UOP_LIHI then
                e := ( true, 9, FMT_NONE, ISSUE_INTEGER, 1, 1, STACK_LINEAR,
@@ -672,7 +683,8 @@ begin
                report "STACK_UNIT: SYNC pendant une instruction ou une maintenance"
                severity failure;
             -- pragma translate_on
-            frame_s         <= CUT_FRAME( SYNC_FRAME_i );
+            frame_s.dsp     <= CUT( TO_VA( SYNC_DSP_i ) );
+            frame_s.rsp     <= CUT( TO_VA( SYNC_RSP_i ) );
             cells_s         <= ( others => NO_CELL );
             return_cells_s  <= ( others => NO_CELL );
             state_s         <= ST_IDLE;
@@ -1332,10 +1344,10 @@ begin
                      maint_return_exec_s  <= '1';
                      state_s              <= ST_MAINT_SCAN;
 
-                  elsif COMPLETE_i.valid = '1' then
-                     if COMPLETE_i.fault.valid = '1' then
-                        commit_s <= ( valid => '1', slot => slot_s, fault => COMPLETE_i.fault,
-                                      taken => COMPLETE_i.taken, target => COMPLETE_i.target );
+                  elsif complete_w.valid = '1' then
+                     if complete_w.fault.valid = '1' then
+                        commit_s <= ( valid => '1', slot => slot_s, fault => complete_w.fault,
+                                      taken => complete_w.taken, target => complete_w.target );
                         state_s <= ST_FAULT_HOLD;
                      else
                         -- Un rangement direct lvl=0..14 est le seul accès mémoire du
@@ -1452,14 +1464,14 @@ begin
 
                            if entry_s.pushes = 1 then
                               -- pragma translate_off
-                              assert COMPLETE_i.result_valid = '1'
+                              assert complete_w.result_valid = '1'
                                  report "STACK_UNIT: resultat attendu mais absent"
                                  severity failure;
                               -- pragma translate_on
                               idx := WIDX( destination_address_s );
                               cells_s( idx ) <= ( valid => '1', dirty => '1',
                                                   addr => CUT( destination_address_s ),
-                                                  data => COMPLETE_i.result );
+                                                  data => complete_w.result );
                            end if;
 
                         elsif entry_s.stack_action = STACK_KEEP_TOP then
@@ -1468,8 +1480,8 @@ begin
                         end if;
 
                         commit_s <= ( valid => '1', slot => slot_s, fault => NO_FAULT,
-                                      taken => COMPLETE_i.taken, target => COMPLETE_i.target );
-                        if entry_s.control and MISPREDICTED( slot_s, COMPLETE_i ) then
+                                      taken => complete_w.taken, target => complete_w.target );
+                        if entry_s.control and MISPREDICTED( slot_s, complete_w ) then
                            state_s <= ST_MISPRED_HOLD;
                         else
                            state_s <= ST_IDLE;
@@ -1620,6 +1632,17 @@ begin
                   end if;
 
             end case;
+         end if;
+
+         -- Ecriture d'une entrée de DISPLAY par SYSTEM_UNIT, avant une SYNC
+         -- (même contrat que SYNC : aucune instruction ni maintenance en cours).
+         if RESET_i = '0' and DISP_WE_i = '1' and DISP_WSEL_i <= 14 then
+            -- pragma translate_off
+            assert state_s = ST_IDLE or state_s = ST_FAULT_HOLD
+               report "STACK_UNIT: ecriture de DISPLAY pendant une instruction ou une maintenance"
+               severity failure;
+            -- pragma translate_on
+            frame_s.display( to_integer( DISP_WSEL_i ) ) <= CUT( TO_VA( DISP_WDATA_i ) );
          end if;
       end if;
    end process SEQUENTIAL;

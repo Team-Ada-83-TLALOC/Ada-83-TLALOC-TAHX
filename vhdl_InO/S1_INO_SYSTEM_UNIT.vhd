@@ -11,6 +11,7 @@ use work.ARCH_TYPES.all;
 use work.MEMORY_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.INO_PORTS_PA.all;
 
         --------------------------------------------------------------------------------
         -- INO_SYSTEM_UNIT
@@ -69,11 +70,22 @@ is                              ---------------
       -- État architectural courant et resynchronisation.
       ------------------------------------------------------------------
 
-      FRAME_i           : in  frame_state_t;
+      -- Sommets de pile de STACK_UNIT, et DISPLAY par son port de lecture :
+      -- DISP_i est l'entrée DISP_SEL_o (nulle hors des accès qui la lisent).
+      FRAME_DSP_i       : in  address_t;
+      FRAME_RSP_i       : in  address_t;
+      DISP_SEL_o        : out disp_sel_t;
+      DISP_i            : in  address_t;
       COPILE_i          : in  copile_state_t;
 
+      -- SYNC installe DSP et RSP ; les entrées de DISPLAY à changer sont
+      -- écrites juste avant, une par cycle (DISP_WE_o), voir STACK_UNIT.
       SYNC_VALID_o      : out std_logic;
-      SYNC_FRAME_o      : out frame_state_t;
+      SYNC_DSP_o        : out address_t;
+      SYNC_RSP_o        : out address_t;
+      DISP_WE_o         : out std_logic;
+      DISP_WSEL_o       : out disp_sel_t;
+      DISP_WDATA_o      : out address_t;
       SYNC_COPILE_o     : out copile_state_t;
 
       STACK_MAINT_o     : out stack_maint_t;

@@ -11,6 +11,7 @@ use work.ARCH_TYPES.all;
 use work.MEMORY_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.INO_PORTS_PA.all;
 
         --------------------------------------------------------------------------------
         -- INO_EXCM_UNIT : EXC_MACH lvl, ctx.
@@ -35,7 +36,12 @@ is                              -------------
       ISSUE_i           : in  ino_issue_t;
       ISSUE_READY_o     : out std_logic;
 
-      FRAME_i           : in  frame_state_t;
+      -- Sommets de pile, et DISPLAY lu dans STACK_UNIT : DISP_i est l'entrée
+      -- DISP_SEL_o (nulle hors des écritures de contexte qui la lisent).
+      FRAME_DSP_i       : in  address_t;
+      FRAME_RSP_i       : in  address_t;
+      DISP_SEL_o        : out disp_sel_t;
+      DISP_i            : in  address_t;
       COPILE_i          : in  copile_state_t;
       SYNC_VALID_i      : in  std_logic;
 

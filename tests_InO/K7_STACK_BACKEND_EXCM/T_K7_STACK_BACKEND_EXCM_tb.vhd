@@ -11,6 +11,7 @@ use work.FETCH_DECODE_TYPES.all;
 use work.ARCH_TYPES.all;
 use work.MEMORY_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.INO_PORTS_PA.all;
 use work.TB_UTILS.all;
 
 entity T_K7_STACK_BACKEND_EXCM_tb is end entity;
@@ -34,6 +35,7 @@ architecture TEST of T_K7_STACK_BACKEND_EXCM_tb is
    signal issue_valid, issue_ready : std_logic; signal issue : ino_issue_t;
    signal complete : ino_complete_t; signal commit : ino_commit_t;
    signal frame : frame_state_t;
+   signal disp_sel : disp_sel_t; signal disp : address_t;
    signal limits : limits_t := ( lim_dsp => to_unsigned( 16#2F00#, 64 ), lim_rsp => to_unsigned( 16#1000#, 64 ),
                                  lim_csp => to_unsigned( 16#2F00#, 64 ), lim_hp => to_unsigned( 16#1000#, 64 ) );
    signal sync_valid : std_logic := '0';
@@ -73,12 +75,13 @@ begin
    decode_valid <= '1' when decode_count /= 0 and decode_block( 0 ).valid = '1' else '0';
    decode_take  <= to_unsigned( 1, decode_take'length ) when decode_take_b = '1' else ( others => '0' );
 
-   U_STACK : entity work.STACK_UNIT
+   U_STACK : entity work.STACK_UNIT_WIDE
       port map (
          CLK_i => clk, RESET_i => reset,
          DECODE_VALID_i => decode_valid, DECODE_SLOT_i => decode_block( 0 ), DECODE_TAKE_o => decode_take_b,
          ISSUE_VALID_o => issue_valid, ISSUE_o => issue, ISSUE_READY_i => issue_ready,
-         COMPLETE_i => complete, COMMIT_o => commit, FRAME_o => frame, LIM_DSP_i => limits.lim_dsp, LIM_RSP_i => limits.lim_rsp,
+         COMPLETE_i => complete, COMMIT_o => commit, FRAME_o => frame,
+         DISP_SEL_i => disp_sel, DISP_o => disp, LIM_DSP_i => limits.lim_dsp, LIM_RSP_i => limits.lim_rsp,
          SYNC_VALID_i => sync_valid, SYNC_FRAME_i => sync_frame,
          MAINT_i => maint, MAINT_DONE_o => maint_done,
          MEM_REQ_o => stack_mem_req, MEM_READY_i => '1', MEM_RSP_i => stack_mem_rsp, IDLE_o => idle );
@@ -87,7 +90,8 @@ begin
       port map (
          CLK_i => clk, RESET_i => reset,
          ISSUE_VALID_i => issue_valid, ISSUE_i => issue, ISSUE_READY_o => issue_ready,
-         FRAME_i => frame, LIMITS_i => limits,
+         FRAME_DSP_i => frame.dsp, FRAME_RSP_i => frame.rsp, DISP_SEL_o => disp_sel, DISP_i => disp,
+         LIMITS_i => limits,
          SYNC_VALID_i => sync_valid, SYNC_COPILE_i => sync_copile, COPILE_o => copile,
          STACK_MAINT_o => maint, STACK_MAINT_DONE_i => maint_done,
          MEM_REQ_o => back_mem_req, MEM_READY_i => '1', MEM_RSP_i => back_mem_rsp,

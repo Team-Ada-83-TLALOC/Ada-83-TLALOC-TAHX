@@ -52,6 +52,7 @@ is                              ---------------
       REDIRECT_PC_o     : out address_t;
       SYSTEM_HOLD_o     : out std_logic;
 
+      -- Observation des sommets de pile (DSP, RSP) ; DISPLAY est rendu nul.
       FRAME_o           : out frame_state_t;
       COPILE_o          : out copile_state_t;
       LIMITS_o          : out limits_t;

@@ -12,6 +12,8 @@ use work.ARCH_TYPES.all;
 use work.MEMORY_TYPES.all;
 use work.IN_ORDER_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
+use work.INO_PADDR.all;
+use work.INO_PORTS_PA.all;
 
 
 				----------
@@ -21,6 +23,12 @@ is                    	          ----------
       STACK_CACHE_WORDS_G  : positive := 64;
       RETURN_CACHE_WORDS_G : positive := 32
    );
+   ------------------------------------------------------------------
+   -- Les ports portent des adresses physiques (paddr_t, INO_PORTS_PA) :
+   -- leurs 32 bits hauts ne sont pas des broches de la macro. Les
+   -- conversions vers les types IN_ORDER_TYPES sont faites a l'exterieur
+   -- (INO_CORE_SYSTEM, bancs de test) par TO_VA / TO_PA.
+   ------------------------------------------------------------------
    port (
       CLK_i             : in  std_logic;
       RESET_i           : in  std_logic;
@@ -35,7 +43,7 @@ is                    	          ----------
       ------------------------------------------------------------------
 
       DECODE_VALID_i     : in  std_logic;
-      DECODE_SLOT_i      : in  decoded_slot_t;
+      DECODE_SLOT_i      : in  slot_pa_t;
       DECODE_TAKE_o      : out std_logic;
 
       ------------------------------------------------------------------
@@ -46,7 +54,7 @@ is                    	          ----------
       ------------------------------------------------------------------
 
       ISSUE_VALID_o      : out std_logic;
-      ISSUE_o            : out ino_issue_t;
+      ISSUE_o            : out issue_pa_t;
       ISSUE_READY_i      : in  std_logic;
 
       ------------------------------------------------------------------
@@ -56,7 +64,7 @@ is                    	          ----------
       -- par ISSUE_o est terminée.
       ------------------------------------------------------------------
 
-      COMPLETE_i         : in  ino_complete_t;
+      COMPLETE_i         : in  complete_pa_t;
 
       ------------------------------------------------------------------
       -- Commit architectural.
@@ -66,13 +74,21 @@ is                    	          ----------
       -- appliqué.
       ------------------------------------------------------------------
 
-      COMMIT_o           : out ino_commit_t;
+      COMMIT_o           : out commit_pa_t;
 
       ------------------------------------------------------------------
       -- Etat architectural de la machine
       ------------------------------------------------------------------
 
-      FRAME_o            : out frame_state_t;
+      -- Sommets de pile, et DISPLAY par un port de lecture : DISP_o est
+      -- l'entrée DISP_SEL_i (0 .. 14) de DISPLAY, combinatoire. Lecteurs :
+      -- SYSTEM_UNIT (CTX_SAVE, EXC_RAISE) et INO_EXCM_UNIT, jamais en même
+      -- temps (une seule instruction en vol) ; INO_CORE_SYSTEM fusionne leurs
+      -- sélections, nulles au repos.
+      FRAME_DSP_o        : out paddr_t;
+      FRAME_RSP_o        : out paddr_t;
+      DISP_SEL_i         : in  disp_sel_t;
+      DISP_o             : out paddr_t;
 
       -- Limites de pile (SYSTEM_UNIT) : seules celles de DSP et RSP servent ici.
       LIM_DSP_i          : in  address_t;
@@ -84,10 +100,18 @@ is                    	          ----------
       --
       -- Contrat : STACK_UNIT est vide et son cache a été écrit avant
       -- SYNC_VALID_i.
+      --
+      -- SYNC installe DSP et RSP. Les entrées de DISPLAY qui changent
+      -- sont écrites auparavant, une par cycle, par DISP_WE_i (même
+      -- contrat : unité vide) ; les autres sont conservées.
       ------------------------------------------------------------------
 
       SYNC_VALID_i       : in  std_logic;
-      SYNC_FRAME_i       : in  frame_state_t;
+      SYNC_DSP_i         : in  paddr_t;
+      SYNC_RSP_i         : in  paddr_t;
+      DISP_WE_i          : in  std_logic;
+      DISP_WSEL_i        : in  disp_sel_t;
+      DISP_WDATA_i       : in  paddr_t;
 
       ------------------------------------------------------------------
       -- Maintenance du cache de pile :
@@ -101,7 +125,7 @@ is                    	          ----------
       -- Port DATA_CACHE réservé aux FILL / SPILL de STACK_UNIT.
       ------------------------------------------------------------------
 
-      MEM_REQ_o          : out mem_request_t;
+      MEM_REQ_o          : out mem_request_pa_t;
       MEM_READY_i        : in  std_logic;
       MEM_RSP_i          : in  mem_response_t;
 

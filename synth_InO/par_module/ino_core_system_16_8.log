@@ -87,14 +87,14 @@ Cleaned up 0 empty switches.
 
 3.2.12. Executing OPT_EXPR pass (perform const folding).
 Optimizing module ino_core_system_16_8.
-<suppressed ~1 debug messages>
+<suppressed ~2 debug messages>
 
 3.3. Executing OPT_EXPR pass (perform const folding).
 Optimizing module ino_core_system_16_8.
 
 3.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_core_system_16_8..
-Removed 1 unused cells and 93 unused wires.
+Removed 1 unused cells and 101 unused wires.
 <suppressed ~2 debug messages>
 
 3.5. Executing CHECK pass (checking for obvious problems).
@@ -115,12 +115,12 @@ Removed a total of 10 cells.
 Running muxtree optimizer on module \ino_core_system_16_8..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
-      Replacing known input bits on port B of cell \1374: \system_complete_s -> { \system_complete_s [139:1] 1'1 }
-      Replacing known input bits on port B of cell \1376: \system_maint_s -> { \system_maint_s [130:1] 1'1 }
-      Replacing known input bits on port B of cell \1378: \system_mem_req_s -> { \system_mem_req_s [132:1] 1'1 }
+      Replacing known input bits on port B of cell \1385: \system_complete_s -> { \system_complete_s [139:1] 1'1 }
+      Replacing known input bits on port B of cell \1387: \system_maint_s -> { \system_maint_s [130:1] 1'1 }
+      Replacing known input bits on port B of cell \1389: \system_mem_req_s -> { \system_mem_req_s [132:1] 1'1 }
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
-<suppressed ~7 debug messages>
+<suppressed ~9 debug messages>
 
 3.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_core_system_16_8.
@@ -148,7 +148,7 @@ Running muxtree optimizer on module \ino_core_system_16_8..
   Evaluating internal representation of mux trees.
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
-<suppressed ~7 debug messages>
+<suppressed ~9 debug messages>
 
 3.6.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_core_system_16_8.
@@ -202,7 +202,7 @@ Running muxtree optimizer on module \ino_core_system_16_8..
   Evaluating internal representation of mux trees.
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
-<suppressed ~7 debug messages>
+<suppressed ~9 debug messages>
 
 3.8.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_core_system_16_8.
@@ -223,15 +223,24 @@ Optimizing module ino_core_system_16_8.
 3.8.9. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
+Removed top 3 bits (of 4) from mux cell ino_core_system_16_8.\1328 ($mux).
+Removed top 32 bits (of 140) from mux cell ino_core_system_16_8.\1385 ($mux).
+Removed top 32 bits (of 64) from port A of cell ino_core_system_16_8.\1473 ($add).
+Removed top 32 bits (of 282) from wire ino_core_system_16_8.commit_s.
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
 
 3.11. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_core_system_16_8..
+Removed 0 unused cells and 1 unused wires.
+<suppressed ~1 debug messages>
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_core_system_16_8:
-  created 0 $alu and 0 $macc cells.
+  creating $macc model for \1473 ($add).
+  creating $alu model for $macc \1473.
+  creating $alu cell for \1473: $auto$alumacc.cc:485:replace_alu$72025
+  created 1 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
 
@@ -248,7 +257,7 @@ Running muxtree optimizer on module \ino_core_system_16_8..
   Evaluating internal representation of mux trees.
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
-<suppressed ~7 debug messages>
+<suppressed ~9 debug messages>
 
 3.13.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_core_system_16_8.
@@ -302,7 +311,7 @@ Finding unused cells or wires in module \ino_core_system_16_8..
 
 3.16.1. Executing OPT_EXPR pass (perform const folding).
 Optimizing module ino_core_system_16_8.
-<suppressed ~1 debug messages>
+<suppressed ~3 debug messages>
 
 3.16.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\ino_core_system_16_8'.
@@ -312,6 +321,8 @@ Removed a total of 0 cells.
 
 3.16.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_core_system_16_8..
+Removed 0 unused cells and 1 unused wires.
+<suppressed ~1 debug messages>
 
 3.16.5. Finished fast OPT passes.
 
@@ -385,37 +396,43 @@ Generating RTLIL representation for module `\_90_lut'.
 Successfully finished Verilog frontend.
 
 3.19.2. Continuing TECHMAP pass.
-Using extmapper simplemap for cells of type $mux.
+Using extmapper simplemap for cells of type $not.
+Using template $paramod$2126a3039e9678f6a4bd73d35a1f58ee2616afb2\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $reduce_bool.
+Using extmapper simplemap for cells of type $and.
 Using extmapper simplemap for cells of type $eq.
 Using extmapper simplemap for cells of type $or.
-Using extmapper simplemap for cells of type $and.
+Using extmapper simplemap for cells of type $mux.
+Using extmapper simplemap for cells of type $pos.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000001000000 for cells of type $lcu.
+Using extmapper simplemap for cells of type $xor.
 No more expansions possible.
-<suppressed ~86 debug messages>
+<suppressed ~587 debug messages>
 
 3.20. Executing OPT pass (performing simple optimizations).
 
 3.20.1. Executing OPT_EXPR pass (perform const folding).
 Optimizing module ino_core_system_16_8.
-<suppressed ~24 debug messages>
+<suppressed ~281 debug messages>
 
 3.20.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\ino_core_system_16_8'.
-<suppressed ~54 debug messages>
-Removed a total of 18 cells.
+<suppressed ~387 debug messages>
+Removed a total of 129 cells.
 
 3.20.3. Executing OPT_DFF pass (perform DFF optimizations).
 
 3.20.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_core_system_16_8..
-Removed 0 unused cells and 17 unused wires.
-<suppressed ~1 debug messages>
+Removed 32 unused cells and 168 unused wires.
+<suppressed ~33 debug messages>
 
 3.20.5. Finished fast OPT passes.
 
 3.21. Executing ABC pass (technology mapping using ABC).
 
 3.21.1. Extracting gate netlist of module `\ino_core_system_16_8' to `<abc-temp-dir>/input.blif'..
-Extracted 439 gates and 1267 wires to a netlist network with 826 inputs and 412 outputs.
+Extracted 697 gates and 1535 wires to a netlist network with 836 inputs and 419 outputs.
 
 3.21.1.1. Executing ABC.
 Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
@@ -430,33 +447,38 @@ ABC: + map
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
 3.21.1.2. Re-integrating ABC results.
-ABC RESULTS:               NOR cells:        1
-ABC RESULTS:             ORNOT cells:        1
-ABC RESULTS:              NAND cells:        4
-ABC RESULTS:                OR cells:        6
+ABC RESULTS:             ORNOT cells:       11
+ABC RESULTS:              XNOR cells:       33
+ABC RESULTS:              NAND cells:       19
 ABC RESULTS:               MUX cells:      402
-ABC RESULTS:            ANDNOT cells:       11
-ABC RESULTS:               AND cells:        3
-ABC RESULTS:        internal signals:       29
-ABC RESULTS:           input signals:      826
-ABC RESULTS:          output signals:      412
+ABC RESULTS:               NOT cells:        2
+ABC RESULTS:               XOR cells:       31
+ABC RESULTS:               NOR cells:       31
+ABC RESULTS:            ANDNOT cells:       60
+ABC RESULTS:                OR cells:       73
+ABC RESULTS:               AND cells:       20
+ABC RESULTS:        internal signals:      280
+ABC RESULTS:           input signals:      836
+ABC RESULTS:          output signals:      419
 Removing temp directory.
 
 3.22. Executing OPT pass (performing simple optimizations).
 
 3.22.1. Executing OPT_EXPR pass (perform const folding).
 Optimizing module ino_core_system_16_8.
+<suppressed ~32 debug messages>
 
 3.22.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\ino_core_system_16_8'.
-Removed a total of 0 cells.
+<suppressed ~24 debug messages>
+Removed a total of 8 cells.
 
 3.22.3. Executing OPT_DFF pass (perform DFF optimizations).
 
 3.22.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_core_system_16_8..
-Removed 0 unused cells and 1260 unused wires.
-<suppressed ~1 debug messages>
+Removed 1 unused cells and 1399 unused wires.
+<suppressed ~2 debug messages>
 
 3.22.5. Finished fast OPT passes.
 
@@ -473,21 +495,24 @@ Removed 0 unused modules.
 
 === ino_core_system_16_8 ===
 
-   Number of wires:                101
-   Number of wire bits:           8180
-   Number of public wires:          84
-   Number of public wire bits:    8163
+   Number of wires:                360
+   Number of wire bits:           7543
+   Number of public wires:         101
+   Number of public wire bits:    7284
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:                431
-     $_ANDNOT_                      11
-     $_AND_                          3
+   Number of cells:                676
+     $_ANDNOT_                      56
+     $_AND_                         20
      $_MUX_                        402
-     $_NAND_                         4
-     $_NOR_                          1
-     $_ORNOT_                        1
-     $_OR_                           6
+     $_NAND_                        19
+     $_NOR_                         31
+     $_NOT_                          1
+     $_ORNOT_                       11
+     $_OR_                          69
+     $_XNOR_                        33
+     $_XOR_                         31
      ino_backend_excm                1
      ino_system_unit                 1
      stack_unit_16_8                 1
@@ -560,7 +585,7 @@ Mapping DFF cells in module `\ino_core_system_16_8':
 5. Executing ABC pass (technology mapping using ABC).
 
 5.1. Extracting gate netlist of module `\ino_core_system_16_8' to `<abc-temp-dir>/input.blif'..
-Extracted 428 gates and 1254 wires to a netlist network with 826 inputs and 412 outputs.
+Extracted 673 gates and 1509 wires to a netlist network with 836 inputs and 415 outputs.
 
 5.1.1. Executing ABC.
 Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
@@ -599,8 +624,8 @@ ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
 ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
-ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
-ABC: Memory =    2.86 MB. Time =     0.02 sec
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
+ABC: Memory =    2.86 MB. Time =     0.01 sec
 ABC: + strash 
 ABC: + &get -n 
 ABC: + &fraig -x 
@@ -617,27 +642,33 @@ ABC: + &put
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
 5.1.2. Re-integrating ABC results.
-ABC RESULTS:      sg13g2_inv_1 cells:        1
+ABC RESULTS:      sg13g2_inv_1 cells:        3
+ABC RESULTS:     sg13g2_and4_1 cells:        1
 ABC RESULTS:    sg13g2_nor2b_1 cells:        4
-ABC RESULTS:     sg13g2_nor3_1 cells:        1
-ABC RESULTS:    sg13g2_nand2_1 cells:        1
-ABC RESULTS:    sg13g2_nand4_1 cells:        1
-ABC RESULTS:    sg13g2_a21oi_1 cells:        1
-ABC RESULTS:    sg13g2_o21ai_1 cells:        1
-ABC RESULTS:      sg13g2_or2_1 cells:        3
-ABC RESULTS:     sg13g2_mux2_1 cells:      402
-ABC RESULTS:     sg13g2_nor2_1 cells:        1
-ABC RESULTS:     sg13g2_and2_1 cells:        2
-ABC RESULTS:        internal signals:       16
-ABC RESULTS:           input signals:      826
-ABC RESULTS:          output signals:      412
+ABC RESULTS:     sg13g2_xor2_1 cells:       13
+ABC RESULTS:    sg13g2_nand2_1 cells:       23
+ABC RESULTS:     sg13g2_a21o_1 cells:       23
+ABC RESULTS:    sg13g2_o21ai_1 cells:       51
+ABC RESULTS:    sg13g2_xnor2_1 cells:       18
+ABC RESULTS:     sg13g2_mux2_1 cells:      371
+ABC RESULTS:      sg13g2_or3_1 cells:        1
+ABC RESULTS:    sg13g2_nand3_1 cells:        1
+ABC RESULTS:    sg13g2_a21oi_1 cells:       40
+ABC RESULTS:     sg13g2_nor2_1 cells:        2
+ABC RESULTS:     sg13g2_nor4_1 cells:        1
+ABC RESULTS:     sg13g2_nor3_1 cells:        2
+ABC RESULTS:      sg13g2_or2_1 cells:       20
+ABC RESULTS:     sg13g2_and2_1 cells:       26
+ABC RESULTS:        internal signals:      258
+ABC RESULTS:           input signals:      836
+ABC RESULTS:          output signals:      415
 Removing temp directory.
 
 6. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_core_system_16_8..
-Removed 0 unused cells and 1254 unused wires.
+Removed 0 unused cells and 1509 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 4c3f4e74ae, CPU: user 1.45s system 0.04s, MEM: 113.29 MB peak
+End of script. Logfile hash: d1e9d1dfef, CPU: user 1.11s system 0.03s, MEM: 113.59 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 44% 2x read_rtlil (0 sec), 15% 2x abc (0 sec), ...
+Time spent: 40% 2x read_rtlil (0 sec), 15% 2x abc (0 sec), ...

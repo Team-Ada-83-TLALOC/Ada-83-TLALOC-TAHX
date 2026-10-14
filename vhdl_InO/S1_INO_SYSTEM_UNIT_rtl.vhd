@@ -13,6 +13,7 @@ use work.MEMORY_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.IN_ORDER_TYPES.all;
 use work.INO_PADDR.all;
+use work.INO_PORTS_PA.all;
 
                                 ---
 architecture                    RTL
@@ -35,6 +36,13 @@ of INO_SYSTEM_UNIT is           ---
    end record;
 
    type buf_t is array( 0 to 31 ) of word64_t;
+
+   -- Sommets de pile figés ou installés par SYNC. DISPLAY n'est pas copié :
+   -- il est lu dans STACK_UNIT (DISP_SEL_o / DISP_i) et écrit avant SYNC.
+   type tops_t is record
+      dsp : address_t;
+      rsp : address_t;
+   end record;
 
    constant BOOT_WORDS : positive := 29;
    constant CTX_WORDS  : positive := 24;
@@ -61,8 +69,7 @@ of INO_SYSTEM_UNIT is           ---
    signal exit_code_s   : word64_t := ( others => '0' );
 
    -- événement / instruction figés au début de la séquence
-   signal frame_c_s     : frame_state_t := (
-      dsp => ( others => '0' ), rsp => ( others => '0' ), display => ( others => ( others => '0' ) ) );
+   signal frame_c_s     : tops_t := ( dsp => ( others => '0' ), rsp => ( others => '0' ) );
    signal copile_c_s    : copile_state_t := (
       cfp => ( others => '0' ), csp => ( others => '0' ), hp => ( others => '0' ), hp_valid => '0' );
    signal pc_s          : address_t := ( others => '0' );
@@ -77,8 +84,11 @@ of INO_SYSTEM_UNIT is           ---
    signal redirect_pc_s : address_t := ( others => '0' );
    signal redirect_pending_s : std_logic := '0';
    signal sync_pending_s     : std_logic := '0';
-   signal sync_frame_s       : frame_state_t := (
-      dsp => ( others => '0' ), rsp => ( others => '0' ), display => ( others => ( others => '0' ) ) );
+   signal sync_frame_s       : tops_t := ( dsp => ( others => '0' ), rsp => ( others => '0' ) );
+   -- Entrées de DISPLAY à écrire avant SYNC : buf_s( disp_ofs_s + i ), i < disp_n_s.
+   signal disp_n_s           : natural range 0 to 15 := 0;
+   signal disp_ofs_s         : natural range 8 to 9 := 9;
+   signal disp_i_s           : natural range 0 to 15 := 0;
    signal sync_copile_s      : copile_state_t := (
       cfp => ( others => '0' ), csp => ( others => '0' ), hp => ( others => '0' ), hp_valid => '0' );
 
@@ -99,15 +109,14 @@ of INO_SYSTEM_UNIT is           ---
    -- (CUT a chaque ecriture). Ils sont realisables par construction : PC des
    -- instructions, cibles et frames controles ci-dessous, VTB et FSCR controles au
    -- BOOT. Les limites (limits_s) et l'etat de co-pile restent sur 64 bits.
-   function CUT_FRAME( f : frame_state_t ) return frame_state_t is
-      variable r : frame_state_t;
+   function CUT_TOPS( dsp, rsp : address_t ) return tops_t is
    begin
-      r.dsp := CUT( f.dsp );
-      r.rsp := CUT( f.rsp );
-      for i in r.display'range loop
-         r.display( i ) := CUT( f.display( i ) );
-      end loop;
-      return r;
+      return ( dsp => CUT( dsp ), rsp => CUT( rsp ) );
+   end function;
+
+   function CUT_TOPS( f : tops_t ) return tops_t is
+   begin
+      return CUT_TOPS( f.dsp, f.rsp );
    end function;
 
    function CUT_ISSUE( i : ino_issue_t ) return ino_issue_t is
@@ -158,7 +167,8 @@ of INO_SYSTEM_UNIT is           ---
       p       : natural;
       b       : buf_t;
       boot    : address_t;
-      f       : frame_state_t;
+      f       : tops_t;
+      disp    : address_t;            -- DISPLAY( DISP_SEL_o ), voir DISP_SEL
       cp      : copile_state_t;
       d       : std_logic;
       l       : limits_t;
@@ -219,7 +229,7 @@ of INO_SYSTEM_UNIT is           ---
                   when 6 => s.data := W( l.lim_dsp );
                   when 7 => s.data := W( l.lim_rsp );
                   when 8 => s.data := W( l.lim_csp );
-                  when others => s.data := W( f.display( p - CTX_WORDS - 9 ) );
+                  when others => s.data := W( disp );        -- DISPLAY( p - CTX_WORDS - 9 )
                end case;
             end if;
 
@@ -241,13 +251,13 @@ of INO_SYSTEM_UNIT is           ---
             ctx := A( b( 0 ) );
             nd := NDISP( b( 7 ) );
             if p = 0 then
-               s := ( A_READ, f.display( 0 ) + top, ( others => '0' ) );
+               s := ( A_READ, disp + top, ( others => '0' ) );        -- DISPLAY( 0 )
             elsif p <= 7 then
                s := ( A_READ, ctx + 8 * ( p - 1 ), ( others => '0' ) );
             elsif p < 8 + nd then
                s := ( A_READ, ctx + 56 + 8 * ( p - 8 ), ( others => '0' ) );
             elsif p = 8 + nd then
-               s := ( A_WRITE, f.display( 0 ) + top, b( 1 ) );
+               s := ( A_WRITE, disp + top, b( 1 ) );
             end if;
 
          when others => null;
@@ -257,7 +267,18 @@ of INO_SYSTEM_UNIT is           ---
 
 begin
 
-   step_s <= STEP_OF( seq_s, phase_s, buf_s, BOOT_BLOCK_i, frame_c_s, copile_c_s,
+   -- Lecture de DISPLAY dans STACK_UNIT : entrée p - CTX_WORDS - 9 pour les écritures
+   -- de CTX_SAVE, entrée 0 sinon (EXC_RAISE) ; nulle hors des accès (S_ACC).
+   DISP_SEL : process( state_s, seq_s, phase_s )
+   begin
+      DISP_SEL_o <= ( others => '0' );
+      if state_s = S_ACC and seq_s = Q_CTX_SAVE
+         and phase_s >= CTX_WORDS + 9 and phase_s < 2 * CTX_WORDS then
+         DISP_SEL_o <= to_unsigned( phase_s - CTX_WORDS - 9, 4 );
+      end if;
+   end process DISP_SEL;
+
+   step_s <= STEP_OF( seq_s, phase_s, buf_s, BOOT_BLOCK_i, frame_c_s, DISP_i, copile_c_s,
                       dr_s, limits_s, vtb_s, fscr_s, pc_s, pcs_s, fcode_s, req_s );
 
    DR_o         <= dr_s;
@@ -274,8 +295,12 @@ begin
    REDIRECT_VALID_o <= '1' when state_s = S_REDIRECT else '0';
    REDIRECT_PC_o    <= redirect_pc_s;
 
-   SYNC_VALID_o  <= '1' when state_s = S_SYNC else '0';
-   SYNC_FRAME_o  <= sync_frame_s;
+   SYNC_VALID_o  <= '1' when state_s = S_SYNC and disp_i_s >= disp_n_s else '0';
+   SYNC_DSP_o    <= sync_frame_s.dsp;
+   SYNC_RSP_o    <= sync_frame_s.rsp;
+   DISP_WE_o     <= '1' when state_s = S_SYNC and disp_i_s < disp_n_s else '0';
+   DISP_WSEL_o   <= to_unsigned( disp_i_s, 4 );
+   DISP_WDATA_o  <= CUT( A( buf_s( disp_ofs_s + disp_i_s ) ) ) when disp_i_s < 15 else ( others => '0' );
    SYNC_COPILE_o <= sync_copile_s;
 
    IRQ_ACK_o      <= '1' when state_s = S_REDIRECT and seq_s = Q_IRQ else '0';
@@ -326,7 +351,7 @@ begin
    SEQUENCER : process( CLK_i )
       variable k  : integer;
       variable n  : natural;
-      variable sf : frame_state_t;
+      variable sf : tops_t;
       variable sc : copile_state_t;
       variable nd : natural;
       variable svc : integer;
@@ -365,11 +390,13 @@ begin
 
                when S_START =>
                   seq_s <= Q_BOOT; phase_s <= 0; acc_fault_s <= '0';
+                  disp_n_s <= 0; disp_i_s <= 0;
                   redirect_pending_s <= '0'; sync_pending_s <= '0';
                   state_s <= S_ACC;
 
                when S_IDLE =>
                   phase_s <= 0; acc_fault_s <= '0'; redirect_pending_s <= '0'; sync_pending_s <= '0';
+                  disp_n_s <= 0; disp_i_s <= 0;
                   complete_r_s.valid <= '0';
                   k := IRQ_PICK( IRQ_PENDING_i, imask_s );
 
@@ -380,16 +407,16 @@ begin
                      if dr_s = '1' then
                         HALT( HALT_DOUBLE_FAULT );
                      else
-                        frame_c_s <= CUT_FRAME( FRAME_i ); copile_c_s <= COPILE_i;
+                        frame_c_s <= CUT_TOPS( FRAME_DSP_i, FRAME_RSP_i ); copile_c_s <= COPILE_i;
                         pc_s <= CUT( FAULT_PC_i ); fpc_s <= CUT( FAULT_PC_i ); fcode_s <= FAULT_i.code; dr_s <= '1';
                         seq_s <= Q_FAULT; state_s <= S_MAINT_PULSE;
                      end if;
 
                   elsif dr_s = '0' and BOUNDARY_VALID_i = '1' and k >= 0 then
-                     if FRAME_i.rsp - 8 < limits_s.lim_rsp - RESERVE_RSP then
+                     if FRAME_RSP_i - 8 < limits_s.lim_rsp - RESERVE_RSP then
                         HALT( HALT_DELIVERY );
                      else
-                        frame_c_s <= CUT_FRAME( FRAME_i ); copile_c_s <= COPILE_i;
+                        frame_c_s <= CUT_TOPS( FRAME_DSP_i, FRAME_RSP_i ); copile_c_s <= COPILE_i;
                         pc_s <= CUT( BOUNDARY_PC_i ); fpc_s <= CUT( BOUNDARY_PC_i );
                         irq_code_s <= to_unsigned( IRQ_FIRST + k, 8 );
                         fcode_s <= to_unsigned( IRQ_FIRST + k, 8 ); dr_s <= '1';
@@ -401,7 +428,7 @@ begin
                      assert IS_SYSTEM_OP( ISSUE_i.slot.canon.op )
                         report "INO_SYSTEM_UNIT : opcode non systeme" severity failure;
                      -- pragma translate_on
-                     req_s <= CUT_ISSUE( ISSUE_i ); frame_c_s <= CUT_FRAME( FRAME_i ); copile_c_s <= COPILE_i;
+                     req_s <= CUT_ISSUE( ISSUE_i ); frame_c_s <= CUT_TOPS( FRAME_DSP_i, FRAME_RSP_i ); copile_c_s <= COPILE_i;
                      pc_s <= CUT( ISSUE_i.slot.pc );
                      pcs_s <= CUT( ISSUE_i.slot.pc + resize( ISSUE_i.slot.canon.len, 64 ) );
                      -- pragma translate_off
@@ -475,10 +502,10 @@ begin
                            vtb_s <= CUT( A( buf_s( 26 ) ) ); fscr_s <= CUT( A( buf_s( 27 ) ) );
                            imask_s <= buf_s( 28 )( 31 downto 0 );
                            sf.dsp := A( buf_s( 1 ) ); sf.rsp := A( buf_s( 2 ) );
-                           for i in 0 to 14 loop sf.display( i ) := A( buf_s( 9 + i ) ); end loop;
+                           disp_n_s <= 15; disp_ofs_s <= 9;    -- DISPLAY( i ) := buf( 9 + i ), avant SYNC
                            sc := ( cfp => A( buf_s( 3 ) ), csp => A( buf_s( 4 ) ),
                                    hp => A( buf_s( 24 ) ), hp_valid => '1' );
-                           sync_frame_s <= CUT_FRAME( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           sync_frame_s <= CUT_TOPS( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
                            redirect_pc_s <= CUT( A( buf_s( 0 ) ) ); redirect_pending_s <= '1';
                            state_s <= S_REDIRECT;
                         end if;
@@ -491,7 +518,7 @@ begin
                         elsif not PA_OK( A( buf_s( 2 ) ) ) then
                            HALT( HALT_DELIVERY );
                         else
-                           sync_frame_s <= CUT_FRAME( frame_c_s ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           sync_frame_s <= CUT_TOPS( frame_c_s ); sync_copile_s <= sc; sync_pending_s <= '1';
                            redirect_pc_s <= CUT( A( buf_s( 2 ) ) ); redirect_pending_s <= '1';
                            state_s <= S_REDIRECT;
                         end if;
@@ -505,7 +532,7 @@ begin
                            HALT( HALT_DELIVERY );
                         else
                            sf.rsp := frame_c_s.rsp - 8;
-                           sync_frame_s <= CUT_FRAME( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           sync_frame_s <= CUT_TOPS( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
                            redirect_pc_s <= CUT( A( buf_s( 3 ) ) ); redirect_pending_s <= '1';
                            state_s <= S_REDIRECT;
                         end if;
@@ -536,7 +563,7 @@ begin
                            COMPLETE_FAULT( FAULT_ACCESS );
                         else
                            sf.rsp := frame_c_s.rsp - 8;
-                           sync_frame_s <= CUT_FRAME( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           sync_frame_s <= CUT_TOPS( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
                            redirect_pc_s <= CUT( vector_s ); redirect_pending_s <= '1';
                            SET_COMPLETE( NO_FAULT, '0', ( others => '0' ) );
                         end if;
@@ -558,9 +585,9 @@ begin
                            limits_s <= ( lim_dsp => A( buf_s( 6 ) ), lim_rsp => A( buf_s( 7 ) ),
                                          lim_csp => A( buf_s( 8 ) ), lim_hp => limits_s.lim_hp );
                            sf.dsp := A( buf_s( 1 ) ) + 8; sf.rsp := A( buf_s( 2 ) );
-                           for i in 0 to 14 loop sf.display( i ) := A( buf_s( 9 + i ) ); end loop;
+                           disp_n_s <= 15; disp_ofs_s <= 9;    -- DISPLAY( i ) := buf( 9 + i ), avant SYNC
                            sc.cfp := A( buf_s( 3 ) ); sc.csp := A( buf_s( 4 ) );
-                           sync_frame_s <= CUT_FRAME( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           sync_frame_s <= CUT_TOPS( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
                            redirect_pc_s <= CUT( A( buf_s( 0 ) ) ); redirect_pending_s <= '1';
                            SET_COMPLETE( NO_FAULT, '0', ( others => '0' ) );
                         end if;
@@ -575,7 +602,7 @@ begin
                            COMPLETE_FAULT( FAULT_ACCESS );
                         else
                            dr_s <= '0'; sf.rsp := frame_c_s.rsp + 8;
-                           sync_frame_s <= CUT_FRAME( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           sync_frame_s <= CUT_TOPS( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
                            redirect_pc_s <= CUT( A( buf_s( 0 ) ) ); redirect_pending_s <= '1';
                            SET_COMPLETE( NO_FAULT, '0', ( others => '0' ) );
                         end if;
@@ -587,11 +614,9 @@ begin
                         else
                            dr_s <= '0'; nd := NDISP( buf_s( 7 ) );
                            sf.dsp := A( buf_s( 3 ) ); sf.rsp := A( buf_s( 4 ) );
-                           for i in 0 to 14 loop
-                              if i < nd then sf.display( i ) := A( buf_s( 8 + i ) ); end if;
-                           end loop;
+                           disp_n_s <= nd; disp_ofs_s <= 8;    -- DISPLAY( i ) := buf( 8 + i ), i < nd
                            sc.cfp := A( buf_s( 5 ) ); sc.csp := A( buf_s( 6 ) );
-                           sync_frame_s <= CUT_FRAME( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
+                           sync_frame_s <= CUT_TOPS( sf ); sync_copile_s <= sc; sync_pending_s <= '1';
                            redirect_pc_s <= CUT( A( buf_s( 2 ) ) ); redirect_pending_s <= '1';
                            SET_COMPLETE( NO_FAULT, '0', ( others => '0' ) );
                         end if;
@@ -617,8 +642,13 @@ begin
                   if sync_pending_s = '1' then state_s <= S_SYNC; else state_s <= S_IDLE; end if;
 
                when S_SYNC =>
-                  sync_pending_s <= '0';
-                  state_s <= S_IDLE;
+                  -- Ecritures de DISPLAY (une par cycle), puis l'impulsion SYNC.
+                  if disp_i_s < disp_n_s then
+                     disp_i_s <= disp_i_s + 1;
+                  else
+                     sync_pending_s <= '0';
+                     state_s <= S_IDLE;
+                  end if;
 
                when S_HALT =>
                   null;

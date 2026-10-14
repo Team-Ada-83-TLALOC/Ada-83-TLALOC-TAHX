@@ -11,6 +11,7 @@ use work.FETCH_DECODE_TYPES.all;
 use work.ARCH_TYPES.all;
 use work.MEMORY_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.INO_PORTS_PA.all;
 use work.TB_UTILS.all;
 
 entity T_S1b_SYSTEM_UNIT_PA_tb is end entity;
@@ -62,7 +63,10 @@ architecture TEST of T_S1b_SYSTEM_UNIT_PA_tb is
    signal copile : copile_state_t := (
       cfp => ( others => '0' ), csp => ( others => '0' ), hp => ( others => '0' ), hp_valid => '0' );
    signal sync_valid : std_logic;
-   signal sync_frame : frame_state_t;
+   signal sync_dsp, sync_rsp : address_t;
+   signal disp_sel, disp_wsel : disp_sel_t;
+   signal disp, disp_wdata : address_t;
+   signal disp_we : std_logic;
    signal sync_copile : copile_state_t;
 
    signal maint : stack_maint_t;
@@ -132,8 +136,11 @@ begin
          FAULT_VALID_i => fault_valid, FAULT_PC_i => fault_pc, FAULT_i => fault,
          BOUNDARY_VALID_i => boundary_valid, BOUNDARY_PC_i => boundary_pc, SYSTEM_HOLD_o => sys_hold,
          REDIRECT_VALID_o => redirect_valid, REDIRECT_PC_o => redirect_pc,
-         FRAME_i => frame, COPILE_i => copile,
-         SYNC_VALID_o => sync_valid, SYNC_FRAME_o => sync_frame, SYNC_COPILE_o => sync_copile,
+         FRAME_DSP_i => frame.dsp, FRAME_RSP_i => frame.rsp, DISP_SEL_o => disp_sel, DISP_i => disp,
+         COPILE_i => copile,
+         SYNC_VALID_o => sync_valid, SYNC_DSP_o => sync_dsp, SYNC_RSP_o => sync_rsp,
+         DISP_WE_o => disp_we, DISP_WSEL_o => disp_wsel, DISP_WDATA_o => disp_wdata,
+         SYNC_COPILE_o => sync_copile,
          STACK_MAINT_o => maint, STACK_MAINT_DONE_i => maint_done,
          DR_o => dr, LIMITS_o => limits,
          MEM_REQ_o => mem_req, MEM_READY_i => '1', MEM_RSP_i => mem_rsp,
@@ -141,7 +148,11 @@ begin
          HALT_REQ_i => halt_req, HALTED_o => halted, HALT_CAUSE_o => halt_cause, EXIT_CODE_o => exit_code,
          FPC_o => fpc, FCODE_o => fcode );
 
-   -- Le modèle applique les SYNC comme le feront STACK_UNIT et le backend co-pile.
+   -- Port de lecture de DISPLAY de STACK_UNIT.
+   disp <= frame.display( to_integer( disp_sel ) ) when disp_sel <= 14 else ( others => '0' );
+
+   -- Le modèle applique les SYNC (et les écritures de DISPLAY qui les précèdent)
+   -- comme le feront STACK_UNIT et le backend co-pile.
    SYNC_MODEL : process( clk )
    begin
       if rising_edge( clk ) then
@@ -151,11 +162,15 @@ begin
             copile <= ( cfp => ( others => '0' ), csp => ( others => '0' ),
                         hp => ( others => '0' ), hp_valid => '0' );
          elsif sync_valid = '1' then
-            frame <= sync_frame;
+            frame.dsp <= sync_dsp;
+            frame.rsp <= sync_rsp;
             copile.cfp <= sync_copile.cfp;
             copile.csp <= sync_copile.csp;
             if sync_copile.hp_valid = '1' then copile.hp <= sync_copile.hp; end if;
             copile.hp_valid <= '0';
+         end if;
+         if reset = '0' and disp_we = '1' then
+            frame.display( to_integer( disp_wsel ) ) <= disp_wdata;
          end if;
       end if;
    end process SYNC_MODEL;
@@ -250,6 +265,11 @@ begin
          CHECK( c, redirect_pc = A( pc ), "SYSTEM redirect PC", HEX( A( pc ) ), HEX( redirect_pc ) );
          wait until rising_edge( clk ); wait for 1 ns;
          if want_sync then
+            -- Les entrees de DISPLAY a changer sont ecrites avant la SYNC.
+            n := 0;
+            while sync_valid = '0' and n < 16 loop
+               wait until rising_edge( clk ); wait for 1 ns; n := n + 1;
+            end loop;
             CHECK( c, sync_valid = '1', "SYSTEM SYNC apres redirect" );
          else
             CHECK( c, sync_valid = '0', "SYSTEM pas de SYNC" );

@@ -54,6 +54,8 @@ of T_K5b_STACK_BACKEND_FRAME_tb is
       lim_csp => to_unsigned( 16#4100#, 64 ), lim_hp => ( others => '0' ) );
 
    signal sync_valid            : std_logic := '0';
+
+   signal sync_busy : std_logic;
    signal sync_frame            : frame_state_t := (
       dsp => ( others => '0' ), rsp => ( others => '0' ),
       display => ( others => ( others => '0' ) ) );
@@ -105,14 +107,14 @@ begin
    decode_valid <= '1' when decode_count /= 0 and decode_block( 0 ).valid = '1' else '0';
    decode_take  <= to_unsigned( 1, decode_take'length ) when decode_take_b = '1' else ( others => '0' );
 
-   U_STACK : entity work.STACK_UNIT
+   U_STACK : entity work.STACK_UNIT_WIDE
       port map (
          CLK_i => clk, RESET_i => reset,
          DECODE_VALID_i => decode_valid, DECODE_SLOT_i => decode_block( 0 ), DECODE_TAKE_o => decode_take_b,
          ISSUE_VALID_o => issue_valid, ISSUE_o => issue, ISSUE_READY_i => issue_ready,
          COMPLETE_i => complete, COMMIT_o => commit,
          FRAME_o => frame, LIM_DSP_i => limits.lim_dsp, LIM_RSP_i => limits.lim_rsp,
-         SYNC_VALID_i => sync_valid, SYNC_FRAME_i => sync_frame,
+         SYNC_VALID_i => sync_valid, SYNC_FRAME_i => sync_frame, SYNC_BUSY_o => sync_busy,
          MAINT_i => maint, MAINT_DONE_o => maint_done,
          MEM_REQ_o => stack_mem_req, MEM_READY_i => '1', MEM_RSP_i => stack_mem_rsp,
          IDLE_o => idle );
@@ -178,6 +180,8 @@ begin
          wait until rising_edge( clk );
          sync_valid <= '0';
          wait for 1 ns;
+         -- STACK_UNIT_WIDE : DISPLAY est ecrit entree par entree avant la SYNC.
+         while sync_busy = '1' loop wait until rising_edge( clk ); wait for 1 ns; end loop;
       end procedure DO_SYNC;
 
       procedure PRESENT( constant s : in decoded_slot_t ) is
