@@ -14,6 +14,8 @@ use work.ROB_TYPES.all;
 use work.BACKEND_TYPES.all;
 use work.EXEC_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.INO_PADDR.all;
+use work.INO_PORTS_PA.all;
 
         --------------------------------------------------------------------------------
         -- TAHX_1, architecture IN_ORDER
@@ -37,10 +39,15 @@ of TAHX_1 is                    --------
    signal fe_block             : decoded_block_t;
    signal fe_count             : decode_count_t;
 
+   -- File de decodage InO : une case en sortie (dq_slot), adresses physiques.
+   -- dq_block / dq_count la presentent au coeur sous les types communs : case 0
+   -- seule, cases 1 .. 3 vides ; dq_count vaut 0 ou 1 (K8 et K9 ne testent que
+   -- dq_count /= 0 et ne lisent que la case 0).
+   signal dq_slot              : slot_pa_t;
    signal dq_block             : decoded_block_t;
    signal dq_count             : decode_count_t;
    signal dq_take              : decode_count_t;
-   signal dq_occupancy         : decode_queue_count_t;
+   signal dq_take_1            : std_logic;
 
    -- Ces noms sont volontairement simples : ils servent aussi aux futurs bancs
    -- de mesure InO par noms externes, comme leurs homologues du sommet OoO.
@@ -92,19 +99,31 @@ U_INSTRUCTION :
   );
 
 U_DECODE_QUEUE :
-  entity work.DECODE_QUEUE( IN_ORDER )
+  entity work.INO_DECODE_QUEUE( RTL )
   port map (
     CLK_i => CLK_i, RESET_i => RESET_i,
     FLUSH_i => recovery.valid,
-    PUSH_BLOCK_i => fe_block, PUSH_COUNT_i => fe_count,
+    PUSH_BLOCK_i => TO_PA( fe_block ), PUSH_COUNT_i => fe_count,
     PUSH_VALID_i => fe_valid, PUSH_READY_o => fe_ready,
 
 		-- Vers U_CORE
-    POP_TAKE_i	=> dq_take,
-    POP_BLOCK_o	=> dq_block,
-    POP_COUNT_o	=> dq_count,
-    COUNT_o	=> dq_occupancy
+    POP_SLOT_o	=> dq_slot,
+    POP_TAKE_i	=> dq_take_1
   );
+
+   -- Le coeur InO retire au plus une case par cycle (DECODE_TAKE_o vaut 0 ou 1).
+   dq_take_1 <= '1' when dq_take /= 0 else '0';
+
+   DQ_TO_CORE : process( dq_slot )
+   begin
+      for i in dq_block'range loop
+         dq_block( i ) <= ( valid => '0', canon => CANON_NOP, pc => ( others => '0' ),
+                            pred => NO_PREDICTION );
+      end loop;
+      dq_block( 0 ) <= TO_VA( dq_slot );
+   end process;
+   dq_count <= to_unsigned( 1, dq_count'length ) when dq_slot.valid = '1'
+               else ( others => '0' );
 
    -----------------------------------------------------------------------------
    -- Coeur InO + systeme.
@@ -169,6 +188,17 @@ U_CORE :
       if rising_edge( CLK_i ) then
          assert not ( recovery.valid = '1' and dq_take /= 0 )
             report "TAHX_1(IN_ORDER) : retrait DECODE_QUEUE pendant une reprise" severity failure;
+         -- TO_PA( fe_block ) est exact : le frontal ne presente que des adresses
+         -- realisables (CUT dans branch_predict).
+         if fe_valid = '1' then
+            for i in fe_block'range loop
+               if i < to_integer( fe_count ) then
+                  assert PA_OK( fe_block( i ).pc ) and PA_OK( fe_block( i ).pred.target )
+                     report "TAHX_1(IN_ORDER) : adresse non realisable a l'entree de DECODE_QUEUE"
+                     severity failure;
+               end if;
+            end loop;
+         end if;
       end if;
    end process CHECK;
    -- pragma translate_on

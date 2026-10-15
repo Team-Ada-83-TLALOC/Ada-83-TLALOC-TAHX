@@ -1,0 +1,1048 @@
+
+\documentclass[10pt,a4paper,twoside,openany]{book}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,inner=22mm,outer=18mm,top=21mm,bottom=22mm,headheight=14pt]{geometry}
+\usepackage{booktabs,longtable,tabularx,array,multirow}
+\usepackage[table]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,shapes.geometric}
+\usepackage[most]{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{pdflscape}
+\usepackage{hyperref}
+\usepackage{bookmark}
+\usepackage{graphicx}
+\usepackage{ragged2e}
+\usepackage{makecell}
+\usepackage{titlesec}
+\usepackage{setspace}
+
+\definecolor{TahxBlue}{HTML}{17365D}
+\definecolor{TahxLight}{HTML}{EAF0F6}
+\definecolor{TahxGray}{HTML}{5B6573}
+\definecolor{TahxCode}{HTML}{F4F5F7}
+\definecolor{TahxGold}{HTML}{A76B00}
+\definecolor{TahxRed}{HTML}{8A1C1C}
+\hypersetup{colorlinks=true,linkcolor=TahxBlue,urlcolor=TahxBlue,citecolor=TahxBlue,pdftitle={TAHX_1 Processor Reference Manual - ISA V8},pdfauthor={Vincent Morin / UBO},pdfsubject={TAHX_1 architecture and instruction set},pdfkeywords={TAHX_1, TLALOC, Ada 83, LLIR, HX, processor, ISA}}
+
+\titleformat{\chapter}[display]{\normalfont\bfseries\color{TahxBlue}}{\filleft\Large\chaptername\ \thechapter}{1ex}{\Huge}
+\titleformat{\section}{\Large\bfseries\color{TahxBlue}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries\color{TahxGray}}{\thesubsection}{0.7em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\small\textsc{TAHX\_1 Processor Reference Manual}}
+\fancyhead[RO]{\small\nouppercase{\leftmark}}
+\fancyfoot[LE,RO]{\thepage}
+\fancyfoot[LO,RE]{\small ISA V8 - édition 1.0}
+\renewcommand{\headrulewidth}{0.35pt}
+\renewcommand{\footrulewidth}{0pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt plus 1pt}
+\setlist[itemize]{topsep=3pt,itemsep=2pt,parsep=0pt}
+\setlist[enumerate]{topsep=3pt,itemsep=2pt,parsep=0pt}
+\renewcommand{\arraystretch}{1.12}
+
+\newtcolorbox{architecturebox}[1][]{colback=TahxLight,colframe=TahxBlue,boxrule=0.6pt,arc=1.5mm,left=2mm,right=2mm,top=1.5mm,bottom=1.5mm,title=#1,fonttitle=\bfseries}
+\newtcolorbox{warningbox}[1][]{colback=red!3,colframe=TahxRed,boxrule=0.6pt,arc=1.5mm,left=2mm,right=2mm,top=1.5mm,bottom=1.5mm,title=#1,fonttitle=\bfseries}
+\newtcolorbox{designbox}[1][]{colback=yellow!5,colframe=TahxGold,boxrule=0.6pt,arc=1.5mm,left=2mm,right=2mm,top=1.5mm,bottom=1.5mm,title=#1,fonttitle=\bfseries}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\stack}[1]{\texttt{#1}}
+\newcommand{\reg}[1]{\textsc{#1}}
+\newcommand{\fault}[1]{\textbf{faute #1}}
+\newcommand{\res}{\textcolor{TahxGray}{RES}}
+\newcommand{\bitfield}[1]{\texttt{#1}}
+\newcommand{\sourceviii}{\textit{LLIR\_hardware\_support\_V8.txt}}
+
+\begin{document}
+
+\hypersetup{pageanchor=false}
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[TahxBlue] (current page.north west) rectangle ([yshift=-78mm]current page.north east);
+  \fill[TahxLight] ([yshift=-78mm]current page.north west) rectangle (current page.south east);
+\end{tikzpicture}
+\vspace*{17mm}
+{\color{white}\fontsize{34}{38}\selectfont\bfseries TAHX\_1\par}
+\vspace{3mm}
+{\color{white}\fontsize{20}{24}\selectfont Processor Reference Manual\par}
+\vspace{6mm}
+{\color{white}\large Architecture, modèle programmeur et jeu d'instructions\par}
+\vspace{35mm}
+{\fontsize{18}{22}\selectfont\bfseries ISA V8\par}
+\vspace{2mm}
+{\large Édition 1.0 - octobre 2026\par}
+\vfill
+\begin{minipage}{0.78\textwidth}
+\small
+\textbf{Tlaloc Ada Hardware eXecutor - version 1}\\[3pt]
+Manuel de référence architectural dérivé de la spécification normative V8 du 29 septembre 2026.\\[8pt]
+Vincent Morin - Université de Bretagne Occidentale - 2026
+\end{minipage}
+\end{titlepage}
+
+\clearpage
+\pagenumbering{roman}
+\hypersetup{pageanchor=true}
+\chapter*{Statut du document}
+\addcontentsline{toc}{chapter}{Statut du document}
+Ce manuel est une \textbf{présentation de référence destinée au lecteur humain} de l'architecture TAHX\_1 et de son jeu d'instructions HX. Il réorganise et explique la spécification V8 dans la forme d'un manuel de processeur classique.
+
+\begin{warningbox}[Autorité normative]
+En cas d'ambiguïté ou de contradiction, la spécification \sourceviii{} reste normative. La V8 désigne \texttt{tx\_run} comme référence exécutable, sous réserve de sa liste de vérification. Ce manuel ne crée ni opcode, ni sémantique, ni contrainte nouvelle.
+\end{warningbox}
+
+La révision V8 ne modifie pas l'encodage de la V7 et fixe notamment la priorité des fautes, les réserves de piles, les règles de \texttt{FEXP}, les conversions de virgule fixe et le statut des opcodes réservés. Elle ne conserve aucune question ouverte dans la définition de l'ISA proposée pour le gel.
+
+\section*{Conventions de lecture}
+\begin{itemize}
+\item Les effets de pile utilisent la notation \stack{( avant -- après )}, avec le sommet à droite.
+\item \reg{DSP}, \reg{RSP}, \reg{CSP}, \reg{HP}, \reg{PC} et \reg{DISPLAY} désignent l'état architectural.
+\item \code{M64[a]} désigne un mot de 64 bits en mémoire à l'adresse \code{a}.
+\item Les mots « doit », « interdit », « faute » et « réservé » reprennent un comportement architectural, et non un choix d'implantation.
+\end{itemize}
+
+\chapter*{Vue d'ensemble en une page}
+\addcontentsline{toc}{chapter}{Vue d'ensemble en une page}
+TAHX\_1 est une machine à pile de 64 bits conçue pour exécuter directement les images HX issues de la LLIR de TLALOC. Le code est un flux unique d'instructions de longueur variable (1 à 9 octets). Le premier octet suffit toujours à connaître la longueur de l'instruction. Les données sont adressées par octet, en petit-boutiste, avec accès non alignés autorisés.
+
+Le modèle programmeur possède une pile data, une pile de retours séparée, une co-pile, un tas descendant et un \reg{DISPLAY} de quinze niveaux statiques. Les opérations entières de base sont contrôlées : elles ne débordent jamais silencieusement. Les flottants sont des IEEE 754 binary64. Les fautes sont précises et sont reliées aux exceptions Ada 83 par une table de vecteurs et un trampoline du run-time.
+
+\begin{architecturebox}[Caractéristiques architecturales essentielles]
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+Mot machine & 64 bits \\
+Cellule de pile data & 64 bits \\
+Espace d'adressage architectural & adresses sur 64 bits ; adresses valides de plateforme $<2^{63}$ \\
+Boutisme des données & petit-boutiste \\
+Alignement & non imposé \\
+Code & un seul flux, longueur variable, maximum 9 octets \\
+Niveaux statiques & \reg{DISPLAY[0..14]} \\
+Flottants & IEEE 754 binary64 \\
+Déroutements & services TRAP, interruptions 32..63, fautes 128..159 \\
+Image exécutable & format HX, signature \texttt{TLALOCHX} \\
+\end{tabularx}
+\end{architecturebox}
+
+\tableofcontents
+\clearpage
+\clearpage
+\pagenumbering{arabic}
+
+\chapter{Architecture générale}
+\section{Position de TAHX\_1 dans la chaîne TLALOC}
+TAHX\_1 est l'exécuteur matériel du niveau LLIR/HX : le compilateur et son expander produisent des opérations dont la sémantique est matérialisée par le jeu d'instructions décrit ici. Le processeur ne cherche donc pas à reproduire une architecture de registres généraliste ; il expose directement un modèle à pile, des niveaux statiques, des opérations de frame et les mécanismes nécessaires aux exceptions et au tasking Ada 83.
+
+\begin{designbox}[Architecture et micro-architecture]
+Le manuel décrit ce qu'un programme HX peut observer. Une implantation peut mettre des cellules de pile en registres, retarder certaines écritures ou organiser la pile des retours hors du chemin des données, à condition que le comportement soit exactement celui du modèle architectural. Le pipeline, le nombre d'unités, les caches et l'ordonnancement ne font donc pas partie de l'ISA.
+\end{designbox}
+
+\section{Vue fonctionnelle}
+\begin{center}
+\begin{tikzpicture}[node distance=7mm and 10mm,>=Latex,
+  b/.style={draw=TahxBlue,fill=TahxLight,rounded corners=1mm,minimum width=35mm,minimum height=10mm,align=center,font=\small},
+  s/.style={draw=TahxGray,fill=white,minimum width=28mm,minimum height=8mm,align=center,font=\small}]
+\node[b] (pc) {Flux d'instructions\\\reg{PC}};
+\node[b,below=of pc] (decode) {Décodage\\familles A/B/C/D};
+\node[b,below left=of decode] (stack) {Pile data\\\reg{DSP}};
+\node[b,below=of decode] (state) {État de frame\\\reg{DISPLAY}, \reg{CFP}, \reg{CSP}};
+\node[b,below right=of decode] (ctrl) {Contrôle\\pile des retours \reg{RSP}};
+\node[s,below=of stack] (mem) {Mémoire de données};
+\node[s,below=of state] (heap) {Co-pile / tas \reg{HP}};
+\node[s,below=of ctrl] (vect) {VTB / FSCR / interruptions};
+\draw[->] (pc)--(decode);
+\draw[->] (decode)--(stack); \draw[->] (decode)--(state); \draw[->] (decode)--(ctrl);
+\draw[<->] (stack)--(mem); \draw[<->] (state)--(heap); \draw[<->] (ctrl)--(vect);
+\end{tikzpicture}
+\end{center}
+
+\section{Principes structurants}
+\begin{itemize}
+\item \textbf{Pile d'évaluation 64 bits.} Les opérandes et résultats des expressions transitent par la pile data.
+\item \textbf{Niveaux statiques.} \reg{DISPLAY[0..14]} donne un accès direct aux frames lexicales, ce qui correspond au modèle de portée d'Ada.
+\item \textbf{Retour séparé.} Les adresses de retour ne partagent pas la pile data : CALL/CALLI/TRAP/interruptions utilisent la pile des retours.
+\item \textbf{Code immuable après démarrage.} Une implantation peut donc conserver des formes décodées sans protocole d'invalidation.
+\item \textbf{Fautes précises.} Une instruction fautive ne laisse aucun effet propre ; le handler observe l'état antérieur à l'instruction.
+\item \textbf{Contrôle arithmétique.} Les opérations entières signées de base lèvent une faute de débordement au lieu de boucler modulo $2^{64}$.
+\end{itemize}
+
+\chapter{Modèle programmeur}
+\section{État architectural}
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Élément} & \textbf{Rôle}\\ \midrule
+\reg{PC} & compteur ordinal, dans l'unique flux de code \\
+\reg{DSP} & adresse de la cellule au sommet de la pile data \\
+\reg{RSP} & adresse de la dernière adresse empilée sur la pile des retours \\
+\reg{CFP} & frame courant de co-pile \\
+\reg{CSP} & premier octet libre de la co-pile \\
+\reg{HP} & frontière basse du tas déjà alloué \\
+\reg{DISPLAY[0..14]} & frame pointers des quinze niveaux statiques \\
+\reg{DR} & bit « déroutement en cours » \\
+\reg{FPC}, \reg{FCODE} & adresse et code de la dernière faute ou interruption \\
+\reg{VTB}, \reg{FSCR} & table des vecteurs et zone d'exposition de \reg{FPC}/\reg{FCODE} \\
+\reg{LIM\_DSP}, \reg{LIM\_RSP}, \reg{LIM\_CSP}, \reg{LIM\_HP} & limites des piles et du tas \\
+\reg{IMASK} & masque 32 bits des interruptions externes \\
+\bottomrule
+\end{tabularx}
+\end{center}
+Le code \code{lvl=1111} ne désigne pas un seizième niveau : il signifie « adresse prise sur la pile data ». Il reste donc quinze niveaux effectifs, 0 à 14.
+
+\section{Organisation des piles}
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=0.63cm,>=Latex,font=\small]
+\draw[thick] (0,0) rectangle (4,8);
+\draw[thick] (6,0) rectangle (10,8);
+\node[above] at (2,8) {Pile data};
+\node[above] at (8,8) {Pile des retours};
+\draw[->,very thick,TahxBlue] (4.6,1) -- (4.6,6.8) node[midway,right]{croît};
+\draw[->,very thick,TahxBlue] (10.6,7) -- (10.6,1.2) node[midway,right]{croît};
+\draw[dashed] (0,1) -- (4,1); \node[left] at (0,1) {\reg{DSP0}};
+\draw[dashed] (0,6) -- (4,6); \node[left] at (0,6) {\reg{DSP}};
+\node at (2,6.45) {sommet};
+\draw[dashed] (6,7) -- (10,7); \node[left] at (6,7) {\reg{RSP0}};
+\draw[dashed] (6,2.3) -- (10,2.3); \node[left] at (6,2.3) {\reg{RSP}};
+\node at (8,1.85) {dernier retour};
+\end{tikzpicture}
+\end{center}
+
+La pile data croît vers les adresses hautes. Un \emph{push} fait \code{DSP := DSP + 8} puis écrit la cellule ; un \emph{pop} lit \code{M64[DSP]} puis retranche 8. La pile des retours croît en sens inverse : \code{push\_retour} retranche 8 avant l'écriture.
+
+La co-pile croît vers le haut et \reg{CSP} désigne le premier octet libre. Le tas croît vers le bas et \reg{HP} désigne la frontière basse de la zone déjà allouée.
+
+\section{Frames et niveaux statiques}
+Les paramètres sont situés à des déplacements négatifs à partir de -8 ; les variables locales à des déplacements positifs à partir de +8. \reg{DISPLAY[lvl]} pointe sur la cellule où le frame pointer antérieur a été sauvegardé.
+
+\texttt{LINK}, \texttt{UNLINK} et \texttt{UNLINKR} gèrent à la fois la pile data et le chaînage de co-pile. La distinction entre \texttt{UNLINK} et \texttt{UNLINKR} est importante : le premier ne rend pas la co-pile du frame, afin de permettre l'évasion d'un résultat tableau ; le second la rend.
+
+\section{Mémoire}
+La mémoire est adressée par octets. Les accès 16, 32 et 64 bits sont petit-boutistes. Un accès non aligné est architecturalement valide et doit donner le même résultat qu'une suite d'accès d'un octet ; il peut seulement être plus lent.
+
+Un accès n'est valide que si tous ses octets le sont. Une adresse valide de plateforme est inférieure à $2^{63}$. Les instructions de calcul d'adresse de la machine peuvent former leurs sommes modulo $2^{64}$ ; c'est l'accès mémoire final qui décide de la validité.
+
+\begin{warningbox}[Code non modifiable]
+Après le début de l'exécution, modifier un octet appartenant à une instruction donne un comportement non spécifié. Les données placées en ligne dans le flux, mais contournées par une branche, ne sont pas des instructions et ne sont pas concernées par cette règle.
+\end{warningbox}
+
+\section{Programme valide}
+Toute adresse atteignable dynamiquement par le contrôle doit être le début d'une instruction : cible de branche ou de CALL, retour, DISPATCH d'exception, vecteur, point d'entrée ou PC restauré depuis un contexte. La machine ne peut pas distinguer une cible valide d'un milieu d'instruction ; l'image HX peut toutefois fournir une table qui permet à l'émulateur de diagnostiquer ce cas.
+
+\chapter{Codage des instructions}
+\section{Flux unique et longueur déterminée par l'opcode}
+Le code HX est un flux unique. La longueur d'une instruction est une fonction de son seul premier octet. Aucun champ complémentaire n'intervient dans ce calcul. Cette propriété permet à un décodeur de repérer plusieurs frontières d'instruction dans un bloc d'octets sans interpréter d'abord les opérandes.
+
+\begin{architecturebox}[Longueurs]
+\begin{tabularx}{\linewidth}{@{}lXr@{}}
+Famille A & sans complément & 1 octet\\
+B16 / B24 & accès direct & 3 / 4 octets\\
+C24 / C32 & accès indirect & 4 / 5 octets\\
+LI & immédiat 8/16/32/64 & 2 / 3 / 5 / 9 octets\\
+BR8/16/24/32 & branche & 2 / 3 / 4 / 5 octets\\
+TRAP, UNLINK, UNLINKR & D8 & 2 octets\\
+CALL, RTD n, EXC\_RAISE & D24 & 4 octets\\
+\end{tabularx}
+Longueur maximale : \textbf{9 octets}, pour \texttt{LI imm64}. Un opcode réservé n'a pas de longueur architecturale : son décodage s'arrête sur le premier octet et lève la faute 137.
+\end{architecturebox}
+
+\section{Les quatre familles}
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}clX@{}}
+\toprule
+\textbf{OP[7..6]} & \textbf{Famille} & \textbf{Usage}\\ \midrule
+00 & A & opérations sans complément : ALU, pile, flottants, blocs\\
+01 & B & accès direct : \code{lvl + disp}\\
+10 & C & accès indirect : \code{lvl + disp + ofs}\\
+11 & D & immédiats, branches, contrôle, constantes\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Formats d'opérandes}
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}l l X@{}}
+\toprule
+\textbf{Format} & \textbf{Taille totale} & \textbf{Complément}\\ \midrule
+A & 1 & aucun\\
+B16 & 3 & \code{lvl:4 | disp:12}\\
+B24 & 4 & \code{lvl:4 | disp:20}\\
+B40 & 6 si attribué & \code{lvl:4 | 0000 | disp:32}, réservé en V8\\
+C24 & 4 & \code{lvl:4 | ofs:4 | disp:16}\\
+C32 & 5 & \code{lvl:4 | ofs:8 | disp:20}\\
+D8 / D16 / D24 / D32 / D64 & 2 / 3 / 4 / 5 / 9 & immédiat de la largeur indiquée\\
+D8\_8 & 3 & deux immédiats de 8 bits, \code{lsb} puis \code{w}\\
+BR8 / BR16 / BR24 / BR32 & 2 / 3 / 4 / 5 & déplacement relatif signé\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Le champ \code{lvl} vaut 0 à 14 pour \reg{DISPLAY[lvl]} et 15 pour une adresse prise sur la pile. \code{disp} est signé, sauf pour \texttt{LINK} où il représente une taille non signée. \code{ofs} est non signé.
+
+\section{Ordre des octets}
+Les compléments d'instruction sont rangés \textbf{poids fort en tête}. Cette règle ne doit pas être confondue avec le boutisme des données : les données mémoire restent petit-boutistes. Pour B et C, le premier octet complémentaire porte toujours \code{lvl} dans ses bits 7..4.
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Instruction & Octets & Format\\ \midrule
+\texttt{LQ 3,-2049} & \texttt{5B 3F F7 FF} & B24\\
+\texttt{LIB 1,8,16} & \texttt{98 11 00 00 08} & C32\\
+\texttt{LI 128} & \texttt{C1 00 80} & D16\\
+\texttt{UBFXI 12,20} & \texttt{C4 0C 14} & D8\_8\\
+\texttt{BT +32768} & \texttt{E6 00 80 00} & BR24\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Immédiats et branches}
+Les immédiats ordinaires de \texttt{LI} sont signés et étendus à 64 bits. L'assembleur choisit la forme la plus étroite. La forme spéciale \texttt{LI imm4} est au contraire non signée et code directement 0 à 15 dans le bas de l'opcode.
+
+Les déplacements des branches et de \texttt{CALL} sont relatifs à l'instruction suivante. Cette convention vaut pour BR8 à BR32 et pour le D24 de \texttt{CALL}.
+
+\chapter{Adressage, frames et accès mémoire}
+\section{Calcul de l'adresse effective}
+\begin{architecturebox}[Famille B - accès direct]
+\texttt{lvl = 0..14:}\quad $EA = DISPLAY[lvl] + disp$\\
+\texttt{lvl = 15:}\quad $EA = pop + disp$
+\end{architecturebox}
+\begin{architecturebox}[Famille C - accès indirect]
+\texttt{lvl = 0..14:}\quad $EA = M64[DISPLAY[lvl] + disp] + ofs$\\
+\texttt{lvl = 15:}\quad $EA = M64[pop + disp] + ofs$
+\end{architecturebox}
+
+Avec \code{FMT=00}, il n'y a aucun complément : cela signifie \code{lvl=15}, \code{disp=0} et, pour C, \code{ofs=0}. Les formes les plus courtes servent donc naturellement aux accès dont l'adresse est déjà sur la pile.
+
+\section{Notation @ et @@}
+La spécification utilise \code{@} pour une adresse de donnée et \code{@@} pour l'adresse d'une cellule contenant elle-même une adresse.
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}l l X@{}}
+\toprule
+Famille & Forme sur pile & Effet\\ \midrule
+B & \texttt{LVA} & \stack{( @ -- @+disp )}\\
+B & \texttt{Lx} & \stack{( @ -- v )}\\
+B & \texttt{Sx} & \stack{( @ v -- )}\\
+C & \texttt{LIVA} & \stack{( @@ -- @ )}\\
+C & \texttt{LIx} & \stack{( @@ -- v )}\\
+C & \texttt{SIx} & \stack{( @@ v -- )}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+Un rangement dépile d'abord la donnée, puis l'adresse placée juste dessous.
+
+\section{Chargements et rangements}
+Les tailles sont byte 8 bits, word 16 bits, double 32 bits et quad 64 bits. Les chargements de MODE 01 étendent le signe ; ceux de MODE 11 étendent par zéros. Les rangements écrivent seulement les bits de poids faible de la taille demandée. En 64 bits, \texttt{LA=LQ}, \texttt{SA=SQ}, \texttt{LIA=LIQ} et \texttt{SIA=SIQ}.
+
+\section{CHK}
+Les formes \texttt{CHKx} et \texttt{CHKIx} contrôlent une valeur déjà au sommet de la pile contre un couple de bornes lu en mémoire. Elles ne consomment pas la valeur : leur effet est \stack{( v -- v )}. Une valeur hors bornes lève la faute 131. La famille de chargement choisit si les bornes mémoire sont signées ou non signées avant la comparaison signée sur 64 bits.
+
+\section{Replis d'assemblage}
+L'ISA V8 n'ajoute pas de format étendu. Lorsque \code{ofs} ne tient pas dans 0..255 ou que \code{disp} dépasse B24/C32, l'assembleur doit construire l'adresse avec plusieurs instructions et utiliser ensuite une forme \code{lvl=15}. Ces séquences sont des détails du code produit : elles n'ajoutent aucun état architectural.
+
+Le format B40 est réservé pour une extension éventuelle de \texttt{LINK}, \texttt{EXC\_MACH} et \texttt{LVA}. Tant qu'il n'est pas attribué, ses codes restent des opcodes réservés et lèvent la faute 137.
+\chapter{Instructions entières, logiques et de bits}
+\section{Règle de débordement}
+Les entiers de calcul sont signés sur 64 bits. \texttt{ADD}, \texttt{SUB}, \texttt{MUL}, \texttt{NEG}, \texttt{ABS}, \texttt{INC} et \texttt{DEC} ne s'enveloppent jamais en silence. Si le résultat mathématique sort de $[-2^{63},2^{63})$, la faute 129 est livrée et les opérandes restent en place.
+
+Les opérations logiques travaillent sur des motifs de bits et ne débordent pas. Les comptes de décalage doivent être compris entre 0 et 63.
+\subsection{Logique et décalages}
+\begin{center}
+\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\linewidth}{@{}p{0.19\linewidth} p{0.23\linewidth} X@{}}
+\toprule \textbf{Instruction} & \textbf{Effet de pile} & \textbf{Opération / remarques}\\ \midrule
+\texttt{ET} & \texttt{( a b -- a and b )} & ET bit à bit.\\
+\texttt{OU} & \texttt{( a b -- a or b )} & OU bit à bit.\\
+\texttt{OUX} & \texttt{( a b -- a xor b )} & OU exclusif bit à bit.\\
+\texttt{NON} & \texttt{( a -- not a )} & Complément bit à bit.\\
+\texttt{SHL} & \texttt{( a n -- a<<n )} & Décalage logique gauche ; faute 137 si n >= 64.\\
+\texttt{SHR} & \texttt{( a n -- a>>n )} & Décalage logique droite ; faute 137 si n >= 64.\\
+\texttt{SAR} & \texttt{( a n -- a>>n )} & Décalage arithmétique droite ; faute 137 si n >= 64.\\
+\texttt{CLAMP0} & \texttt{( a -- max(0,a) )} & Remplace une valeur négative par zéro.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\subsection{Comparaisons entières}
+\begin{center}
+\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\linewidth}{@{}p{0.19\linewidth} p{0.23\linewidth} X@{}}
+\toprule \textbf{Instruction} & \textbf{Effet de pile} & \textbf{Opération / remarques}\\ \midrule
+\texttt{CGT} & \texttt{( a b -- a>b )} & Résultat booléen 0/1.\\
+\texttt{CLT} & \texttt{( a b -- a<b )} & Résultat booléen 0/1.\\
+\texttt{CNE} & \texttt{( a b -- a/=b )} & Résultat booléen 0/1.\\
+\texttt{CEQ} & \texttt{( a b -- a=b )} & Résultat booléen 0/1.\\
+\texttt{CGE} & \texttt{( a b -- a>=b )} & Résultat booléen 0/1.\\
+\texttt{CLE} & \texttt{( a b -- a<=b )} & Résultat booléen 0/1.\\
+\texttt{NEG} & \texttt{( a -- -a )} & Faute 129 pour -2\textasciicircum{}63.\\
+\texttt{ABS} & \texttt{( a -- |a| )} & Faute 129 pour -2\textasciicircum{}63.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\subsection{Arithmétique entière}
+\begin{center}
+\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\linewidth}{@{}p{0.19\linewidth} p{0.23\linewidth} X@{}}
+\toprule \textbf{Instruction} & \textbf{Effet de pile} & \textbf{Opération / remarques}\\ \midrule
+\texttt{ADD} & \texttt{( a b -- a+b )} & Addition signée contrôlée ; faute 129 en débordement.\\
+\texttt{INC} & \texttt{( a -- a+1 )} & Incrément signé contrôlé.\\
+\texttt{SUB} & \texttt{( a b -- a-b )} & Soustraction signée contrôlée.\\
+\texttt{DEC} & \texttt{( a -- a-1 )} & Décrément signé contrôlé.\\
+\texttt{MUL} & \texttt{( a b -- a*b )} & Produit signé ; faute 129 si le résultat exact ne tient pas sur 64 bits.\\
+\texttt{DIV} & \texttt{( a b -- a/b )} & Division signée, troncature vers zéro ; faute 128 si b=0, 129 pour -2\textasciicircum{}63/-1.\\
+\texttt{REMI} & \texttt{( a b -- a rem b )} & Reste de signe du dividende ; faute 128 si b=0.\\
+\texttt{MODI} & \texttt{( a b -- a mod b )} & Modulo de signe du diviseur ; faute 128 si b=0.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\subsection{Champs de bits}
+\begin{center}
+\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\linewidth}{@{}p{0.19\linewidth} p{0.23\linewidth} X@{}}
+\toprule \textbf{Instruction} & \textbf{Effet de pile} & \textbf{Opération / remarques}\\ \midrule
+\texttt{UBFX} & \texttt{( v lsb w -- champ )} & Extrait w bits et étend par zéros.\\
+\texttt{SBFX} & \texttt{( v lsb w -- champ )} & Extrait w bits et étend le signe.\\
+\texttt{BFI} & \texttt{( old ins lsb w -- new )} & Insère w bits de ins dans old.\\
+\texttt{UBFXI} & \texttt{( v -- champ )} & Forme immédiate D8\_8 : lsb puis w.\\
+\texttt{SBFXI} & \texttt{( v -- champ )} & Forme immédiate signée.\\
+\texttt{BFII} & \texttt{( old ins -- new )} & Forme immédiate d'insertion.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\subsection{Virgule fixe}
+\begin{center}
+\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\linewidth}{@{}p{0.19\linewidth} p{0.23\linewidth} X@{}}
+\toprule \textbf{Instruction} & \textbf{Effet de pile} & \textbf{Opération / remarques}\\ \midrule
+\texttt{CVTIX} & \texttt{( i denom numer -- x )} & Calcule i*denom/numer sur produit exact 128 bits, troncature vers zéro ; fautes 128/129.\\
+\texttt{CVTXI} & \texttt{( x numer denom -- i )} & Calcule x*numer/denom sur produit exact, arrondi au plus proche, mi-chemin à l'écart de zéro ; fautes 128/129.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\chapter{Instructions flottantes}
+\section{Modèle IEEE 754}
+Les flottants sont des IEEE 754 binary64 transportés dans des cellules 64 bits de la pile data. \texttt{FADD}, \texttt{FSUB}, \texttt{FMUL}, \texttt{FDIV}, les multiplications de \texttt{FEXP} et \texttt{CVTIF} utilisent l'arrondi au plus proche, égalité vers le pair. Les sous-normaux sont traités normalement.
+
+Les opérations arithmétiques flottantes ne lèvent pas de faute architecturale de virgule flottante : par exemple, une division par zéro peut rendre une infinité IEEE. Les conversions vers entier sont, elles, contrôlées.
+
+Tout NaN produit par \texttt{FADD}, \texttt{FSUB}, \texttt{FMUL}, \texttt{FDIV} ou \texttt{FEXP} est remplacé par le NaN canonique \texttt{0x7FF8000000000000}. \texttt{FNEG} et \texttt{FABS} ne font que modifier le bit de signe et conservent la charge utile d'un NaN existant.
+\subsection{Arithmétique et conversions}
+\begin{center}
+\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\linewidth}{@{}p{0.19\linewidth} p{0.23\linewidth} X@{}}
+\toprule \textbf{Instruction} & \textbf{Effet de pile} & \textbf{Opération / remarques}\\ \midrule
+\texttt{FADD} & \texttt{( a b -- a+b )} & Addition binary64.\\
+\texttt{FSUB} & \texttt{( a b -- a-b )} & Soustraction binary64.\\
+\texttt{FMUL} & \texttt{( a b -- a*b )} & Multiplication binary64.\\
+\texttt{FDIV} & \texttt{( a b -- a/b )} & Division binary64.\\
+\texttt{FEXP} & \texttt{( x n -- x**n )} & Exponentiation par multiplications successives de gauche à droite ; durée proportionnelle à |n|.\\
+\texttt{CVTIF} & \texttt{( i -- f )} & Conversion entier signé 64 bits vers binary64.\\
+\texttt{CVTFI} & \texttt{( f -- i )} & Conversion vers entier par troncature ; faute 130 pour NaN ou valeur hors plage.\\
+\texttt{CVTFIR} & \texttt{( f -- i )} & Arrondi au plus proche, mi-chemin à l'écart de zéro ; faute 130 hors plage.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\subsection{Comparaisons flottantes et signe}
+\begin{center}
+\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\linewidth}{@{}p{0.19\linewidth} p{0.23\linewidth} X@{}}
+\toprule \textbf{Instruction} & \textbf{Effet de pile} & \textbf{Opération / remarques}\\ \midrule
+\texttt{FNEG} & \texttt{( f -- -f )} & Inverse le bit 63.\\
+\texttt{FABS} & \texttt{( f -- |f| )} & Met le bit 63 à zéro.\\
+\texttt{FCGT} & \texttt{( a b -- a>b )} & 0 pour une comparaison non ordonnée.\\
+\texttt{FCLT} & \texttt{( a b -- a<b )} & 0 pour une comparaison non ordonnée.\\
+\texttt{FCNE} & \texttt{( a b -- a/=b )} & 1 pour une comparaison non ordonnée, donc NaN /= x.\\
+\texttt{FCEQ} & \texttt{( a b -- a=b )} & 0 pour une comparaison non ordonnée.\\
+\texttt{FCGE} & \texttt{( a b -- a>=b )} & 0 pour une comparaison non ordonnée.\\
+\texttt{FCLE} & \texttt{( a b -- a<=b )} & 0 pour une comparaison non ordonnée.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\chapter{Pile, blocs et allocation}
+\subsection{Manipulation de pile}
+\begin{center}
+\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\linewidth}{@{}p{0.19\linewidth} p{0.23\linewidth} X@{}}
+\toprule \textbf{Instruction} & \textbf{Effet de pile} & \textbf{Opération / remarques}\\ \midrule
+\texttt{DROP} & \texttt{( a -- )} & Supprime le sommet.\\
+\texttt{DUP} & \texttt{( a -- a a )} & Duplique le sommet.\\
+\texttt{OVER} & \texttt{( a b -- a b a )} & Recopie la cellule située juste sous le sommet.\\
+\texttt{LI} & \texttt{( -- imm )} & Empile une constante signée D8/D16/D32/D64 ; l'assembleur choisit la forme minimale.\\
+\texttt{LI(imm4)} & \texttt{( -- 0..15 )} & Empile directement le bas nibble non signé de l'opcode.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\subsection{Blocs mémoire}
+\begin{center}
+\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\linewidth}{@{}p{0.19\linewidth} p{0.23\linewidth} X@{}}
+\toprule \textbf{Instruction} & \textbf{Effet de pile} & \textbf{Opération / remarques}\\ \midrule
+\texttt{BLKMOV} & \texttt{( @dst len @src -- )} & Copie len octets, sans recouvrement.\\
+\texttt{BLKCMP} & \texttt{( @a len @b -- eq )} & Rend 1 si les blocs sont égaux ; len=0 rend 1.\\
+\texttt{BLKAND} & \texttt{( @dst len @src -- )} & ET booléen octet par octet dans dst.\\
+\texttt{BLKOU} & \texttt{( @dst len @src -- )} & OU octet par octet dans dst.\\
+\texttt{BLKOUX} & \texttt{( @dst len @src -- )} & OU exclusif octet par octet dans dst.\\
+\texttt{BLKNOT} & \texttt{( @dst len -- )} & Chaque octet de dst est xoré avec 1.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\subsection{Allocation}
+\begin{center}
+\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\linewidth}{@{}p{0.19\linewidth} p{0.23\linewidth} X@{}}
+\toprule \textbf{Instruction} & \textbf{Effet de pile} & \textbf{Opération / remarques}\\ \midrule
+\texttt{CO\_VAR} & \texttt{( n -- @bloc )} & Arrondit n au multiple de 8 supérieur, rend l'ancien CSP puis avance CSP ; faute 135 sans effet si la limite serait dépassée.\\
+\texttt{HEAP\_ALLOC} & \texttt{( n -- @bloc )} & Arrondit n au multiple de 8 supérieur, décrémente HP et rend le nouveau HP ; faute 136 sans effet sous LIM\_HP.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\section{Cellules de calcul et mémoire}
+La V8 formalise une propriété importante pour permettre une implantation efficace de la pile : une cellule de calcul peut être conservée en registre et son écriture mémoire peut être différée. Le programme HX produit par TLALOC ne doit pas écrire ces temporaires par un accès calculé. Une lecture calculée d'une cellule de calcul n'est définie que si un \texttt{LVA} connu l'a exposée depuis son dernier push. Le contenu au-dessus de \reg{DSP} est indéfini.
+
+Ces règles ne changent pas le modèle visible d'un programme Ada correct ; elles précisent les comportements qui ne doivent pas être exploités par du code HX fabriqué autrement.
+
+\chapter{Frames, appels et contrôle de flot}
+\section{LINK et UNLINK}
+\texttt{LINK lvl,alloc} construit le frame. Pour un niveau supérieur à zéro, l'ancien \reg{DISPLAY[lvl]} est empilé et le nouveau display pointe sur cette cellule ; l'espace local est ensuite réservé sur la pile data. Enfin, la valeur de \reg{CFP} est chaînée sur la co-pile.
+
+\texttt{UNLINK lvl} abandonne les locales et restaure le display et \reg{CFP}, mais ne rend pas la co-pile. \texttt{UNLINKR lvl} rend en plus toute la co-pile du frame. Les niveaux autorisés pour les deux instructions de sortie sont 1 à 14 ; toute autre valeur lève la faute 137.
+
+\section{Appels et retours}
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}l l X@{}}
+\toprule
+Instruction & Effet & Opération\\ \midrule
+\texttt{CALL d} & \stack{( -- )} & empile l'adresse suivant l'instruction sur la pile des retours puis branche relativement\\
+\texttt{CALLI} & \stack{( @sp -- )} & dépile la cible, empile le retour puis saute à la cible\\
+\texttt{RTD n} & retour & retranche n octets à DSP puis dépile l'adresse de retour\\
+\texttt{RTD} & retour & forme sans complément équivalente à RTD 0\\
+\texttt{BRA d} & --- & branche inconditionnelle\\
+\texttt{BT d} & \stack{( b -- )} & branche si b est non nul\\
+\texttt{BF d} & \stack{( b -- )} & branche si b vaut zéro\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Les branches existent en BR8, BR16, BR24 et BR32. \texttt{CALL} utilise un déplacement D24 signé, soit une portée d'environ $\pm 8$ Mio d'octets.
+
+\section{EXC\_MACH et EXC\_RAISE}
+\texttt{EXC\_MACH} enregistre dans un contexte mémoire \reg{DSP}, \reg{RSP}, \reg{CFP}, \reg{CSP}, le nombre de niveaux et les valeurs de \reg{DISPLAY[0..lvl]}. Les champs PREV et DISPATCH du contexte sont remplis par du code LLIR ordinaire.
+
+\texttt{EXC\_RAISE} prend le contexte au sommet de la chaîne d'exception du niveau 0, le retire de la chaîne, restaure les pointeurs et le display, remet \reg{DR} à zéro et saute au champ DISPATCH. Le tas n'est pas déroulé par les exceptions : \reg{HP} n'est ni sauvé ni restauré.
+
+\chapter{Fautes, déroutements et interruptions}
+\section{Trois sources de déroutement}
+TAHX\_1 distingue trois catégories : les fautes synchrones détectées par la machine, les services synchrones demandés par \texttt{TRAP}, et les interruptions asynchrones provenant de la plateforme. Toutes utilisent un code 0..255 et une table de vecteurs \reg{VTB} de 256 mots.
+
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+Codes & Usage\\ \midrule
+0..14 & services TRAP\\
+15 & réservé\\
+16..18 & services machine CTX\_SAVE, CTX\_RESTORE, SET\_IMASK\\
+19..31 & réservés services\\
+32..63 & interruptions externes\\
+64..127 & réservés\\
+128..159 & fautes\\
+160..255 & réservés\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Faute précise}
+Une instruction fautive ne modifie aucun état architectural propre à son exécution. La livraison seule écrit \reg{DR}, \reg{FPC}, \reg{FCODE}, la zone \reg{FSCR} et \reg{PC}. Le handler retrouve donc les opérandes en place et l'état d'avant l'instruction.
+
+\begin{center}
+\begin{tikzpicture}[node distance=6mm,>=Latex,font=\small,
+ b/.style={draw=TahxBlue,fill=TahxLight,rounded corners=1mm,align=center,minimum width=42mm,minimum height=8mm},
+ d/.style={diamond,draw=TahxBlue,fill=white,aspect=2.2,align=center}]
+\node[b] (f) {Instruction P détecte faute n};
+\node[d,below=of f] (dr) {DR = 1 ?};
+\node[b,right=18mm of dr] (halt) {Arrêt machine};
+\node[b,below=of dr] (save) {DR:=1; FPC:=P; FCODE:=n\\écriture FSCR};
+\node[b,below=of save] (vec) {PC := VTB[n]};
+\node[d,below=of vec] (zero) {vecteur nul ?};
+\node[b,below=of zero] (handler) {Handler de faute\\puis EXC\_RAISE};
+\draw[->] (f)--(dr); \draw[->] (dr)--node[above]{oui}(halt); \draw[->] (dr)--node[right]{non}(save);
+\draw[->] (save)--(vec); \draw[->] (vec)--(zero); \draw[->] (zero)--node[right]{non}(handler); \draw[->] (zero.east)-|node[near start,above]{oui}(halt.south);
+\end{tikzpicture}
+\end{center}
+
+\section{Table des fautes}
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}c l X@{}}
+\toprule
+\textbf{Code} & \textbf{Exception Ada 83} & \textbf{Condition principale}\\ \midrule
+128 & NUMERIC\_ERROR & division ou conversion fixe avec diviseur nul\\
+129 & NUMERIC\_ERROR & débordement entier signé / résultat fixe non représentable\\
+130 & NUMERIC\_ERROR & CVTFI/CVTFIR : NaN ou hors $[-2^{63},2^{63})$\\
+131 & CONSTRAINT\_ERROR & CHK hors bornes\\
+132 & CONSTRAINT\_ERROR & accès mémoire invalide, lecture d'instruction comprise\\
+133 & STORAGE\_ERROR & dépassement de la pile data\\
+134 & STORAGE\_ERROR & dépassement de la pile des retours\\
+135 & STORAGE\_ERROR & dépassement de la co-pile\\
+136 & STORAGE\_ERROR & épuisement du tas\\
+137 & PROGRAM\_ERROR & opération indéfinie : opcode réservé, champs invalides, TRAP interdit, etc.\\
+138..159 & --- & réservés\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Priorité des fautes}
+Si plusieurs conditions pourraient être vraies pour la même instruction, une seule faute est livrée. L'ordre V8 est :
+\begin{enumerate}
+\item lecture invalide d'un octet d'instruction (132) ;
+\item illégalité déductible des octets d'instruction (137) ;
+\item limites DSP puis RSP (133, 134) ;
+\item conditions sur les opérandes, CSP et HP (128, 129, 130, 137, 135, 136) ;
+\item accès aux données (132) ;
+\item conditions dépendant de valeurs lues, dont CHK (131) et certains services.
+\end{enumerate}
+
+\section{Réserves de piles}
+Quand \reg{DR=1}, les handlers disposent de réserves architecturales qui retardent la faute de débordement : \textbf{1 Kio} pour la pile data, \textbf{32 adresses / 256 octets} pour la pile des retours et \textbf{1 Kio} pour la co-pile. Le tas n'a pas de réserve.
+
+\section{Interruptions}
+Les interruptions 32..63 sont présentées comme 32 requêtes pendantes. Si \reg{DR=0}, le processeur choisit le plus petit code pendant non masqué, empile le PC suivant sur la pile des retours, expose le code dans \reg{FSCR}, saute au vecteur et acquitte la requête. Le handler se termine par \texttt{RTX}, qui dépile le PC et remet \reg{DR} à zéro.
+
+Aucune interruption n'est livrée pendant une instruction ni tant que \reg{DR=1}.
+
+\chapter{TRAP, services et contextes de tâche}
+\section{TRAP}
+\texttt{TRAP n} adresse les services 0..14. Si le vecteur \reg{VTB[n]} est non nul, l'instruction se comporte comme un appel vectorisé : l'adresse de retour est empilée et le service se termine par \texttt{RTX}. Si le vecteur est nul, le service peut être exécuté directement par l'hôte ou par la machine comme une instruction atomique. Un service absent ou un code non attribué lève la faute 137.
+
+\section{Services numérotés}
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}r l X@{}}
+\toprule Code & Service & Remarque\\ \midrule
+0 & EXIT & \stack{( code -- )}; la macro SYS\_EXIT devient \texttt{LI code ; TRAP 0}\\
+1 & CLOCK\_GETTIME & service de temps\\
+2 & PUT\_CHAR & sortie caractère\\
+3 & PUT\_STR & sortie chaîne\\
+4 & GET\_CHAR & entrée caractère\\
+5 & GET\_STR & entrée chaîne\\
+6 & FILE\_CREATE & service fichier\\
+7 & FILE\_OPEN & service fichier\\
+8 & FILE\_SET\_POS & service fichier\\
+9 & FILE\_GET\_POS & service fichier\\
+10 & FILE\_GET\_SIZE & service fichier\\
+11 & FILE\_WRITE & service fichier\\
+12 & FILE\_READ & service fichier\\
+13 & FILE\_CLOSE & service fichier\\
+14 & FILE\_DELETE & service fichier\\
+16 & CTX\_SAVE & service machine\\
+17 & CTX\_RESTORE & service machine\\
+18 & SET\_IMASK & service machine\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\begin{designbox}[Périmètre de la V8]
+La V8 fixe la numérotation ci-dessus et donne explicitement les effets de pile des services machine, mais elle ne redécrit pas dans ce document l'ABI détaillée des services d'E/S 1..14 : elle renvoie aux effets des macros \texttt{SYS\_xxx} de la référence LLIR. Ce manuel n'invente donc pas leurs paramètres.
+\end{designbox}
+
+\section{CTX\_SAVE et CTX\_RESTORE}
+\texttt{CTX\_SAVE} reçoit l'adresse d'un bloc de 192 octets et y sauve le PC de reprise, DSP, RSP, CFP, CSP, DR, les trois limites de piles et les quinze entrées de DISPLAY ; il rend 0. \texttt{CTX\_RESTORE} restaure ce bloc, empile 1 et reprend au PC sauvegardé, selon une convention analogue à \texttt{setjmp/longjmp}.
+
+\section{SET\_IMASK}
+\texttt{SET\_IMASK} a l'effet \stack{( m -- ancien )}. Il charge les 32 bits de poids faible de \reg{IMASK}, rend l'ancien masque et prend effet à partir de l'instruction suivante.
+
+\section{Lien avec les entrées de tâche Ada 83}
+Une interruption 32..63 peut être reliée à une entrée de tâche. Le run-time installe le vecteur et démasque l'interruption ; le handler enregistre l'appel d'entrée dans les structures du tasking, puis commute éventuellement de contexte au moyen de CTX\_SAVE/CTX\_RESTORE. Le rendez-vous Ada lui-même reste une fonction du run-time et n'est pas câblé dans l'ISA.
+
+\chapter{Image HX et démarrage}
+\section{Format HX}
+Une image HX est chargée à l'adresse \texttt{0x400000}. Les mots de son en-tête sont petit-boutistes. Le code et les données commencent à \texttt{0x400078}.
+
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}r l X@{}}
+\toprule Décalage & Champ & Signification\\ \midrule
++0 & \texttt{'TLALOCHX'} & signature, 8 octets\\
++8 & version & 1\\
++16 & adresse de chargement & \texttt{0x400000}\\
++24 & point d'entrée & première instruction, typiquement \texttt{0x400078}\\
++32 & taille & code et données à partir de \texttt{0x400078}\\
++40 & réservé TX & zéro en HX\\
++48 & CEV & adresse de \texttt{STANDARD.ce\_raise\_}, recopiée en VTB[131] si non nulle\\
++56 & table des instructions & adresse, ou zéro\\
++64 & nombre d'instructions & nombre d'entrées de la table\\
++72 & VTB & adresse d'une table de 256 vecteurs, ou zéro\\
++80 & FSCR & zone de 16 octets, ou zéro\\
++88..+119 & réservé & zéro jusqu'à \texttt{0x78}\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Disposition conceptuelle}
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=0.72cm,font=\small]
+\draw[thick] (0,0) rectangle (11,9);
+\fill[TahxLight] (0,7.3) rectangle (11,9);
+\draw (0,7.3)--(11,7.3); \node at (5.5,8.15) {En-tête HX, 0x78 octets};
+\draw (0,5.2)--(11,5.2); \node at (5.5,6.25) {Code HX - flux unique};
+\draw (0,4.1)--(11,4.1); \node at (5.5,4.65) {Données en ligne contournées par BRA};
+\draw (0,2.5)--(11,2.5); \node at (5.5,3.3) {Chaînes et constantes};
+\draw (0,0.8)--(11,0.8); \node at (5.5,1.65) {Table des instructions, alignée sur 8 octets};
+\node at (5.5,0.4) {fin d'image};
+\node[left] at (0,9) {0x400000};
+\node[left] at (0,7.3) {0x400078};
+\end{tikzpicture}
+\end{center}
+
+La table des instructions n'intervient jamais dans l'exécution matérielle. Elle aide l'émulateur à distinguer le code des données en ligne, à vérifier qu'un PC atteint un début d'instruction et à rattacher les séquences de repli HX à l'instruction LLIR correspondante.
+
+\section{État initial}
+Le chargeur initialise les piles, DISPLAY, la co-pile, le tas, les limites et l'état de déroutement. Au lancement : \reg{DR=0}, \reg{FPC=0}, \reg{FCODE=0} et toutes les interruptions sont masquées. Si VTB ou FSCR valent zéro dans l'en-tête, le chargeur fournit les zones correspondantes.
+
+\section{Bloc de démarrage de la plateforme}
+Le démarrage matériel n'est pas une instruction de l'ISA. La proposition de plateforme TAHX\_1 consiste à lire, à une adresse \texttt{BOOT\_BLOCK}, un bloc de 232 octets : le bloc de contexte de 192 octets suivi de HP, LIM\_HP, VTB, FSCR et IMASK.
+
+La plateforme présente aussi 32 bits \texttt{IRQ\_PENDING}; le processeur applique IMASK, choisit le plus petit code éligible et renvoie un acquittement avec le code livré.
+
+\chapter{Référence rapide des familles mémoire}
+\section{Famille B : accès direct}
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}l l l X@{}}
+\toprule Classe & Signé & Taille & Mnémotechniques\\ \midrule
+Load & oui & 8/16/32/64 & LB, LW, LD, LQ\\
+Store & --- & 8/16/32/64 & SB, SW, SD, SQ\\
+Load & non & 8/16/32 & ULB, ULW, ULD\\
+Check & oui & 8/16/32/64 & CHKB, CHKW, CHKD, CHKQ\\
+Check & non & 8/16/32 & CHKUB, CHKUW, CHKUD\\
+Spécial & --- & --- & LINK, EXC\_MACH, LVA\\
+\bottomrule
+\end{tabularx}
+\end{center}
+Chaque charge/rangement ordinaire existe en forme FMT 00 (adresse sur pile, déplacement nul), B16 et B24. Les CHK utilisent B24.
+
+\section{Famille C : accès indirect}
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}l l l X@{}}
+\toprule Classe & Signé & Taille & Mnémotechniques\\ \midrule
+Load & oui & 8/16/32/64 & LIB, LIW, LID, LIQ\\
+Store & --- & 8/16/32/64 & SIB, SIW, SID, SIQ\\
+Load & non & 8/16/32 & ULIB, ULIW, ULID\\
+Check & oui & 8/16/32/64 & CHKIB, CHKIW, CHKID, CHKIQ\\
+Check & non & 8/16/32 & CHKUIB, CHKUIW, CHKUID\\
+Spécial & --- & adresse & LIVA\\
+\bottomrule
+\end{tabularx}
+\end{center}
+Les formes ordinaires sont FMT 00, C24 et C32 ; les CHKI utilisent C32.
+
+\section{Comparaison lexicographique}
+\texttt{LEXCMPx} et \texttt{ULEXCMPx} ont l'effet \stack{( @g lg @d ld -- r )} et rendent -1, 0 ou +1. Les longueurs sont en octets, ramenées à zéro par \texttt{CLAMP0} si nécessaire. Les variantes signées existent pour des composants 8, 16, 32 et 64 bits ; les variantes non signées pour 8, 16 et 32 bits, le signe étant indifférent en 64 bits pour cette forme.
+
+\appendix
+\chapter{Carte complète de l'espace d'opcodes}
+Cette carte représente les 256 valeurs possibles du premier octet. \res{} signifie « réservé » du point de vue architectural. Les cases \texttt{D0} à \texttt{DF} codent la valeur immédiate 0 à 15 dans le nibble bas.
+
+\begin{landscape}
+\thispagestyle{plain}
+\centering\scriptsize
+\setlength{\tabcolsep}{1.0pt}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{c|*{16}{>{\centering\arraybackslash}p{1.37cm}}}
+\toprule
+ & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & A & B & C & D & E & F\\ \midrule
+0 & \texttt{ET} & \texttt{OU} & \texttt{OUX} & \texttt{NON} & \texttt{SHL} & \texttt{SHR} & \texttt{SAR} & \texttt{CLAMP0} & \texttt{NEG} & \texttt{CGT} & \texttt{CLT} & \texttt{CNE} & \texttt{CEQ} & \texttt{CGE} & \texttt{CLE} & \texttt{ABS}\\
+1 & \texttt{ADD} & \texttt{INC} & \texttt{SUB} & \texttt{DEC} & \texttt{MUL} & \texttt{DIV} & \texttt{REMI} & \texttt{MODI} & \texttt{UBFX} & \texttt{SBFX} & \texttt{BFI} & \res & \texttt{CVTIX} & \texttt{CVTXI} & \res & \res\\
+2 & \texttt{FADD} & \texttt{FSUB} & \texttt{FMUL} & \texttt{FDIV} & \texttt{FEXP} & \texttt{CVTIF} & \texttt{CVTFI} & \texttt{CVTFIR} & \texttt{FNEG} & \texttt{FCGT} & \texttt{FCLT} & \texttt{FCNE} & \texttt{FCEQ} & \texttt{FCGE} & \texttt{FCLE} & \texttt{FABS}\\
+3 & \texttt{DROP} & \texttt{DUP} & \texttt{OVER} & \texttt{CALLI} & \texttt{BLKMOV} & \texttt{BLKCMP} & \res & \res & \texttt{CO\_VAR} & \texttt{HEAP\_ALLOC} & \res & \res & \texttt{BLKAND} & \texttt{BLKOU} & \texttt{BLKOUX} & \texttt{BLKNOT}\\
+4 & \res & \res & \res & \res & \texttt{LINK} & \texttt{EXC\_MACH} & \res & \texttt{LVA} & \texttt{LINK} & \texttt{EXC\_MACH} & \res & \texttt{LVA} & \res & \res & \res & \res\\
+5 & \texttt{LB} & \texttt{LW} & \texttt{LD} & \texttt{LQ} & \texttt{LB} & \texttt{LW} & \texttt{LD} & \texttt{LQ} & \texttt{LB} & \texttt{LW} & \texttt{LD} & \texttt{LQ} & \texttt{CHKB} & \texttt{CHKW} & \texttt{CHKD} & \texttt{CHKQ}\\
+6 & \texttt{SB} & \texttt{SW} & \texttt{SD} & \texttt{SQ} & \texttt{SB} & \texttt{SW} & \texttt{SD} & \texttt{SQ} & \texttt{SB} & \texttt{SW} & \texttt{SD} & \texttt{SQ} & \res & \res & \res & \res\\
+7 & \texttt{ULB} & \texttt{ULW} & \texttt{ULD} & \res & \texttt{ULB} & \texttt{ULW} & \texttt{ULD} & \res & \texttt{ULB} & \texttt{ULW} & \texttt{ULD} & \res & \texttt{CHKUB} & \texttt{CHKUW} & \texttt{CHKUD} & \res\\
+8 & \res & \res & \res & \res & \res & \res & \res & \texttt{LIVA} & \res & \res & \res & \texttt{LIVA} & \res & \res & \res & \res\\
+9 & \texttt{LIB} & \texttt{LIW} & \texttt{LID} & \texttt{LIQ} & \texttt{LIB} & \texttt{LIW} & \texttt{LID} & \texttt{LIQ} & \texttt{LIB} & \texttt{LIW} & \texttt{LID} & \texttt{LIQ} & \texttt{CHKIB} & \texttt{CHKIW} & \texttt{CHKID} & \texttt{CHKIQ}\\
+A & \texttt{SIB} & \texttt{SIW} & \texttt{SID} & \texttt{SIQ} & \texttt{SIB} & \texttt{SIW} & \texttt{SID} & \texttt{SIQ} & \texttt{SIB} & \texttt{SIW} & \texttt{SID} & \texttt{SIQ} & \res & \res & \res & \res\\
+B & \texttt{ULIB} & \texttt{ULIW} & \texttt{ULID} & \res & \texttt{ULIB} & \texttt{ULIW} & \texttt{ULID} & \res & \texttt{ULIB} & \texttt{ULIW} & \texttt{ULID} & \res & \texttt{CHKUIB} & \texttt{CHKUIW} & \texttt{CHKUID} & \res\\
+C & \texttt{LI} & \texttt{LI} & \texttt{LI} & \texttt{LI} & \texttt{UBFXI} & \texttt{SBFXI} & \texttt{BFII} & \res & \texttt{LEXCMPB} & \texttt{LEXCMPW} & \texttt{LEXCMPD} & \texttt{LEXCMPQ} & \texttt{ULEXCMPB} & \texttt{ULEXCMPW} & \texttt{ULEXCMPD} & \res\\
+D & \texttt{LI 0} & \texttt{LI 1} & \texttt{LI 2} & \texttt{LI 3} & \texttt{LI 4} & \texttt{LI 5} & \texttt{LI 6} & \texttt{LI 7} & \texttt{LI 8} & \texttt{LI 9} & \texttt{LI 10} & \texttt{LI 11} & \texttt{LI 12} & \texttt{LI 13} & \texttt{LI 14} & \texttt{LI 15}\\
+E & \texttt{BRA} & \texttt{BRA} & \texttt{BRA} & \texttt{BRA} & \texttt{BT} & \texttt{BT} & \texttt{BT} & \texttt{BT} & \texttt{BF} & \texttt{BF} & \texttt{BF} & \texttt{BF} & \res & \res & \res & \res\\
+F & \texttt{TRAP} & \res & \texttt{CALL} & \res & \res & \res & \texttt{RTD} & \texttt{RTD} & \texttt{UNLINK} & \texttt{UNLINKR} & \res & \res & \res & \res & \texttt{EXC\_RAISE} & \texttt{RTX}\\
+\bottomrule
+\end{tabular}
+\end{landscape}
+
+\begin{designbox}[Codes réservés utilisés en interne]
+La V8 signale que l'implantation TAHX\_1 peut réutiliser en forme décodée interne les valeurs C7, EC et ED pour des micro-opérations. Elles restent néanmoins \textbf{réservées dans le code programme} : un programme qui contient l'un de ces opcodes lève la faute 137.
+\end{designbox}
+
+\chapter{Table numérotée des instructions V8}
+La table suivante reprend les 180 formes numérotées de la table normative, en y ajoutant la valeur hexadécimale du premier octet. Pour \texttt{LI(imm4)}, le motif couvre la plage D0--DF.
+\begin{landscape}
+\scriptsize
+\setlength{\LTleft}{0pt}\setlength{\LTright}{0pt}
+\begin{longtable}{@{}r l c l l p{10.7cm}@{}}
+\toprule
+\textbf{No} & \textbf{OP} & \textbf{Fam.} & \textbf{Instruction} & \textbf{Format} & \textbf{Effet / remarque de la table V8}\\ \midrule
+\endfirsthead
+\toprule
+\textbf{No} & \textbf{OP} & \textbf{Fam.} & \textbf{Instruction} & \textbf{Format} & \textbf{Effet / remarque de la table V8}\\ \midrule
+\endhead
+1 & 00 & A & \texttt{ET} & --- & ( a b -- a and b )\\
+2 & 01 & A & \texttt{OU} & --- & ( a b -- a or b )\\
+3 & 02 & A & \texttt{OUX} & --- & ( a b -- a xor b )\\
+4 & 03 & A & \texttt{NON} & --- & ( a -- not a )	complément bit à bit\\
+5 & 04 & A & \texttt{SHL} & --- & ( a n -- a << n )	faute 137 si n >= 64\\
+6 & 05 & A & \texttt{SHR} & --- & ( a n -- a >> n )	logique, faute 137 si n >= 64\\
+7 & 06 & A & \texttt{SAR} & --- & ( a n -- a >> n )	arithmétique, faute 137 si n >= 64\\
+8 & 07 & A & \texttt{CLAMP0} & --- & ( a -- max(0,a) )\\
+9 & 08 & A & \texttt{NEG} & --- & ( a -- -a )		case « jamais », faute 129\\
+10 & 09 & A & \texttt{CGT} & --- & ( a b -- a>b )	résultat 0/1\\
+11 & 0A & A & \texttt{CLT} & --- & ( a b -- a<b )\\
+12 & 0B & A & \texttt{CNE} & --- & ( a b -- a/=b )\\
+13 & 0C & A & \texttt{CEQ} & --- & ( a b -- a=b )\\
+14 & 0D & A & \texttt{CGE} & --- & ( a b -- a>=b )\\
+15 & 0E & A & \texttt{CLE} & --- & ( a b -- a<=b )\\
+16 & 0F & A & \texttt{ABS} & --- & ( a -- |a| )		case « toujours », faute 129\\
+17 & 10 & A & \texttt{ADD} & --- & ( a b -- a+b )	faute 129\\
+18 & 11 & A & \texttt{INC} & --- & ( a -- a+1 )		B := 0, retenue 1, faute 129\\
+19 & 12 & A & \texttt{SUB} & --- & ( a b -- a-b )	\textasciitilde{}B, retenue 1, faute 129\\
+20 & 13 & A & \texttt{DEC} & --- & ( a -- a-1 )		\textasciitilde{}0, retenue 0, faute 129\\
+21 & 14 & A & \texttt{MUL} & --- & ( a b -- a*b )	produit signé, faute 129\\
+22 & 15 & A & \texttt{DIV} & --- & ( a b -- a/b )	troncature vers zéro, fautes 128, 129\\
+23 & 16 & A & \texttt{REMI} & --- & ( a b -- a rem b )	signe du dividende, faute 128\\
+24 & 17 & A & \texttt{MODI} & --- & ( a b -- a mod b )	signe du diviseur, faute 128\\
+25 & 18 & A & \texttt{UBFX} & --- & ( v lsb w -- champ )		extension par zéros, faute 137\\
+26 & 19 & A & \texttt{SBFX} & --- & ( v lsb w -- champ )		extension de signe, faute 137\\
+27 & 1A & A & \texttt{BFI} & --- & ( old ins lsb w -- new )	faute 137\\
+28 & 1C & A & \texttt{CVTIX} & --- & ( i denom numer -- x )	x = i*denom/numer, troncature vers zéro, fautes 128, 129\\
+29 & 1D & A & \texttt{CVTXI} & --- & ( x numer denom -- i )	i = x*numer/denom arrondi, mi-chemin à l'écart de zéro, produit exact, fautes 128, 129\\
+30 & 20 & A & \texttt{FADD} & --- & ( a b -- a+b )\\
+31 & 21 & A & \texttt{FSUB} & --- & ( a b -- a-b )\\
+32 & 22 & A & \texttt{FMUL} & --- & ( a b -- a*b )\\
+33 & 23 & A & \texttt{FDIV} & --- & ( a b -- a/b )\\
+34 & 24 & A & \texttt{FEXP} & --- & ( x n -- x**n )	n entier, voir sémantique\\
+35 & 25 & A & \texttt{CVTIF} & --- & ( i -- f )\\
+36 & 26 & A & \texttt{CVTFI} & --- & ( f -- i )		troncature vers zéro, faute 130\\
+37 & 27 & A & \texttt{CVTFIR} & --- & ( f -- i )		au plus proche, mi-chemin à l'écart de zéro (Ada RM 4.6), faute 130\\
+38 & 28 & A & \texttt{FNEG} & --- & ( f -- -f )		inversion du bit 63\\
+39 & 29 & A & \texttt{FCGT} & --- & ( a b -- a>b )\\
+40 & 2A & A & \texttt{FCLT} & --- & ( a b -- a<b )\\
+41 & 2B & A & \texttt{FCNE} & --- & ( a b -- a/=b )	1 si non ordonné\\
+42 & 2C & A & \texttt{FCEQ} & --- & ( a b -- a=b )\\
+43 & 2D & A & \texttt{FCGE} & --- & ( a b -- a>=b )\\
+44 & 2E & A & \texttt{FCLE} & --- & ( a b -- a<=b )\\
+45 & 2F & A & \texttt{FABS} & --- & ( f -- |f| )		mise à zéro du bit 63\\
+46 & 30 & A & \texttt{DROP} & --- & ( a -- )\\
+47 & 31 & A & \texttt{DUP} & --- & ( a -- a a )\\
+48 & 32 & A & \texttt{OVER} & --- & ( a b -- a b a )\\
+49 & 33 & A & \texttt{CALLI} & --- & ( @sp -- )		adresse de retour sur pile des retours\\
+50 & 34 & A & \texttt{BLKMOV} & --- & ( @dst len @src -- )	sans recouvrement, len en octets\\
+51 & 35 & A & \texttt{BLKCMP} & --- & ( @a len @b -- eq )	1 si égaux, len = 0 -> 1\\
+52 & 38 & A & \texttt{CO\_VAR} & --- & ( n -- @bloc )	CSP += n arrondi à 8, faute 135\\
+53 & 39 & A & \texttt{HEAP\_ALLOC} & --- & ( n -- @bloc )	HP -= n arrondi à 8, faute 136\\
+54 & 3C & A & \texttt{BLKAND} & --- & ( @dst len @src -- )	[dst] and= [src]\\
+55 & 3D & A & \texttt{BLKOU} & --- & ( @dst len @src -- )	[dst] or= [src]\\
+56 & 3E & A & \texttt{BLKOUX} & --- & ( @dst len @src -- )	[dst] xor= [src]\\
+57 & 3F & A & \texttt{BLKNOT} & --- & ( @dst len -- )	chaque octet xor= 1 (NOT booléen)\\
+58 & 44 & B & \texttt{LINK} & \texttt{B16} & voir sémantique ; disp = taille locales, non signée (4 Kio)\\
+59 & 45 & B & \texttt{EXC\_MACH} & \texttt{B16} & ( -- )	disp = ctx\\
+60 & 47 & B & \texttt{LVA} & \texttt{B16} & ( -- @ )  ou  ( @ -- @+disp ) si lvl=1111\\
+61 & 48 & B & \texttt{LINK} & \texttt{B24} & taille non signée (1 Mio)\\
+62 & 49 & B & \texttt{EXC\_MACH} & \texttt{B24} & ---\\
+63 & 4B & B & \texttt{LVA} & \texttt{B24} & ---\\
+64 & 50 & B & \texttt{LB} & --- & ---\\
+65 & 51 & B & \texttt{LW} & --- & ---\\
+66 & 52 & B & \texttt{LD} & --- & ---\\
+67 & 53 & B & \texttt{LQ} & --- & = LA\\
+68 & 54 & B & \texttt{LB} & \texttt{B16} & ---\\
+69 & 55 & B & \texttt{LW} & \texttt{B16} & ---\\
+70 & 56 & B & \texttt{LD} & \texttt{B16} & ---\\
+71 & 57 & B & \texttt{LQ} & \texttt{B16} & ---\\
+72 & 58 & B & \texttt{LB} & \texttt{B24} & ---\\
+73 & 59 & B & \texttt{LW} & \texttt{B24} & ---\\
+74 & 5A & B & \texttt{LD} & \texttt{B24} & ---\\
+75 & 5B & B & \texttt{LQ} & \texttt{B24} & ---\\
+76 & 5C & B & \texttt{CHKB} & \texttt{B24} & ---\\
+77 & 5D & B & \texttt{CHKW} & \texttt{B24} & ---\\
+78 & 5E & B & \texttt{CHKD} & \texttt{B24} & ---\\
+79 & 5F & B & \texttt{CHKQ} & \texttt{B24} & ---\\
+80 & 60 & B & \texttt{SB} & --- & ---\\
+81 & 61 & B & \texttt{SW} & --- & ---\\
+82 & 62 & B & \texttt{SD} & --- & ---\\
+83 & 63 & B & \texttt{SQ} & --- & = SA\\
+84 & 64 & B & \texttt{SB} & \texttt{B16} & ---\\
+85 & 65 & B & \texttt{SW} & \texttt{B16} & ---\\
+86 & 66 & B & \texttt{SD} & \texttt{B16} & ---\\
+87 & 67 & B & \texttt{SQ} & \texttt{B16} & ---\\
+88 & 68 & B & \texttt{SB} & \texttt{B24} & ---\\
+89 & 69 & B & \texttt{SW} & \texttt{B24} & ---\\
+90 & 6A & B & \texttt{SD} & \texttt{B24} & ---\\
+91 & 6B & B & \texttt{SQ} & \texttt{B24} & ---\\
+92 & 70 & B & \texttt{ULB} & --- & ---\\
+93 & 71 & B & \texttt{ULW} & --- & ---\\
+94 & 72 & B & \texttt{ULD} & --- & ---\\
+95 & 74 & B & \texttt{ULB} & \texttt{B16} & ---\\
+96 & 75 & B & \texttt{ULW} & \texttt{B16} & ---\\
+97 & 76 & B & \texttt{ULD} & \texttt{B16} & ---\\
+98 & 78 & B & \texttt{ULB} & \texttt{B24} & ---\\
+99 & 79 & B & \texttt{ULW} & \texttt{B24} & ---\\
+100 & 7A & B & \texttt{ULD} & \texttt{B24} & ---\\
+101 & 7C & B & \texttt{CHKUB} & \texttt{B24} & ---\\
+102 & 7D & B & \texttt{CHKUW} & \texttt{B24} & ---\\
+103 & 7E & B & \texttt{CHKUD} & \texttt{B24} & ---\\
+104 & 87 & C & \texttt{LIVA} & \texttt{C24} & ( -- @ )  ou  ( @@ -- @ ) si lvl=1111\\
+105 & 8B & C & \texttt{LIVA} & \texttt{C32} & ---\\
+106 & 90 & C & \texttt{LIB} & --- & ---\\
+107 & 91 & C & \texttt{LIW} & --- & ---\\
+108 & 92 & C & \texttt{LID} & --- & ---\\
+109 & 93 & C & \texttt{LIQ} & --- & = LIA\\
+110 & 94 & C & \texttt{LIB} & \texttt{C24} & ---\\
+111 & 95 & C & \texttt{LIW} & \texttt{C24} & ---\\
+112 & 96 & C & \texttt{LID} & \texttt{C24} & ---\\
+113 & 97 & C & \texttt{LIQ} & \texttt{C24} & ---\\
+114 & 98 & C & \texttt{LIB} & \texttt{C32} & ---\\
+115 & 99 & C & \texttt{LIW} & \texttt{C32} & ---\\
+116 & 9A & C & \texttt{LID} & \texttt{C32} & ---\\
+117 & 9B & C & \texttt{LIQ} & \texttt{C32} & ---\\
+118 & 9C & C & \texttt{CHKIB} & \texttt{C32} & ---\\
+119 & 9D & C & \texttt{CHKIW} & \texttt{C32} & ---\\
+120 & 9E & C & \texttt{CHKID} & \texttt{C32} & ---\\
+121 & 9F & C & \texttt{CHKIQ} & \texttt{C32} & ---\\
+122 & A0 & C & \texttt{SIB} & --- & ---\\
+123 & A1 & C & \texttt{SIW} & --- & ---\\
+124 & A2 & C & \texttt{SID} & --- & ---\\
+125 & A3 & C & \texttt{SIQ} & --- & = SIA\\
+126 & A4 & C & \texttt{SIB} & \texttt{C24} & ---\\
+127 & A5 & C & \texttt{SIW} & \texttt{C24} & ---\\
+128 & A6 & C & \texttt{SID} & \texttt{C24} & ---\\
+129 & A7 & C & \texttt{SIQ} & \texttt{C24} & ---\\
+130 & A8 & C & \texttt{SIB} & \texttt{C32} & ---\\
+131 & A9 & C & \texttt{SIW} & \texttt{C32} & ---\\
+132 & AA & C & \texttt{SID} & \texttt{C32} & ---\\
+133 & AB & C & \texttt{SIQ} & \texttt{C32} & ---\\
+134 & B0 & C & \texttt{ULIB} & --- & ---\\
+135 & B1 & C & \texttt{ULIW} & --- & ---\\
+136 & B2 & C & \texttt{ULID} & --- & ---\\
+137 & B4 & C & \texttt{ULIB} & \texttt{C24} & ---\\
+138 & B5 & C & \texttt{ULIW} & \texttt{C24} & ---\\
+139 & B6 & C & \texttt{ULID} & \texttt{C24} & ---\\
+140 & B8 & C & \texttt{ULIB} & \texttt{C32} & ---\\
+141 & B9 & C & \texttt{ULIW} & \texttt{C32} & ---\\
+142 & BA & C & \texttt{ULID} & \texttt{C32} & ---\\
+143 & BC & C & \texttt{CHKUIB} & \texttt{C32} & ---\\
+144 & BD & C & \texttt{CHKUIW} & \texttt{C32} & ---\\
+145 & BE & C & \texttt{CHKUID} & \texttt{C32} & ---\\
+146 & C0 & D & \texttt{LI} & \texttt{D8} & ( -- imm )\\
+147 & C1 & D & \texttt{LI} & \texttt{D16} & ---\\
+148 & C2 & D & \texttt{LI} & \texttt{D32} & ---\\
+149 & C3 & D & \texttt{LI} & \texttt{D64} & LIF = LI du motif IEEE 754 lu signé (format le plus étroit)\\
+150 & C4 & D & \texttt{UBFXI} & \texttt{D8\_8} & ( v -- champ )		lsb = imm, w = Imm (1..64)\\
+151 & C5 & D & \texttt{SBFXI} & \texttt{D8\_8} & ( v -- champ )		extension de signe\\
+152 & C6 & D & \texttt{BFII} & \texttt{D8\_8} & ( old ins -- new )\\
+153 & C8 & D & \texttt{LEXCMPB} & --- & composants 8 bits signés\\
+154 & C9 & D & \texttt{LEXCMPW} & --- & 16 bits signés\\
+155 & CA & D & \texttt{LEXCMPD} & --- & 32 bits signés\\
+156 & CB & D & \texttt{LEXCMPQ} & --- & 64 bits\\
+157 & CC & D & \texttt{ULEXCMPB} & --- & 8 bits non signés (CHARACTER, BOOLEAN, énumérés)\\
+158 & CD & D & \texttt{ULEXCMPW} & --- & 16 bits non signés\\
+159 & CE & D & \texttt{ULEXCMPD} & --- & 32 bits non signés\\
+160 & D0-DF & D & \texttt{LI(imm4)} & --- & ( -- imm4 )		imm4 non signé 0..15\\
+161 & E0 & D & \texttt{BRA} & \texttt{BR8} & ( -- )\\
+162 & E1 & D & \texttt{BRA} & \texttt{BR16} & ---\\
+163 & E2 & D & \texttt{BRA} & \texttt{BR24} & ---\\
+164 & E3 & D & \texttt{BRA} & \texttt{BR32} & ---\\
+165 & E4 & D & \texttt{BT} & \texttt{BR8} & ( b -- )	saute si b /= 0\\
+166 & E5 & D & \texttt{BT} & \texttt{BR16} & ---\\
+167 & E6 & D & \texttt{BT} & \texttt{BR24} & ---\\
+168 & E7 & D & \texttt{BT} & \texttt{BR32} & ---\\
+169 & E8 & D & \texttt{BF} & \texttt{BR8} & ( b -- )	saute si b = 0\\
+170 & E9 & D & \texttt{BF} & \texttt{BR16} & ---\\
+171 & EA & D & \texttt{BF} & \texttt{BR24} & ---\\
+172 & EB & D & \texttt{BF} & \texttt{BR32} & ---\\
+173 & F0 & D & \texttt{TRAP} & \texttt{D8} & service n, cf. « Fautes, déroutements et interruptions » §3\\
+174 & F2 & D & \texttt{CALL} & \texttt{D24} & ( -- ) déplacement relatif signé, ±8 Mio\\
+175 & F6 & D & \texttt{RTD} & \texttt{D24} & DSP -= n (taille des paramètres), retour\\
+176 & F7 & D & \texttt{RTD} & --- & RTD 0\\
+177 & F8 & D & \texttt{UNLINK} & \texttt{D8} & lvl 1..14 seulement, faute 137 sinon\\
+178 & F9 & D & \texttt{UNLINKR} & \texttt{D8} & lvl 1..14 seulement, faute 137 sinon\\
+179 & FE & D & \texttt{EXC\_RAISE} & \texttt{D24} & top = déplacement non signé dans le frame de niveau 0\\
+180 & FF & D & \texttt{RTX} & --- & retour de service ou d'interruption, DR := 0\\
+\bottomrule
+\end{longtable}
+\end{landscape}
+
+\chapter{Formats et longueurs - aide-mémoire}
+\section{Formats}
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule Format & Disposition après l'opcode\\ \midrule
+A & aucun complément\\
+B16 & \texttt{lvl[15:12] | disp[11:0]}\\
+B24 & \texttt{lvl[23:20] | disp[19:0]}\\
+B40 & \texttt{lvl[39:36] | 0000 | disp[31:0]} - réservé\\
+C24 & \texttt{lvl[23:20] | ofs[19:16] | disp[15:0]}\\
+C32 & \texttt{lvl[31:28] | ofs[27:20] | disp[19:0]}\\
+D8/D16/D24/D32/D64 & immédiat de 8/16/24/32/64 bits\\
+D8\_8 & \texttt{imm[7:0] | Imm[7:0]}\\
+BR8/BR16/BR24/BR32 & déplacement relatif signé\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Règles d'adresse}
+\begin{center}
+\begin{tabularx}{\linewidth}{@{}lXX@{}}
+\toprule & \textbf{lvl 0..14} & \textbf{lvl=15}\\ \midrule
+B & $EA=DISPLAY[lvl]+disp$ & $EA=pop+disp$\\
+C & $EA=M64[DISPLAY[lvl]+disp]+ofs$ & $EA=M64[pop+disp]+ofs$\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Drapeaux et registres de déroutement}
+\reg{DR} protège les handlers contre les interruptions imbriquées et transforme une seconde faute ou un service vectorisé en arrêt machine. \reg{FSCR} est la seule exposition mémoire de \reg{FPC} et \reg{FCODE} : \texttt{M64[FSCR]=FPC}, \texttt{M64[FSCR+8]=FCODE}.
+
+\chapter{Glossaire}
+\begin{description}[style=nextline,leftmargin=28mm]
+\item[LLIR] Représentation intermédiaire de bas niveau produite par la chaîne TLALOC.
+\item[HX] Format de code machine et format d'image exécutés par TAHX\_1.
+\item[DSP] Data Stack Pointer, adresse de la cellule au sommet de la pile data.
+\item[RSP] Return Stack Pointer, adresse de la dernière adresse de retour empilée.
+\item[CSP] Co-stack Pointer, premier octet libre de la co-pile.
+\item[CFP] Co-stack Frame Pointer, tête du chaînage des frames de co-pile.
+\item[HP] Heap Pointer, frontière basse du tas alloué.
+\item[DISPLAY] Tableau des frame pointers de niveaux statiques 0..14.
+\item[VTB] Vector Table Base, base de la table de 256 vecteurs.
+\item[FSCR] Fault Status Communication Region, zone mémoire de 16 octets exposant FPC et FCODE.
+\item[DR] Diversion in progress, bit indiquant qu'un handler de faute ou d'interruption est en cours.
+\item[EA] Effective Address, adresse effective d'un accès mémoire.
+\item[FMT] Champ de format des familles B et C.
+\item[MODE] Champ sélectionnant spécial, chargement signé, rangement ou chargement non signé.
+\end{description}
+
+\chapter*{Référence normative}
+\addcontentsline{toc}{chapter}{Référence normative}
+Spécification : \sourceviii{}, révision V8 du 29 septembre 2026, « Support matériel de la LLIR : machine à pile 64 bits ».\\
+Référence exécutable indiquée par la V8 : \texttt{tx\_run}, sous réserve de la liste de vérification de l'émulateur.\\
+Licence du document source : GPL-3.0-or-later.
+
+\clearpage
+\chapter*{Index fonctionnel}
+\addcontentsline{toc}{chapter}{Index fonctionnel}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+Arithmétique entière & ADD, SUB, MUL, DIV, REMI, MODI, INC, DEC, NEG, ABS\\
+Logique & ET, OU, OUX, NON, SHL, SHR, SAR\\
+Champs de bits & UBFX, SBFX, BFI, UBFXI, SBFXI, BFII\\
+Flottants & FADD, FSUB, FMUL, FDIV, FEXP, CVTIF, CVTFI, CVTFIR, FCxx\\
+Pile & DROP, DUP, OVER, LI\\
+Blocs & BLKMOV, BLKCMP, BLKAND, BLKOU, BLKOUX, BLKNOT\\
+Allocation & CO\_VAR, HEAP\_ALLOC\\
+Frames & LINK, UNLINK, UNLINKR, LVA, LIVA\\
+Mémoire directe & LB/LW/LD/LQ, ULB/ULW/ULD, SB/SW/SD/SQ, CHKx\\
+Mémoire indirecte & LIB/LIW/LID/LIQ, ULIB/ULIW/ULID, SIB/SIW/SID/SIQ, CHKIx\\
+Contrôle & BRA, BT, BF, CALL, CALLI, RTD, TRAP, RTX\\
+Exceptions & EXC\_MACH, EXC\_RAISE\\
+Tasking / système & CTX\_SAVE, CTX\_RESTORE, SET\_IMASK\\
+\end{tabularx}
+
+\vfill
+\begin{center}\small\color{TahxGray}
+TAHX\_1 Processor Reference Manual - ISA V8 - édition 1.0
+\end{center}
+\end{document}

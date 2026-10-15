@@ -3,17 +3,19 @@
 
 === TAHX_1 ===
 
-   Number of wires:                119
-   Number of wire bits:           9295
-   Number of public wires:          51
-   Number of public wire bits:    4191
+   Number of wires:                125
+   Number of wire bits:           8750
+   Number of public wires:          53
+   Number of public wire bits:    4335
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:                  5
+   Number of cells:                  8
+     $mux                            2
+     $ne                             1
      data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e      1
-     decode_queue                    1
      ino_core_system_16_8            1
+     ino_decode_queue                1
      ino_frontend_control            1
      instruction_unit                1
 
@@ -96,30 +98,6 @@
      $or                            52
      $pmux                          32
      $sub                           68
-
-=== decode_queue ===
-
-   Number of wires:                305
-   Number of wire bits:          12208
-   Number of public wires:          19
-   Number of public wire bits:    2843
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:                286
-     $add                           15
-     $and                           71
-     $dff                            2
-     $div                            8
-     $eq                             2
-     $ge                             1
-     $gt                             3
-     $lt                            12
-     $mux                          109
-     $not                           36
-     $or                             1
-     $sub                           22
-     ino_decode_queue_ram207_2_143      4
 
 === fetch_byte_queue ===
 
@@ -437,6 +415,31 @@
      ino_system_unit                 1
      stack_unit_16_8                 1
 
+=== ino_decode_queue ===
+
+   Number of wires:                226
+   Number of wire bits:           8941
+   Number of public wires:          20
+   Number of public wire bits:    1889
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                206
+     $add                            7
+     $and                           56
+     $dff                            2
+     $div                            8
+     $eq                             2
+     $ge                             1
+     $gt                             1
+     $lt                             4
+     $mux                           75
+     $ne                             2
+     $not                           28
+     $or                             1
+     $sub                           15
+     ino_decode_queue_ram207_2_143      4
+
 === ino_decode_queue_ram207_2_143 ===
 
    Number of wires:                  8
@@ -722,8 +725,6 @@
    TAHX_1                            1
      data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e      1
        ino_cache_ram64_256          20
-     decode_queue                    1
-       ino_decode_queue_ram207_2_143      4
      ino_core_system_16_8            1
        ino_backend_excm              1
          ino_backend_block           1
@@ -743,6 +744,8 @@
          ino_excm_unit               1
        ino_system_unit               1
        stack_unit_16_8               1
+     ino_decode_queue                1
+       ino_decode_queue_ram207_2_143      4
      ino_frontend_control            1
      instruction_unit                1
        branch_predict                1
@@ -753,33 +756,33 @@
          ino_fetch_ram64_2r_256      4
          ino_fetch_ram64_2r_512      6
 
-   Number of wires:              63480
-   Number of wire bits:         1869792
-   Number of public wires:        1514
-   Number of public wire bits:   92183
+   Number of wires:              63407
+   Number of wire bits:         1865980
+   Number of public wires:        1517
+   Number of public wire bits:   91373
    Number of memories:              44
    Number of memory bits:       908408
    Number of processes:              0
-   Number of cells:              61557
-     $add                          519
-     $and                        23300
+   Number of cells:              61480
+     $add                          511
+     $and                        23285
      $assert                        12
      $dff                          232
      $div                           80
      $eq                          4288
      $ge                            69
-     $gt                           100
+     $gt                            98
      $le                            69
-     $lt                           943
+     $lt                           935
      $meminit_v2                    10
      $memrd_v2                      54
      $memwr_v2                      36
      $modfloor                      14
      $mul                           36
-     $mux                        28033
-     $ne                            64
+     $mux                        28001
+     $ne                            67
      $neg                           25
-     $not                         1036
+     $not                         1028
      $or                           980
      $pmux                         873
      $reduce_and                    18
@@ -787,6 +790,6 @@
      $shl                           27
      $shr                           14
      $sshr                           1
-     $sub                          618
+     $sub                          611
      $xor                           28
 

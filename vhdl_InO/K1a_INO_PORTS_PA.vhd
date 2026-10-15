@@ -46,6 +46,9 @@ package INO_PORTS_PA is
       pred      : pred_pa_t;
    end record;
 
+   -- Bloc d'entree de INO_DECODE_QUEUE (depuis le frontal).
+   type block_pa_t is array( 0 to DECODE_WIDTH - 1 ) of slot_pa_t;
+
    type display_pa_t is array( 0 to 14 ) of paddr_t;
 
    -- Indice d'une entrée de DISPLAY sur un port de lecture ou d'écriture (0 .. 14).
@@ -95,6 +98,7 @@ package INO_PORTS_PA is
 
    function TO_PA( s : decoded_slot_t ) return slot_pa_t;
    function TO_VA( s : slot_pa_t ) return decoded_slot_t;
+   function TO_PA( b : decoded_block_t ) return block_pa_t;
 
    function TO_PA( f : frame_state_t ) return frame_pa_t;
    function TO_VA( f : frame_pa_t ) return frame_state_t;
@@ -126,6 +130,13 @@ package body INO_PORTS_PA is
       return ( valid => s.valid, canon => s.canon, pc => TO_VA( s.pc ),
                pred => ( taken => s.pred.taken, target => TO_VA( s.pred.target ),
                          ghist => s.pred.ghist, ras_ptr => s.pred.ras_ptr ) );
+   end function;
+
+   function TO_PA( b : decoded_block_t ) return block_pa_t is
+      variable r : block_pa_t;
+   begin
+      for k in b'range loop r( k ) := TO_PA( b( k ) ); end loop;
+      return r;
    end function;
 
    function TO_PA( f : frame_state_t ) return frame_pa_t is

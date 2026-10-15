@@ -209,7 +209,9 @@ begin
       alias commit        is << signal DUT.commit : ino_commit_t >>;
       alias dq_take       is << signal DUT.dq_take : decode_count_t >>;
       alias dq_count      is << signal DUT.dq_count : decode_count_t >>;
-      alias dq_occupancy  is << signal DUT.dq_occupancy : decode_queue_count_t >>;
+      -- Occupation de la file : etat interne de INO_DECODE_QUEUE (pas de port) ;
+      -- 8 = DQ_DEPTH de J1b_INO_DECODE_QUEUE_rtl.vhd.
+      alias dq_occupancy  is << signal DUT.U_DECODE_QUEUE.count : natural range 0 to 8 >>;
       alias stack_idle    is << signal DUT.stack_idle : std_logic >>;
       alias system_hold   is << signal DUT.system_hold : std_logic >>;
       alias stack_mem_req is << signal DUT.stack_mem_req : mem_request_t >>;
@@ -335,8 +337,8 @@ begin
 
          if stack_mem_req.valid = '1' then cyc_stack_mem := cyc_stack_mem + 1; end if;
          if exec_mem_req.valid  = '1' then cyc_exec_mem  := cyc_exec_mem  + 1; end if;
-         dq_occ_sum := dq_occ_sum + to_integer( dq_occupancy );
-         dq_occ_max := maximum( dq_occ_max, to_integer( dq_occupancy ) );
+         dq_occ_sum := dq_occ_sum + dq_occupancy;
+         dq_occ_max := maximum( dq_occ_max, dq_occupancy );
 
          -- Fermer d'abord l'instruction qui se retire.  COMMIT et la prise de
          -- l'instruction suivante peuvent se produire sur le meme front ; traiter

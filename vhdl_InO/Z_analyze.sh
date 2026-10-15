@@ -114,6 +114,11 @@ $A ../vhdl/V_TAHX_1.vhd
 
 $A K1a__in_order_types.vhd
 $A K1a_INO_PORTS_PA.vhd
+
+# File de decodage InO a ports reduits (ports en INO_PORTS_PA).
+$A J1b_INO_DECODE_QUEUE.vhd
+$A J1b_INO_DECODE_QUEUE_rtl.vhd
+
 $A K1b_STACK_UNIT.vhd
 $A K1b_STACK_UNIT_rtl.vhd
 

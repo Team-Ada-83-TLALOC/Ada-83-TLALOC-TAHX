@@ -63,6 +63,7 @@ Mesures par module (sg13g2, µm²) : stack_unit 721 685 ; data_cache 420 074 ; s
 | 7 | `stack_unit` : `DECODE_VALID_i` + `DECODE_SLOT_i` (slot 0 seul), `DECODE_TAKE_o` sur 1 bit, `LIM_DSP_i`/`LIM_RSP_i` | 4562 → 3807 broches |
 | 8 | Paquetage `vhdl_InO/K1a_INO_PORTS_PA.vhd` : types de ports en `paddr_t` (`slot_pa_t`, `issue_pa_t`, `complete_pa_t`, `commit_pa_t`, `mem_request_pa_t`, `frame_pa_t`, `disp_sel_t`) et `TO_PA`/`TO_VA`. Conversions dans K8 | 3807 → 2400 |
 | 9 | DISPLAY par **port d'indice** : lecture `DISP_SEL_i` → `DISP_o` ; écriture `DISP_WE_i/DISP_WSEL_i/DISP_WDATA_i` avant SYNC ; SYNC ne porte que DSP/RSP | 2400 → **1513** ; system_unit 4281 → 2498 |
+| 10 | Entité `INO_DECODE_QUEUE` (`J1b_*`) : entrée `block_pa_t`, sortie case 0 seule (`POP_SLOT_o : slot_pa_t`), `POP_TAKE_i` sur 1 bit, `COUNT_o` supprimé (occupation observée par nom externe dans `N3_INO_PLATEFORME`). Conversions dans TAHX_1(IN_ORDER) ; banc `J1b_INO_DECODE_QUEUE` | decode_queue 1679 → **725** broches |
 
 Points de conception à retenir :
 
@@ -170,7 +171,7 @@ Voisins : decode_queue et frontend_control au nord ; system_unit à l'ouest ; ba
 
 ## 8. Pistes et questions ouvertes
 
-- **Bloc suivant** : la sortie `DECODE_QUEUE` → cœur porte encore 828 bits (4 slots), alors que stack_unit et frontend_control ne lisent que le slot 0. L'entité `DECODE_QUEUE` est commune avec l'OoO : il faudra une sortie dédiée ou une entité InO.
+- **decode_queue** : fait à l'étape 10 (entité `INO_DECODE_QUEUE`, 725 broches : 578 au nord vers decode_bloc, 144 au sud vers stack_unit). `DECODE_QUEUE(IN_ORDER)` reste dans le dépôt avec son banc J1, mais n'est plus instanciée par TAHX_1(IN_ORDER).
 - La **system_unit** est déjà passée de 4281 à 2498 broches ; elle reste à passer en `paddr_t` (ports encore en `address_t`).
 - **stack_unit, restes possibles** : opérandes d'ISSUE (256 bits), slot de COMMIT (143), MAINT base/length (128 ; `maint_s` reste en 64 bits), limites (128 ; les tronquer change la sémantique, sauf saturation).
 - **Surface** : arithmétique (float ≈ 0,48 mm², muldiv ≈ 0,35 mm², fexp ≈ 0,22 mm²), multiplieur itératif (environ −0,25 mm²), SRAM de tags et de prédiction en 32 bits.
