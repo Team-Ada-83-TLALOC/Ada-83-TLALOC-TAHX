@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fetch_byte_queue fetch_unit fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch_ram64_2r_256 ino_fetch_ram64_2r_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fetch_byte_queue fetch_unit fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch_ram32_2r_256 ino_fetch_ram32_2r_512 ino_fetch_ram64_2r_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_pred_table2_2r_256 ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_decode_queue
          synth -top ino_decode_queue -noshare
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -350,30 +350,30 @@ Extracting $alu and $macc cells in module ino_decode_queue:
   creating $alu model for $macc \660.
   creating $alu model for $macc \593.
   creating $alu model for $macc \529.
-  creating $macc cell for \990: $auto$alumacc.cc:365:replace_macc$79181
+  creating $macc cell for \990: $auto$alumacc.cc:365:replace_macc$80985
   creating $alu model for \531 ($ge): new $alu
   creating $alu model for \665 ($lt): new $alu
   creating $alu model for \740 ($lt): new $alu
   creating $alu model for \809 ($lt): new $alu
   creating $alu model for \878 ($lt): new $alu
   creating $alu model for \977 ($gt): new $alu
-  creating $alu cell for \977: $auto$alumacc.cc:485:replace_alu$79188
-  creating $alu cell for \878: $auto$alumacc.cc:485:replace_alu$79199
-  creating $alu cell for \809: $auto$alumacc.cc:485:replace_alu$79204
-  creating $alu cell for \740: $auto$alumacc.cc:485:replace_alu$79209
-  creating $alu cell for \665: $auto$alumacc.cc:485:replace_alu$79214
-  creating $alu cell for \531: $auto$alumacc.cc:485:replace_alu$79219
-  creating $alu cell for \529: $auto$alumacc.cc:485:replace_alu$79230
-  creating $alu cell for \593: $auto$alumacc.cc:485:replace_alu$79233
-  creating $alu cell for \660: $auto$alumacc.cc:485:replace_alu$79236
-  creating $alu cell for \675: $auto$alumacc.cc:485:replace_alu$79239
-  creating $alu cell for \743: $auto$alumacc.cc:485:replace_alu$79242
-  creating $alu cell for \750: $auto$alumacc.cc:485:replace_alu$79245
-  creating $alu cell for \812: $auto$alumacc.cc:485:replace_alu$79248
-  creating $alu cell for \819: $auto$alumacc.cc:485:replace_alu$79251
-  creating $alu cell for \881: $auto$alumacc.cc:485:replace_alu$79254
-  creating $alu cell for \888: $auto$alumacc.cc:485:replace_alu$79257
-  creating $alu cell for \983: $auto$alumacc.cc:485:replace_alu$79260
+  creating $alu cell for \977: $auto$alumacc.cc:485:replace_alu$80992
+  creating $alu cell for \878: $auto$alumacc.cc:485:replace_alu$81003
+  creating $alu cell for \809: $auto$alumacc.cc:485:replace_alu$81008
+  creating $alu cell for \740: $auto$alumacc.cc:485:replace_alu$81013
+  creating $alu cell for \665: $auto$alumacc.cc:485:replace_alu$81018
+  creating $alu cell for \531: $auto$alumacc.cc:485:replace_alu$81023
+  creating $alu cell for \529: $auto$alumacc.cc:485:replace_alu$81034
+  creating $alu cell for \593: $auto$alumacc.cc:485:replace_alu$81037
+  creating $alu cell for \660: $auto$alumacc.cc:485:replace_alu$81040
+  creating $alu cell for \675: $auto$alumacc.cc:485:replace_alu$81043
+  creating $alu cell for \743: $auto$alumacc.cc:485:replace_alu$81046
+  creating $alu cell for \750: $auto$alumacc.cc:485:replace_alu$81049
+  creating $alu cell for \812: $auto$alumacc.cc:485:replace_alu$81052
+  creating $alu cell for \819: $auto$alumacc.cc:485:replace_alu$81055
+  creating $alu cell for \881: $auto$alumacc.cc:485:replace_alu$81058
+  creating $alu cell for \888: $auto$alumacc.cc:485:replace_alu$81061
+  creating $alu cell for \983: $auto$alumacc.cc:485:replace_alu$81064
   created 17 $alu and 1 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -861,6 +861,6 @@ Finding unused cells or wires in module \ino_decode_queue..
 Removed 0 unused cells and 7474 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: a98157a4a9, CPU: user 2.33s system 0.03s, MEM: 121.45 MB peak
+End of script. Logfile hash: f3f312e94d, CPU: user 2.27s system 0.04s, MEM: 123.71 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 36% 2x abc (1 sec), 16% 2x read_rtlil (0 sec), ...
+Time spent: 37% 2x abc (1 sec), 16% 2x read_rtlil (0 sec), ...

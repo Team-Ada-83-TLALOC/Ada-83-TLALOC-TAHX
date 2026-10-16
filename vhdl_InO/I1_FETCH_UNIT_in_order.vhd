@@ -19,9 +19,10 @@ use work.INO_PADDR.all;
         -- Les reponses de remplissage sont ecrites directement, mot par mot, dans
         -- la banque correspondante. present n'est valide qu'apres le dernier mot.
         --
-        -- La table BT est elle aussi materiellement explicite : key, fin, target et
-        -- compteur sont quatre RAM 256 x 64 a deux lectures ; seul le vecteur valid
-        -- (256 bits) est remis a zero au RESET.
+        -- La table BT est elle aussi materiellement explicite : key, fin et target
+        -- sont trois RAM 256 x 32 a deux lectures (adresses physiques), le compteur
+        -- une table 256 x 2 en bascules (INO_PRED_TABLE2_2R) ; seul le vecteur
+        -- valid (256 bits) masque les entrees apres RESET.
         --
         -- Espace physique InO (INO_PADDR) : le PC est toujours realisable (les
         -- transferts vers une adresse non realisable fautent a l'execution). Toute
@@ -31,8 +32,8 @@ use work.INO_PADDR.all;
         -- (speculative) est donc tronquee : le transfert fautera avant qu'aucune
         -- instruction chargee a sa suite ne s'execute.
         --
-        -- Les tags sont eux aussi en RAM synchrone (deux instances 512 x 64 a deux
-        -- lectures) : U_TAG lit les lignes du PC et de la cible BT, aux memes
+        -- Les tags sont eux aussi en RAM synchrone (deux instances 512 x 32 a deux
+        -- lectures, l'adresse de ligne physique) : U_TAG lit les lignes du PC et de la cible BT, aux memes
         -- adresses et au meme front que les banques de donnees ; U_TAG_NX lit les
         -- deux lignes suivantes pour le prechargement. Seul present (512 bits)
         -- reste en bascules, pour le RESET.
@@ -49,6 +50,8 @@ architecture IN_ORDER of FETCH_UNIT is
    -- adresses presentes avant le dernier front.
    signal cur_tag, tgt_tag  : word64_t;
    signal nx1_tag, nx2_tag  : word64_t;
+   -- Sorties 32 bits des RAM de tags (adresses physiques), etendues de zeros.
+   signal cur_tag32, tgt_tag32, nx1_tag32, nx2_tag32 : std_logic_vector(31 downto 0);
    signal tag_we            : std_logic;
    signal nx1_index         : natural range 0 to LINES - 1;
    signal nx2_index         : natural range 0 to LINES - 1;
@@ -104,6 +107,10 @@ architecture IN_ORDER of FETCH_UNIT is
    signal bt_key_train, bt_fin_train, bt_target_train, bt_ctr_train : word64_t;
    signal bt_key_we, bt_fin_we, bt_target_we, bt_ctr_we : std_logic;
    signal bt_ctr_wdata : word64_t;
+   -- Sorties 32 bits de la table de blocs, 2 bits pour le compteur.
+   signal bt_key_cur32, bt_fin_cur32, bt_target_cur32 : std_logic_vector(31 downto 0);
+   signal bt_key_train32, bt_fin_train32, bt_target_train32 : std_logic_vector(31 downto 0);
+   signal bt_ctr_cur2, bt_ctr_train2 : std_logic_vector(1 downto 0);
    signal bt_taken_match, bt_nottaken_match : boolean;
 
    -- Les deux ports de la BT sont synchrones.  Ces registres identifient
@@ -231,64 +238,83 @@ begin
 
    -- Tags de la ligne du PC et de la ligne cible BT : memes adresses que les
    -- banques, donc meme alignement temporel que cur_word / tgt_word.
-   U_TAG : entity work.INO_FETCH_RAM64_2R(SYNC)
+   U_TAG : entity work.INO_FETCH_RAM32_2R(SYNC)
       generic map (DEPTH_G => LINES)
       port map (
          CLK_i    => CLK_i,
          RADDR0_i => index,
-         RDATA0_o => cur_tag,
+         RDATA0_o => cur_tag32,
          RADDR1_i => target_index,
-         RDATA1_o => tgt_tag,
+         RDATA1_o => tgt_tag32,
          WE_i     => tag_we,
          WADDR_i  => fill_index,
-         WDATA_i  => std_logic_vector(fill_line) );
+         WDATA_i  => std_logic_vector(TO_PA(fill_line)) );
 
    -- Replique pour le prechargement des deux lignes suivantes.
-   U_TAG_NX : entity work.INO_FETCH_RAM64_2R(SYNC)
+   U_TAG_NX : entity work.INO_FETCH_RAM32_2R(SYNC)
       generic map (DEPTH_G => LINES)
       port map (
          CLK_i    => CLK_i,
          RADDR0_i => nx1_index,
-         RDATA0_o => nx1_tag,
+         RDATA0_o => nx1_tag32,
          RADDR1_i => nx2_index,
-         RDATA1_o => nx2_tag,
+         RDATA1_o => nx2_tag32,
          WE_i     => tag_we,
          WADDR_i  => fill_index,
-         WDATA_i  => std_logic_vector(fill_line) );
+         WDATA_i  => std_logic_vector(TO_PA(fill_line)) );
 
-   -- Table de blocs : quatre RAM explicites 256 x 64, deux lectures
-   -- (lookup du PC et apprentissage) et une ecriture synchrone.
-   U_BT_KEY : entity work.INO_FETCH_RAM64_2R(SYNC)
+   -- Les tags sont relus par CUT : l'extension de zeros donne la meme valeur.
+   cur_tag <= x"00000000" & cur_tag32;
+   tgt_tag <= x"00000000" & tgt_tag32;
+   nx1_tag <= x"00000000" & nx1_tag32;
+   nx2_tag <= x"00000000" & nx2_tag32;
+
+   -- Table de blocs : trois RAM explicites 256 x 32 et une table 256 x 2 en
+   -- bascules, deux lectures (lookup du PC et apprentissage) et une ecriture
+   -- synchrone.
+   U_BT_KEY : entity work.INO_FETCH_RAM32_2R(SYNC)
       generic map (DEPTH_G => BT_ENTRIES)
       port map (
          CLK_i => CLK_i,
-         RADDR0_i => bt_lookup_idx, RDATA0_o => bt_key_cur,
-         RADDR1_i => bt_train_idx,  RDATA1_o => bt_key_train,
-         WE_i => bt_key_we, WADDR_i => bt_train_idx_q, WDATA_i => std_logic_vector(train_key_q) );
+         RADDR0_i => bt_lookup_idx, RDATA0_o => bt_key_cur32,
+         RADDR1_i => bt_train_idx,  RDATA1_o => bt_key_train32,
+         WE_i => bt_key_we, WADDR_i => bt_train_idx_q, WDATA_i => std_logic_vector(TO_PA(train_key_q)) );
 
-   U_BT_FIN : entity work.INO_FETCH_RAM64_2R(SYNC)
+   U_BT_FIN : entity work.INO_FETCH_RAM32_2R(SYNC)
       generic map (DEPTH_G => BT_ENTRIES)
       port map (
          CLK_i => CLK_i,
-         RADDR0_i => bt_lookup_idx, RDATA0_o => bt_fin_cur,
-         RADDR1_i => bt_train_idx,  RDATA1_o => bt_fin_train,
-         WE_i => bt_fin_we, WADDR_i => bt_train_idx_q, WDATA_i => std_logic_vector(train_fin_q) );
+         RADDR0_i => bt_lookup_idx, RDATA0_o => bt_fin_cur32,
+         RADDR1_i => bt_train_idx,  RDATA1_o => bt_fin_train32,
+         WE_i => bt_fin_we, WADDR_i => bt_train_idx_q, WDATA_i => std_logic_vector(TO_PA(train_fin_q)) );
 
-   U_BT_TARGET : entity work.INO_FETCH_RAM64_2R(SYNC)
+   U_BT_TARGET : entity work.INO_FETCH_RAM32_2R(SYNC)
       generic map (DEPTH_G => BT_ENTRIES)
       port map (
          CLK_i => CLK_i,
-         RADDR0_i => bt_lookup_idx, RDATA0_o => bt_target_cur,
-         RADDR1_i => bt_train_idx,  RDATA1_o => bt_target_train,
-         WE_i => bt_target_we, WADDR_i => bt_train_idx_q, WDATA_i => std_logic_vector(train_target_q) );
+         RADDR0_i => bt_lookup_idx, RDATA0_o => bt_target_cur32,
+         RADDR1_i => bt_train_idx,  RDATA1_o => bt_target_train32,
+         WE_i => bt_target_we, WADDR_i => bt_train_idx_q, WDATA_i => std_logic_vector(TO_PA(train_target_q)) );
 
-   U_BT_CTR : entity work.INO_FETCH_RAM64_2R(SYNC)
+   -- Compteur : 2 bits utiles ; table en bascules (la remise a "01" au RESET
+   -- est sans effet : bt_valid masque les entrees, et une entree creee ecrit "10").
+   U_BT_CTR : entity work.INO_PRED_TABLE2_2R(FF)
       generic map (DEPTH_G => BT_ENTRIES)
       port map (
-         CLK_i => CLK_i,
-         RADDR0_i => bt_lookup_idx, RDATA0_o => bt_ctr_cur,
-         RADDR1_i => bt_train_idx,  RDATA1_o => bt_ctr_train,
-         WE_i => bt_ctr_we, WADDR_i => bt_train_idx_q, WDATA_i => bt_ctr_wdata );
+         CLK_i => CLK_i, RESET_i => RESET_i,
+         RADDR0_i => bt_lookup_idx, RDATA0_o => bt_ctr_cur2,
+         RADDR1_i => bt_train_idx,  RDATA1_o => bt_ctr_train2,
+         WE_i => bt_ctr_we, WADDR_i => bt_train_idx_q, WDATA_i => bt_ctr_wdata(1 downto 0) );
+
+   -- Relues par CUT (adresses) ou par leurs 2 bits faibles (compteur).
+   bt_key_cur      <= x"00000000" & bt_key_cur32;
+   bt_fin_cur      <= x"00000000" & bt_fin_cur32;
+   bt_target_cur   <= x"00000000" & bt_target_cur32;
+   bt_key_train    <= x"00000000" & bt_key_train32;
+   bt_fin_train    <= x"00000000" & bt_fin_train32;
+   bt_target_train <= x"00000000" & bt_target_train32;
+   bt_ctr_cur      <= ( 63 downto 2 => '0' ) & bt_ctr_cur2;
+   bt_ctr_train    <= ( 63 downto 2 => '0' ) & bt_ctr_train2;
 
    bt_target <= CUT(unsigned(bt_target_cur));
    bt_load   <= bt_lookup_valid_q = '1' and active = '1'

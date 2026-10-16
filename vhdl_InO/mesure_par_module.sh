@@ -25,7 +25,7 @@ mkdir -p "$OUT"
 BRUT="$OUT/brut.il"
 
 # Primitives remplacees par les macros SRAM IHP dans prepare_IHP.sh.
-RAM_RE='^(ino_fetch_ram64_2r_|ino_cache_ram64_|ino_pred_ram2_2r_)'
+RAM_RE='^(ino_fetch_ram64_2r_|ino_fetch_ram32_2r_|ino_cache_ram64_|ino_pred_ram2_2r_)'
 
 echo "== Elaboration unique de TAHX_1(IN_ORDER)"
 yosys -m ghdl -q -p "

@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fetch_byte_queue fetch_unit fexp_unit ino_address_unit ino_backend ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch_ram64_2r_256 ino_fetch_ram64_2r_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fetch_byte_queue fetch_unit fexp_unit ino_address_unit ino_backend ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch_ram32_2r_256 ino_fetch_ram32_2r_512 ino_fetch_ram64_2r_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_pred_table2_2r_256 ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_backend_block
          synth -top ino_backend_block -noshare
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -115,8 +115,8 @@ Removed a total of 34 cells.
 Running muxtree optimizer on module \ino_backend_block..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
-      Replacing known input bits on port B of cell \102647: \block_mem_req_s -> { \block_mem_req_s [132:1] 1'1 }
-      Replacing known input bits on port B of cell \102649: \block_complete_s -> { \block_complete_s [139:1] 1'1 }
+      Replacing known input bits on port B of cell \104648: \block_mem_req_s -> { \block_mem_req_s [132:1] 1'1 }
+      Replacing known input bits on port B of cell \104650: \block_complete_s -> { \block_complete_s [139:1] 1'1 }
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
 <suppressed ~5 debug messages>
@@ -222,12 +222,12 @@ Optimizing module ino_backend_block.
 3.8.9. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 2 bits (of 8) from port B of cell ino_backend_block.\102507 ($eq).
-Removed top 2 bits (of 8) from port B of cell ino_backend_block.\102509 ($eq).
-Removed top 2 bits (of 8) from port B of cell ino_backend_block.\102512 ($eq).
-Removed top 2 bits (of 8) from port B of cell ino_backend_block.\102515 ($eq).
-Removed top 2 bits (of 8) from port B of cell ino_backend_block.\102518 ($eq).
-Removed top 2 bits (of 8) from port B of cell ino_backend_block.\102521 ($eq).
+Removed top 2 bits (of 8) from port B of cell ino_backend_block.\104508 ($eq).
+Removed top 2 bits (of 8) from port B of cell ino_backend_block.\104510 ($eq).
+Removed top 2 bits (of 8) from port B of cell ino_backend_block.\104513 ($eq).
+Removed top 2 bits (of 8) from port B of cell ino_backend_block.\104516 ($eq).
+Removed top 2 bits (of 8) from port B of cell ino_backend_block.\104519 ($eq).
+Removed top 2 bits (of 8) from port B of cell ino_backend_block.\104522 ($eq).
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
 
@@ -236,10 +236,10 @@ Finding unused cells or wires in module \ino_backend_block..
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_backend_block:
-  creating $alu model for \102524 ($ge): new $alu
-  creating $alu model for \102526 ($le): new $alu
-  creating $alu cell for \102526: $auto$alumacc.cc:485:replace_alu$79124
-  creating $alu cell for \102524: $auto$alumacc.cc:485:replace_alu$79133
+  creating $alu model for \104525 ($ge): new $alu
+  creating $alu model for \104527 ($le): new $alu
+  creating $alu cell for \104527: $auto$alumacc.cc:485:replace_alu$80928
+  creating $alu cell for \104525: $auto$alumacc.cc:485:replace_alu$80937
   created 2 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -684,6 +684,6 @@ Finding unused cells or wires in module \ino_backend_block..
 Removed 0 unused cells and 889 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 5ce0eca9ad, CPU: user 0.85s system 0.04s, MEM: 121.45 MB peak
+End of script. Logfile hash: 0592142ee6, CPU: user 0.87s system 0.05s, MEM: 123.76 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 53% 2x read_rtlil (0 sec), 15% 2x abc (0 sec), ...
+Time spent: 52% 2x read_rtlil (0 sec), 15% 2x abc (0 sec), ...

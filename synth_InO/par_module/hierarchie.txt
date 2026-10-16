@@ -125,10 +125,10 @@
 
 === fetch_unit ===
 
-   Number of wires:              13565
-   Number of wire bits:          74486
-   Number of public wires:         109
-   Number of public wire bits:    5426
+   Number of wires:              13576
+   Number of wire bits:          74334
+   Number of public wires:         120
+   Number of public wire bits:    5718
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
@@ -149,8 +149,10 @@
      $pmux                         320
      $sub                           84
      $xor                            4
-     ino_fetch_ram64_2r_256          4
-     ino_fetch_ram64_2r_512          6
+     ino_fetch_ram32_2r_256          3
+     ino_fetch_ram32_2r_512          2
+     ino_fetch_ram64_2r_512          4
+     ino_pred_table2_2r_256          1
 
 === fexp_unit ===
 
@@ -488,12 +490,25 @@
      $pmux                          10
      $sub                            1
 
-=== ino_fetch_ram64_2r_256 ===
+=== ino_fetch_ram32_2r_256 ===
 
    Number of wires:                 12
-   Number of wire bits:          33114
+   Number of wire bits:          16570
    Number of public wires:           8
-   Number of public wire bits:     218
+   Number of public wire bits:     122
+   Number of memories:               1
+   Number of memory bits:         8192
+   Number of processes:              0
+   Number of cells:                  3
+     $memrd_v2                       2
+     $memwr_v2                       1
+
+=== ino_fetch_ram32_2r_512 ===
+
+   Number of wires:                 12
+   Number of wire bits:          32957
+   Number of public wires:           8
+   Number of public wire bits:     125
    Number of memories:               1
    Number of memory bits:        16384
    Number of processes:              0
@@ -662,6 +677,22 @@
      $not                           10
      $sub                            3
 
+=== ino_pred_table2_2r_256 ===
+
+   Number of wires:               1300
+   Number of wire bits:           4157
+   Number of public wires:          10
+   Number of public wire bits:     545
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:               1290
+     $and                          508
+     $dff                            3
+     $mux                          768
+     $not                            8
+     $sub                            3
+
 === ino_system_unit ===
 
    Number of wires:               2472
@@ -763,25 +794,27 @@
      instruction_unit                1
        fetch_byte_queue              1
        fetch_unit                    1
-         ino_fetch_ram64_2r_256      4
-         ino_fetch_ram64_2r_512      6
+         ino_fetch_ram32_2r_256      3
+         ino_fetch_ram32_2r_512      2
+         ino_fetch_ram64_2r_512      4
+         ino_pred_table2_2r_256      1
        ino_decode_predict            1
          branch_predict              1
            ino_pred_table2_2r_1024      1
          decode_bloc                 1
 
-   Number of wires:              68586
-   Number of wire bits:         1623684
-   Number of public wires:        1559
-   Number of public wire bits:   96279
-   Number of memories:              42
-   Number of memory bits:       646264
+   Number of wires:              69885
+   Number of wire bits:         1479087
+   Number of public wires:        1572
+   Number of public wire bits:   96418
+   Number of memories:              41
+   Number of memory bits:       572536
    Number of processes:              0
-   Number of cells:              66602
+   Number of cells:              67889
      $add                          511
-     $and                        25329
+     $and                        25837
      $assert                        12
-     $dff                          235
+     $dff                          238
      $div                           80
      $eq                          4288
      $ge                            69
@@ -789,14 +822,14 @@
      $le                            69
      $lt                           935
      $meminit_v2                     8
-     $memrd_v2                      52
-     $memwr_v2                      34
+     $memrd_v2                      50
+     $memwr_v2                      33
      $modfloor                      14
      $mul                           36
-     $mux                        31073
+     $mux                        31841
      $ne                            67
      $neg                           25
-     $not                         1038
+     $not                         1046
      $or                           980
      $pmux                         873
      $reduce_and                    18
@@ -804,6 +837,6 @@
      $shl                           27
      $shr                           14
      $sshr                           1
-     $sub                          610
+     $sub                          613
      $xor                           28
 
