@@ -90,10 +90,10 @@ $A ../vhdl/I4_BRANCH_PREDICT.vhd
 $A ../vhdl/I4_BRANCH_PREDICT_rtl.vhd
 $A I4a_INO_PRED_RAM2_5R.vhd
 $A I4b_INO_PRED_RAM2_2R.vhd
+$A I4c_INO_PRED_TABLE2_2R.vhd
 $A I4_BRANCH_PREDICT_in_order.vhd
 $A ../vhdl/I_INSTRUCTION_UNIT.vhd
 $A ../vhdl/I_INSTRUCTION_UNIT_structure.vhd
-$A I_INSTRUCTION_UNIT_in_order.vhd
 
 $A ../vhdl/J1_DECODE_QUEUE.vhd
 $A ../vhdl/J1_DECODE_QUEUE_rtl.vhd
@@ -118,6 +118,13 @@ $A K1a_INO_PORTS_PA.vhd
 # File de decodage InO a ports reduits (ports en INO_PORTS_PA).
 $A J1b_INO_DECODE_QUEUE.vhd
 $A J1b_INO_DECODE_QUEUE_rtl.vhd
+
+# Frontal InO : decode_bloc + branch_predict a ports reduits, puis l'assemblage
+# INSTRUCTION_UNIT(IN_ORDER) qui l'utilise (il faut INO_PORTS_PA avant).
+$A I5a_INO_FRONT_PA.vhd
+$A I5_INO_DECODE_PREDICT.vhd
+$A I5_INO_DECODE_PREDICT_structure.vhd
+$A I_INSTRUCTION_UNIT_in_order.vhd
 
 $A K1b_STACK_UNIT.vhd
 $A K1b_STACK_UNIT_rtl.vhd

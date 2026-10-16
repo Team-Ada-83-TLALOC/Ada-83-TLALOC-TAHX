@@ -10,6 +10,9 @@ use ieee.numeric_std.all;
 use work.TAHX_1_ISA.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.ROB_TYPES.all;
+use work.INO_PADDR.all;
+use work.INO_PORTS_PA.all;
+use work.INO_FRONT_PA.all;
 
 		--------------------------------------------------------------------------------
 		--  INSTRUCTION_UNIT, architecture IN_ORDER : seulement des instances et des
@@ -21,6 +24,9 @@ use work.ROB_TYPES.all;
 		--      FETCH_UNIT) ; HALT_i s'y ajoute : machine arrêtée, plus rien n'est chargé ;
 		--    - la prédiction ne redirige que si le bloc passe (BRANCH_PREDICT le fait
 		--      déjà : PREDICT_VALID_o suppose le transfert).
+		--  DECODE_BLOC et BRANCH_PREDICT sont réunis dans INO_DECODE_PREDICT (une
+		--  macro, ports en adresses physiques) ; les conversions TO_PA / TO_VA sont
+		--  faites ici, les ports de INSTRUCTION_UNIT ne changent pas.
 		--------------------------------------------------------------------------------
 
 
@@ -39,14 +45,13 @@ of INSTRUCTION_UNIT is		--------
    signal window_pc				: address_t;
    signal window_fault			: window_flags_t;
 
-   signal decoded				: decoded_block_t;
-   signal decoded_count			: decode_count_t;
-   signal decode_valid, decode_ready		: std_logic;
+   signal dp_block				: block_pa_t;
    signal consume, decode_stop		: std_logic;
    signal consumed_bytes			: window_count_t;
 
    signal predict_valid			: std_logic;
    signal predict_pc			: address_t;
+   signal predict_pc_pa			: paddr_t;
 
    -- tampon de cible (FETCH_UNIT -> FETCH_BYTE_QUEUE) ; apprentissage (BRANCH_PREDICT -> FETCH_UNIT)
    signal preload_valid			: std_logic;
@@ -55,6 +60,7 @@ of INSTRUCTION_UNIT is		--------
    signal preload_count			: fetch_count_t;
    signal train_valid, train_taken		: std_logic;
    signal train_key, train_fin, train_target	: address_t;
+   signal train_key_pa, train_fin_pa, train_target_pa : paddr_t;
 
 begin
 
@@ -91,29 +97,26 @@ U_BYTES :
       EMPTY_o => open, BYTE_COUNT_o => open
     );
 
-U_DECODE :
-  entity work.DECODE_BLOC(IN_ORDER)
-    port map (
-         WINDOW_i => window, WINDOW_COUNT_i => window_count, WINDOW_PC_i => window_pc,
-         WINDOW_FAULT_i => window_fault,
-         DECODED_o => decoded, DECODED_COUNT_o => decoded_count, DECODE_VALID_o => decode_valid,
-         DECODE_READY_i => decode_ready,
-         CONSUME_o => consume, CONSUMED_BYTES_o => consumed_bytes,
-         NEED_MORE_BYTES_o => open, STOP_o => decode_stop );
-
-U_PREDICT :
-  entity work.BRANCH_PREDICT(IN_ORDER)
+U_DECODE_PREDICT :
+  entity work.INO_DECODE_PREDICT( STRUCTURE )
     port map (
          CLK_i => CLK_i, RESET_i => RESET_i,
-         IN_BLOCK_i => decoded, IN_COUNT_i => decoded_count, IN_VALID_i => decode_valid,
-         IN_READY_o => decode_ready,
-         OUT_BLOCK_o => OUT_BLOCK_o, OUT_COUNT_o => OUT_COUNT_o, OUT_VALID_o => OUT_VALID_o,
+         WINDOW_i => window, WINDOW_COUNT_i => window_count, WINDOW_PC_i => TO_PA( window_pc ),
+         WINDOW_FAULT_i => window_fault,
+         CONSUME_o => consume, CONSUMED_BYTES_o => consumed_bytes, STOP_o => decode_stop,
+         OUT_BLOCK_o => dp_block, OUT_COUNT_o => OUT_COUNT_o, OUT_VALID_o => OUT_VALID_o,
          OUT_READY_i => OUT_READY_i,
-         PREDICT_VALID_o => predict_valid, PREDICT_PC_o => predict_pc,
-         TRAIN_VALID_o => train_valid, TRAIN_KEY_o => train_key, TRAIN_FIN_o => train_fin,
-         TRAIN_TARGET_o => train_target, TRAIN_TAKEN_o => train_taken,
-         RETIRE_i => RETIRE_i, RECOVERY_i => RECOVERY_i
+         PREDICT_VALID_o => predict_valid, PREDICT_PC_o => predict_pc_pa,
+         TRAIN_VALID_o => train_valid, TRAIN_KEY_o => train_key_pa, TRAIN_FIN_o => train_fin_pa,
+         TRAIN_TARGET_o => train_target_pa, TRAIN_TAKEN_o => train_taken,
+         RETIRE_i => TO_BP( RETIRE_i ), RECOVERY_i => TO_PA( RECOVERY_i )
     );
+
+  OUT_BLOCK_o  <= TO_VA( dp_block );
+  predict_pc   <= TO_VA( predict_pc_pa );
+  train_key    <= TO_VA( train_key_pa );
+  train_fin    <= TO_VA( train_fin_pa );
+  train_target <= TO_VA( train_target_pa );
 
 		---------
 end architecture	IN_ORDER;

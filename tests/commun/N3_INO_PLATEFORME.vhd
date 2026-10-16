@@ -13,6 +13,7 @@ use work.FETCH_DECODE_TYPES.all;
 use work.MEMORY_TYPES.all;
 use work.EXEC_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.ROB_TYPES.all;
 use work.TB_UTILS.all;
 
         --------------------------------------------------------------------------------
@@ -213,6 +214,7 @@ begin
       -- 8 = DQ_DEPTH de J1b_INO_DECODE_QUEUE_rtl.vhd.
       alias dq_occupancy  is << signal DUT.U_DECODE_QUEUE.count : natural range 0 to 8 >>;
       alias stack_idle    is << signal DUT.stack_idle : std_logic >>;
+      alias recovery      is << signal DUT.recovery : recovery_t >>;
       alias system_hold   is << signal DUT.system_hold : std_logic >>;
       alias stack_mem_req is << signal DUT.stack_mem_req : mem_request_t >>;
       alias exec_mem_req  is << signal DUT.exec_mem_req : mem_request_t >>;
@@ -229,6 +231,7 @@ begin
       variable cyc_system, cyc_front_starve, cyc_idle_work, cyc_busy : natural := 0;
       variable cyc_stack_mem, cyc_exec_mem : natural := 0;
       variable dq_occ_sum, dq_occ_max : natural := 0;
+      variable recoveries : natural := 0;
       variable inflight : boolean := false;
       variable take_cycle : natural := 0;
       variable lat : natural := 0;
@@ -337,6 +340,7 @@ begin
 
          if stack_mem_req.valid = '1' then cyc_stack_mem := cyc_stack_mem + 1; end if;
          if exec_mem_req.valid  = '1' then cyc_exec_mem  := cyc_exec_mem  + 1; end if;
+         if recovery.valid = '1' then recoveries := recoveries + 1; end if;
          dq_occ_sum := dq_occ_sum + dq_occupancy;
          dq_occ_max := maximum( dq_occ_max, dq_occupancy );
 
@@ -422,6 +426,7 @@ begin
          PERF_LINE( "PERF occupation moyenne DECODE_QUEUE                "
                     & F2( real( dq_occ_sum ) / real( maximum( now, 1 ) ) ) );
          PERF_LINE( "PERF occupation max DECODE_QUEUE                    " & integer'image( dq_occ_max ) );
+         PERF_LINE( "PERF reprises du frontal (RECOVERY)                 " & integer'image( recoveries ) );
 
          for k in perf_class_t loop
             if class_count( k ) /= 0 then

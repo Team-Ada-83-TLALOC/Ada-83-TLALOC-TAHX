@@ -12,7 +12,14 @@ use work.INO_PADDR.all;
 
 architecture IN_ORDER of BRANCH_PREDICT is
 
-   constant GSHARE : positive := 2 ** ghist_t'length;
+   -- Taille de la table gshare : 2 ** GSHARE_BITS compteurs (10 : 1 K, en
+   -- bascules ; 16 : 64 K, la table de l'etude de limites). Doit valoir
+   -- RETIRE_PC_BITS de I5a_INO_FRONT_PA.vhd (bits du pc transmis au retrait).
+   -- L'indice est forme des GSHARE_BITS bits faibles de pc xor ghist ;
+   -- l'historique garde ses ghist_t'length bits. Le changer ne touche que la
+   -- performance (variantes VARIANTES/G*.txt des bancs).
+   constant GSHARE_BITS : positive := 10;
+   constant GSHARE : positive := 2 ** GSHARE_BITS;
    constant OP_CALLI : opcode_t := x"33";
 
    -- Pile des retours propre a l'InO : RAS_N entrees (RAS_DEPTH, partage avec l'OoO,
@@ -114,13 +121,17 @@ architecture IN_ORDER of BRANCH_PREDICT is
 
    function INDEX(pc : address_t; h : ghist_t) return natural is
    begin
-      return to_integer(unsigned(std_logic_vector(pc(15 downto 0)) xor h));
+      return to_integer(unsigned(std_logic_vector(pc(GSHARE_BITS - 1 downto 0))
+                                 xor h(GSHARE_BITS - 1 downto 0)));
    end function;
 
 begin
 
    assert ( 2 ** ras_ptr_t'length ) mod RAS_N = 0
       report "BRANCH_PREDICT(IN_ORDER) : RAS_N doit diviser 2**ras_ptr_t'length" severity failure;
+
+   assert GSHARE_BITS <= ghist_t'length
+      report "BRANCH_PREDICT(IN_ORDER) : GSHARE_BITS ne peut depasser ghist_t'length" severity failure;
 
    assert DECODE_WIDTH = 4
       report "BRANCH_PREDICT(IN_ORDER) : DECODE_WIDTH doit valoir 4"
@@ -279,10 +290,10 @@ begin
       train_wdata <= std_logic_vector(base);
    end process TRAIN_DATA;
 
-   U_GSHARE : entity work.INO_PRED_RAM2_2R(SYNC)
+   U_GSHARE : entity work.INO_PRED_TABLE2_2R(FF)
       generic map (DEPTH_G => GSHARE)
       port map (
-         CLK_i => CLK_i,
+         CLK_i => CLK_i, RESET_i => RESET_i,
          RADDR0_i => pred_addr,       RDATA0_o => pred_ctr,
          RADDR1_i => train_read_addr, RDATA1_o => train_ctr,
          WE_i => train_we, WADDR_i => train_waddr, WDATA_i => train_wdata );

@@ -43,6 +43,7 @@ if [ -n "$VARIANTE" ]; then			# copie de vhdl/ aux constantes de la variante
 	mkdir -p "$TRAVAIL"
 	rm -rf "$TRAVAIL/_vhdl"
 	cp -r "$VHDL" "$TRAVAIL/_vhdl" || exit 2
+	ln -sfn "$ICI/../vhdl" "$TRAVAIL/vhdl" || exit 2	# les sources ../vhdl/* (frontal commun)
 	VHDL=$TRAVAIL/_vhdl
 	while read -r FIC CONST VAL; do
 		[[ -z $FIC || $FIC == \#* ]] && continue

@@ -22,9 +22,9 @@
 === branch_predict ===
 
    Number of wires:                408
-   Number of wire bits:          39212
+   Number of wire bits:          39104
    Number of public wires:          53
-   Number of public wire bits:    6909
+   Number of public wire bits:    6879
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
@@ -44,7 +44,7 @@
      $pmux                          12
      $sub                           25
      $xor                            3
-     ino_pred_ram2_2r_65536          1
+     ino_pred_table2_2r_1024         1
 
 === data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e ===
 
@@ -415,6 +415,19 @@
      ino_system_unit                 1
      stack_unit_16_8                 1
 
+=== ino_decode_predict ===
+
+   Number of wires:                 57
+   Number of wire bits:           4974
+   Number of public wires:          39
+   Number of public wire bits:    3039
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                  2
+     branch_predict                  1
+     decode_bloc                     1
+
 === ino_decode_queue ===
 
    Number of wires:                226
@@ -633,20 +646,21 @@
      $sub                            7
      $xor                            4
 
-=== ino_pred_ram2_2r_65536 ===
+=== ino_pred_table2_2r_1024 ===
 
-   Number of wires:                 16
-   Number of wire bits:         262268
-   Number of public wires:           8
-   Number of public wire bits:      56
-   Number of memories:               2
-   Number of memory bits:       262144
+   Number of wires:               5142
+   Number of wire bits:          16459
+   Number of public wires:          10
+   Number of public wire bits:    2087
+   Number of memories:               0
+   Number of memory bits:            0
    Number of processes:              0
-   Number of cells:                 10
-     $meminit_v2                     2
-     $memrd_v2                       2
-     $memwr_v2                       2
-     $sub                            4
+   Number of cells:               5132
+     $and                         2044
+     $dff                            3
+     $mux                         3072
+     $not                           10
+     $sub                            3
 
 === ino_system_unit ===
 
@@ -676,20 +690,19 @@
 
 === instruction_unit ===
 
-   Number of wires:                 90
-   Number of wire bits:           6834
-   Number of public wires:          51
-   Number of public wire bits:    3808
+   Number of wires:                 86
+   Number of wire bits:           5481
+   Number of public wires:          52
+   Number of public wire bits:    3674
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:                  6
+   Number of cells:                  5
      $and                            1
      $or                             1
-     branch_predict                  1
-     decode_bloc                     1
      fetch_byte_queue                1
      fetch_unit                      1
+     ino_decode_predict              1
 
 === stack_unit_16_8 ===
 
@@ -748,41 +761,42 @@
        ino_decode_queue_ram207_2_143      4
      ino_frontend_control            1
      instruction_unit                1
-       branch_predict                1
-         ino_pred_ram2_2r_65536      1
-       decode_bloc                   1
        fetch_byte_queue              1
        fetch_unit                    1
          ino_fetch_ram64_2r_256      4
          ino_fetch_ram64_2r_512      6
+       ino_decode_predict            1
+         branch_predict              1
+           ino_pred_table2_2r_1024      1
+         decode_bloc                 1
 
-   Number of wires:              63407
-   Number of wire bits:         1865980
-   Number of public wires:        1517
-   Number of public wire bits:   91373
-   Number of memories:              44
-   Number of memory bits:       908408
+   Number of wires:              68586
+   Number of wire bits:         1623684
+   Number of public wires:        1559
+   Number of public wire bits:   96279
+   Number of memories:              42
+   Number of memory bits:       646264
    Number of processes:              0
-   Number of cells:              61480
+   Number of cells:              66602
      $add                          511
-     $and                        23285
+     $and                        25329
      $assert                        12
-     $dff                          232
+     $dff                          235
      $div                           80
      $eq                          4288
      $ge                            69
      $gt                            98
      $le                            69
      $lt                           935
-     $meminit_v2                    10
-     $memrd_v2                      54
-     $memwr_v2                      36
+     $meminit_v2                     8
+     $memrd_v2                      52
+     $memwr_v2                      34
      $modfloor                      14
      $mul                           36
-     $mux                        28001
+     $mux                        31073
      $ne                            67
      $neg                           25
-     $not                         1028
+     $not                         1038
      $or                           980
      $pmux                         873
      $reduce_and                    18
@@ -790,6 +804,6 @@
      $shl                           27
      $shr                           14
      $sshr                           1
-     $sub                          611
+     $sub                          610
      $xor                           28
 

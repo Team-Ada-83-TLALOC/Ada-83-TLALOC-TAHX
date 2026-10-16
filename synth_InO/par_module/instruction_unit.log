@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fetch_byte_queue fetch_unit fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch_ram64_2r_256 ino_fetch_ram64_2r_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_ram2_2r_65536 ino_system_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fetch_byte_queue fetch_unit fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch_ram64_2r_256 ino_fetch_ram64_2r_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system_unit stack_unit_16_8
          hierarchy -top instruction_unit
          synth -top instruction_unit -noshare
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -93,7 +93,7 @@ Optimizing module instruction_unit.
 
 3.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \instruction_unit..
-Removed 0 unused cells and 35 unused wires.
+Removed 0 unused cells and 31 unused wires.
 <suppressed ~1 debug messages>
 
 3.5. Executing CHECK pass (checking for obvious problems).
@@ -421,19 +421,18 @@ Removed 0 unused modules.
 === instruction_unit ===
 
    Number of wires:                 55
-   Number of wire bits:           3819
-   Number of public wires:          51
-   Number of public wire bits:    3808
+   Number of wire bits:           3684
+   Number of public wires:          52
+   Number of public wire bits:    3674
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:                  6
+   Number of cells:                  5
      $_AND_                          1
      $_OR_                           1
-     branch_predict                  1
-     decode_bloc                     1
      fetch_byte_queue                1
      fetch_unit                      1
+     ino_decode_predict              1
 
 3.25. Executing CHECK pass (checking for obvious problems).
 Checking module instruction_unit...
@@ -542,8 +541,8 @@ ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
 ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
-ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
-ABC: Memory =    2.86 MB. Time =     0.02 sec
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
+ABC: Memory =    2.86 MB. Time =     0.01 sec
 ABC: + strash 
 ABC: + &get -n 
 ABC: + &fraig -x 
@@ -571,6 +570,6 @@ Finding unused cells or wires in module \instruction_unit..
 Removed 0 unused cells and 5 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 73dbc79d62, CPU: user 0.84s system 0.05s, MEM: 113.84 MB peak
+End of script. Logfile hash: d980fedbdb, CPU: user 0.83s system 0.05s, MEM: 121.59 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 63% 2x read_rtlil (0 sec), 8% 2x abc (0 sec), ...
+Time spent: 63% 2x read_rtlil (0 sec), 9% 1x blackbox (0 sec), ...

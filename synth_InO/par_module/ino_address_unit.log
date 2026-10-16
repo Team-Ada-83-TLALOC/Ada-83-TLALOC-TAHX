@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fetch_byte_queue fetch_unit fexp_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch_ram64_2r_256 ino_fetch_ram64_2r_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_ram2_2r_65536 ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fetch_byte_queue fetch_unit fexp_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch_ram64_2r_256 ino_fetch_ram64_2r_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_address_unit
          synth -top ino_address_unit -noshare
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -210,8 +210,8 @@ Finding identical cells in module `\ino_address_unit'.
 Removed a total of 0 cells.
 
 3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on \124818 ($dff) from module ino_address_unit (D = $auto$ghdl.cc:806:import_module$71137 [0], Q = \result_s [0], rval = 1'0).
-Adding SRST signal on \124818 ($dff) from module ino_address_unit (D = { $auto$ghdl.cc:806:import_module$71136 $auto$ghdl.cc:806:import_module$71120 \issue_i.slot }, Q = \result_s [335:1], rval = 335'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on \132785 ($dff) from module ino_address_unit (D = $auto$ghdl.cc:806:import_module$78320 [0], Q = \result_s [0], rval = 1'0).
+Adding SRST signal on \132785 ($dff) from module ino_address_unit (D = { $auto$ghdl.cc:806:import_module$78319 $auto$ghdl.cc:806:import_module$78303 \issue_i.slot }, Q = \result_s [335:1], rval = 335'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
 
 3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_address_unit..
@@ -250,14 +250,14 @@ Optimizing module ino_address_unit.
 3.8.16. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 29 bits (of 32) from port A of cell ino_address_unit.\124776 ($sub).
-Removed top 31 bits (of 32) from port B of cell ino_address_unit.\124776 ($sub).
-Removed top 28 bits (of 32) from port Y of cell ino_address_unit.\124776 ($sub).
-Removed top 31 bits (of 32) from port A of cell ino_address_unit.\124786 ($eq).
-Removed top 30 bits (of 32) from port A of cell ino_address_unit.\124794 ($eq).
-Removed top 30 bits (of 32) from port A of cell ino_address_unit.\124802 ($eq).
-Removed top 335 bits (of 336) from mux cell ino_address_unit.\124812 ($mux).
-Removed top 335 bits (of 336) from wire ino_address_unit.$auto$ghdl.cc:806:import_module$71137.
+Removed top 29 bits (of 32) from port A of cell ino_address_unit.\132743 ($sub).
+Removed top 31 bits (of 32) from port B of cell ino_address_unit.\132743 ($sub).
+Removed top 28 bits (of 32) from port Y of cell ino_address_unit.\132743 ($sub).
+Removed top 31 bits (of 32) from port A of cell ino_address_unit.\132753 ($eq).
+Removed top 30 bits (of 32) from port A of cell ino_address_unit.\132761 ($eq).
+Removed top 30 bits (of 32) from port A of cell ino_address_unit.\132769 ($eq).
+Removed top 335 bits (of 336) from mux cell ino_address_unit.\132779 ($mux).
+Removed top 335 bits (of 336) from wire ino_address_unit.$auto$ghdl.cc:806:import_module$78320.
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
 
@@ -268,12 +268,12 @@ Removed 0 unused cells and 1 unused wires.
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_address_unit:
-  creating $macc model for \124767 ($add).
-  creating $macc model for \124776 ($sub).
-  creating $alu model for $macc \124776.
-  creating $alu model for $macc \124767.
-  creating $alu cell for \124767: $auto$alumacc.cc:485:replace_alu$71946
-  creating $alu cell for \124776: $auto$alumacc.cc:485:replace_alu$71949
+  creating $macc model for \132734 ($add).
+  creating $macc model for \132743 ($sub).
+  creating $alu model for $macc \132743.
+  creating $alu model for $macc \132734.
+  creating $alu cell for \132734: $auto$alumacc.cc:485:replace_alu$79129
+  creating $alu cell for \132743: $auto$alumacc.cc:485:replace_alu$79132
   created 2 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -701,6 +701,6 @@ Finding unused cells or wires in module \ino_address_unit..
 Removed 0 unused cells and 1802 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 96a20a6057, CPU: user 0.98s system 0.03s, MEM: 113.97 MB peak
+End of script. Logfile hash: f435846560, CPU: user 1.03s system 0.06s, MEM: 121.67 MB peak
 Yosys 0.33 (git sha1 2584903a060)
 Time spent: 41% 2x read_rtlil (0 sec), 21% 2x abc (0 sec), ...

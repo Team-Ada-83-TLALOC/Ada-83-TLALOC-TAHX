@@ -13,3 +13,11 @@ yosys -p "
    opt_clean
    write_verilog -noattr ~/tahx_pnr/macros/decode_queue/src/ino_decode_queue.v
 "
+
+yosys -p "
+   read_rtlil ../synth_InO/par_module/brut.il
+   hierarchy -check -top ino_decode_predict
+   proc
+   opt_clean
+   write_verilog -noattr ~/tahx_pnr/macros/ino_decode_predict/src/ino_decode_predict.v
+"
