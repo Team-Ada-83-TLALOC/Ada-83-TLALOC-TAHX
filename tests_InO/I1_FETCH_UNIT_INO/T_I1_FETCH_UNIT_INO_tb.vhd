@@ -302,8 +302,8 @@ begin
       report "tampon de cible : apprentissages " & integer'image( n_train ) & ", chargements "
              & integer'image( n_preload ) severity note;
       CHECK( c, n_blocks > 10000 and n_faulty > 50 and n_stop > 20 and n_both > 10 and accepted < 4 * n_blocks
-                and n_preload > 100,
-             "le tirage a exercé blocs, fautes, arrêts, tampon de cible, et le cache sert" );
+                and n_preload = 0,
+             "le tirage a exercé blocs, fautes, arrêts, et le cache sert ; pas de préchargement des cibles (FETCH_UNIT(IN_ORDER) sans table de blocs)" );
       FINISH( c, "T_I1_FETCH_UNIT_INO_tb" );
       wait;
    end process;

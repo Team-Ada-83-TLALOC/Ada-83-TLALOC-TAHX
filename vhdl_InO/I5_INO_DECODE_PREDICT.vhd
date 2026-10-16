@@ -39,7 +39,8 @@ use work.INO_FRONT_PA.all;
 		--    - RETIRE_i : la case 0 seule et les bits d'indice gshare du pc
 		--      (retire_bp_t) : ce que BRANCH_PREDICT(IN_ORDER) en lit ;
 		--    - RECOVERY_i : valid, new_pc, ghist, ras_ptr (recovery_bp_t) ;
-		--    - NEED_MORE_BYTES_o de DECODE_BLOC n'est pas sorti (sans lecteur).
+		--    - NEED_MORE_BYTES_o de DECODE_BLOC et TRAIN_* de BRANCH_PREDICT (la
+		--      table de blocs de FETCH_UNIT a été retirée) ne sont pas sortis.
 		--------------------------------------------------------------------------------
 
 
@@ -70,15 +71,10 @@ is                    	          ------------------
       OUT_READY_i	:in  std_logic;
 
       ------------------------------------------------------------------
-      -- Vers FETCH_UNIT : redirection et apprentissage de la table de blocs
+      -- Vers FETCH_UNIT : redirection
       ------------------------------------------------------------------
       PREDICT_VALID_o	:out std_logic;
       PREDICT_PC_o	:out paddr_t;
-      TRAIN_VALID_o	:out std_logic;
-      TRAIN_KEY_o	:out paddr_t;
-      TRAIN_FIN_o	:out paddr_t;
-      TRAIN_TARGET_o	:out paddr_t;
-      TRAIN_TAKEN_o	:out std_logic;
 
       ------------------------------------------------------------------
       -- Depuis INO_FRONTEND_CONTROL : apprentissage gshare et reprise

@@ -26,9 +26,6 @@ architecture STRUCTURE of INO_DECODE_PREDICT is
 
    signal out_block     : decoded_block_t;
    signal predict_pc    : address_t;
-   signal train_key     : address_t;
-   signal train_fin     : address_t;
-   signal train_target  : address_t;
 
 begin
 
@@ -51,15 +48,12 @@ U_PREDICT :
          OUT_BLOCK_o => out_block, OUT_COUNT_o => OUT_COUNT_o, OUT_VALID_o => OUT_VALID_o,
          OUT_READY_i => OUT_READY_i,
          PREDICT_VALID_o => PREDICT_VALID_o, PREDICT_PC_o => predict_pc,
-         TRAIN_VALID_o => TRAIN_VALID_o, TRAIN_KEY_o => train_key, TRAIN_FIN_o => train_fin,
-         TRAIN_TARGET_o => train_target, TRAIN_TAKEN_o => TRAIN_TAKEN_o,
+         TRAIN_VALID_o => open, TRAIN_KEY_o => open, TRAIN_FIN_o => open,
+         TRAIN_TARGET_o => open, TRAIN_TAKEN_o => open,
          RETIRE_i => TO_VA( RETIRE_i ), RECOVERY_i => TO_VA( RECOVERY_i ) );
 
    -- BRANCH_PREDICT(IN_ORDER) coupe toutes ses adresses par CUT : TO_PA est exact.
    OUT_BLOCK_o    <= TO_PA( out_block );
    PREDICT_PC_o   <= TO_PA( predict_pc );
-   TRAIN_KEY_o    <= TO_PA( train_key );
-   TRAIN_FIN_o    <= TO_PA( train_fin );
-   TRAIN_TARGET_o <= TO_PA( train_target );
 
 end architecture STRUCTURE;

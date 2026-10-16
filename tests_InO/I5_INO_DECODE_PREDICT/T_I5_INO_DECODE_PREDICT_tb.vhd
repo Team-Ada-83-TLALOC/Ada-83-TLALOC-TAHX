@@ -87,11 +87,6 @@ of T_I5_INO_DECODE_PREDICT_tb is
    signal d_out_valid		: std_logic;
    signal d_predict_valid	: std_logic;
    signal d_predict_pc		: paddr_t;
-   signal d_train_valid		: std_logic;
-   signal d_train_key		: paddr_t;
-   signal d_train_fin		: paddr_t;
-   signal d_train_target	: paddr_t;
-   signal d_train_taken		: std_logic;
 
    function B( v : boolean ) return std_logic is
    begin
@@ -138,8 +133,6 @@ begin
          OUT_BLOCK_o => d_out_block, OUT_COUNT_o => d_out_count, OUT_VALID_o => d_out_valid,
          OUT_READY_i => out_ready,
          PREDICT_VALID_o => d_predict_valid, PREDICT_PC_o => d_predict_pc,
-         TRAIN_VALID_o => d_train_valid, TRAIN_KEY_o => d_train_key, TRAIN_FIN_o => d_train_fin,
-         TRAIN_TARGET_o => d_train_target, TRAIN_TAKEN_o => d_train_taken,
          RETIRE_i => TO_BP( retire ), RECOVERY_i => TO_PA( recovery ) );
 
    clk <= not clk after PERIOD / 2 when running;
@@ -272,14 +265,6 @@ begin
                    HEX( d_predict_pc ) );
          end if;
 
-         ok := d_train_valid = r_train_valid and d_train_taken = r_train_taken
-               and d_train_key = TO_PA( r_train_key ) and d_train_fin = TO_PA( r_train_fin )
-               and d_train_target = TO_PA( r_train_target )
-               and ( r_train_valid = '0' or ( PA_OK( r_train_key ) and PA_OK( r_train_fin )
-                                               and PA_OK( r_train_target ) ) );
-         if ok then CHECK_PASSED( c ); else
-            CHECK( c, false, "cycle " & integer'image( cycle ) & " : TRAIN" );
-         end if;
 
          if r_out_valid = '1' and out_ready = '1' then outs := outs + 1; end if;
          if r_predict_valid = '1' then preds := preds + 1; end if;
@@ -294,8 +279,8 @@ begin
              & " ; blocs transmis " & integer'image( outs ) & ", prédictions " & integer'image( preds )
              & ", apprentissages " & integer'image( trains ) & ", reprises " & integer'image( recs )
              & ", arrêts sur faute " & integer'image( stops ) severity note;
-      CHECK( c, outs > 1000 and preds > 200 and trains > 200 and recs > 200,
-             "le tirage a transmis des blocs, prédit, appris et repris" );
+      CHECK( c, outs > 1000 and preds > 200 and recs > 200,
+             "le tirage a transmis des blocs, prédit et repris" );
       FINISH( c, "T_I5_INO_DECODE_PREDICT_tb" );
       wait;
    end process;

@@ -80,6 +80,7 @@ $A ../vhdl/I1_FETCH_UNIT.vhd
 $A ../vhdl/I1_FETCH_UNIT_rtl.vhd
 $A I1a_INO_FETCH_RAM64_2R.vhd
 $A I1b_INO_FETCH_RAM32_2R.vhd
+$A I1c_INO_FETCH_RAM_1R.vhd
 $A I4c_INO_PRED_TABLE2_2R.vhd
 $A I1_FETCH_UNIT_in_order.vhd
 $A ../vhdl/I2_FETCH_BYTE_QUEUE.vhd
@@ -120,11 +121,14 @@ $A K1a_INO_PORTS_PA.vhd
 $A J1b_INO_DECODE_QUEUE.vhd
 $A J1b_INO_DECODE_QUEUE_rtl.vhd
 
-# Frontal InO : decode_bloc + branch_predict a ports reduits, puis l'assemblage
+# Frontal InO : decode_bloc + branch_predict, fetch_unit + fetch_byte_queue a
+# ports reduits, puis l'assemblage
 # INSTRUCTION_UNIT(IN_ORDER) qui l'utilise (il faut INO_PORTS_PA avant).
 $A I5a_INO_FRONT_PA.vhd
 $A I5_INO_DECODE_PREDICT.vhd
 $A I5_INO_DECODE_PREDICT_structure.vhd
+$A I6_INO_FETCH.vhd
+$A I6_INO_FETCH_structure.vhd
 $A I_INSTRUCTION_UNIT_in_order.vhd
 
 $A K1b_STACK_UNIT.vhd

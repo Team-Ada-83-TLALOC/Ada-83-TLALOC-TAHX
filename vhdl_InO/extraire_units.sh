@@ -1,3 +1,5 @@
+#!/bin/bash
+
 yosys -p "
    read_rtlil ../synth_InO/par_module/brut.il
    hierarchy -check -top stack_unit_16_8

@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fetch_byte_queue fetch_unit fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch_ram32_2r_256 ino_fetch_ram32_2r_512 ino_fetch_ram64_2r_512 ino_float_unit ino_frontend_control ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_pred_table2_2r_256 ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fetch_byte_queue fetch_unit fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_integer_unit
          synth -top ino_integer_unit -noshare
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -115,16 +115,16 @@ Removed a total of 21 cells.
 Running muxtree optimizer on module \ino_integer_unit..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
-      Replacing known input bits on port A of cell \135441: \issue_i.operand [255:192] -> { 1'0 \issue_i.operand [254:192] }
-      Replacing known input bits on port A of cell \135467: \issue_i.operand [255:192] -> { 1'0 \issue_i.operand [254:192] }
+      Replacing known input bits on port A of cell \122583: \issue_i.operand [255:192] -> { 1'0 \issue_i.operand [254:192] }
+      Replacing known input bits on port A of cell \122609: \issue_i.operand [255:192] -> { 1'0 \issue_i.operand [254:192] }
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
 <suppressed ~69 debug messages>
 
 3.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_integer_unit.
-    New ctrl vector for $pmux cell \136205: { $auto$ghdl.cc:806:import_module$80346 $auto$ghdl.cc:806:import_module$80341 $auto$ghdl.cc:806:import_module$80336 $auto$ghdl.cc:806:import_module$80329 $auto$ghdl.cc:806:import_module$80322 $auto$ghdl.cc:806:import_module$80316 }
-    New ctrl vector for $pmux cell \136208: { $auto$ghdl.cc:806:import_module$80560 $auto$ghdl.cc:806:import_module$80346 $auto$ghdl.cc:806:import_module$80341 $auto$ghdl.cc:806:import_module$80336 $auto$ghdl.cc:806:import_module$80329 $auto$ghdl.cc:806:import_module$80322 $auto$ghdl.cc:806:import_module$80316 $auto$ghdl.cc:806:import_module$80309 $auto$opt_reduce.cc:134:opt_pmux$80927 }
+    New ctrl vector for $pmux cell \123347: { $auto$ghdl.cc:806:import_module$72999 $auto$ghdl.cc:806:import_module$72994 $auto$ghdl.cc:806:import_module$72989 $auto$ghdl.cc:806:import_module$72982 $auto$ghdl.cc:806:import_module$72975 $auto$ghdl.cc:806:import_module$72969 }
+    New ctrl vector for $pmux cell \123350: { $auto$ghdl.cc:806:import_module$73213 $auto$ghdl.cc:806:import_module$72999 $auto$ghdl.cc:806:import_module$72994 $auto$ghdl.cc:806:import_module$72989 $auto$ghdl.cc:806:import_module$72982 $auto$ghdl.cc:806:import_module$72975 $auto$ghdl.cc:806:import_module$72969 $auto$ghdl.cc:806:import_module$72962 $auto$opt_reduce.cc:134:opt_pmux$73580 }
   Optimizing cells in module \ino_integer_unit.
 Performed a total of 2 changes.
 
@@ -155,8 +155,8 @@ Removed 0 multiplexer ports.
 
 3.6.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_integer_unit.
-    New ctrl vector for $pmux cell \136205: { $auto$ghdl.cc:806:import_module$80341 $auto$ghdl.cc:806:import_module$80336 $auto$ghdl.cc:806:import_module$80329 $auto$opt_reduce.cc:134:opt_pmux$80929 }
-    New ctrl vector for $pmux cell \136208: { $auto$ghdl.cc:806:import_module$80560 $auto$ghdl.cc:806:import_module$80341 $auto$ghdl.cc:806:import_module$80336 $auto$ghdl.cc:806:import_module$80329 $auto$opt_reduce.cc:134:opt_pmux$80931 $auto$ghdl.cc:806:import_module$80309 $auto$opt_reduce.cc:134:opt_pmux$80927 }
+    New ctrl vector for $pmux cell \123347: { $auto$ghdl.cc:806:import_module$72994 $auto$ghdl.cc:806:import_module$72989 $auto$ghdl.cc:806:import_module$72982 $auto$opt_reduce.cc:134:opt_pmux$73582 }
+    New ctrl vector for $pmux cell \123350: { $auto$ghdl.cc:806:import_module$73213 $auto$ghdl.cc:806:import_module$72994 $auto$ghdl.cc:806:import_module$72989 $auto$ghdl.cc:806:import_module$72982 $auto$opt_reduce.cc:134:opt_pmux$73584 $auto$ghdl.cc:806:import_module$72962 $auto$opt_reduce.cc:134:opt_pmux$73580 }
   Optimizing cells in module \ino_integer_unit.
 Performed a total of 2 changes.
 
@@ -248,10 +248,10 @@ Finding identical cells in module `\ino_integer_unit'.
 Removed a total of 0 cells.
 
 3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on \136235 ($dff) from module ino_integer_unit (D = { $auto$ghdl.cc:806:import_module$80579 [139:75] $auto$ghdl.cc:806:import_module$80579 [0] }, Q = { \complete_s [139:75] \complete_s [0] }, rval = 66'000000000000000000000000000000000000000000000000000000000000000000).
-Adding SRST signal on \136235 ($dff) from module ino_integer_unit (D = { \computed_s [66] \computed_s [1] }, Q = { \complete_s [66] \complete_s [1] }, rval = 2'00).
-Adding SRST signal on \136235 ($dff) from module ino_integer_unit (D = $auto$ghdl.cc:806:import_module$80576, Q = \complete_s [74:67], rval = 8'00000000).
-Adding SRST signal on \136235 ($dff) from module ino_integer_unit (D = $auto$ghdl.cc:806:import_module$80575, Q = \complete_s [65:2], rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on \123377 ($dff) from module ino_integer_unit (D = { $auto$ghdl.cc:806:import_module$73232 [139:75] $auto$ghdl.cc:806:import_module$73232 [0] }, Q = { \complete_s [139:75] \complete_s [0] }, rval = 66'000000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on \123377 ($dff) from module ino_integer_unit (D = { \computed_s [66] \computed_s [1] }, Q = { \complete_s [66] \complete_s [1] }, rval = 2'00).
+Adding SRST signal on \123377 ($dff) from module ino_integer_unit (D = $auto$ghdl.cc:806:import_module$73229, Q = \complete_s [74:67], rval = 8'00000000).
+Adding SRST signal on \123377 ($dff) from module ino_integer_unit (D = $auto$ghdl.cc:806:import_module$73228, Q = \complete_s [65:2], rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
 
 3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_integer_unit..
@@ -319,384 +319,384 @@ Optimizing module ino_integer_unit.
 3.8.23. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 7 bits (of 8) from port B of cell ino_integer_unit.\135401 ($eq).
-Removed top 6 bits (of 8) from port B of cell ino_integer_unit.\135404 ($eq).
-Removed top 6 bits (of 8) from port B of cell ino_integer_unit.\135407 ($eq).
-Removed top 57 bits (of 64) from port B of cell ino_integer_unit.\135409 ($ge).
-Removed top 5 bits (of 8) from port B of cell ino_integer_unit.\135413 ($eq).
-Removed top 25 bits (of 31) from port B of cell ino_integer_unit.\135415 ($shl).
-Removed top 5 bits (of 8) from port B of cell ino_integer_unit.\135417 ($eq).
-Removed top 25 bits (of 31) from port B of cell ino_integer_unit.\135419 ($shr).
-Removed top 25 bits (of 31) from port B of cell ino_integer_unit.\135421 ($sshr).
-Removed top 5 bits (of 8) from port B of cell ino_integer_unit.\135437 ($eq).
-Removed top 1 bits (of 64) from mux cell ino_integer_unit.\135441 ($mux).
-Removed top 5 bits (of 8) from port B of cell ino_integer_unit.\135443 ($eq).
-Removed top 4 bits (of 8) from mux cell ino_integer_unit.\135448 ($mux).
-Removed top 63 bits (of 64) from port A of cell ino_integer_unit.\135453 ($sub).
-Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\135455 ($eq).
-Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\135469 ($eq).
-Removed top 4 bits (of 8) from mux cell ino_integer_unit.\135480 ($mux).
-Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\135485 ($eq).
-Removed top 4 bits (of 8) from mux cell ino_integer_unit.\135496 ($mux).
-Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\135501 ($eq).
-Removed top 1 bits (of 64) from port B of cell ino_integer_unit.\135503 ($eq).
-Removed top 4 bits (of 8) from mux cell ino_integer_unit.\135506 ($mux).
-Removed top 63 bits (of 64) from port B of cell ino_integer_unit.\135511 ($add).
-Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\135513 ($eq).
-Removed top 63 bits (of 64) from port B of cell ino_integer_unit.\135523 ($sub).
-Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\135525 ($eq).
-Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\135527 ($eq).
-Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\135531 ($eq).
-Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\135536 ($eq).
-Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\135541 ($eq).
-Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\135546 ($eq).
-Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\135551 ($eq).
-Removed top 63 bits (of 64) from mux cell ino_integer_unit.\135557 ($mux).
-Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\135576 ($eq).
-Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\135578 ($eq).
-Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\135583 ($eq).
-Removed top 57 bits (of 64) from port B of cell ino_integer_unit.\135606 ($gt).
-Removed top 57 bits (of 64) from port A of cell ino_integer_unit.\135609 ($sub).
-Removed top 31 bits (of 32) from port A of cell ino_integer_unit.\135624 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135624 ($lt).
-Converting cell ino_integer_unit.\135624 ($lt) from signed to unsigned.
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135624 ($lt).
-Removed top 30 bits (of 32) from port A of cell ino_integer_unit.\135632 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135632 ($lt).
-Converting cell ino_integer_unit.\135632 ($lt) from signed to unsigned.
-Removed top 1 bits (of 2) from port A of cell ino_integer_unit.\135632 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135632 ($lt).
-Removed top 29 bits (of 32) from port A of cell ino_integer_unit.\135639 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135639 ($lt).
-Converting cell ino_integer_unit.\135639 ($lt) from signed to unsigned.
-Removed top 1 bits (of 3) from port A of cell ino_integer_unit.\135639 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135639 ($lt).
-Removed top 29 bits (of 32) from port A of cell ino_integer_unit.\135646 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135646 ($lt).
-Converting cell ino_integer_unit.\135646 ($lt) from signed to unsigned.
-Removed top 1 bits (of 3) from port A of cell ino_integer_unit.\135646 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135646 ($lt).
-Removed top 28 bits (of 32) from port A of cell ino_integer_unit.\135653 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135653 ($lt).
-Converting cell ino_integer_unit.\135653 ($lt) from signed to unsigned.
-Removed top 1 bits (of 4) from port A of cell ino_integer_unit.\135653 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135653 ($lt).
-Removed top 28 bits (of 32) from port A of cell ino_integer_unit.\135660 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135660 ($lt).
-Converting cell ino_integer_unit.\135660 ($lt) from signed to unsigned.
-Removed top 1 bits (of 4) from port A of cell ino_integer_unit.\135660 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135660 ($lt).
-Removed top 28 bits (of 32) from port A of cell ino_integer_unit.\135667 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135667 ($lt).
-Converting cell ino_integer_unit.\135667 ($lt) from signed to unsigned.
-Removed top 1 bits (of 4) from port A of cell ino_integer_unit.\135667 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135667 ($lt).
-Removed top 28 bits (of 32) from port A of cell ino_integer_unit.\135674 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135674 ($lt).
-Converting cell ino_integer_unit.\135674 ($lt) from signed to unsigned.
-Removed top 1 bits (of 4) from port A of cell ino_integer_unit.\135674 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135674 ($lt).
-Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\135681 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135681 ($lt).
-Converting cell ino_integer_unit.\135681 ($lt) from signed to unsigned.
-Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\135681 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135681 ($lt).
-Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\135688 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135688 ($lt).
-Converting cell ino_integer_unit.\135688 ($lt) from signed to unsigned.
-Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\135688 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135688 ($lt).
-Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\135695 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135695 ($lt).
-Converting cell ino_integer_unit.\135695 ($lt) from signed to unsigned.
-Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\135695 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135695 ($lt).
-Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\135702 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135702 ($lt).
-Converting cell ino_integer_unit.\135702 ($lt) from signed to unsigned.
-Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\135702 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135702 ($lt).
-Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\135709 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135709 ($lt).
-Converting cell ino_integer_unit.\135709 ($lt) from signed to unsigned.
-Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\135709 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135709 ($lt).
-Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\135716 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135716 ($lt).
-Converting cell ino_integer_unit.\135716 ($lt) from signed to unsigned.
-Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\135716 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135716 ($lt).
-Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\135723 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135723 ($lt).
-Converting cell ino_integer_unit.\135723 ($lt) from signed to unsigned.
-Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\135723 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135723 ($lt).
-Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\135730 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135730 ($lt).
-Converting cell ino_integer_unit.\135730 ($lt) from signed to unsigned.
-Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\135730 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135730 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135737 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135737 ($lt).
-Converting cell ino_integer_unit.\135737 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135737 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135737 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135744 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135744 ($lt).
-Converting cell ino_integer_unit.\135744 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135744 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135744 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135751 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135751 ($lt).
-Converting cell ino_integer_unit.\135751 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135751 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135751 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135758 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135758 ($lt).
-Converting cell ino_integer_unit.\135758 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135758 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135758 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135765 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135765 ($lt).
-Converting cell ino_integer_unit.\135765 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135765 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135765 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135772 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135772 ($lt).
-Converting cell ino_integer_unit.\135772 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135772 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135772 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135779 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135779 ($lt).
-Converting cell ino_integer_unit.\135779 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135779 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135779 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135786 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135786 ($lt).
-Converting cell ino_integer_unit.\135786 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135786 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135786 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135793 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135793 ($lt).
-Converting cell ino_integer_unit.\135793 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135793 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135793 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135800 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135800 ($lt).
-Converting cell ino_integer_unit.\135800 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135800 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135800 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135807 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135807 ($lt).
-Converting cell ino_integer_unit.\135807 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135807 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135807 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135814 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135814 ($lt).
-Converting cell ino_integer_unit.\135814 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135814 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135814 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135821 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135821 ($lt).
-Converting cell ino_integer_unit.\135821 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135821 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135821 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135828 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135828 ($lt).
-Converting cell ino_integer_unit.\135828 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135828 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135828 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135835 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135835 ($lt).
-Converting cell ino_integer_unit.\135835 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135835 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135835 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\135842 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135842 ($lt).
-Converting cell ino_integer_unit.\135842 ($lt) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\135842 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135842 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135849 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135849 ($lt).
-Converting cell ino_integer_unit.\135849 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135849 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135849 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135856 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135856 ($lt).
-Converting cell ino_integer_unit.\135856 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135856 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135856 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135863 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135863 ($lt).
-Converting cell ino_integer_unit.\135863 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135863 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135863 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135870 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135870 ($lt).
-Converting cell ino_integer_unit.\135870 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135870 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135870 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135877 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135877 ($lt).
-Converting cell ino_integer_unit.\135877 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135877 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135877 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135884 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135884 ($lt).
-Converting cell ino_integer_unit.\135884 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135884 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135884 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135891 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135891 ($lt).
-Converting cell ino_integer_unit.\135891 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135891 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135891 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135898 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135898 ($lt).
-Converting cell ino_integer_unit.\135898 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135898 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135898 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135905 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135905 ($lt).
-Converting cell ino_integer_unit.\135905 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135905 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135905 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135912 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135912 ($lt).
-Converting cell ino_integer_unit.\135912 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135912 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135912 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135919 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135919 ($lt).
-Converting cell ino_integer_unit.\135919 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135919 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135919 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135926 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135926 ($lt).
-Converting cell ino_integer_unit.\135926 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135926 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135926 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135933 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135933 ($lt).
-Converting cell ino_integer_unit.\135933 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135933 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135933 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135940 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135940 ($lt).
-Converting cell ino_integer_unit.\135940 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135940 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135940 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135947 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135947 ($lt).
-Converting cell ino_integer_unit.\135947 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135947 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135947 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135954 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135954 ($lt).
-Converting cell ino_integer_unit.\135954 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135954 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135954 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135961 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135961 ($lt).
-Converting cell ino_integer_unit.\135961 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135961 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135961 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135968 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135968 ($lt).
-Converting cell ino_integer_unit.\135968 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135968 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135968 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135975 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135975 ($lt).
-Converting cell ino_integer_unit.\135975 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135975 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135975 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135982 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135982 ($lt).
-Converting cell ino_integer_unit.\135982 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135982 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135982 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135989 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135989 ($lt).
-Converting cell ino_integer_unit.\135989 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135989 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135989 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\135996 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\135996 ($lt).
-Converting cell ino_integer_unit.\135996 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\135996 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\135996 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\136003 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\136003 ($lt).
-Converting cell ino_integer_unit.\136003 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\136003 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\136003 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\136010 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\136010 ($lt).
-Converting cell ino_integer_unit.\136010 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\136010 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\136010 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\136017 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\136017 ($lt).
-Converting cell ino_integer_unit.\136017 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\136017 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\136017 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\136024 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\136024 ($lt).
-Converting cell ino_integer_unit.\136024 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\136024 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\136024 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\136031 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\136031 ($lt).
-Converting cell ino_integer_unit.\136031 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\136031 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\136031 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\136038 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\136038 ($lt).
-Converting cell ino_integer_unit.\136038 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\136038 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\136038 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\136045 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\136045 ($lt).
-Converting cell ino_integer_unit.\136045 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\136045 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\136045 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\136052 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\136052 ($lt).
-Converting cell ino_integer_unit.\136052 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\136052 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\136052 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\136059 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\136059 ($lt).
-Converting cell ino_integer_unit.\136059 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\136059 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\136059 ($lt).
-Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\136066 ($lt).
-Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\136066 ($lt).
-Converting cell ino_integer_unit.\136066 ($lt) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\136066 ($lt).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\136066 ($lt).
-Removed top 25 bits (of 31) from port B of cell ino_integer_unit.\136076 ($shr).
-Removed top 57 bits (of 64) from port B of cell ino_integer_unit.\136087 ($lt).
-Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\136092 ($sub).
-Removed top 31 bits (of 32) from port B of cell ino_integer_unit.\136092 ($sub).
-Removed top 26 bits (of 32) from port Y of cell ino_integer_unit.\136092 ($sub).
-Removed top 25 bits (of 31) from port B of cell ino_integer_unit.\136101 ($shl).
-Removed top 25 bits (of 31) from port B of cell ino_integer_unit.\136106 ($shl).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\136151 ($eq).
-Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\136153 ($eq).
-Removed top 4 bits (of 8) from mux cell ino_integer_unit.\136205 ($pmux).
-Removed top 139 bits (of 140) from mux cell ino_integer_unit.\136230 ($mux).
-Removed top 8 bits (of 74) from mux cell ino_integer_unit.\136225 ($mux).
-Removed top 1 bits (of 64) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$80310.
-Removed top 4 bits (of 8) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$80313.
-Removed top 4 bits (of 8) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$80327.
-Removed top 4 bits (of 8) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$80334.
-Removed top 4 bits (of 8) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$80338.
-Removed top 63 bits (of 64) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$80370.
-Removed top 26 bits (of 32) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$80535.
-Removed top 4 bits (of 8) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$80576.
-Removed top 139 bits (of 140) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$80579.
+Removed top 7 bits (of 8) from port B of cell ino_integer_unit.\122543 ($eq).
+Removed top 6 bits (of 8) from port B of cell ino_integer_unit.\122546 ($eq).
+Removed top 6 bits (of 8) from port B of cell ino_integer_unit.\122549 ($eq).
+Removed top 57 bits (of 64) from port B of cell ino_integer_unit.\122551 ($ge).
+Removed top 5 bits (of 8) from port B of cell ino_integer_unit.\122555 ($eq).
+Removed top 25 bits (of 31) from port B of cell ino_integer_unit.\122557 ($shl).
+Removed top 5 bits (of 8) from port B of cell ino_integer_unit.\122559 ($eq).
+Removed top 25 bits (of 31) from port B of cell ino_integer_unit.\122561 ($shr).
+Removed top 25 bits (of 31) from port B of cell ino_integer_unit.\122563 ($sshr).
+Removed top 5 bits (of 8) from port B of cell ino_integer_unit.\122579 ($eq).
+Removed top 1 bits (of 64) from mux cell ino_integer_unit.\122583 ($mux).
+Removed top 5 bits (of 8) from port B of cell ino_integer_unit.\122585 ($eq).
+Removed top 4 bits (of 8) from mux cell ino_integer_unit.\122590 ($mux).
+Removed top 63 bits (of 64) from port A of cell ino_integer_unit.\122595 ($sub).
+Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\122597 ($eq).
+Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\122611 ($eq).
+Removed top 4 bits (of 8) from mux cell ino_integer_unit.\122622 ($mux).
+Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\122627 ($eq).
+Removed top 4 bits (of 8) from mux cell ino_integer_unit.\122638 ($mux).
+Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\122643 ($eq).
+Removed top 1 bits (of 64) from port B of cell ino_integer_unit.\122645 ($eq).
+Removed top 4 bits (of 8) from mux cell ino_integer_unit.\122648 ($mux).
+Removed top 63 bits (of 64) from port B of cell ino_integer_unit.\122653 ($add).
+Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\122655 ($eq).
+Removed top 63 bits (of 64) from port B of cell ino_integer_unit.\122665 ($sub).
+Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\122667 ($eq).
+Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\122669 ($eq).
+Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\122673 ($eq).
+Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\122678 ($eq).
+Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\122683 ($eq).
+Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\122688 ($eq).
+Removed top 4 bits (of 8) from port B of cell ino_integer_unit.\122693 ($eq).
+Removed top 63 bits (of 64) from mux cell ino_integer_unit.\122699 ($mux).
+Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\122718 ($eq).
+Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\122720 ($eq).
+Removed top 3 bits (of 8) from port B of cell ino_integer_unit.\122725 ($eq).
+Removed top 57 bits (of 64) from port B of cell ino_integer_unit.\122748 ($gt).
+Removed top 57 bits (of 64) from port A of cell ino_integer_unit.\122751 ($sub).
+Removed top 31 bits (of 32) from port A of cell ino_integer_unit.\122766 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122766 ($lt).
+Converting cell ino_integer_unit.\122766 ($lt) from signed to unsigned.
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122766 ($lt).
+Removed top 30 bits (of 32) from port A of cell ino_integer_unit.\122774 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122774 ($lt).
+Converting cell ino_integer_unit.\122774 ($lt) from signed to unsigned.
+Removed top 1 bits (of 2) from port A of cell ino_integer_unit.\122774 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122774 ($lt).
+Removed top 29 bits (of 32) from port A of cell ino_integer_unit.\122781 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122781 ($lt).
+Converting cell ino_integer_unit.\122781 ($lt) from signed to unsigned.
+Removed top 1 bits (of 3) from port A of cell ino_integer_unit.\122781 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122781 ($lt).
+Removed top 29 bits (of 32) from port A of cell ino_integer_unit.\122788 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122788 ($lt).
+Converting cell ino_integer_unit.\122788 ($lt) from signed to unsigned.
+Removed top 1 bits (of 3) from port A of cell ino_integer_unit.\122788 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122788 ($lt).
+Removed top 28 bits (of 32) from port A of cell ino_integer_unit.\122795 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122795 ($lt).
+Converting cell ino_integer_unit.\122795 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell ino_integer_unit.\122795 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122795 ($lt).
+Removed top 28 bits (of 32) from port A of cell ino_integer_unit.\122802 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122802 ($lt).
+Converting cell ino_integer_unit.\122802 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell ino_integer_unit.\122802 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122802 ($lt).
+Removed top 28 bits (of 32) from port A of cell ino_integer_unit.\122809 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122809 ($lt).
+Converting cell ino_integer_unit.\122809 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell ino_integer_unit.\122809 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122809 ($lt).
+Removed top 28 bits (of 32) from port A of cell ino_integer_unit.\122816 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122816 ($lt).
+Converting cell ino_integer_unit.\122816 ($lt) from signed to unsigned.
+Removed top 1 bits (of 4) from port A of cell ino_integer_unit.\122816 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122816 ($lt).
+Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\122823 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122823 ($lt).
+Converting cell ino_integer_unit.\122823 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\122823 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122823 ($lt).
+Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\122830 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122830 ($lt).
+Converting cell ino_integer_unit.\122830 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\122830 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122830 ($lt).
+Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\122837 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122837 ($lt).
+Converting cell ino_integer_unit.\122837 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\122837 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122837 ($lt).
+Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\122844 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122844 ($lt).
+Converting cell ino_integer_unit.\122844 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\122844 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122844 ($lt).
+Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\122851 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122851 ($lt).
+Converting cell ino_integer_unit.\122851 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\122851 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122851 ($lt).
+Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\122858 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122858 ($lt).
+Converting cell ino_integer_unit.\122858 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\122858 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122858 ($lt).
+Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\122865 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122865 ($lt).
+Converting cell ino_integer_unit.\122865 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\122865 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122865 ($lt).
+Removed top 27 bits (of 32) from port A of cell ino_integer_unit.\122872 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122872 ($lt).
+Converting cell ino_integer_unit.\122872 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell ino_integer_unit.\122872 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122872 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122879 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122879 ($lt).
+Converting cell ino_integer_unit.\122879 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122879 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122879 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122886 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122886 ($lt).
+Converting cell ino_integer_unit.\122886 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122886 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122886 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122893 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122893 ($lt).
+Converting cell ino_integer_unit.\122893 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122893 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122893 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122900 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122900 ($lt).
+Converting cell ino_integer_unit.\122900 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122900 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122900 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122907 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122907 ($lt).
+Converting cell ino_integer_unit.\122907 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122907 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122907 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122914 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122914 ($lt).
+Converting cell ino_integer_unit.\122914 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122914 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122914 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122921 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122921 ($lt).
+Converting cell ino_integer_unit.\122921 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122921 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122921 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122928 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122928 ($lt).
+Converting cell ino_integer_unit.\122928 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122928 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122928 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122935 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122935 ($lt).
+Converting cell ino_integer_unit.\122935 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122935 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122935 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122942 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122942 ($lt).
+Converting cell ino_integer_unit.\122942 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122942 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122942 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122949 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122949 ($lt).
+Converting cell ino_integer_unit.\122949 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122949 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122949 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122956 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122956 ($lt).
+Converting cell ino_integer_unit.\122956 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122956 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122956 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122963 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122963 ($lt).
+Converting cell ino_integer_unit.\122963 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122963 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122963 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122970 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122970 ($lt).
+Converting cell ino_integer_unit.\122970 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122970 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122970 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122977 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122977 ($lt).
+Converting cell ino_integer_unit.\122977 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122977 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122977 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\122984 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122984 ($lt).
+Converting cell ino_integer_unit.\122984 ($lt) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_integer_unit.\122984 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122984 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\122991 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122991 ($lt).
+Converting cell ino_integer_unit.\122991 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\122991 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122991 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\122998 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\122998 ($lt).
+Converting cell ino_integer_unit.\122998 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\122998 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\122998 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123005 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123005 ($lt).
+Converting cell ino_integer_unit.\123005 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123005 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123005 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123012 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123012 ($lt).
+Converting cell ino_integer_unit.\123012 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123012 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123012 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123019 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123019 ($lt).
+Converting cell ino_integer_unit.\123019 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123019 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123019 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123026 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123026 ($lt).
+Converting cell ino_integer_unit.\123026 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123026 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123026 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123033 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123033 ($lt).
+Converting cell ino_integer_unit.\123033 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123033 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123033 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123040 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123040 ($lt).
+Converting cell ino_integer_unit.\123040 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123040 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123040 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123047 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123047 ($lt).
+Converting cell ino_integer_unit.\123047 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123047 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123047 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123054 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123054 ($lt).
+Converting cell ino_integer_unit.\123054 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123054 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123054 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123061 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123061 ($lt).
+Converting cell ino_integer_unit.\123061 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123061 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123061 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123068 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123068 ($lt).
+Converting cell ino_integer_unit.\123068 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123068 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123068 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123075 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123075 ($lt).
+Converting cell ino_integer_unit.\123075 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123075 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123075 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123082 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123082 ($lt).
+Converting cell ino_integer_unit.\123082 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123082 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123082 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123089 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123089 ($lt).
+Converting cell ino_integer_unit.\123089 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123089 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123089 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123096 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123096 ($lt).
+Converting cell ino_integer_unit.\123096 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123096 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123096 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123103 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123103 ($lt).
+Converting cell ino_integer_unit.\123103 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123103 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123103 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123110 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123110 ($lt).
+Converting cell ino_integer_unit.\123110 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123110 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123110 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123117 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123117 ($lt).
+Converting cell ino_integer_unit.\123117 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123117 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123117 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123124 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123124 ($lt).
+Converting cell ino_integer_unit.\123124 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123124 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123124 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123131 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123131 ($lt).
+Converting cell ino_integer_unit.\123131 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123131 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123131 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123138 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123138 ($lt).
+Converting cell ino_integer_unit.\123138 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123138 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123138 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123145 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123145 ($lt).
+Converting cell ino_integer_unit.\123145 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123145 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123145 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123152 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123152 ($lt).
+Converting cell ino_integer_unit.\123152 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123152 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123152 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123159 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123159 ($lt).
+Converting cell ino_integer_unit.\123159 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123159 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123159 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123166 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123166 ($lt).
+Converting cell ino_integer_unit.\123166 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123166 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123166 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123173 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123173 ($lt).
+Converting cell ino_integer_unit.\123173 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123173 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123173 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123180 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123180 ($lt).
+Converting cell ino_integer_unit.\123180 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123180 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123180 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123187 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123187 ($lt).
+Converting cell ino_integer_unit.\123187 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123187 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123187 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123194 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123194 ($lt).
+Converting cell ino_integer_unit.\123194 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123194 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123194 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123201 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123201 ($lt).
+Converting cell ino_integer_unit.\123201 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123201 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123201 ($lt).
+Removed top 25 bits (of 32) from port A of cell ino_integer_unit.\123208 ($lt).
+Removed top 24 bits (of 32) from port B of cell ino_integer_unit.\123208 ($lt).
+Converting cell ino_integer_unit.\123208 ($lt) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_integer_unit.\123208 ($lt).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123208 ($lt).
+Removed top 25 bits (of 31) from port B of cell ino_integer_unit.\123218 ($shr).
+Removed top 57 bits (of 64) from port B of cell ino_integer_unit.\123229 ($lt).
+Removed top 26 bits (of 32) from port A of cell ino_integer_unit.\123234 ($sub).
+Removed top 31 bits (of 32) from port B of cell ino_integer_unit.\123234 ($sub).
+Removed top 26 bits (of 32) from port Y of cell ino_integer_unit.\123234 ($sub).
+Removed top 25 bits (of 31) from port B of cell ino_integer_unit.\123243 ($shl).
+Removed top 25 bits (of 31) from port B of cell ino_integer_unit.\123248 ($shl).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123293 ($eq).
+Removed top 1 bits (of 8) from port B of cell ino_integer_unit.\123295 ($eq).
+Removed top 4 bits (of 8) from mux cell ino_integer_unit.\123347 ($pmux).
+Removed top 139 bits (of 140) from mux cell ino_integer_unit.\123372 ($mux).
+Removed top 8 bits (of 74) from mux cell ino_integer_unit.\123367 ($mux).
+Removed top 1 bits (of 64) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$72963.
+Removed top 4 bits (of 8) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$72966.
+Removed top 4 bits (of 8) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$72980.
+Removed top 4 bits (of 8) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$72987.
+Removed top 4 bits (of 8) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$72991.
+Removed top 63 bits (of 64) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$73023.
+Removed top 26 bits (of 32) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$73188.
+Removed top 4 bits (of 8) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$73229.
+Removed top 139 bits (of 140) from wire ino_integer_unit.$auto$ghdl.cc:806:import_module$73232.
 Removed top 73 bits (of 140) from wire ino_integer_unit.computed_s.
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
@@ -708,171 +708,171 @@ Removed 0 unused cells and 10 unused wires.
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_integer_unit:
-  creating $macc model for \135453 ($sub).
-  creating $macc model for \135470 ($add).
-  creating $macc model for \135486 ($sub).
-  creating $macc model for \135511 ($add).
-  creating $macc model for \135523 ($sub).
-  creating $macc model for \135609 ($sub).
-  creating $macc model for \136092 ($sub).
-  creating $macc model for \136148 ($add).
-  creating $alu model for $macc \136148.
-  creating $alu model for $macc \136092.
-  creating $alu model for $macc \135609.
-  creating $alu model for $macc \135523.
-  creating $alu model for $macc \135511.
-  creating $alu model for $macc \135486.
-  creating $alu model for $macc \135470.
-  creating $alu model for $macc \135453.
-  creating $alu model for \135409 ($ge): new $alu
-  creating $alu model for \135528 ($gt): new $alu
-  creating $alu model for \135532 ($lt): merged with \135528.
-  creating $alu model for \135547 ($ge): merged with \135528.
-  creating $alu model for \135552 ($le): merged with \135528.
-  creating $alu model for \135606 ($gt): merged with \135609.
-  creating $alu model for \135610 ($gt): new $alu
-  creating $alu model for \135624 ($lt): new $alu
-  creating $alu model for \135632 ($lt): new $alu
-  creating $alu model for \135639 ($lt): new $alu
-  creating $alu model for \135646 ($lt): new $alu
-  creating $alu model for \135653 ($lt): new $alu
-  creating $alu model for \135660 ($lt): new $alu
-  creating $alu model for \135667 ($lt): new $alu
-  creating $alu model for \135674 ($lt): new $alu
-  creating $alu model for \135681 ($lt): new $alu
-  creating $alu model for \135688 ($lt): new $alu
-  creating $alu model for \135695 ($lt): new $alu
-  creating $alu model for \135702 ($lt): new $alu
-  creating $alu model for \135709 ($lt): new $alu
-  creating $alu model for \135716 ($lt): new $alu
-  creating $alu model for \135723 ($lt): new $alu
-  creating $alu model for \135730 ($lt): new $alu
-  creating $alu model for \135737 ($lt): new $alu
-  creating $alu model for \135744 ($lt): new $alu
-  creating $alu model for \135751 ($lt): new $alu
-  creating $alu model for \135758 ($lt): new $alu
-  creating $alu model for \135765 ($lt): new $alu
-  creating $alu model for \135772 ($lt): new $alu
-  creating $alu model for \135779 ($lt): new $alu
-  creating $alu model for \135786 ($lt): new $alu
-  creating $alu model for \135793 ($lt): new $alu
-  creating $alu model for \135800 ($lt): new $alu
-  creating $alu model for \135807 ($lt): new $alu
-  creating $alu model for \135814 ($lt): new $alu
-  creating $alu model for \135821 ($lt): new $alu
-  creating $alu model for \135828 ($lt): new $alu
-  creating $alu model for \135835 ($lt): new $alu
-  creating $alu model for \135842 ($lt): new $alu
-  creating $alu model for \135849 ($lt): new $alu
-  creating $alu model for \135856 ($lt): new $alu
-  creating $alu model for \135863 ($lt): new $alu
-  creating $alu model for \135870 ($lt): new $alu
-  creating $alu model for \135877 ($lt): new $alu
-  creating $alu model for \135884 ($lt): new $alu
-  creating $alu model for \135891 ($lt): new $alu
-  creating $alu model for \135898 ($lt): new $alu
-  creating $alu model for \135905 ($lt): new $alu
-  creating $alu model for \135912 ($lt): new $alu
-  creating $alu model for \135919 ($lt): new $alu
-  creating $alu model for \135926 ($lt): new $alu
-  creating $alu model for \135933 ($lt): new $alu
-  creating $alu model for \135940 ($lt): new $alu
-  creating $alu model for \135947 ($lt): new $alu
-  creating $alu model for \135954 ($lt): new $alu
-  creating $alu model for \135961 ($lt): new $alu
-  creating $alu model for \135968 ($lt): new $alu
-  creating $alu model for \135975 ($lt): new $alu
-  creating $alu model for \135982 ($lt): new $alu
-  creating $alu model for \135989 ($lt): new $alu
-  creating $alu model for \135996 ($lt): new $alu
-  creating $alu model for \136003 ($lt): new $alu
-  creating $alu model for \136010 ($lt): new $alu
-  creating $alu model for \136017 ($lt): new $alu
-  creating $alu model for \136024 ($lt): new $alu
-  creating $alu model for \136031 ($lt): new $alu
-  creating $alu model for \136038 ($lt): new $alu
-  creating $alu model for \136045 ($lt): new $alu
-  creating $alu model for \136052 ($lt): new $alu
-  creating $alu model for \136059 ($lt): new $alu
-  creating $alu model for \136066 ($lt): new $alu
-  creating $alu model for \136087 ($lt): merged with \135609.
-  creating $alu model for \135537 ($ne): merged with \135486.
-  creating $alu model for \135542 ($eq): merged with \135486.
-  creating $alu cell for \136066: $auto$alumacc.cc:485:replace_alu$81027
-  creating $alu cell for \136059: $auto$alumacc.cc:485:replace_alu$81032
-  creating $alu cell for \136052: $auto$alumacc.cc:485:replace_alu$81037
-  creating $alu cell for \136045: $auto$alumacc.cc:485:replace_alu$81042
-  creating $alu cell for \136038: $auto$alumacc.cc:485:replace_alu$81047
-  creating $alu cell for \136031: $auto$alumacc.cc:485:replace_alu$81052
-  creating $alu cell for \136024: $auto$alumacc.cc:485:replace_alu$81057
-  creating $alu cell for \136017: $auto$alumacc.cc:485:replace_alu$81062
-  creating $alu cell for \136010: $auto$alumacc.cc:485:replace_alu$81067
-  creating $alu cell for \136003: $auto$alumacc.cc:485:replace_alu$81072
-  creating $alu cell for \135996: $auto$alumacc.cc:485:replace_alu$81077
-  creating $alu cell for \135989: $auto$alumacc.cc:485:replace_alu$81082
-  creating $alu cell for \135982: $auto$alumacc.cc:485:replace_alu$81087
-  creating $alu cell for \135975: $auto$alumacc.cc:485:replace_alu$81092
-  creating $alu cell for \135968: $auto$alumacc.cc:485:replace_alu$81097
-  creating $alu cell for \135961: $auto$alumacc.cc:485:replace_alu$81102
-  creating $alu cell for \135954: $auto$alumacc.cc:485:replace_alu$81107
-  creating $alu cell for \135947: $auto$alumacc.cc:485:replace_alu$81112
-  creating $alu cell for \135940: $auto$alumacc.cc:485:replace_alu$81117
-  creating $alu cell for \135933: $auto$alumacc.cc:485:replace_alu$81122
-  creating $alu cell for \135926: $auto$alumacc.cc:485:replace_alu$81127
-  creating $alu cell for \135919: $auto$alumacc.cc:485:replace_alu$81132
-  creating $alu cell for \135912: $auto$alumacc.cc:485:replace_alu$81137
-  creating $alu cell for \135905: $auto$alumacc.cc:485:replace_alu$81142
-  creating $alu cell for \135898: $auto$alumacc.cc:485:replace_alu$81147
-  creating $alu cell for \135891: $auto$alumacc.cc:485:replace_alu$81152
-  creating $alu cell for \135884: $auto$alumacc.cc:485:replace_alu$81157
-  creating $alu cell for \135877: $auto$alumacc.cc:485:replace_alu$81162
-  creating $alu cell for \135870: $auto$alumacc.cc:485:replace_alu$81167
-  creating $alu cell for \135863: $auto$alumacc.cc:485:replace_alu$81172
-  creating $alu cell for \135856: $auto$alumacc.cc:485:replace_alu$81177
-  creating $alu cell for \135849: $auto$alumacc.cc:485:replace_alu$81182
-  creating $alu cell for \135842: $auto$alumacc.cc:485:replace_alu$81187
-  creating $alu cell for \135835: $auto$alumacc.cc:485:replace_alu$81192
-  creating $alu cell for \135828: $auto$alumacc.cc:485:replace_alu$81197
-  creating $alu cell for \135821: $auto$alumacc.cc:485:replace_alu$81202
-  creating $alu cell for \135814: $auto$alumacc.cc:485:replace_alu$81207
-  creating $alu cell for \135807: $auto$alumacc.cc:485:replace_alu$81212
-  creating $alu cell for \135800: $auto$alumacc.cc:485:replace_alu$81217
-  creating $alu cell for \135793: $auto$alumacc.cc:485:replace_alu$81222
-  creating $alu cell for \135786: $auto$alumacc.cc:485:replace_alu$81227
-  creating $alu cell for \135779: $auto$alumacc.cc:485:replace_alu$81232
-  creating $alu cell for \135772: $auto$alumacc.cc:485:replace_alu$81237
-  creating $alu cell for \135765: $auto$alumacc.cc:485:replace_alu$81242
-  creating $alu cell for \135758: $auto$alumacc.cc:485:replace_alu$81247
-  creating $alu cell for \135751: $auto$alumacc.cc:485:replace_alu$81252
-  creating $alu cell for \135744: $auto$alumacc.cc:485:replace_alu$81257
-  creating $alu cell for \135737: $auto$alumacc.cc:485:replace_alu$81262
-  creating $alu cell for \135730: $auto$alumacc.cc:485:replace_alu$81267
-  creating $alu cell for \135723: $auto$alumacc.cc:485:replace_alu$81272
-  creating $alu cell for \135716: $auto$alumacc.cc:485:replace_alu$81277
-  creating $alu cell for \135709: $auto$alumacc.cc:485:replace_alu$81282
-  creating $alu cell for \135702: $auto$alumacc.cc:485:replace_alu$81287
-  creating $alu cell for \135695: $auto$alumacc.cc:485:replace_alu$81292
-  creating $alu cell for \135688: $auto$alumacc.cc:485:replace_alu$81297
-  creating $alu cell for \135681: $auto$alumacc.cc:485:replace_alu$81302
-  creating $alu cell for \135674: $auto$alumacc.cc:485:replace_alu$81307
-  creating $alu cell for \135667: $auto$alumacc.cc:485:replace_alu$81312
-  creating $alu cell for \135660: $auto$alumacc.cc:485:replace_alu$81317
-  creating $alu cell for \135653: $auto$alumacc.cc:485:replace_alu$81322
-  creating $alu cell for \135646: $auto$alumacc.cc:485:replace_alu$81327
-  creating $alu cell for \135639: $auto$alumacc.cc:485:replace_alu$81332
-  creating $alu cell for \135632: $auto$alumacc.cc:485:replace_alu$81337
-  creating $alu cell for \135624: $auto$alumacc.cc:485:replace_alu$81342
-  creating $alu cell for \135610: $auto$alumacc.cc:485:replace_alu$81347
-  creating $alu cell for \135409: $auto$alumacc.cc:485:replace_alu$81358
-  creating $alu cell for \135453: $auto$alumacc.cc:485:replace_alu$81367
-  creating $alu cell for \135528, \135532, \135547, \135552: $auto$alumacc.cc:485:replace_alu$81370
-  creating $alu cell for \135470: $auto$alumacc.cc:485:replace_alu$81387
-  creating $alu cell for \135486, \135537, \135542: $auto$alumacc.cc:485:replace_alu$81390
-  creating $alu cell for \135511: $auto$alumacc.cc:485:replace_alu$81397
-  creating $alu cell for \135523: $auto$alumacc.cc:485:replace_alu$81400
-  creating $alu cell for \135609, \135606, \136087: $auto$alumacc.cc:485:replace_alu$81403
-  creating $alu cell for \136092: $auto$alumacc.cc:485:replace_alu$81414
-  creating $alu cell for \136148: $auto$alumacc.cc:485:replace_alu$81417
+  creating $macc model for \122595 ($sub).
+  creating $macc model for \122612 ($add).
+  creating $macc model for \122628 ($sub).
+  creating $macc model for \122653 ($add).
+  creating $macc model for \122665 ($sub).
+  creating $macc model for \122751 ($sub).
+  creating $macc model for \123234 ($sub).
+  creating $macc model for \123290 ($add).
+  creating $alu model for $macc \123290.
+  creating $alu model for $macc \123234.
+  creating $alu model for $macc \122751.
+  creating $alu model for $macc \122665.
+  creating $alu model for $macc \122653.
+  creating $alu model for $macc \122628.
+  creating $alu model for $macc \122612.
+  creating $alu model for $macc \122595.
+  creating $alu model for \122551 ($ge): new $alu
+  creating $alu model for \122670 ($gt): new $alu
+  creating $alu model for \122674 ($lt): merged with \122670.
+  creating $alu model for \122689 ($ge): merged with \122670.
+  creating $alu model for \122694 ($le): merged with \122670.
+  creating $alu model for \122748 ($gt): merged with \122751.
+  creating $alu model for \122752 ($gt): new $alu
+  creating $alu model for \122766 ($lt): new $alu
+  creating $alu model for \122774 ($lt): new $alu
+  creating $alu model for \122781 ($lt): new $alu
+  creating $alu model for \122788 ($lt): new $alu
+  creating $alu model for \122795 ($lt): new $alu
+  creating $alu model for \122802 ($lt): new $alu
+  creating $alu model for \122809 ($lt): new $alu
+  creating $alu model for \122816 ($lt): new $alu
+  creating $alu model for \122823 ($lt): new $alu
+  creating $alu model for \122830 ($lt): new $alu
+  creating $alu model for \122837 ($lt): new $alu
+  creating $alu model for \122844 ($lt): new $alu
+  creating $alu model for \122851 ($lt): new $alu
+  creating $alu model for \122858 ($lt): new $alu
+  creating $alu model for \122865 ($lt): new $alu
+  creating $alu model for \122872 ($lt): new $alu
+  creating $alu model for \122879 ($lt): new $alu
+  creating $alu model for \122886 ($lt): new $alu
+  creating $alu model for \122893 ($lt): new $alu
+  creating $alu model for \122900 ($lt): new $alu
+  creating $alu model for \122907 ($lt): new $alu
+  creating $alu model for \122914 ($lt): new $alu
+  creating $alu model for \122921 ($lt): new $alu
+  creating $alu model for \122928 ($lt): new $alu
+  creating $alu model for \122935 ($lt): new $alu
+  creating $alu model for \122942 ($lt): new $alu
+  creating $alu model for \122949 ($lt): new $alu
+  creating $alu model for \122956 ($lt): new $alu
+  creating $alu model for \122963 ($lt): new $alu
+  creating $alu model for \122970 ($lt): new $alu
+  creating $alu model for \122977 ($lt): new $alu
+  creating $alu model for \122984 ($lt): new $alu
+  creating $alu model for \122991 ($lt): new $alu
+  creating $alu model for \122998 ($lt): new $alu
+  creating $alu model for \123005 ($lt): new $alu
+  creating $alu model for \123012 ($lt): new $alu
+  creating $alu model for \123019 ($lt): new $alu
+  creating $alu model for \123026 ($lt): new $alu
+  creating $alu model for \123033 ($lt): new $alu
+  creating $alu model for \123040 ($lt): new $alu
+  creating $alu model for \123047 ($lt): new $alu
+  creating $alu model for \123054 ($lt): new $alu
+  creating $alu model for \123061 ($lt): new $alu
+  creating $alu model for \123068 ($lt): new $alu
+  creating $alu model for \123075 ($lt): new $alu
+  creating $alu model for \123082 ($lt): new $alu
+  creating $alu model for \123089 ($lt): new $alu
+  creating $alu model for \123096 ($lt): new $alu
+  creating $alu model for \123103 ($lt): new $alu
+  creating $alu model for \123110 ($lt): new $alu
+  creating $alu model for \123117 ($lt): new $alu
+  creating $alu model for \123124 ($lt): new $alu
+  creating $alu model for \123131 ($lt): new $alu
+  creating $alu model for \123138 ($lt): new $alu
+  creating $alu model for \123145 ($lt): new $alu
+  creating $alu model for \123152 ($lt): new $alu
+  creating $alu model for \123159 ($lt): new $alu
+  creating $alu model for \123166 ($lt): new $alu
+  creating $alu model for \123173 ($lt): new $alu
+  creating $alu model for \123180 ($lt): new $alu
+  creating $alu model for \123187 ($lt): new $alu
+  creating $alu model for \123194 ($lt): new $alu
+  creating $alu model for \123201 ($lt): new $alu
+  creating $alu model for \123208 ($lt): new $alu
+  creating $alu model for \123229 ($lt): merged with \122751.
+  creating $alu model for \122679 ($ne): merged with \122628.
+  creating $alu model for \122684 ($eq): merged with \122628.
+  creating $alu cell for \123208: $auto$alumacc.cc:485:replace_alu$73680
+  creating $alu cell for \123201: $auto$alumacc.cc:485:replace_alu$73685
+  creating $alu cell for \123194: $auto$alumacc.cc:485:replace_alu$73690
+  creating $alu cell for \123187: $auto$alumacc.cc:485:replace_alu$73695
+  creating $alu cell for \123180: $auto$alumacc.cc:485:replace_alu$73700
+  creating $alu cell for \123173: $auto$alumacc.cc:485:replace_alu$73705
+  creating $alu cell for \123166: $auto$alumacc.cc:485:replace_alu$73710
+  creating $alu cell for \123159: $auto$alumacc.cc:485:replace_alu$73715
+  creating $alu cell for \123152: $auto$alumacc.cc:485:replace_alu$73720
+  creating $alu cell for \123145: $auto$alumacc.cc:485:replace_alu$73725
+  creating $alu cell for \123138: $auto$alumacc.cc:485:replace_alu$73730
+  creating $alu cell for \123131: $auto$alumacc.cc:485:replace_alu$73735
+  creating $alu cell for \123124: $auto$alumacc.cc:485:replace_alu$73740
+  creating $alu cell for \123117: $auto$alumacc.cc:485:replace_alu$73745
+  creating $alu cell for \123110: $auto$alumacc.cc:485:replace_alu$73750
+  creating $alu cell for \123103: $auto$alumacc.cc:485:replace_alu$73755
+  creating $alu cell for \123096: $auto$alumacc.cc:485:replace_alu$73760
+  creating $alu cell for \123089: $auto$alumacc.cc:485:replace_alu$73765
+  creating $alu cell for \123082: $auto$alumacc.cc:485:replace_alu$73770
+  creating $alu cell for \123075: $auto$alumacc.cc:485:replace_alu$73775
+  creating $alu cell for \123068: $auto$alumacc.cc:485:replace_alu$73780
+  creating $alu cell for \123061: $auto$alumacc.cc:485:replace_alu$73785
+  creating $alu cell for \123054: $auto$alumacc.cc:485:replace_alu$73790
+  creating $alu cell for \123047: $auto$alumacc.cc:485:replace_alu$73795
+  creating $alu cell for \123040: $auto$alumacc.cc:485:replace_alu$73800
+  creating $alu cell for \123033: $auto$alumacc.cc:485:replace_alu$73805
+  creating $alu cell for \123026: $auto$alumacc.cc:485:replace_alu$73810
+  creating $alu cell for \123019: $auto$alumacc.cc:485:replace_alu$73815
+  creating $alu cell for \123012: $auto$alumacc.cc:485:replace_alu$73820
+  creating $alu cell for \123005: $auto$alumacc.cc:485:replace_alu$73825
+  creating $alu cell for \122998: $auto$alumacc.cc:485:replace_alu$73830
+  creating $alu cell for \122991: $auto$alumacc.cc:485:replace_alu$73835
+  creating $alu cell for \122984: $auto$alumacc.cc:485:replace_alu$73840
+  creating $alu cell for \122977: $auto$alumacc.cc:485:replace_alu$73845
+  creating $alu cell for \122970: $auto$alumacc.cc:485:replace_alu$73850
+  creating $alu cell for \122963: $auto$alumacc.cc:485:replace_alu$73855
+  creating $alu cell for \122956: $auto$alumacc.cc:485:replace_alu$73860
+  creating $alu cell for \122949: $auto$alumacc.cc:485:replace_alu$73865
+  creating $alu cell for \122942: $auto$alumacc.cc:485:replace_alu$73870
+  creating $alu cell for \122935: $auto$alumacc.cc:485:replace_alu$73875
+  creating $alu cell for \122928: $auto$alumacc.cc:485:replace_alu$73880
+  creating $alu cell for \122921: $auto$alumacc.cc:485:replace_alu$73885
+  creating $alu cell for \122914: $auto$alumacc.cc:485:replace_alu$73890
+  creating $alu cell for \122907: $auto$alumacc.cc:485:replace_alu$73895
+  creating $alu cell for \122900: $auto$alumacc.cc:485:replace_alu$73900
+  creating $alu cell for \122893: $auto$alumacc.cc:485:replace_alu$73905
+  creating $alu cell for \122886: $auto$alumacc.cc:485:replace_alu$73910
+  creating $alu cell for \122879: $auto$alumacc.cc:485:replace_alu$73915
+  creating $alu cell for \122872: $auto$alumacc.cc:485:replace_alu$73920
+  creating $alu cell for \122865: $auto$alumacc.cc:485:replace_alu$73925
+  creating $alu cell for \122858: $auto$alumacc.cc:485:replace_alu$73930
+  creating $alu cell for \122851: $auto$alumacc.cc:485:replace_alu$73935
+  creating $alu cell for \122844: $auto$alumacc.cc:485:replace_alu$73940
+  creating $alu cell for \122837: $auto$alumacc.cc:485:replace_alu$73945
+  creating $alu cell for \122830: $auto$alumacc.cc:485:replace_alu$73950
+  creating $alu cell for \122823: $auto$alumacc.cc:485:replace_alu$73955
+  creating $alu cell for \122816: $auto$alumacc.cc:485:replace_alu$73960
+  creating $alu cell for \122809: $auto$alumacc.cc:485:replace_alu$73965
+  creating $alu cell for \122802: $auto$alumacc.cc:485:replace_alu$73970
+  creating $alu cell for \122795: $auto$alumacc.cc:485:replace_alu$73975
+  creating $alu cell for \122788: $auto$alumacc.cc:485:replace_alu$73980
+  creating $alu cell for \122781: $auto$alumacc.cc:485:replace_alu$73985
+  creating $alu cell for \122774: $auto$alumacc.cc:485:replace_alu$73990
+  creating $alu cell for \122766: $auto$alumacc.cc:485:replace_alu$73995
+  creating $alu cell for \122752: $auto$alumacc.cc:485:replace_alu$74000
+  creating $alu cell for \122551: $auto$alumacc.cc:485:replace_alu$74011
+  creating $alu cell for \122595: $auto$alumacc.cc:485:replace_alu$74020
+  creating $alu cell for \122670, \122674, \122689, \122694: $auto$alumacc.cc:485:replace_alu$74023
+  creating $alu cell for \122612: $auto$alumacc.cc:485:replace_alu$74040
+  creating $alu cell for \122628, \122679, \122684: $auto$alumacc.cc:485:replace_alu$74043
+  creating $alu cell for \122653: $auto$alumacc.cc:485:replace_alu$74050
+  creating $alu cell for \122665: $auto$alumacc.cc:485:replace_alu$74053
+  creating $alu cell for \122751, \122748, \123229: $auto$alumacc.cc:485:replace_alu$74056
+  creating $alu cell for \123234: $auto$alumacc.cc:485:replace_alu$74067
+  creating $alu cell for \123290: $auto$alumacc.cc:485:replace_alu$74070
   created 75 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -902,74 +902,74 @@ Finding identical cells in module `\ino_integer_unit'.
 Removed a total of 0 cells.
 
 3.13.6. Executing OPT_DFF pass (perform DFF optimizations).
-Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 3 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 4 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 6 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 7 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 8 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 9 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 10 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 11 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 12 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 13 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 14 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 15 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 16 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 17 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 18 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 19 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 20 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 21 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 22 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 23 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 24 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 25 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 26 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 27 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 28 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 29 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 30 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 31 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 32 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 33 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 34 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 35 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 36 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 37 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 38 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 39 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 40 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 41 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 42 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 43 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 44 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 45 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 46 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 47 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 48 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 49 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 50 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 51 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 52 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 53 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 54 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 55 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 56 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 57 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 58 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 59 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 60 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 61 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 62 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 63 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 64 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 65 on $auto$ff.cc:266:slice$80932 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 4 on $auto$ff.cc:266:slice$80938 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$80938 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 6 on $auto$ff.cc:266:slice$80938 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 3 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 4 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 6 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 7 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 8 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 9 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 10 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 11 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 12 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 13 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 14 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 15 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 16 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 17 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 18 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 19 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 20 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 21 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 22 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 23 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 24 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 25 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 26 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 27 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 28 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 29 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 30 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 31 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 32 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 33 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 34 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 35 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 36 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 37 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 38 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 39 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 40 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 41 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 42 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 43 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 44 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 45 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 46 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 47 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 48 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 49 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 50 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 51 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 52 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 53 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 54 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 55 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 56 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 57 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 58 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 59 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 60 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 61 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 62 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 63 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 64 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 65 on $auto$ff.cc:266:slice$73585 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 4 on $auto$ff.cc:266:slice$73591 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$73591 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 6 on $auto$ff.cc:266:slice$73591 ($sdff) from module ino_integer_unit.
 
 3.13.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_integer_unit..
@@ -1078,31 +1078,31 @@ Removed 0 multiplexer ports.
 
 3.18.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_integer_unit.
-    Consolidated identical input bits for $mux cell \135448:
-      Old ports: A=4'1001, B=4'0001, Y=$auto$ghdl.cc:806:import_module$80313
-      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$80313 [3]
-      New connections: $auto$ghdl.cc:806:import_module$80313 [2:0] = 3'001
-    Consolidated identical input bits for $mux cell \135480:
-      Old ports: A=4'1001, B=4'0001, Y=$auto$ghdl.cc:806:import_module$80327
-      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$80327 [3]
-      New connections: $auto$ghdl.cc:806:import_module$80327 [2:0] = 3'001
-    Consolidated identical input bits for $mux cell \135496:
-      Old ports: A=4'1001, B=4'0001, Y=$auto$ghdl.cc:806:import_module$80334
-      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$80334 [3]
-      New connections: $auto$ghdl.cc:806:import_module$80334 [2:0] = 3'001
-    Consolidated identical input bits for $mux cell \135506:
-      Old ports: A=4'1001, B=4'0001, Y=$auto$ghdl.cc:806:import_module$80338
-      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$80338 [3]
-      New connections: $auto$ghdl.cc:806:import_module$80338 [2:0] = 3'001
-    Consolidated identical input bits for $mux cell \136182:
-      Old ports: A=64'0000000000000000000000000000000000000000000000000000000000000000, B={ \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52:21] }, Y=$auto$ghdl.cc:806:import_module$80573
-      New ports: A=0, B=\issue_i.slot [52:21], Y=$auto$ghdl.cc:806:import_module$80573 [31:0]
-      New connections: $auto$ghdl.cc:806:import_module$80573 [63:32] = { $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] $auto$ghdl.cc:806:import_module$80573 [31] }
+    Consolidated identical input bits for $mux cell \122590:
+      Old ports: A=4'1001, B=4'0001, Y=$auto$ghdl.cc:806:import_module$72966
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$72966 [3]
+      New connections: $auto$ghdl.cc:806:import_module$72966 [2:0] = 3'001
+    Consolidated identical input bits for $mux cell \122622:
+      Old ports: A=4'1001, B=4'0001, Y=$auto$ghdl.cc:806:import_module$72980
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$72980 [3]
+      New connections: $auto$ghdl.cc:806:import_module$72980 [2:0] = 3'001
+    Consolidated identical input bits for $mux cell \122638:
+      Old ports: A=4'1001, B=4'0001, Y=$auto$ghdl.cc:806:import_module$72987
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$72987 [3]
+      New connections: $auto$ghdl.cc:806:import_module$72987 [2:0] = 3'001
+    Consolidated identical input bits for $mux cell \122648:
+      Old ports: A=4'1001, B=4'0001, Y=$auto$ghdl.cc:806:import_module$72991
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$72991 [3]
+      New connections: $auto$ghdl.cc:806:import_module$72991 [2:0] = 3'001
+    Consolidated identical input bits for $mux cell \123324:
+      Old ports: A=64'0000000000000000000000000000000000000000000000000000000000000000, B={ \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52] \issue_i.slot [52:21] }, Y=$auto$ghdl.cc:806:import_module$73226
+      New ports: A=0, B=\issue_i.slot [52:21], Y=$auto$ghdl.cc:806:import_module$73226 [31:0]
+      New connections: $auto$ghdl.cc:806:import_module$73226 [63:32] = { $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] $auto$ghdl.cc:806:import_module$73226 [31] }
   Optimizing cells in module \ino_integer_unit.
-    Consolidated identical input bits for $pmux cell \136205:
-      Old ports: A=4'1001, B={ $auto$ghdl.cc:806:import_module$80338 $auto$ghdl.cc:806:import_module$80334 $auto$ghdl.cc:806:import_module$80327 $auto$ghdl.cc:806:import_module$80313 }, Y=$auto$ghdl.cc:806:import_module$80576
-      New ports: A=1'1, B={ $auto$ghdl.cc:806:import_module$80338 [3] $auto$ghdl.cc:806:import_module$80334 [3] $auto$ghdl.cc:806:import_module$80327 [3] $auto$ghdl.cc:806:import_module$80313 [3] }, Y=$auto$ghdl.cc:806:import_module$80576 [3]
-      New connections: $auto$ghdl.cc:806:import_module$80576 [2:0] = 3'001
+    Consolidated identical input bits for $pmux cell \123347:
+      Old ports: A=4'1001, B={ $auto$ghdl.cc:806:import_module$72991 $auto$ghdl.cc:806:import_module$72987 $auto$ghdl.cc:806:import_module$72980 $auto$ghdl.cc:806:import_module$72966 }, Y=$auto$ghdl.cc:806:import_module$73229
+      New ports: A=1'1, B={ $auto$ghdl.cc:806:import_module$72991 [3] $auto$ghdl.cc:806:import_module$72987 [3] $auto$ghdl.cc:806:import_module$72980 [3] $auto$ghdl.cc:806:import_module$72966 [3] }, Y=$auto$ghdl.cc:806:import_module$73229 [3]
+      New connections: $auto$ghdl.cc:806:import_module$73229 [2:0] = 3'001
   Optimizing cells in module \ino_integer_unit.
 Performed a total of 6 changes.
 
@@ -1111,9 +1111,9 @@ Finding identical cells in module `\ino_integer_unit'.
 Removed a total of 0 cells.
 
 3.18.6. Executing OPT_SHARE pass.
-    Found cells that share an operand and can be merged by moving the $pmux \136187 in front of them:
-        $auto$alumacc.cc:485:replace_alu$81397
-        $auto$alumacc.cc:485:replace_alu$81400
+    Found cells that share an operand and can be merged by moving the $pmux \123329 in front of them:
+        $auto$alumacc.cc:485:replace_alu$74050
+        $auto$alumacc.cc:485:replace_alu$74053
 
 3.18.7. Executing OPT_DFF pass (perform DFF optimizations).
 
@@ -1138,11 +1138,11 @@ Removed 0 multiplexer ports.
 
 3.18.12. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_integer_unit.
-    Consolidated identical input bits for $mux cell $auto$opt_share.cc:246:merge_operators$81551:
-      Old ports: A=64'1111111111111111111111111111111111111111111111111111111111111111, B=64'0000000000000000000000000000000000000000000000000000000000000001, Y=$auto$rtlil.cc:2500:Pmux$81552
-      New ports: A=1'1, B=1'0, Y=$auto$rtlil.cc:2500:Pmux$81552 [1]
-      New connections: { $auto$rtlil.cc:2500:Pmux$81552 [63:2] $auto$rtlil.cc:2500:Pmux$81552 [0] } = { $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] $auto$rtlil.cc:2500:Pmux$81552 [1] 1'1 }
-    New ctrl vector for $pmux cell \136187: { $auto$ghdl.cc:806:import_module$80571 $auto$ghdl.cc:806:import_module$80570 $auto$ghdl.cc:806:import_module$80565 $auto$ghdl.cc:806:import_module$80560 $auto$ghdl.cc:806:import_module$80381 $auto$opt_reduce.cc:134:opt_pmux$81556 $auto$ghdl.cc:806:import_module$80336 $auto$ghdl.cc:806:import_module$80329 $auto$ghdl.cc:806:import_module$80322 $auto$ghdl.cc:806:import_module$80316 $auto$ghdl.cc:806:import_module$80311 $auto$ghdl.cc:806:import_module$80309 $auto$ghdl.cc:806:import_module$80294 $auto$ghdl.cc:806:import_module$80292 $auto$ghdl.cc:806:import_module$80290 $auto$ghdl.cc:806:import_module$80288 }
+    Consolidated identical input bits for $mux cell $auto$opt_share.cc:246:merge_operators$74204:
+      Old ports: A=64'1111111111111111111111111111111111111111111111111111111111111111, B=64'0000000000000000000000000000000000000000000000000000000000000001, Y=$auto$rtlil.cc:2500:Pmux$74205
+      New ports: A=1'1, B=1'0, Y=$auto$rtlil.cc:2500:Pmux$74205 [1]
+      New connections: { $auto$rtlil.cc:2500:Pmux$74205 [63:2] $auto$rtlil.cc:2500:Pmux$74205 [0] } = { $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] $auto$rtlil.cc:2500:Pmux$74205 [1] 1'1 }
+    New ctrl vector for $pmux cell \123329: { $auto$ghdl.cc:806:import_module$73224 $auto$ghdl.cc:806:import_module$73223 $auto$ghdl.cc:806:import_module$73218 $auto$ghdl.cc:806:import_module$73213 $auto$ghdl.cc:806:import_module$73034 $auto$opt_reduce.cc:134:opt_pmux$74209 $auto$ghdl.cc:806:import_module$72989 $auto$ghdl.cc:806:import_module$72982 $auto$ghdl.cc:806:import_module$72975 $auto$ghdl.cc:806:import_module$72969 $auto$ghdl.cc:806:import_module$72964 $auto$ghdl.cc:806:import_module$72962 $auto$ghdl.cc:806:import_module$72947 $auto$ghdl.cc:806:import_module$72945 $auto$ghdl.cc:806:import_module$72943 $auto$ghdl.cc:806:import_module$72941 }
   Optimizing cells in module \ino_integer_unit.
 Performed a total of 2 changes.
 
@@ -1153,8 +1153,8 @@ Removed a total of 0 cells.
 3.18.14. Executing OPT_SHARE pass.
 
 3.18.15. Executing OPT_DFF pass (perform DFF optimizations).
-Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$81421 ($sdff) from module ino_integer_unit.
-Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$81421 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$74074 ($sdff) from module ino_integer_unit.
+Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$74074 ($sdff) from module ino_integer_unit.
 
 3.18.16. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_integer_unit..
@@ -1496,8 +1496,8 @@ ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
 ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
-ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
-ABC: Memory =    2.86 MB. Time =     0.01 sec
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
+ABC: Memory =    2.86 MB. Time =     0.02 sec
 ABC: + strash 
 ABC: + &get -n 
 ABC: + &fraig -x 
@@ -1514,31 +1514,31 @@ ABC: + &put
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
 5.1.2. Re-integrating ABC results.
-ABC RESULTS:      sg13g2_or3_1 cells:       14
-ABC RESULTS:     sg13g2_and4_1 cells:        8
-ABC RESULTS:      sg13g2_or4_1 cells:        4
-ABC RESULTS:     sg13g2_and3_1 cells:       27
-ABC RESULTS:     sg13g2_xor2_1 cells:       90
-ABC RESULTS:     sg13g2_and2_1 cells:      222
-ABC RESULTS:     sg13g2_a21o_1 cells:      122
-ABC RESULTS:     sg13g2_mux4_1 cells:      110
-ABC RESULTS:    sg13g2_nor2b_1 cells:       98
-ABC RESULTS:      sg13g2_inv_1 cells:      178
-ABC RESULTS:   sg13g2_nand2b_1 cells:      220
-ABC RESULTS:    sg13g2_xnor2_1 cells:      231
-ABC RESULTS:    sg13g2_nand2_1 cells:      841
-ABC RESULTS:     sg13g2_mux2_1 cells:      394
+ABC RESULTS:   sg13g2_nand3b_1 cells:       13
+ABC RESULTS:      sg13g2_or4_1 cells:       10
+ABC RESULTS:     sg13g2_and3_1 cells:       28
+ABC RESULTS:     sg13g2_a21o_1 cells:      113
+ABC RESULTS:    sg13g2_nor2b_1 cells:       92
+ABC RESULTS:     sg13g2_xor2_1 cells:      106
+ABC RESULTS:      sg13g2_inv_1 cells:      171
+ABC RESULTS:     sg13g2_nor4_1 cells:       61
+ABC RESULTS:    sg13g2_nand4_1 cells:      110
+ABC RESULTS:   sg13g2_nand2b_1 cells:      216
+ABC RESULTS:    sg13g2_xnor2_1 cells:      230
+ABC RESULTS:      sg13g2_or3_1 cells:       16
 ABC RESULTS:      sg13g2_or2_1 cells:      140
-ABC RESULTS:    sg13g2_a21oi_1 cells:     1103
-ABC RESULTS:    sg13g2_a22oi_1 cells:      212
-ABC RESULTS:     sg13g2_nor4_1 cells:       86
-ABC RESULTS:   sg13g2_nand3b_1 cells:        9
-ABC RESULTS:    sg13g2_o21ai_1 cells:     1227
-ABC RESULTS:    sg13g2_nand3_1 cells:      229
-ABC RESULTS:    sg13g2_nand4_1 cells:      106
-ABC RESULTS:   sg13g2_a221oi_1 cells:      190
-ABC RESULTS:     sg13g2_nor3_1 cells:      214
-ABC RESULTS:     sg13g2_nor2_1 cells:      837
+ABC RESULTS:    sg13g2_nand3_1 cells:      211
+ABC RESULTS:     sg13g2_mux2_1 cells:      394
+ABC RESULTS:     sg13g2_mux4_1 cells:      115
+ABC RESULTS:     sg13g2_and4_1 cells:       14
+ABC RESULTS:    sg13g2_a22oi_1 cells:      224
+ABC RESULTS:    sg13g2_nand2_1 cells:      798
+ABC RESULTS:   sg13g2_a221oi_1 cells:      175
+ABC RESULTS:     sg13g2_and2_1 cells:      224
+ABC RESULTS:    sg13g2_o21ai_1 cells:     1254
+ABC RESULTS:    sg13g2_a21oi_1 cells:     1116
+ABC RESULTS:     sg13g2_nor3_1 cells:      202
+ABC RESULTS:     sg13g2_nor2_1 cells:      817
 ABC RESULTS:        internal signals:     8675
 ABC RESULTS:           input signals:      371
 ABC RESULTS:          output signals:       69
@@ -1549,6 +1549,6 @@ Finding unused cells or wires in module \ino_integer_unit..
 Removed 0 unused cells and 9049 unused wires.
 <suppressed ~4 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 432ac86b70, CPU: user 4.74s system 0.06s, MEM: 123.61 MB peak
+End of script. Logfile hash: abd86a188b, CPU: user 5.56s system 0.06s, MEM: 114.15 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 37% 2x abc (2 sec), 14% 42x opt_expr (1 sec), ...
+Time spent: 37% 2x abc (3 sec), 14% 42x opt_expr (1 sec), ...
