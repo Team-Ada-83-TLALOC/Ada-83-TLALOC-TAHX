@@ -31,6 +31,12 @@ use work.INO_PADDR.all;
 		--  octets entre les deux restent internes. FETCH_UNIT(IN_ORDER) n'a plus de
 		--  prechargement des cibles : ses entrées TRAIN_* ne sont pas sorties.
 		--
+		--  Réalisation (étape 19) : INO_FETCH_LINE (le cache de FETCH_UNIT(IN_ORDER),
+		--  qui présente la ligne brute) et INO_BYTE_QUEUE (file rangée par adresse) ;
+		--  ni cadrage du bloc ni rotation d'écriture. Les octets utiles de la fenêtre
+		--  (i < WINDOW_COUNT_o) sont ceux des deux entités d'origine ; au-delà, le
+		--  contenu est sans signification.
+		--
 		--  Le contrat est celui des deux entités, reliées comme dans
 		--  INSTRUCTION_UNIT(IN_ORDER), avec sa fonction d'arrêt :
 		--    STOP de FETCH_UNIT = ( DECODE_STOP_i and CONSUME_i ) or HALT_i.

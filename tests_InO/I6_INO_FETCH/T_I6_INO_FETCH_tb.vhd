@@ -26,8 +26,12 @@ use work.TB_UTILS.all;
 		--  le contrôle du frontal (reprises, dont celle du démarrage ; HALT). La
 		--  référence reçoit des adresses dont les 32 bits hauts sont quelconques et des
 		--  reprises complètes ; le bloc les reçoit en paddr_t.
-		--  Chaque cycle : I_REQ / I_ADDR, fenêtre, nombre, pc, fautes comparés, et
-		--  adresses de la référence réalisables (exactitude de TO_PA).
+		--  Chaque cycle : I_REQ / I_ADDR, nombre, pc, octets et fautes utiles de la
+		--  fenêtre (i < WINDOW_COUNT) comparés, et adresses de la référence
+		--  réalisables (exactitude de TO_PA).
+		--  Depuis l'étape 19, INO_FETCH relie INO_FETCH_LINE et INO_BYTE_QUEUE (file
+		--  rangée par adresse) ; la référence reste FETCH_UNIT(IN_ORDER) (enveloppe de
+		--  cadrage de INO_FETCH_LINE) + FETCH_BYTE_QUEUE(IN_ORDER).
 		--------------------------------------------------------------------------------
 
 
@@ -97,6 +101,22 @@ of T_I6_INO_FETCH_tb is
    function B( v : boolean ) return std_logic is
    begin
       if v then return '1'; else return '0'; end if;
+   end function;
+
+   -- Octets utiles de la fenetre seulement (i < WINDOW_COUNT) : au-dela, le contenu
+   -- est sans signification (et differe depuis que INO_BYTE_QUEUE range les octets
+   -- par adresse, etape 19).
+   function SAME_WINDOW( a, b : decode_window_t; fa, fb : window_flags_t;
+                         n : window_count_t ) return boolean is
+   begin
+      for i in a'range loop
+         if i < to_integer( n ) then
+            if std_logic_vector( a( i ) ) /= std_logic_vector( b( i ) ) or fa( i ) /= fb( i ) then
+               return false;
+            end if;
+         end if;
+      end loop;
+      return true;
    end function;
 
 begin
@@ -256,8 +276,8 @@ begin
                    HEX( r_i_addr ), HEX( d_i_addr ) );
          end if;
 
-         ok := d_window_count = r_window_count and d_window = r_window
-               and d_window_fault = r_window_fault
+         ok := d_window_count = r_window_count
+               and SAME_WINDOW( d_window, r_window, d_window_fault, r_window_fault, r_window_count )
                and std_logic_vector( d_window_pc ) = std_logic_vector( TO_PA( r_window_pc ) )
                and ( r_window_count = 0 or PA_OK( r_window_pc ) );
          if ok then CHECK_PASSED( c ); else

@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fetch_byte_queue fetch_unit fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_pred_table2_2r_1024 ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_pred_table2_2r_1024 ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_muldiv_unit
          synth -top ino_muldiv_unit -noshare
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -115,42 +115,42 @@ Removed a total of 10 cells.
 Running muxtree optimizer on module \ino_muldiv_unit..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
-      Replacing known input bits on port A of cell $auto$ghdl.cc:928:import_module$73538: \a_s -> { 1'0 \a_s [62:0] }
-      Replacing known input bits on port A of cell $auto$ghdl.cc:928:import_module$73541: \b_s -> { 1'0 \b_s [62:0] }
-      Replacing known input bits on port A of cell $auto$ghdl.cc:928:import_module$73544: \c_s -> { 1'0 \c_s [62:0] }
+      Replacing known input bits on port A of cell $auto$ghdl.cc:928:import_module$71963: \a_s -> { 1'0 \a_s [62:0] }
+      Replacing known input bits on port A of cell $auto$ghdl.cc:928:import_module$71966: \b_s -> { 1'0 \b_s [62:0] }
+      Replacing known input bits on port A of cell $auto$ghdl.cc:928:import_module$71969: \c_s -> { 1'0 \c_s [62:0] }
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
 <suppressed ~25 debug messages>
 
 3.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_muldiv_unit.
-    New ctrl vector for $pmux cell \123872: { $auto$ghdl.cc:806:import_module$73469 $auto$ghdl.cc:806:import_module$73400 $auto$opt_reduce.cc:134:opt_pmux$73580 }
-    New ctrl vector for $pmux cell \123877: { $auto$ghdl.cc:806:import_module$73469 $auto$ghdl.cc:806:import_module$73400 $auto$opt_reduce.cc:134:opt_pmux$73582 }
-    New ctrl vector for $pmux cell \123879: { $auto$opt_reduce.cc:134:opt_pmux$73584 $auto$ghdl.cc:806:import_module$73376 }
-    New ctrl vector for $pmux cell \123881: { $auto$opt_reduce.cc:134:opt_pmux$73586 $auto$ghdl.cc:806:import_module$73376 }
-    New ctrl vector for $pmux cell \123883: { $auto$opt_reduce.cc:134:opt_pmux$73588 $auto$ghdl.cc:806:import_module$73376 }
-    New ctrl vector for $pmux cell \123885: { $auto$opt_reduce.cc:134:opt_pmux$73590 $auto$ghdl.cc:806:import_module$73376 }
-    New ctrl vector for $pmux cell \123887: { $auto$opt_reduce.cc:134:opt_pmux$73592 $auto$ghdl.cc:806:import_module$73376 }
-    New ctrl vector for $pmux cell \123889: { $auto$opt_reduce.cc:134:opt_pmux$73594 $auto$ghdl.cc:806:import_module$73376 }
-    New ctrl vector for $pmux cell \123891: { $auto$ghdl.cc:806:import_module$73420 $auto$ghdl.cc:806:import_module$73400 $auto$opt_reduce.cc:134:opt_pmux$73596 }
-    New ctrl vector for $pmux cell \123894: { $auto$ghdl.cc:806:import_module$73420 $auto$ghdl.cc:806:import_module$73400 $auto$opt_reduce.cc:134:opt_pmux$73598 }
-    New ctrl vector for $pmux cell \123896: { $auto$ghdl.cc:806:import_module$73400 $auto$opt_reduce.cc:134:opt_pmux$73600 }
-    New ctrl vector for $pmux cell \123898: { $auto$ghdl.cc:806:import_module$73420 $auto$ghdl.cc:806:import_module$73400 $auto$opt_reduce.cc:134:opt_pmux$73602 }
-    New ctrl vector for $pmux cell \123922: { $auto$ghdl.cc:806:import_module$73483 $auto$opt_reduce.cc:134:opt_pmux$73604 }
-    New ctrl vector for $pmux cell \123924: { $auto$opt_reduce.cc:134:opt_pmux$73606 $auto$ghdl.cc:806:import_module$73361 }
-    New ctrl vector for $pmux cell \123926: { $auto$opt_reduce.cc:134:opt_pmux$73608 $auto$ghdl.cc:806:import_module$73361 }
-    New ctrl vector for $pmux cell \123928: { $auto$opt_reduce.cc:134:opt_pmux$73610 $auto$ghdl.cc:806:import_module$73361 }
-    New ctrl vector for $pmux cell \123930: { $auto$opt_reduce.cc:134:opt_pmux$73612 $auto$ghdl.cc:806:import_module$73361 }
-    New ctrl vector for $pmux cell \123932: { $auto$ghdl.cc:806:import_module$73483 $auto$opt_reduce.cc:134:opt_pmux$73614 }
-    New ctrl vector for $pmux cell \123934: { $auto$ghdl.cc:806:import_module$73483 $auto$opt_reduce.cc:134:opt_pmux$73616 }
-    New ctrl vector for $pmux cell \123936: { $auto$ghdl.cc:806:import_module$73483 $auto$opt_reduce.cc:134:opt_pmux$73618 }
-    New ctrl vector for $pmux cell \123938: { $auto$ghdl.cc:806:import_module$73483 $auto$opt_reduce.cc:134:opt_pmux$73620 }
-    New ctrl vector for $pmux cell \123940: { $auto$ghdl.cc:806:import_module$73483 $auto$opt_reduce.cc:134:opt_pmux$73622 }
-    New ctrl vector for $pmux cell \123942: { $auto$ghdl.cc:806:import_module$73483 $auto$opt_reduce.cc:134:opt_pmux$73624 }
-    New ctrl vector for $pmux cell \123944: { $auto$ghdl.cc:806:import_module$73483 $auto$opt_reduce.cc:134:opt_pmux$73626 }
-    New ctrl vector for $pmux cell \123946: { $auto$ghdl.cc:806:import_module$73483 $auto$opt_reduce.cc:134:opt_pmux$73628 }
-    New ctrl vector for $pmux cell \123948: { $auto$ghdl.cc:806:import_module$73483 $auto$opt_reduce.cc:134:opt_pmux$73630 }
-    New ctrl vector for $pmux cell \123950: { $auto$ghdl.cc:806:import_module$73483 $auto$opt_reduce.cc:134:opt_pmux$73632 }
+    New ctrl vector for $pmux cell \118592: { $auto$ghdl.cc:806:import_module$71894 $auto$ghdl.cc:806:import_module$71825 $auto$opt_reduce.cc:134:opt_pmux$72005 }
+    New ctrl vector for $pmux cell \118597: { $auto$ghdl.cc:806:import_module$71894 $auto$ghdl.cc:806:import_module$71825 $auto$opt_reduce.cc:134:opt_pmux$72007 }
+    New ctrl vector for $pmux cell \118599: { $auto$opt_reduce.cc:134:opt_pmux$72009 $auto$ghdl.cc:806:import_module$71801 }
+    New ctrl vector for $pmux cell \118601: { $auto$opt_reduce.cc:134:opt_pmux$72011 $auto$ghdl.cc:806:import_module$71801 }
+    New ctrl vector for $pmux cell \118603: { $auto$opt_reduce.cc:134:opt_pmux$72013 $auto$ghdl.cc:806:import_module$71801 }
+    New ctrl vector for $pmux cell \118605: { $auto$opt_reduce.cc:134:opt_pmux$72015 $auto$ghdl.cc:806:import_module$71801 }
+    New ctrl vector for $pmux cell \118607: { $auto$opt_reduce.cc:134:opt_pmux$72017 $auto$ghdl.cc:806:import_module$71801 }
+    New ctrl vector for $pmux cell \118609: { $auto$opt_reduce.cc:134:opt_pmux$72019 $auto$ghdl.cc:806:import_module$71801 }
+    New ctrl vector for $pmux cell \118611: { $auto$ghdl.cc:806:import_module$71845 $auto$ghdl.cc:806:import_module$71825 $auto$opt_reduce.cc:134:opt_pmux$72021 }
+    New ctrl vector for $pmux cell \118614: { $auto$ghdl.cc:806:import_module$71845 $auto$ghdl.cc:806:import_module$71825 $auto$opt_reduce.cc:134:opt_pmux$72023 }
+    New ctrl vector for $pmux cell \118616: { $auto$ghdl.cc:806:import_module$71825 $auto$opt_reduce.cc:134:opt_pmux$72025 }
+    New ctrl vector for $pmux cell \118618: { $auto$ghdl.cc:806:import_module$71845 $auto$ghdl.cc:806:import_module$71825 $auto$opt_reduce.cc:134:opt_pmux$72027 }
+    New ctrl vector for $pmux cell \118642: { $auto$ghdl.cc:806:import_module$71908 $auto$opt_reduce.cc:134:opt_pmux$72029 }
+    New ctrl vector for $pmux cell \118644: { $auto$opt_reduce.cc:134:opt_pmux$72031 $auto$ghdl.cc:806:import_module$71786 }
+    New ctrl vector for $pmux cell \118646: { $auto$opt_reduce.cc:134:opt_pmux$72033 $auto$ghdl.cc:806:import_module$71786 }
+    New ctrl vector for $pmux cell \118648: { $auto$opt_reduce.cc:134:opt_pmux$72035 $auto$ghdl.cc:806:import_module$71786 }
+    New ctrl vector for $pmux cell \118650: { $auto$opt_reduce.cc:134:opt_pmux$72037 $auto$ghdl.cc:806:import_module$71786 }
+    New ctrl vector for $pmux cell \118652: { $auto$ghdl.cc:806:import_module$71908 $auto$opt_reduce.cc:134:opt_pmux$72039 }
+    New ctrl vector for $pmux cell \118654: { $auto$ghdl.cc:806:import_module$71908 $auto$opt_reduce.cc:134:opt_pmux$72041 }
+    New ctrl vector for $pmux cell \118656: { $auto$ghdl.cc:806:import_module$71908 $auto$opt_reduce.cc:134:opt_pmux$72043 }
+    New ctrl vector for $pmux cell \118658: { $auto$ghdl.cc:806:import_module$71908 $auto$opt_reduce.cc:134:opt_pmux$72045 }
+    New ctrl vector for $pmux cell \118660: { $auto$ghdl.cc:806:import_module$71908 $auto$opt_reduce.cc:134:opt_pmux$72047 }
+    New ctrl vector for $pmux cell \118662: { $auto$ghdl.cc:806:import_module$71908 $auto$opt_reduce.cc:134:opt_pmux$72049 }
+    New ctrl vector for $pmux cell \118664: { $auto$ghdl.cc:806:import_module$71908 $auto$opt_reduce.cc:134:opt_pmux$72051 }
+    New ctrl vector for $pmux cell \118666: { $auto$ghdl.cc:806:import_module$71908 $auto$opt_reduce.cc:134:opt_pmux$72053 }
+    New ctrl vector for $pmux cell \118668: { $auto$ghdl.cc:806:import_module$71908 $auto$opt_reduce.cc:134:opt_pmux$72055 }
+    New ctrl vector for $pmux cell \118670: { $auto$ghdl.cc:806:import_module$71908 $auto$opt_reduce.cc:134:opt_pmux$72057 }
   Optimizing cells in module \ino_muldiv_unit.
 Performed a total of 27 changes.
 
@@ -246,27 +246,27 @@ Finding identical cells in module `\ino_muldiv_unit'.
 Removed a total of 0 cells.
 
 3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on \124036 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73501, Q = \iter_s, rval = 6'000000).
-Adding EN signal on $auto$ff.cc:266:slice$73633 ($sdff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73501, Q = \iter_s).
-Adding EN signal on \124035 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73500, Q = \dvs_s).
-Adding EN signal on \124034 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73499, Q = \rem_s).
-Adding EN signal on \124033 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73498, Q = \dq_s).
-Adding EN signal on \124032 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73497, Q = \sc_s).
-Adding EN signal on \124031 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73496, Q = \sb_s).
-Adding EN signal on \124030 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73495, Q = \sa_s).
-Adding EN signal on \124029 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73494, Q = \uc_s).
-Adding EN signal on \124028 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73493, Q = \ub_s).
-Adding EN signal on \124027 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73492, Q = \ua_s).
-Adding EN signal on \124026 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73491, Q = \c_s).
-Adding EN signal on \124025 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73490, Q = \b_s).
-Adding EN signal on \124024 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73489, Q = \a_s).
-Adding EN signal on \124023 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73488, Q = \op_s).
-Adding SRST signal on \124022 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73487, Q = \result_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$73764 ($sdff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73487, Q = \result_s).
-Adding SRST signal on \124021 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73486, Q = \step_s, rval = 2'00).
-Adding EN signal on $auto$ff.cc:266:slice$73774 ($sdff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73486, Q = \step_s).
-Adding SRST signal on \124020 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73485, Q = \state_s, rval = 2'00).
-Adding EN signal on $auto$ff.cc:266:slice$73788 ($sdff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73485, Q = \state_s).
+Adding SRST signal on \118756 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71926, Q = \iter_s, rval = 6'000000).
+Adding EN signal on $auto$ff.cc:266:slice$72058 ($sdff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71926, Q = \iter_s).
+Adding EN signal on \118755 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71925, Q = \dvs_s).
+Adding EN signal on \118754 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71924, Q = \rem_s).
+Adding EN signal on \118753 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71923, Q = \dq_s).
+Adding EN signal on \118752 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71922, Q = \sc_s).
+Adding EN signal on \118751 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71921, Q = \sb_s).
+Adding EN signal on \118750 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71920, Q = \sa_s).
+Adding EN signal on \118749 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71919, Q = \uc_s).
+Adding EN signal on \118748 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71918, Q = \ub_s).
+Adding EN signal on \118747 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71917, Q = \ua_s).
+Adding EN signal on \118746 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71916, Q = \c_s).
+Adding EN signal on \118745 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71915, Q = \b_s).
+Adding EN signal on \118744 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71914, Q = \a_s).
+Adding EN signal on \118743 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71913, Q = \op_s).
+Adding SRST signal on \118742 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71912, Q = \result_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$72189 ($sdff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71912, Q = \result_s).
+Adding SRST signal on \118741 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71911, Q = \step_s, rval = 2'00).
+Adding EN signal on $auto$ff.cc:266:slice$72199 ($sdff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71911, Q = \step_s).
+Adding SRST signal on \118740 ($dff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71910, Q = \state_s, rval = 2'00).
+Adding EN signal on $auto$ff.cc:266:slice$72213 ($sdff) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71910, Q = \state_s).
 
 3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_muldiv_unit..
@@ -289,35 +289,35 @@ Removed 0 multiplexer ports.
 
 3.8.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_muldiv_unit.
-    New ctrl vector for $pmux cell \123872: { $auto$ghdl.cc:806:import_module$73469 $auto$ghdl.cc:806:import_module$73400 }
-    New ctrl vector for $pmux cell \123875: { $auto$ghdl.cc:806:import_module$73420 $auto$ghdl.cc:806:import_module$73400 $auto$ghdl.cc:806:import_module$73376 }
-    New ctrl vector for $pmux cell \123877: { $auto$ghdl.cc:806:import_module$73469 $auto$ghdl.cc:806:import_module$73400 }
-    New ctrl vector for $pmux cell \123879: $auto$ghdl.cc:806:import_module$73376
-    New ctrl vector for $pmux cell \123881: $auto$ghdl.cc:806:import_module$73376
-    New ctrl vector for $pmux cell \123883: $auto$ghdl.cc:806:import_module$73376
-    New ctrl vector for $pmux cell \123885: $auto$ghdl.cc:806:import_module$73376
-    New ctrl vector for $pmux cell \123887: $auto$ghdl.cc:806:import_module$73376
-    New ctrl vector for $pmux cell \123889: $auto$ghdl.cc:806:import_module$73376
-    New ctrl vector for $pmux cell \123891: { $auto$ghdl.cc:806:import_module$73420 $auto$ghdl.cc:806:import_module$73400 }
-    New ctrl vector for $pmux cell \123894: { $auto$ghdl.cc:806:import_module$73420 $auto$ghdl.cc:806:import_module$73400 }
-    New ctrl vector for $pmux cell \123896: $auto$ghdl.cc:806:import_module$73400
-    New ctrl vector for $pmux cell \123898: { $auto$ghdl.cc:806:import_module$73420 $auto$ghdl.cc:806:import_module$73400 }
-    New ctrl vector for $pmux cell \123920: { $auto$ghdl.cc:806:import_module$73483 $auto$ghdl.cc:806:import_module$73361 }
-    New ctrl vector for $pmux cell \123922: $auto$ghdl.cc:806:import_module$73483
-    New ctrl vector for $pmux cell \123924: $auto$ghdl.cc:806:import_module$73361
-    New ctrl vector for $pmux cell \123926: $auto$ghdl.cc:806:import_module$73361
-    New ctrl vector for $pmux cell \123928: $auto$ghdl.cc:806:import_module$73361
-    New ctrl vector for $pmux cell \123930: $auto$ghdl.cc:806:import_module$73361
-    New ctrl vector for $pmux cell \123932: $auto$ghdl.cc:806:import_module$73483
-    New ctrl vector for $pmux cell \123934: $auto$ghdl.cc:806:import_module$73483
-    New ctrl vector for $pmux cell \123936: $auto$ghdl.cc:806:import_module$73483
-    New ctrl vector for $pmux cell \123938: $auto$ghdl.cc:806:import_module$73483
-    New ctrl vector for $pmux cell \123940: $auto$ghdl.cc:806:import_module$73483
-    New ctrl vector for $pmux cell \123942: $auto$ghdl.cc:806:import_module$73483
-    New ctrl vector for $pmux cell \123944: $auto$ghdl.cc:806:import_module$73483
-    New ctrl vector for $pmux cell \123946: $auto$ghdl.cc:806:import_module$73483
-    New ctrl vector for $pmux cell \123948: $auto$ghdl.cc:806:import_module$73483
-    New ctrl vector for $pmux cell \123950: $auto$ghdl.cc:806:import_module$73483
+    New ctrl vector for $pmux cell \118592: { $auto$ghdl.cc:806:import_module$71894 $auto$ghdl.cc:806:import_module$71825 }
+    New ctrl vector for $pmux cell \118595: { $auto$ghdl.cc:806:import_module$71845 $auto$ghdl.cc:806:import_module$71825 $auto$ghdl.cc:806:import_module$71801 }
+    New ctrl vector for $pmux cell \118597: { $auto$ghdl.cc:806:import_module$71894 $auto$ghdl.cc:806:import_module$71825 }
+    New ctrl vector for $pmux cell \118599: $auto$ghdl.cc:806:import_module$71801
+    New ctrl vector for $pmux cell \118601: $auto$ghdl.cc:806:import_module$71801
+    New ctrl vector for $pmux cell \118603: $auto$ghdl.cc:806:import_module$71801
+    New ctrl vector for $pmux cell \118605: $auto$ghdl.cc:806:import_module$71801
+    New ctrl vector for $pmux cell \118607: $auto$ghdl.cc:806:import_module$71801
+    New ctrl vector for $pmux cell \118609: $auto$ghdl.cc:806:import_module$71801
+    New ctrl vector for $pmux cell \118611: { $auto$ghdl.cc:806:import_module$71845 $auto$ghdl.cc:806:import_module$71825 }
+    New ctrl vector for $pmux cell \118614: { $auto$ghdl.cc:806:import_module$71845 $auto$ghdl.cc:806:import_module$71825 }
+    New ctrl vector for $pmux cell \118616: $auto$ghdl.cc:806:import_module$71825
+    New ctrl vector for $pmux cell \118618: { $auto$ghdl.cc:806:import_module$71845 $auto$ghdl.cc:806:import_module$71825 }
+    New ctrl vector for $pmux cell \118640: { $auto$ghdl.cc:806:import_module$71908 $auto$ghdl.cc:806:import_module$71786 }
+    New ctrl vector for $pmux cell \118642: $auto$ghdl.cc:806:import_module$71908
+    New ctrl vector for $pmux cell \118644: $auto$ghdl.cc:806:import_module$71786
+    New ctrl vector for $pmux cell \118646: $auto$ghdl.cc:806:import_module$71786
+    New ctrl vector for $pmux cell \118648: $auto$ghdl.cc:806:import_module$71786
+    New ctrl vector for $pmux cell \118650: $auto$ghdl.cc:806:import_module$71786
+    New ctrl vector for $pmux cell \118652: $auto$ghdl.cc:806:import_module$71908
+    New ctrl vector for $pmux cell \118654: $auto$ghdl.cc:806:import_module$71908
+    New ctrl vector for $pmux cell \118656: $auto$ghdl.cc:806:import_module$71908
+    New ctrl vector for $pmux cell \118658: $auto$ghdl.cc:806:import_module$71908
+    New ctrl vector for $pmux cell \118660: $auto$ghdl.cc:806:import_module$71908
+    New ctrl vector for $pmux cell \118662: $auto$ghdl.cc:806:import_module$71908
+    New ctrl vector for $pmux cell \118664: $auto$ghdl.cc:806:import_module$71908
+    New ctrl vector for $pmux cell \118666: $auto$ghdl.cc:806:import_module$71908
+    New ctrl vector for $pmux cell \118668: $auto$ghdl.cc:806:import_module$71908
+    New ctrl vector for $pmux cell \118670: $auto$ghdl.cc:806:import_module$71908
   Optimizing cells in module \ino_muldiv_unit.
 Performed a total of 29 changes.
 
@@ -365,58 +365,58 @@ Optimizing module ino_muldiv_unit.
 3.8.23. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 64 bits (of 128) from port A of cell ino_muldiv_unit.\123525 ($mul).
-Removed top 64 bits (of 128) from port B of cell ino_muldiv_unit.\123525 ($mul).
-Removed top 3 bits (of 8) from port B of cell ino_muldiv_unit.\123559 ($eq).
-Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\123596 ($mux).
-Removed top 3 bits (of 8) from port B of cell ino_muldiv_unit.\123603 ($eq).
-Removed top 3 bits (of 8) from port B of cell ino_muldiv_unit.\123605 ($eq).
-Removed top 1 bits (of 2) from port B of cell ino_muldiv_unit.\123624 ($eq).
-Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\123637 ($ge).
-Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\123640 ($sub).
-Removed top 1 bits (of 65) from mux cell ino_muldiv_unit.\123645 ($mux).
-Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\123656 ($ge).
-Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\123659 ($sub).
-Removed top 1 bits (of 65) from mux cell ino_muldiv_unit.\123664 ($mux).
-Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\123675 ($ge).
-Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\123678 ($sub).
-Removed top 1 bits (of 65) from mux cell ino_muldiv_unit.\123683 ($mux).
-Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\123694 ($ge).
-Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\123697 ($sub).
-Removed top 1 bits (of 65) from mux cell ino_muldiv_unit.\123702 ($mux).
-Removed top 5 bits (of 6) from port B of cell ino_muldiv_unit.\123707 ($eq).
-Removed top 26 bits (of 32) from port A of cell ino_muldiv_unit.\123712 ($sub).
-Removed top 31 bits (of 32) from port B of cell ino_muldiv_unit.\123712 ($sub).
-Removed top 26 bits (of 32) from port Y of cell ino_muldiv_unit.\123712 ($sub).
-Removed top 127 bits (of 128) from port B of cell ino_muldiv_unit.\123741 ($sub).
-Removed top 127 bits (of 128) from port B of cell ino_muldiv_unit.\123743 ($add).
-Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\123772 ($mux).
-Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\123774 ($mux).
-Removed top 3 bits (of 8) from port B of cell ino_muldiv_unit.\123776 ($eq).
-Removed top 3 bits (of 8) from port B of cell ino_muldiv_unit.\123778 ($eq).
-Removed top 3 bits (of 8) from port B of cell ino_muldiv_unit.\123781 ($eq).
-Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\123797 ($mux).
-Removed top 74 bits (of 140) from mux cell ino_muldiv_unit.\123851 ($mux).
-Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\123853 ($mux).
-Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\123856 ($mux).
-Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\123860 ($mux).
-Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\123862 ($mux).
-Removed top 1 bits (of 2) from port B of cell ino_muldiv_unit.\123912 ($eq).
-Removed top 1 bits (of 65) from port Y of cell ino_muldiv_unit.\123640 ($sub).
-Removed top 1 bits (of 65) from port A of cell ino_muldiv_unit.\123640 ($sub).
-Removed top 1 bits (of 65) from port Y of cell ino_muldiv_unit.\123659 ($sub).
-Removed top 1 bits (of 65) from port A of cell ino_muldiv_unit.\123659 ($sub).
-Removed top 1 bits (of 65) from port Y of cell ino_muldiv_unit.\123678 ($sub).
-Removed top 1 bits (of 65) from port A of cell ino_muldiv_unit.\123678 ($sub).
-Removed top 1 bits (of 65) from port Y of cell ino_muldiv_unit.\123697 ($sub).
-Removed top 1 bits (of 65) from port A of cell ino_muldiv_unit.\123697 ($sub).
-Removed top 65 bits (of 140) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$73387.
-Removed top 1 bits (of 65) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$73402.
-Removed top 1 bits (of 65) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$73404.
-Removed top 1 bits (of 65) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$73408.
-Removed top 1 bits (of 65) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$73410.
-Removed top 1 bits (of 65) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$73412.
-Removed top 1 bits (of 65) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$73416.
+Removed top 64 bits (of 128) from port A of cell ino_muldiv_unit.\118245 ($mul).
+Removed top 64 bits (of 128) from port B of cell ino_muldiv_unit.\118245 ($mul).
+Removed top 3 bits (of 8) from port B of cell ino_muldiv_unit.\118279 ($eq).
+Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\118316 ($mux).
+Removed top 3 bits (of 8) from port B of cell ino_muldiv_unit.\118323 ($eq).
+Removed top 3 bits (of 8) from port B of cell ino_muldiv_unit.\118325 ($eq).
+Removed top 1 bits (of 2) from port B of cell ino_muldiv_unit.\118344 ($eq).
+Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\118357 ($ge).
+Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\118360 ($sub).
+Removed top 1 bits (of 65) from mux cell ino_muldiv_unit.\118365 ($mux).
+Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\118376 ($ge).
+Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\118379 ($sub).
+Removed top 1 bits (of 65) from mux cell ino_muldiv_unit.\118384 ($mux).
+Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\118395 ($ge).
+Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\118398 ($sub).
+Removed top 1 bits (of 65) from mux cell ino_muldiv_unit.\118403 ($mux).
+Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\118414 ($ge).
+Removed top 1 bits (of 65) from port B of cell ino_muldiv_unit.\118417 ($sub).
+Removed top 1 bits (of 65) from mux cell ino_muldiv_unit.\118422 ($mux).
+Removed top 5 bits (of 6) from port B of cell ino_muldiv_unit.\118427 ($eq).
+Removed top 26 bits (of 32) from port A of cell ino_muldiv_unit.\118432 ($sub).
+Removed top 31 bits (of 32) from port B of cell ino_muldiv_unit.\118432 ($sub).
+Removed top 26 bits (of 32) from port Y of cell ino_muldiv_unit.\118432 ($sub).
+Removed top 127 bits (of 128) from port B of cell ino_muldiv_unit.\118461 ($sub).
+Removed top 127 bits (of 128) from port B of cell ino_muldiv_unit.\118463 ($add).
+Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\118492 ($mux).
+Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\118494 ($mux).
+Removed top 3 bits (of 8) from port B of cell ino_muldiv_unit.\118496 ($eq).
+Removed top 3 bits (of 8) from port B of cell ino_muldiv_unit.\118498 ($eq).
+Removed top 3 bits (of 8) from port B of cell ino_muldiv_unit.\118501 ($eq).
+Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\118517 ($mux).
+Removed top 74 bits (of 140) from mux cell ino_muldiv_unit.\118571 ($mux).
+Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\118573 ($mux).
+Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\118576 ($mux).
+Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\118580 ($mux).
+Removed top 65 bits (of 140) from mux cell ino_muldiv_unit.\118582 ($mux).
+Removed top 1 bits (of 2) from port B of cell ino_muldiv_unit.\118632 ($eq).
+Removed top 1 bits (of 65) from port Y of cell ino_muldiv_unit.\118360 ($sub).
+Removed top 1 bits (of 65) from port A of cell ino_muldiv_unit.\118360 ($sub).
+Removed top 1 bits (of 65) from port Y of cell ino_muldiv_unit.\118379 ($sub).
+Removed top 1 bits (of 65) from port A of cell ino_muldiv_unit.\118379 ($sub).
+Removed top 1 bits (of 65) from port Y of cell ino_muldiv_unit.\118398 ($sub).
+Removed top 1 bits (of 65) from port A of cell ino_muldiv_unit.\118398 ($sub).
+Removed top 1 bits (of 65) from port Y of cell ino_muldiv_unit.\118417 ($sub).
+Removed top 1 bits (of 65) from port A of cell ino_muldiv_unit.\118417 ($sub).
+Removed top 65 bits (of 140) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$71812.
+Removed top 1 bits (of 65) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$71827.
+Removed top 1 bits (of 65) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$71829.
+Removed top 1 bits (of 65) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$71833.
+Removed top 1 bits (of 65) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$71835.
+Removed top 1 bits (of 65) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$71837.
+Removed top 1 bits (of 65) from wire ino_muldiv_unit.$auto$ghdl.cc:806:import_module$71841.
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
 
@@ -427,66 +427,66 @@ Removed 0 unused cells and 7 unused wires.
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_muldiv_unit:
-  creating $macc model for $auto$ghdl.cc:927:import_module$73537 ($neg).
-  creating $macc model for $auto$ghdl.cc:927:import_module$73540 ($neg).
-  creating $macc model for $auto$ghdl.cc:927:import_module$73543 ($neg).
-  creating $macc model for \123525 ($mul).
-  creating $macc model for \123580 ($neg).
-  creating $macc model for \123640 ($sub).
-  creating $macc model for \123659 ($sub).
-  creating $macc model for \123678 ($sub).
-  creating $macc model for \123697 ($sub).
-  creating $macc model for \123712 ($sub).
-  creating $macc model for \123733 ($neg).
-  creating $macc model for \123737 ($sub).
-  creating $macc model for \123741 ($sub).
-  creating $macc model for \123743 ($add).
-  creating $macc model for \123808 ($neg).
-  creating $macc model for \123826 ($neg).
-  creating $macc model for \123837 ($add).
-  creating $alu model for $macc \123837.
-  creating $alu model for $macc \123826.
-  creating $alu model for $macc \123808.
-  creating $alu model for $macc \123743.
-  creating $alu model for $macc \123741.
-  creating $alu model for $macc \123737.
-  creating $alu model for $macc \123733.
-  creating $alu model for $macc \123712.
-  creating $alu model for $macc \123697.
-  creating $alu model for $macc \123678.
-  creating $alu model for $macc \123659.
-  creating $alu model for $macc \123640.
-  creating $alu model for $macc \123580.
-  creating $alu model for $macc $auto$ghdl.cc:927:import_module$73543.
-  creating $alu model for $macc $auto$ghdl.cc:927:import_module$73540.
-  creating $alu model for $macc $auto$ghdl.cc:927:import_module$73537.
-  creating $macc cell for \123525: $auto$alumacc.cc:365:replace_macc$73805
-  creating $alu model for \123637 ($ge): new $alu
-  creating $alu model for \123656 ($ge): new $alu
-  creating $alu model for \123675 ($ge): new $alu
-  creating $alu model for \123694 ($ge): new $alu
-  creating $alu model for \123738 ($ge): new $alu
-  creating $alu cell for \123738: $auto$alumacc.cc:485:replace_alu$73811
-  creating $alu cell for \123694: $auto$alumacc.cc:485:replace_alu$73824
-  creating $alu cell for \123675: $auto$alumacc.cc:485:replace_alu$73833
-  creating $alu cell for \123656: $auto$alumacc.cc:485:replace_alu$73842
-  creating $alu cell for \123637: $auto$alumacc.cc:485:replace_alu$73851
-  creating $alu cell for $auto$ghdl.cc:927:import_module$73537: $auto$alumacc.cc:485:replace_alu$73860
-  creating $alu cell for $auto$ghdl.cc:927:import_module$73540: $auto$alumacc.cc:485:replace_alu$73863
-  creating $alu cell for $auto$ghdl.cc:927:import_module$73543: $auto$alumacc.cc:485:replace_alu$73866
-  creating $alu cell for \123580: $auto$alumacc.cc:485:replace_alu$73869
-  creating $alu cell for \123640: $auto$alumacc.cc:485:replace_alu$73872
-  creating $alu cell for \123659: $auto$alumacc.cc:485:replace_alu$73875
-  creating $alu cell for \123678: $auto$alumacc.cc:485:replace_alu$73878
-  creating $alu cell for \123697: $auto$alumacc.cc:485:replace_alu$73881
-  creating $alu cell for \123712: $auto$alumacc.cc:485:replace_alu$73884
-  creating $alu cell for \123733: $auto$alumacc.cc:485:replace_alu$73887
-  creating $alu cell for \123737: $auto$alumacc.cc:485:replace_alu$73890
-  creating $alu cell for \123741: $auto$alumacc.cc:485:replace_alu$73893
-  creating $alu cell for \123743: $auto$alumacc.cc:485:replace_alu$73896
-  creating $alu cell for \123808: $auto$alumacc.cc:485:replace_alu$73899
-  creating $alu cell for \123826: $auto$alumacc.cc:485:replace_alu$73902
-  creating $alu cell for \123837: $auto$alumacc.cc:485:replace_alu$73905
+  creating $macc model for $auto$ghdl.cc:927:import_module$71962 ($neg).
+  creating $macc model for $auto$ghdl.cc:927:import_module$71965 ($neg).
+  creating $macc model for $auto$ghdl.cc:927:import_module$71968 ($neg).
+  creating $macc model for \118245 ($mul).
+  creating $macc model for \118300 ($neg).
+  creating $macc model for \118360 ($sub).
+  creating $macc model for \118379 ($sub).
+  creating $macc model for \118398 ($sub).
+  creating $macc model for \118417 ($sub).
+  creating $macc model for \118432 ($sub).
+  creating $macc model for \118453 ($neg).
+  creating $macc model for \118457 ($sub).
+  creating $macc model for \118461 ($sub).
+  creating $macc model for \118463 ($add).
+  creating $macc model for \118528 ($neg).
+  creating $macc model for \118546 ($neg).
+  creating $macc model for \118557 ($add).
+  creating $alu model for $macc \118557.
+  creating $alu model for $macc \118546.
+  creating $alu model for $macc \118528.
+  creating $alu model for $macc \118463.
+  creating $alu model for $macc \118461.
+  creating $alu model for $macc \118457.
+  creating $alu model for $macc \118453.
+  creating $alu model for $macc \118432.
+  creating $alu model for $macc \118417.
+  creating $alu model for $macc \118398.
+  creating $alu model for $macc \118379.
+  creating $alu model for $macc \118360.
+  creating $alu model for $macc \118300.
+  creating $alu model for $macc $auto$ghdl.cc:927:import_module$71968.
+  creating $alu model for $macc $auto$ghdl.cc:927:import_module$71965.
+  creating $alu model for $macc $auto$ghdl.cc:927:import_module$71962.
+  creating $macc cell for \118245: $auto$alumacc.cc:365:replace_macc$72230
+  creating $alu model for \118357 ($ge): new $alu
+  creating $alu model for \118376 ($ge): new $alu
+  creating $alu model for \118395 ($ge): new $alu
+  creating $alu model for \118414 ($ge): new $alu
+  creating $alu model for \118458 ($ge): new $alu
+  creating $alu cell for \118458: $auto$alumacc.cc:485:replace_alu$72236
+  creating $alu cell for \118414: $auto$alumacc.cc:485:replace_alu$72249
+  creating $alu cell for \118395: $auto$alumacc.cc:485:replace_alu$72258
+  creating $alu cell for \118376: $auto$alumacc.cc:485:replace_alu$72267
+  creating $alu cell for \118357: $auto$alumacc.cc:485:replace_alu$72276
+  creating $alu cell for $auto$ghdl.cc:927:import_module$71962: $auto$alumacc.cc:485:replace_alu$72285
+  creating $alu cell for $auto$ghdl.cc:927:import_module$71965: $auto$alumacc.cc:485:replace_alu$72288
+  creating $alu cell for $auto$ghdl.cc:927:import_module$71968: $auto$alumacc.cc:485:replace_alu$72291
+  creating $alu cell for \118300: $auto$alumacc.cc:485:replace_alu$72294
+  creating $alu cell for \118360: $auto$alumacc.cc:485:replace_alu$72297
+  creating $alu cell for \118379: $auto$alumacc.cc:485:replace_alu$72300
+  creating $alu cell for \118398: $auto$alumacc.cc:485:replace_alu$72303
+  creating $alu cell for \118417: $auto$alumacc.cc:485:replace_alu$72306
+  creating $alu cell for \118432: $auto$alumacc.cc:485:replace_alu$72309
+  creating $alu cell for \118453: $auto$alumacc.cc:485:replace_alu$72312
+  creating $alu cell for \118457: $auto$alumacc.cc:485:replace_alu$72315
+  creating $alu cell for \118461: $auto$alumacc.cc:485:replace_alu$72318
+  creating $alu cell for \118463: $auto$alumacc.cc:485:replace_alu$72321
+  creating $alu cell for \118528: $auto$alumacc.cc:485:replace_alu$72324
+  creating $alu cell for \118546: $auto$alumacc.cc:485:replace_alu$72327
+  creating $alu cell for \118557: $auto$alumacc.cc:485:replace_alu$72330
   created 21 $alu and 1 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -622,59 +622,59 @@ Removed 0 multiplexer ports.
 
 3.18.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_muldiv_unit.
-    Consolidated identical input bits for $mux cell \123596:
-      Old ports: A=75'100000011000000000000000000000000000000000000000000000000000000000000000001, B={ 9'000000000 $auto$ghdl.cc:806:import_module$73386 2'11 }, Y=$auto$ghdl.cc:806:import_module$73387
-      New ports: A=66'100000000000000000000000000000000000000000000000000000000000000000, B={ 1'0 $auto$ghdl.cc:806:import_module$73386 1'1 }, Y=$auto$ghdl.cc:806:import_module$73387 [66:1]
-      New connections: { $auto$ghdl.cc:806:import_module$73387 [74:67] $auto$ghdl.cc:806:import_module$73387 [0] } = { $auto$ghdl.cc:806:import_module$73387 [66] 6'000000 $auto$ghdl.cc:806:import_module$73387 [66] 1'1 }
-    Consolidated identical input bits for $mux cell \123613:
-      Old ports: A=6'010000, B=6'100000, Y=$auto$ghdl.cc:806:import_module$73393
-      New ports: A=2'01, B=2'10, Y=$auto$ghdl.cc:806:import_module$73393 [5:4]
-      New connections: $auto$ghdl.cc:806:import_module$73393 [3:0] = 4'0000
-    Consolidated identical input bits for $mux cell \123772:
-      Old ports: A=75'100000011000000000000000000000000000000000000000000000000000000000000000001, B={ 9'000000000 $auto$ghdl.cc:806:import_module$73435 [63:0] 2'11 }, Y=$auto$ghdl.cc:806:import_module$73438 [74:0]
-      New ports: A=66'100000000000000000000000000000000000000000000000000000000000000000, B={ 1'0 $auto$ghdl.cc:806:import_module$73435 [63:0] 1'1 }, Y=$auto$ghdl.cc:806:import_module$73438 [66:1]
-      New connections: { $auto$ghdl.cc:806:import_module$73438 [74:67] $auto$ghdl.cc:806:import_module$73438 [0] } = { $auto$ghdl.cc:806:import_module$73438 [66] 6'000000 $auto$ghdl.cc:806:import_module$73438 [66] 1'1 }
-    Consolidated identical input bits for $mux cell \123797:
-      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000011, B=75'100000011000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$73450 [74:0]
-      New ports: A=2'01, B=2'10, Y={ $auto$ghdl.cc:806:import_module$73450 [66] $auto$ghdl.cc:806:import_module$73450 [1] }
-      New connections: { $auto$ghdl.cc:806:import_module$73450 [74:67] $auto$ghdl.cc:806:import_module$73450 [65:2] $auto$ghdl.cc:806:import_module$73450 [0] } = { $auto$ghdl.cc:806:import_module$73450 [66] 6'000000 $auto$ghdl.cc:806:import_module$73450 [66] 65'00000000000000000000000000000000000000000000000000000000000000001 }
-    Consolidated identical input bits for $mux cell \123851:
-      Old ports: A={ $auto$ghdl.cc:806:import_module$73463 2'11 }, B={ $auto$ghdl.cc:806:import_module$73454 2'11 }, Y=$auto$ghdl.cc:806:import_module$73464 [65:0]
-      New ports: A=$auto$ghdl.cc:806:import_module$73463, B=$auto$ghdl.cc:806:import_module$73454, Y=$auto$ghdl.cc:806:import_module$73464 [65:2]
-      New connections: $auto$ghdl.cc:806:import_module$73464 [1:0] = 2'11
-    Consolidated identical input bits for $mux cell \123877:
-      Old ports: A={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$73468 [74:0] }, B={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$73387 }, Y=$auto$ghdl.cc:806:import_module$73472
-      New ports: A=$auto$ghdl.cc:806:import_module$73468 [74:0], B=$auto$ghdl.cc:806:import_module$73387, Y=$auto$ghdl.cc:806:import_module$73472 [74:0]
-      New connections: $auto$ghdl.cc:806:import_module$73472 [139:75] = 65'00000000000000000000000000000000000000000000000000000000000000000
+    Consolidated identical input bits for $mux cell \118316:
+      Old ports: A=75'100000011000000000000000000000000000000000000000000000000000000000000000001, B={ 9'000000000 $auto$ghdl.cc:806:import_module$71811 2'11 }, Y=$auto$ghdl.cc:806:import_module$71812
+      New ports: A=66'100000000000000000000000000000000000000000000000000000000000000000, B={ 1'0 $auto$ghdl.cc:806:import_module$71811 1'1 }, Y=$auto$ghdl.cc:806:import_module$71812 [66:1]
+      New connections: { $auto$ghdl.cc:806:import_module$71812 [74:67] $auto$ghdl.cc:806:import_module$71812 [0] } = { $auto$ghdl.cc:806:import_module$71812 [66] 6'000000 $auto$ghdl.cc:806:import_module$71812 [66] 1'1 }
+    Consolidated identical input bits for $mux cell \118333:
+      Old ports: A=6'010000, B=6'100000, Y=$auto$ghdl.cc:806:import_module$71818
+      New ports: A=2'01, B=2'10, Y=$auto$ghdl.cc:806:import_module$71818 [5:4]
+      New connections: $auto$ghdl.cc:806:import_module$71818 [3:0] = 4'0000
+    Consolidated identical input bits for $mux cell \118492:
+      Old ports: A=75'100000011000000000000000000000000000000000000000000000000000000000000000001, B={ 9'000000000 $auto$ghdl.cc:806:import_module$71860 [63:0] 2'11 }, Y=$auto$ghdl.cc:806:import_module$71863 [74:0]
+      New ports: A=66'100000000000000000000000000000000000000000000000000000000000000000, B={ 1'0 $auto$ghdl.cc:806:import_module$71860 [63:0] 1'1 }, Y=$auto$ghdl.cc:806:import_module$71863 [66:1]
+      New connections: { $auto$ghdl.cc:806:import_module$71863 [74:67] $auto$ghdl.cc:806:import_module$71863 [0] } = { $auto$ghdl.cc:806:import_module$71863 [66] 6'000000 $auto$ghdl.cc:806:import_module$71863 [66] 1'1 }
+    Consolidated identical input bits for $mux cell \118517:
+      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000011, B=75'100000011000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$71875 [74:0]
+      New ports: A=2'01, B=2'10, Y={ $auto$ghdl.cc:806:import_module$71875 [66] $auto$ghdl.cc:806:import_module$71875 [1] }
+      New connections: { $auto$ghdl.cc:806:import_module$71875 [74:67] $auto$ghdl.cc:806:import_module$71875 [65:2] $auto$ghdl.cc:806:import_module$71875 [0] } = { $auto$ghdl.cc:806:import_module$71875 [66] 6'000000 $auto$ghdl.cc:806:import_module$71875 [66] 65'00000000000000000000000000000000000000000000000000000000000000001 }
+    Consolidated identical input bits for $mux cell \118571:
+      Old ports: A={ $auto$ghdl.cc:806:import_module$71888 2'11 }, B={ $auto$ghdl.cc:806:import_module$71879 2'11 }, Y=$auto$ghdl.cc:806:import_module$71889 [65:0]
+      New ports: A=$auto$ghdl.cc:806:import_module$71888, B=$auto$ghdl.cc:806:import_module$71879, Y=$auto$ghdl.cc:806:import_module$71889 [65:2]
+      New connections: $auto$ghdl.cc:806:import_module$71889 [1:0] = 2'11
+    Consolidated identical input bits for $mux cell \118597:
+      Old ports: A={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$71893 [74:0] }, B={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$71812 }, Y=$auto$ghdl.cc:806:import_module$71897
+      New ports: A=$auto$ghdl.cc:806:import_module$71893 [74:0], B=$auto$ghdl.cc:806:import_module$71812, Y=$auto$ghdl.cc:806:import_module$71897 [74:0]
+      New connections: $auto$ghdl.cc:806:import_module$71897 [139:75] = 65'00000000000000000000000000000000000000000000000000000000000000000
   Optimizing cells in module \ino_muldiv_unit.
-    Consolidated identical input bits for $mux cell \123774:
-      Old ports: A=$auto$ghdl.cc:806:import_module$73438 [74:0], B=75'100000001000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$73439 [74:0]
-      New ports: A={ $auto$ghdl.cc:806:import_module$73438 [66] $auto$ghdl.cc:806:import_module$73438 [66:1] }, B=67'0100000000000000000000000000000000000000000000000000000000000000000, Y=$auto$ghdl.cc:806:import_module$73439 [67:1]
-      New connections: { $auto$ghdl.cc:806:import_module$73439 [74:68] $auto$ghdl.cc:806:import_module$73439 [0] } = { $auto$ghdl.cc:806:import_module$73439 [66] 7'0000001 }
-    Consolidated identical input bits for $mux cell \123853:
-      Old ports: A={ 9'000000000 $auto$ghdl.cc:806:import_module$73464 [65:0] }, B=$auto$ghdl.cc:806:import_module$73450 [74:0], Y=$auto$ghdl.cc:806:import_module$73465 [74:0]
-      New ports: A={ 1'0 $auto$ghdl.cc:806:import_module$73464 [65:2] 1'1 }, B={ $auto$ghdl.cc:806:import_module$73450 [66] 64'0000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$73450 [1] }, Y=$auto$ghdl.cc:806:import_module$73465 [66:1]
-      New connections: { $auto$ghdl.cc:806:import_module$73465 [74:67] $auto$ghdl.cc:806:import_module$73465 [0] } = { $auto$ghdl.cc:806:import_module$73465 [66] 6'000000 $auto$ghdl.cc:806:import_module$73465 [66] 1'1 }
+    Consolidated identical input bits for $mux cell \118494:
+      Old ports: A=$auto$ghdl.cc:806:import_module$71863 [74:0], B=75'100000001000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$71864 [74:0]
+      New ports: A={ $auto$ghdl.cc:806:import_module$71863 [66] $auto$ghdl.cc:806:import_module$71863 [66:1] }, B=67'0100000000000000000000000000000000000000000000000000000000000000000, Y=$auto$ghdl.cc:806:import_module$71864 [67:1]
+      New connections: { $auto$ghdl.cc:806:import_module$71864 [74:68] $auto$ghdl.cc:806:import_module$71864 [0] } = { $auto$ghdl.cc:806:import_module$71864 [66] 7'0000001 }
+    Consolidated identical input bits for $mux cell \118573:
+      Old ports: A={ 9'000000000 $auto$ghdl.cc:806:import_module$71889 [65:0] }, B=$auto$ghdl.cc:806:import_module$71875 [74:0], Y=$auto$ghdl.cc:806:import_module$71890 [74:0]
+      New ports: A={ 1'0 $auto$ghdl.cc:806:import_module$71889 [65:2] 1'1 }, B={ $auto$ghdl.cc:806:import_module$71875 [66] 64'0000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$71875 [1] }, Y=$auto$ghdl.cc:806:import_module$71890 [66:1]
+      New connections: { $auto$ghdl.cc:806:import_module$71890 [74:67] $auto$ghdl.cc:806:import_module$71890 [0] } = { $auto$ghdl.cc:806:import_module$71890 [66] 6'000000 $auto$ghdl.cc:806:import_module$71890 [66] 1'1 }
   Optimizing cells in module \ino_muldiv_unit.
-    Consolidated identical input bits for $mux cell \123856:
-      Old ports: A=$auto$ghdl.cc:806:import_module$73465 [74:0], B=75'100000001000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$73466 [74:0]
-      New ports: A={ $auto$ghdl.cc:806:import_module$73465 [66] $auto$ghdl.cc:806:import_module$73465 [66:1] }, B=67'0100000000000000000000000000000000000000000000000000000000000000000, Y=$auto$ghdl.cc:806:import_module$73466 [67:1]
-      New connections: { $auto$ghdl.cc:806:import_module$73466 [74:68] $auto$ghdl.cc:806:import_module$73466 [0] } = { $auto$ghdl.cc:806:import_module$73466 [66] 7'0000001 }
+    Consolidated identical input bits for $mux cell \118576:
+      Old ports: A=$auto$ghdl.cc:806:import_module$71890 [74:0], B=75'100000001000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$71891 [74:0]
+      New ports: A={ $auto$ghdl.cc:806:import_module$71890 [66] $auto$ghdl.cc:806:import_module$71890 [66:1] }, B=67'0100000000000000000000000000000000000000000000000000000000000000000, Y=$auto$ghdl.cc:806:import_module$71891 [67:1]
+      New connections: { $auto$ghdl.cc:806:import_module$71891 [74:68] $auto$ghdl.cc:806:import_module$71891 [0] } = { $auto$ghdl.cc:806:import_module$71891 [66] 7'0000001 }
   Optimizing cells in module \ino_muldiv_unit.
-    Consolidated identical input bits for $mux cell \123860:
-      Old ports: A=75'100010011000000000000000000000000000000000000000000000000000000000000000001, B=$auto$ghdl.cc:806:import_module$73466 [74:0], Y=$auto$ghdl.cc:806:import_module$73467 [74:0]
-      New ports: A=68'11100000000000000000000000000000000000000000000000000000000000000000, B={ 1'0 $auto$ghdl.cc:806:import_module$73466 [67:1] }, Y={ $auto$ghdl.cc:806:import_module$73467 [70] $auto$ghdl.cc:806:import_module$73467 [67:1] }
-      New connections: { $auto$ghdl.cc:806:import_module$73467 [74:71] $auto$ghdl.cc:806:import_module$73467 [69:68] $auto$ghdl.cc:806:import_module$73467 [0] } = { $auto$ghdl.cc:806:import_module$73467 [66] 6'000001 }
+    Consolidated identical input bits for $mux cell \118580:
+      Old ports: A=75'100010011000000000000000000000000000000000000000000000000000000000000000001, B=$auto$ghdl.cc:806:import_module$71891 [74:0], Y=$auto$ghdl.cc:806:import_module$71892 [74:0]
+      New ports: A=68'11100000000000000000000000000000000000000000000000000000000000000000, B={ 1'0 $auto$ghdl.cc:806:import_module$71891 [67:1] }, Y={ $auto$ghdl.cc:806:import_module$71892 [70] $auto$ghdl.cc:806:import_module$71892 [67:1] }
+      New connections: { $auto$ghdl.cc:806:import_module$71892 [74:71] $auto$ghdl.cc:806:import_module$71892 [69:68] $auto$ghdl.cc:806:import_module$71892 [0] } = { $auto$ghdl.cc:806:import_module$71892 [66] 6'000001 }
   Optimizing cells in module \ino_muldiv_unit.
-    Consolidated identical input bits for $mux cell \123862:
-      Old ports: A=$auto$ghdl.cc:806:import_module$73467 [74:0], B=$auto$ghdl.cc:806:import_module$73439 [74:0], Y=$auto$ghdl.cc:806:import_module$73468 [74:0]
-      New ports: A={ $auto$ghdl.cc:806:import_module$73467 [70] $auto$ghdl.cc:806:import_module$73467 [67:1] }, B={ 1'0 $auto$ghdl.cc:806:import_module$73439 [67:1] }, Y={ $auto$ghdl.cc:806:import_module$73468 [70] $auto$ghdl.cc:806:import_module$73468 [67:1] }
-      New connections: { $auto$ghdl.cc:806:import_module$73468 [74:71] $auto$ghdl.cc:806:import_module$73468 [69:68] $auto$ghdl.cc:806:import_module$73468 [0] } = { $auto$ghdl.cc:806:import_module$73468 [66] 6'000001 }
+    Consolidated identical input bits for $mux cell \118582:
+      Old ports: A=$auto$ghdl.cc:806:import_module$71892 [74:0], B=$auto$ghdl.cc:806:import_module$71864 [74:0], Y=$auto$ghdl.cc:806:import_module$71893 [74:0]
+      New ports: A={ $auto$ghdl.cc:806:import_module$71892 [70] $auto$ghdl.cc:806:import_module$71892 [67:1] }, B={ 1'0 $auto$ghdl.cc:806:import_module$71864 [67:1] }, Y={ $auto$ghdl.cc:806:import_module$71893 [70] $auto$ghdl.cc:806:import_module$71893 [67:1] }
+      New connections: { $auto$ghdl.cc:806:import_module$71893 [74:71] $auto$ghdl.cc:806:import_module$71893 [69:68] $auto$ghdl.cc:806:import_module$71893 [0] } = { $auto$ghdl.cc:806:import_module$71893 [66] 6'000001 }
   Optimizing cells in module \ino_muldiv_unit.
-    Consolidated identical input bits for $mux cell \123877:
-      Old ports: A=$auto$ghdl.cc:806:import_module$73468 [74:0], B=$auto$ghdl.cc:806:import_module$73387, Y=$auto$ghdl.cc:806:import_module$73472 [74:0]
-      New ports: A={ $auto$ghdl.cc:806:import_module$73468 [70] $auto$ghdl.cc:806:import_module$73468 [67:1] }, B={ 1'0 $auto$ghdl.cc:806:import_module$73387 [66] $auto$ghdl.cc:806:import_module$73387 [66:1] }, Y={ $auto$ghdl.cc:806:import_module$73472 [70] $auto$ghdl.cc:806:import_module$73472 [67:1] }
-      New connections: { $auto$ghdl.cc:806:import_module$73472 [74:71] $auto$ghdl.cc:806:import_module$73472 [69:68] $auto$ghdl.cc:806:import_module$73472 [0] } = { $auto$ghdl.cc:806:import_module$73472 [66] 6'000001 }
+    Consolidated identical input bits for $mux cell \118597:
+      Old ports: A=$auto$ghdl.cc:806:import_module$71893 [74:0], B=$auto$ghdl.cc:806:import_module$71812, Y=$auto$ghdl.cc:806:import_module$71897 [74:0]
+      New ports: A={ $auto$ghdl.cc:806:import_module$71893 [70] $auto$ghdl.cc:806:import_module$71893 [67:1] }, B={ 1'0 $auto$ghdl.cc:806:import_module$71812 [66] $auto$ghdl.cc:806:import_module$71812 [66:1] }, Y={ $auto$ghdl.cc:806:import_module$71897 [70] $auto$ghdl.cc:806:import_module$71897 [67:1] }
+      New connections: { $auto$ghdl.cc:806:import_module$71897 [74:71] $auto$ghdl.cc:806:import_module$71897 [69:68] $auto$ghdl.cc:806:import_module$71897 [0] } = { $auto$ghdl.cc:806:import_module$71897 [66] 6'000001 }
   Optimizing cells in module \ino_muldiv_unit.
 Performed a total of 12 changes.
 
@@ -683,15 +683,15 @@ Finding identical cells in module `\ino_muldiv_unit'.
 Removed a total of 0 cells.
 
 3.18.6. Executing OPT_SHARE pass.
-    Found cells that share an operand and can be merged by moving the $mux \123744 in front of them:
-        $auto$alumacc.cc:485:replace_alu$73893
-        $auto$alumacc.cc:485:replace_alu$73896
+    Found cells that share an operand and can be merged by moving the $mux \118464 in front of them:
+        $auto$alumacc.cc:485:replace_alu$72318
+        $auto$alumacc.cc:485:replace_alu$72321
 
 3.18.7. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on $auto$ff.cc:266:slice$73719 ($dffe) from module ino_muldiv_unit (D = $auto$ghdl.cc:926:import_module$73536 [63], Q = \ua_s [63], rval = 1'0).
-Adding SRST signal on $auto$ff.cc:266:slice$73710 ($dffe) from module ino_muldiv_unit (D = $auto$ghdl.cc:926:import_module$73539 [63], Q = \ub_s [63], rval = 1'0).
-Adding SRST signal on $auto$ff.cc:266:slice$73701 ($dffe) from module ino_muldiv_unit (D = $auto$ghdl.cc:926:import_module$73542 [63], Q = \uc_s [63], rval = 1'0).
-Adding SRST signal on $auto$ff.cc:266:slice$73654 ($dffe) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$73416, Q = \rem_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on $auto$ff.cc:266:slice$72144 ($dffe) from module ino_muldiv_unit (D = $auto$ghdl.cc:926:import_module$71961 [63], Q = \ua_s [63], rval = 1'0).
+Adding SRST signal on $auto$ff.cc:266:slice$72135 ($dffe) from module ino_muldiv_unit (D = $auto$ghdl.cc:926:import_module$71964 [63], Q = \ub_s [63], rval = 1'0).
+Adding SRST signal on $auto$ff.cc:266:slice$72126 ($dffe) from module ino_muldiv_unit (D = $auto$ghdl.cc:926:import_module$71967 [63], Q = \uc_s [63], rval = 1'0).
+Adding SRST signal on $auto$ff.cc:266:slice$72079 ($dffe) from module ino_muldiv_unit (D = $auto$ghdl.cc:806:import_module$71841, Q = \rem_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
 
 3.18.8. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_muldiv_unit..
@@ -714,10 +714,10 @@ Removed 0 multiplexer ports.
 
 3.18.12. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_muldiv_unit.
-    Consolidated identical input bits for $mux cell $auto$opt_share.cc:244:merge_operators$73911:
-      Old ports: A=128'11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111, B=128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$rtlil.cc:2498:Mux$73912
-      New ports: A=1'1, B=1'0, Y=$auto$rtlil.cc:2498:Mux$73912 [1]
-      New connections: { $auto$rtlil.cc:2498:Mux$73912 [127:2] $auto$rtlil.cc:2498:Mux$73912 [0] } = { $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] $auto$rtlil.cc:2498:Mux$73912 [1] 1'1 }
+    Consolidated identical input bits for $mux cell $auto$opt_share.cc:244:merge_operators$72336:
+      Old ports: A=128'11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111, B=128'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$rtlil.cc:2498:Mux$72337
+      New ports: A=1'1, B=1'0, Y=$auto$rtlil.cc:2498:Mux$72337 [1]
+      New connections: { $auto$rtlil.cc:2498:Mux$72337 [127:2] $auto$rtlil.cc:2498:Mux$72337 [0] } = { $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] $auto$rtlil.cc:2498:Mux$72337 [1] 1'1 }
   Optimizing cells in module \ino_muldiv_unit.
 Performed a total of 1 changes.
 
@@ -728,76 +728,76 @@ Removed a total of 0 cells.
 3.18.14. Executing OPT_SHARE pass.
 
 3.18.15. Executing OPT_DFF pass (perform DFF optimizations).
-Setting constant 0-bit at position 68 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 69 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 76 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 77 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 78 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 79 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 80 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 81 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 82 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 83 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 84 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 85 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 86 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 87 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 88 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 89 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 90 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 91 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 92 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 93 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 94 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 95 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 96 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 97 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 98 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 99 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 100 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 101 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 102 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 103 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 104 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 105 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 106 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 107 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 108 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 109 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 110 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 111 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 112 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 113 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 114 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 115 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 116 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 117 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 118 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 119 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 120 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 121 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 122 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 123 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 124 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 125 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 126 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 127 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 128 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 129 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 130 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 131 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 132 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 133 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 134 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 135 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 136 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 137 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 138 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
-Setting constant 0-bit at position 139 on $auto$ff.cc:266:slice$73765 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 68 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 69 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 76 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 77 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 78 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 79 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 80 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 81 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 82 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 83 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 84 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 85 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 86 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 87 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 88 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 89 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 90 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 91 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 92 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 93 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 94 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 95 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 96 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 97 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 98 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 99 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 100 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 101 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 102 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 103 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 104 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 105 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 106 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 107 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 108 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 109 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 110 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 111 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 112 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 113 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 114 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 115 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 116 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 117 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 118 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 119 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 120 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 121 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 122 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 123 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 124 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 125 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 126 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 127 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 128 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 129 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 130 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 131 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 132 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 133 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 134 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 135 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 136 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 137 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 138 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
+Setting constant 0-bit at position 139 on $auto$ff.cc:266:slice$72190 ($sdffe) from module ino_muldiv_unit.
 
 3.18.16. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_muldiv_unit..
@@ -909,15 +909,15 @@ Optimizing module ino_muldiv_unit.
 
 3.20.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\ino_muldiv_unit'.
-<suppressed ~2910 debug messages>
-Removed a total of 970 cells.
+<suppressed ~3099 debug messages>
+Removed a total of 1033 cells.
 
 3.20.3. Executing OPT_DFF pass (perform DFF optimizations).
 
 3.20.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_muldiv_unit..
-Removed 1290 unused cells and 3620 unused wires.
-<suppressed ~1291 debug messages>
+Removed 1227 unused cells and 3620 unused wires.
+<suppressed ~1228 debug messages>
 
 3.20.5. Finished fast OPT passes.
 
@@ -1170,6 +1170,6 @@ Finding unused cells or wires in module \ino_muldiv_unit..
 Removed 0 unused cells and 36652 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: ebe699b620, CPU: user 13.84s system 0.09s, MEM: 184.46 MB peak
+End of script. Logfile hash: 77270b4753, CPU: user 12.37s system 0.08s, MEM: 184.18 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 95% 2x abc (310 sec), 1% 27x opt_expr (3 sec), ...
+Time spent: 95% 2x abc (249 sec), 1% 27x opt_expr (3 sec), ...

@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fetch_byte_queue fetch_unit fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_fetch ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_excm_unit
          synth -top ino_excm_unit -noshare
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -122,14 +122,14 @@ Removed 0 multiplexer ports.
 
 3.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_excm_unit.
-    New ctrl vector for $pmux cell \92042: { $auto$opt_reduce.cc:134:opt_pmux$73580 $auto$ghdl.cc:806:import_module$57723 }
-    New ctrl vector for $pmux cell \92044: { $auto$opt_reduce.cc:134:opt_pmux$73582 $auto$ghdl.cc:806:import_module$57723 }
-    New ctrl vector for $pmux cell \92046: { $auto$opt_reduce.cc:134:opt_pmux$73584 $auto$ghdl.cc:806:import_module$57723 }
-    New ctrl vector for $pmux cell \92048: { $auto$ghdl.cc:806:import_module$57808 $auto$ghdl.cc:806:import_module$57794 $auto$ghdl.cc:806:import_module$57790 $auto$opt_reduce.cc:134:opt_pmux$73586 $auto$ghdl.cc:806:import_module$57723 }
-    New ctrl vector for $pmux cell \92051: { $auto$opt_reduce.cc:134:opt_pmux$73588 $auto$ghdl.cc:806:import_module$57723 }
-    New ctrl vector for $pmux cell \92053: { $auto$opt_reduce.cc:134:opt_pmux$73590 $auto$ghdl.cc:806:import_module$57723 }
-    New ctrl vector for $pmux cell \92055: { $auto$ghdl.cc:806:import_module$57812 $auto$ghdl.cc:806:import_module$57808 $auto$ghdl.cc:806:import_module$57790 $auto$opt_reduce.cc:134:opt_pmux$73592 $auto$ghdl.cc:806:import_module$57723 }
-    New ctrl vector for $pmux cell \92058: { $auto$ghdl.cc:806:import_module$57813 $auto$opt_reduce.cc:134:opt_pmux$73594 }
+    New ctrl vector for $pmux cell \86762: { $auto$opt_reduce.cc:134:opt_pmux$72005 $auto$ghdl.cc:806:import_module$56148 }
+    New ctrl vector for $pmux cell \86764: { $auto$opt_reduce.cc:134:opt_pmux$72007 $auto$ghdl.cc:806:import_module$56148 }
+    New ctrl vector for $pmux cell \86766: { $auto$opt_reduce.cc:134:opt_pmux$72009 $auto$ghdl.cc:806:import_module$56148 }
+    New ctrl vector for $pmux cell \86768: { $auto$ghdl.cc:806:import_module$56233 $auto$ghdl.cc:806:import_module$56219 $auto$ghdl.cc:806:import_module$56215 $auto$opt_reduce.cc:134:opt_pmux$72011 $auto$ghdl.cc:806:import_module$56148 }
+    New ctrl vector for $pmux cell \86771: { $auto$opt_reduce.cc:134:opt_pmux$72013 $auto$ghdl.cc:806:import_module$56148 }
+    New ctrl vector for $pmux cell \86773: { $auto$opt_reduce.cc:134:opt_pmux$72015 $auto$ghdl.cc:806:import_module$56148 }
+    New ctrl vector for $pmux cell \86775: { $auto$ghdl.cc:806:import_module$56237 $auto$ghdl.cc:806:import_module$56233 $auto$ghdl.cc:806:import_module$56215 $auto$opt_reduce.cc:134:opt_pmux$72017 $auto$ghdl.cc:806:import_module$56148 }
+    New ctrl vector for $pmux cell \86778: { $auto$ghdl.cc:806:import_module$56238 $auto$opt_reduce.cc:134:opt_pmux$72019 }
   Optimizing cells in module \ino_excm_unit.
 Performed a total of 8 changes.
 
@@ -160,7 +160,7 @@ Removed 0 multiplexer ports.
 
 3.6.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_excm_unit.
-    New ctrl vector for $pmux cell \92055: { $auto$ghdl.cc:806:import_module$57812 $auto$opt_reduce.cc:134:opt_pmux$73596 $auto$opt_reduce.cc:134:opt_pmux$73592 $auto$ghdl.cc:806:import_module$57723 }
+    New ctrl vector for $pmux cell \86775: { $auto$ghdl.cc:806:import_module$56237 $auto$opt_reduce.cc:134:opt_pmux$72021 $auto$opt_reduce.cc:134:opt_pmux$72017 $auto$ghdl.cc:806:import_module$56148 }
   Optimizing cells in module \ino_excm_unit.
 Performed a total of 1 changes.
 
@@ -253,21 +253,21 @@ Finding identical cells in module `\ino_excm_unit'.
 Removed a total of 0 cells.
 
 3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on \92123 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57822, Q = \complete_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
-Adding SRST signal on \92122 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57821, Q = \return_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$73600 ($sdff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57821, Q = \return_s).
-Adding EN signal on \92121 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57820, Q = \copile_s).
-Adding EN signal on \92118 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57819, Q = \frame_s [127:0]).
-Adding SRST signal on \92117 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57827, Q = \index_s, rval = 5'00000).
-Adding EN signal on $auto$ff.cc:266:slice$73640 ($sdff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57818, Q = \index_s).
-Adding SRST signal on \92116 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57826, Q = \word_count_s, rval = 5'00000).
-Adding EN signal on $auto$ff.cc:266:slice$73664 ($sdff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57817, Q = \word_count_s).
-Adding SRST signal on \92115 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57825, Q = \lvl_s, rval = 4'0000).
-Adding EN signal on $auto$ff.cc:266:slice$73676 ($sdff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57816, Q = \lvl_s).
-Adding SRST signal on \92114 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57824, Q = \base_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$73688 ($sdff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57815, Q = \base_s).
-Adding SRST signal on \92113 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57814, Q = \state_s, rval = 4'0000).
-Adding EN signal on $auto$ff.cc:266:slice$73700 ($sdff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$57814, Q = \state_s).
+Adding SRST signal on \86843 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56247, Q = \complete_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on \86842 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56246, Q = \return_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$72025 ($sdff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56246, Q = \return_s).
+Adding EN signal on \86841 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56245, Q = \copile_s).
+Adding EN signal on \86838 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56244, Q = \frame_s [127:0]).
+Adding SRST signal on \86837 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56252, Q = \index_s, rval = 5'00000).
+Adding EN signal on $auto$ff.cc:266:slice$72065 ($sdff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56243, Q = \index_s).
+Adding SRST signal on \86836 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56251, Q = \word_count_s, rval = 5'00000).
+Adding EN signal on $auto$ff.cc:266:slice$72089 ($sdff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56242, Q = \word_count_s).
+Adding SRST signal on \86835 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56250, Q = \lvl_s, rval = 4'0000).
+Adding EN signal on $auto$ff.cc:266:slice$72101 ($sdff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56241, Q = \lvl_s).
+Adding SRST signal on \86834 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56249, Q = \base_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$72113 ($sdff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56240, Q = \base_s).
+Adding SRST signal on \86833 ($dff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56239, Q = \state_s, rval = 4'0000).
+Adding EN signal on $auto$ff.cc:266:slice$72125 ($sdff) from module ino_excm_unit (D = $auto$ghdl.cc:806:import_module$56239, Q = \state_s).
 
 3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_excm_unit..
@@ -290,13 +290,13 @@ Removed 0 multiplexer ports.
 
 3.8.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_excm_unit.
-    New ctrl vector for $pmux cell \92042: $auto$ghdl.cc:806:import_module$57723
-    New ctrl vector for $pmux cell \92044: $auto$ghdl.cc:806:import_module$57723
-    New ctrl vector for $pmux cell \92046: $auto$ghdl.cc:806:import_module$57723
-    New ctrl vector for $pmux cell \92048: { $auto$ghdl.cc:806:import_module$57808 $auto$ghdl.cc:806:import_module$57794 $auto$ghdl.cc:806:import_module$57790 $auto$ghdl.cc:806:import_module$57723 }
-    New ctrl vector for $pmux cell \92051: $auto$ghdl.cc:806:import_module$57723
-    New ctrl vector for $pmux cell \92053: $auto$ghdl.cc:806:import_module$57723
-    New ctrl vector for $pmux cell \92055: { $auto$ghdl.cc:806:import_module$57812 $auto$opt_reduce.cc:134:opt_pmux$73596 $auto$ghdl.cc:806:import_module$57723 }
+    New ctrl vector for $pmux cell \86762: $auto$ghdl.cc:806:import_module$56148
+    New ctrl vector for $pmux cell \86764: $auto$ghdl.cc:806:import_module$56148
+    New ctrl vector for $pmux cell \86766: $auto$ghdl.cc:806:import_module$56148
+    New ctrl vector for $pmux cell \86768: { $auto$ghdl.cc:806:import_module$56233 $auto$ghdl.cc:806:import_module$56219 $auto$ghdl.cc:806:import_module$56215 $auto$ghdl.cc:806:import_module$56148 }
+    New ctrl vector for $pmux cell \86771: $auto$ghdl.cc:806:import_module$56148
+    New ctrl vector for $pmux cell \86773: $auto$ghdl.cc:806:import_module$56148
+    New ctrl vector for $pmux cell \86775: { $auto$ghdl.cc:806:import_module$56237 $auto$opt_reduce.cc:134:opt_pmux$72021 $auto$ghdl.cc:806:import_module$56148 }
   Optimizing cells in module \ino_excm_unit.
 Performed a total of 7 changes.
 
@@ -344,65 +344,65 @@ Optimizing module ino_excm_unit.
 3.8.23. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 1 bits (of 2) from port B of cell ino_excm_unit.$auto$opt_dff.cc:195:make_patterns_logic$73607 ($ne).
-Removed top 2 bits (of 4) from port B of cell ino_excm_unit.\91764 ($eq).
-Removed top 59 bits (of 64) from port B of cell ino_excm_unit.\91768 ($add).
-Removed top 1 bits (of 4) from port B of cell ino_excm_unit.\91775 ($eq).
-Removed top 56 bits (of 131) from mux cell ino_excm_unit.\91787 ($mux).
-Removed top 56 bits (of 131) from mux cell ino_excm_unit.\91789 ($mux).
-Removed top 27 bits (of 32) from port A of cell ino_excm_unit.\91794 ($sub).
-Removed top 29 bits (of 32) from port B of cell ino_excm_unit.\91794 ($sub).
-Removed top 28 bits (of 32) from port Y of cell ino_excm_unit.\91794 ($sub).
-Removed top 1 bits (of 5) from port A of cell ino_excm_unit.\91794 ($sub).
-Removed top 1 bits (of 4) from port B of cell ino_excm_unit.\91798 ($eq).
-Removed top 26 bits (of 32) from port A of cell ino_excm_unit.\91801 ($ge).
-Removed top 28 bits (of 32) from port B of cell ino_excm_unit.\91801 ($ge).
-Converting cell ino_excm_unit.\91801 ($ge) from signed to unsigned.
-Removed top 1 bits (of 6) from port A of cell ino_excm_unit.\91801 ($ge).
-Removed top 1 bits (of 4) from port B of cell ino_excm_unit.\91801 ($ge).
-Removed top 3 bits (of 4) from port B of cell ino_excm_unit.\91808 ($eq).
-Removed top 56 bits (of 64) from port B of cell ino_excm_unit.\91819 ($add).
-Removed top 4 bits (of 5) from port B of cell ino_excm_unit.\91847 ($eq).
-Removed top 3 bits (of 5) from port B of cell ino_excm_unit.\91850 ($eq).
-Removed top 3 bits (of 5) from port B of cell ino_excm_unit.\91853 ($eq).
-Removed top 28 bits (of 32) from port A of cell ino_excm_unit.\91856 ($add).
-Removed top 31 bits (of 32) from port B of cell ino_excm_unit.\91856 ($add).
-Removed top 27 bits (of 32) from port Y of cell ino_excm_unit.\91856 ($add).
-Removed top 2 bits (of 5) from port B of cell ino_excm_unit.\91860 ($eq).
-Removed top 27 bits (of 32) from port A of cell ino_excm_unit.\91890 ($gt).
-Removed top 27 bits (of 32) from port B of cell ino_excm_unit.\91890 ($gt).
-Converting cell ino_excm_unit.\91890 ($gt) from signed to unsigned.
-Removed top 1 bits (of 5) from port A of cell ino_excm_unit.\91890 ($gt).
-Removed top 1 bits (of 5) from port B of cell ino_excm_unit.\91890 ($gt).
-Removed top 29 bits (of 32) from port A of cell ino_excm_unit.\91902 ($add).
-Removed top 28 bits (of 32) from port B of cell ino_excm_unit.\91902 ($add).
-Removed top 27 bits (of 32) from port Y of cell ino_excm_unit.\91902 ($add).
-Removed top 27 bits (of 32) from port A of cell ino_excm_unit.\91948 ($add).
-Removed top 31 bits (of 32) from port B of cell ino_excm_unit.\91948 ($add).
-Removed top 26 bits (of 32) from port Y of cell ino_excm_unit.\91948 ($add).
-Removed top 25 bits (of 32) from port A of cell ino_excm_unit.\91950 ($ge).
-Removed top 26 bits (of 32) from port B of cell ino_excm_unit.\91950 ($ge).
-Converting cell ino_excm_unit.\91950 ($ge) from signed to unsigned.
-Removed top 1 bits (of 7) from port A of cell ino_excm_unit.\91950 ($ge).
-Removed top 1 bits (of 6) from port B of cell ino_excm_unit.\91950 ($ge).
-Removed top 2 bits (of 4) from mux cell ino_excm_unit.\91957 ($mux).
-Removed top 2 bits (of 4) from port B of cell ino_excm_unit.\91971 ($eq).
-Removed top 1 bits (of 4) from port B of cell ino_excm_unit.\91979 ($eq).
-Removed top 2 bits (of 4) from mux cell ino_excm_unit.\92005 ($mux).
-Removed top 1 bits (of 4) from port B of cell ino_excm_unit.\92018 ($eq).
-Removed top 65 bits (of 193) from FF cell ino_excm_unit.$auto$ff.cc:266:slice$73614 ($dffe).
-Removed top 65 bits (of 193) from mux cell ino_excm_unit.\92053 ($mux).
-Removed top 65 bits (of 193) from mux cell ino_excm_unit.\91926 ($mux).
-Removed top 65 bits (of 193) from mux cell ino_excm_unit.\91915 ($mux).
-Removed top 56 bits (of 131) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$57733.
-Removed top 28 bits (of 32) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$57735.
-Removed top 27 bits (of 32) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$57759.
-Removed top 65 bits (of 193) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$57766.
-Removed top 65 bits (of 193) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$57774.
-Removed top 26 bits (of 32) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$57779.
-Removed top 2 bits (of 4) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$57782.
-Removed top 2 bits (of 4) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$57800.
-Removed top 65 bits (of 193) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$57820.
+Removed top 1 bits (of 2) from port B of cell ino_excm_unit.$auto$opt_dff.cc:195:make_patterns_logic$72032 ($ne).
+Removed top 2 bits (of 4) from port B of cell ino_excm_unit.\86484 ($eq).
+Removed top 59 bits (of 64) from port B of cell ino_excm_unit.\86488 ($add).
+Removed top 1 bits (of 4) from port B of cell ino_excm_unit.\86495 ($eq).
+Removed top 56 bits (of 131) from mux cell ino_excm_unit.\86507 ($mux).
+Removed top 56 bits (of 131) from mux cell ino_excm_unit.\86509 ($mux).
+Removed top 27 bits (of 32) from port A of cell ino_excm_unit.\86514 ($sub).
+Removed top 29 bits (of 32) from port B of cell ino_excm_unit.\86514 ($sub).
+Removed top 28 bits (of 32) from port Y of cell ino_excm_unit.\86514 ($sub).
+Removed top 1 bits (of 5) from port A of cell ino_excm_unit.\86514 ($sub).
+Removed top 1 bits (of 4) from port B of cell ino_excm_unit.\86518 ($eq).
+Removed top 26 bits (of 32) from port A of cell ino_excm_unit.\86521 ($ge).
+Removed top 28 bits (of 32) from port B of cell ino_excm_unit.\86521 ($ge).
+Converting cell ino_excm_unit.\86521 ($ge) from signed to unsigned.
+Removed top 1 bits (of 6) from port A of cell ino_excm_unit.\86521 ($ge).
+Removed top 1 bits (of 4) from port B of cell ino_excm_unit.\86521 ($ge).
+Removed top 3 bits (of 4) from port B of cell ino_excm_unit.\86528 ($eq).
+Removed top 56 bits (of 64) from port B of cell ino_excm_unit.\86539 ($add).
+Removed top 4 bits (of 5) from port B of cell ino_excm_unit.\86567 ($eq).
+Removed top 3 bits (of 5) from port B of cell ino_excm_unit.\86570 ($eq).
+Removed top 3 bits (of 5) from port B of cell ino_excm_unit.\86573 ($eq).
+Removed top 28 bits (of 32) from port A of cell ino_excm_unit.\86576 ($add).
+Removed top 31 bits (of 32) from port B of cell ino_excm_unit.\86576 ($add).
+Removed top 27 bits (of 32) from port Y of cell ino_excm_unit.\86576 ($add).
+Removed top 2 bits (of 5) from port B of cell ino_excm_unit.\86580 ($eq).
+Removed top 27 bits (of 32) from port A of cell ino_excm_unit.\86610 ($gt).
+Removed top 27 bits (of 32) from port B of cell ino_excm_unit.\86610 ($gt).
+Converting cell ino_excm_unit.\86610 ($gt) from signed to unsigned.
+Removed top 1 bits (of 5) from port A of cell ino_excm_unit.\86610 ($gt).
+Removed top 1 bits (of 5) from port B of cell ino_excm_unit.\86610 ($gt).
+Removed top 29 bits (of 32) from port A of cell ino_excm_unit.\86622 ($add).
+Removed top 28 bits (of 32) from port B of cell ino_excm_unit.\86622 ($add).
+Removed top 27 bits (of 32) from port Y of cell ino_excm_unit.\86622 ($add).
+Removed top 27 bits (of 32) from port A of cell ino_excm_unit.\86668 ($add).
+Removed top 31 bits (of 32) from port B of cell ino_excm_unit.\86668 ($add).
+Removed top 26 bits (of 32) from port Y of cell ino_excm_unit.\86668 ($add).
+Removed top 25 bits (of 32) from port A of cell ino_excm_unit.\86670 ($ge).
+Removed top 26 bits (of 32) from port B of cell ino_excm_unit.\86670 ($ge).
+Converting cell ino_excm_unit.\86670 ($ge) from signed to unsigned.
+Removed top 1 bits (of 7) from port A of cell ino_excm_unit.\86670 ($ge).
+Removed top 1 bits (of 6) from port B of cell ino_excm_unit.\86670 ($ge).
+Removed top 2 bits (of 4) from mux cell ino_excm_unit.\86677 ($mux).
+Removed top 2 bits (of 4) from port B of cell ino_excm_unit.\86691 ($eq).
+Removed top 1 bits (of 4) from port B of cell ino_excm_unit.\86699 ($eq).
+Removed top 2 bits (of 4) from mux cell ino_excm_unit.\86725 ($mux).
+Removed top 1 bits (of 4) from port B of cell ino_excm_unit.\86738 ($eq).
+Removed top 65 bits (of 193) from FF cell ino_excm_unit.$auto$ff.cc:266:slice$72039 ($dffe).
+Removed top 65 bits (of 193) from mux cell ino_excm_unit.\86773 ($mux).
+Removed top 65 bits (of 193) from mux cell ino_excm_unit.\86646 ($mux).
+Removed top 65 bits (of 193) from mux cell ino_excm_unit.\86635 ($mux).
+Removed top 56 bits (of 131) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$56158.
+Removed top 28 bits (of 32) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$56160.
+Removed top 27 bits (of 32) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$56184.
+Removed top 65 bits (of 193) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$56191.
+Removed top 65 bits (of 193) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$56199.
+Removed top 26 bits (of 32) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$56204.
+Removed top 2 bits (of 4) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$56207.
+Removed top 2 bits (of 4) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$56225.
+Removed top 65 bits (of 193) from wire ino_excm_unit.$auto$ghdl.cc:806:import_module$56245.
 Removed top 65 bits (of 193) from wire ino_excm_unit.copile_s.
 Removed top 960 bits (of 1088) from wire ino_excm_unit.frame_s.
 
@@ -415,30 +415,30 @@ Removed 0 unused cells and 11 unused wires.
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_excm_unit:
-  creating $macc model for \91768 ($add).
-  creating $macc model for \91794 ($sub).
-  creating $macc model for \91819 ($add).
-  creating $macc model for \91856 ($add).
-  creating $macc model for \91902 ($add).
-  creating $macc model for \91948 ($add).
-  creating $alu model for $macc \91948.
-  creating $alu model for $macc \91902.
-  creating $alu model for $macc \91856.
-  creating $alu model for $macc \91819.
-  creating $alu model for $macc \91794.
-  creating $alu model for $macc \91768.
-  creating $alu model for \91801 ($ge): new $alu
-  creating $alu model for \91890 ($gt): new $alu
-  creating $alu model for \91950 ($ge): new $alu
-  creating $alu cell for \91950: $auto$alumacc.cc:485:replace_alu$73734
-  creating $alu cell for \91890: $auto$alumacc.cc:485:replace_alu$73743
-  creating $alu cell for \91801: $auto$alumacc.cc:485:replace_alu$73754
-  creating $alu cell for \91768: $auto$alumacc.cc:485:replace_alu$73763
-  creating $alu cell for \91794: $auto$alumacc.cc:485:replace_alu$73766
-  creating $alu cell for \91819: $auto$alumacc.cc:485:replace_alu$73769
-  creating $alu cell for \91856: $auto$alumacc.cc:485:replace_alu$73772
-  creating $alu cell for \91902: $auto$alumacc.cc:485:replace_alu$73775
-  creating $alu cell for \91948: $auto$alumacc.cc:485:replace_alu$73778
+  creating $macc model for \86488 ($add).
+  creating $macc model for \86514 ($sub).
+  creating $macc model for \86539 ($add).
+  creating $macc model for \86576 ($add).
+  creating $macc model for \86622 ($add).
+  creating $macc model for \86668 ($add).
+  creating $alu model for $macc \86668.
+  creating $alu model for $macc \86622.
+  creating $alu model for $macc \86576.
+  creating $alu model for $macc \86539.
+  creating $alu model for $macc \86514.
+  creating $alu model for $macc \86488.
+  creating $alu model for \86521 ($ge): new $alu
+  creating $alu model for \86610 ($gt): new $alu
+  creating $alu model for \86670 ($ge): new $alu
+  creating $alu cell for \86670: $auto$alumacc.cc:485:replace_alu$72159
+  creating $alu cell for \86610: $auto$alumacc.cc:485:replace_alu$72168
+  creating $alu cell for \86521: $auto$alumacc.cc:485:replace_alu$72179
+  creating $alu cell for \86488: $auto$alumacc.cc:485:replace_alu$72188
+  creating $alu cell for \86514: $auto$alumacc.cc:485:replace_alu$72191
+  creating $alu cell for \86539: $auto$alumacc.cc:485:replace_alu$72194
+  creating $alu cell for \86576: $auto$alumacc.cc:485:replace_alu$72197
+  creating $alu cell for \86622: $auto$alumacc.cc:485:replace_alu$72200
+  creating $alu cell for \86668: $auto$alumacc.cc:485:replace_alu$72203
   created 9 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -547,7 +547,7 @@ Finding identical cells in module `\ino_excm_unit'.
 Removed a total of 0 cells.
 
 3.16.3. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on $auto$ff.cc:266:slice$73597 ($sdff) from module ino_excm_unit (D = \return_s, Q = \complete_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on $auto$ff.cc:266:slice$72022 ($sdff) from module ino_excm_unit (D = \return_s, Q = \complete_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
 
 3.16.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_excm_unit..
@@ -591,49 +591,49 @@ Removed 0 multiplexer ports.
 
 3.18.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_excm_unit.
-    New input vector for $reduce_or cell $auto$opt_dff.cc:254:combine_resets$73787: { $auto$ghdl.cc:806:import_module$57812 $auto$ghdl.cc:806:import_module$57808 $auto$ghdl.cc:806:import_module$57794 $auto$ghdl.cc:806:import_module$57790 $auto$ghdl.cc:806:import_module$57740 $auto$ghdl.cc:806:import_module$57736 $auto$ghdl.cc:806:import_module$57730 $auto$ghdl.cc:806:import_module$57727 $auto$ghdl.cc:806:import_module$57723 \sync_valid_i \reset_i }
-    Consolidated identical input bits for $mux cell \91787:
-      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B={ \word_count_s 3'000 $auto$ghdl.cc:806:import_module$57728 [63:4] \base_s [3:0] 3'101 }, Y=$auto$ghdl.cc:806:import_module$57733
-      New ports: A=70'0000000000000000000000000000000000000000000000000000000000000000000000, B={ \word_count_s $auto$ghdl.cc:806:import_module$57728 [63:4] \base_s [3:0] 1'1 }, Y={ $auto$ghdl.cc:806:import_module$57733 [74:70] $auto$ghdl.cc:806:import_module$57733 [66:3] $auto$ghdl.cc:806:import_module$57733 [0] }
-      New connections: { $auto$ghdl.cc:806:import_module$57733 [69:67] $auto$ghdl.cc:806:import_module$57733 [2:1] } = { 3'000 $auto$ghdl.cc:806:import_module$57733 [0] 1'0 }
-    Consolidated identical input bits for $mux cell \91865:
-      Old ports: A=133'0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$57754 2'11 $auto$ghdl.cc:806:import_module$57743 [63:3] \base_s [2:0] 3'011 }, Y=$auto$ghdl.cc:806:import_module$57755
-      New ports: A=129'000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$57754 $auto$ghdl.cc:806:import_module$57743 [63:3] \base_s [2:0] 1'1 }, Y={ $auto$ghdl.cc:806:import_module$57755 [132:69] $auto$ghdl.cc:806:import_module$57755 [66:3] $auto$ghdl.cc:806:import_module$57755 [0] }
-      New connections: { $auto$ghdl.cc:806:import_module$57755 [68:67] $auto$ghdl.cc:806:import_module$57755 [2:1] } = { $auto$ghdl.cc:806:import_module$57755 [0] $auto$ghdl.cc:806:import_module$57755 [0] 1'0 $auto$ghdl.cc:806:import_module$57755 [0] }
-    Consolidated identical input bits for $mux cell \91906:
-      Old ports: A=4'1001, B=4'0001, Y=$auto$ghdl.cc:806:import_module$57760
-      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$57760 [3]
-      New connections: $auto$ghdl.cc:806:import_module$57760 [2:0] = 3'001
-    Consolidated identical input bits for $mux cell \91957:
-      Old ports: A=2'01, B=2'11, Y=$auto$ghdl.cc:806:import_module$57782
-      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$57782 [1]
-      New connections: $auto$ghdl.cc:806:import_module$57782 [0] = 1'1
-    Consolidated identical input bits for $mux cell \91961:
-      Old ports: A={ 2'00 $auto$ghdl.cc:806:import_module$57782 }, B=4'1001, Y=$auto$ghdl.cc:806:import_module$57784
-      New ports: A={ 1'0 $auto$ghdl.cc:806:import_module$57782 }, B=3'101, Y={ $auto$ghdl.cc:806:import_module$57784 [3] $auto$ghdl.cc:806:import_module$57784 [1:0] }
-      New connections: $auto$ghdl.cc:806:import_module$57784 [2] = 1'0
-    New ctrl vector for $pmux cell \92048: { $auto$ghdl.cc:806:import_module$57790 $auto$opt_reduce.cc:134:opt_pmux$73789 }
-    Consolidated identical input bits for $pmux cell \92055:
-      Old ports: A=140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001, B=280'0000000000000000000000000000000000000000000000000000000000000000010000100100000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000100010011000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$57821
-      New ports: A=3'000, B=6'101011, Y={ $auto$ghdl.cc:806:import_module$57821 [69] $auto$ghdl.cc:806:import_module$57821 [67:66] }
-      New connections: { $auto$ghdl.cc:806:import_module$57821 [139:70] $auto$ghdl.cc:806:import_module$57821 [68] $auto$ghdl.cc:806:import_module$57821 [65:0] } = { 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$57821 [66] 3'000 $auto$ghdl.cc:806:import_module$57821 [67] 67'0000000000000000000000000000000000000000000000000000000000000000001 }
+    New input vector for $reduce_or cell $auto$opt_dff.cc:254:combine_resets$72212: { $auto$ghdl.cc:806:import_module$56237 $auto$ghdl.cc:806:import_module$56233 $auto$ghdl.cc:806:import_module$56219 $auto$ghdl.cc:806:import_module$56215 $auto$ghdl.cc:806:import_module$56165 $auto$ghdl.cc:806:import_module$56161 $auto$ghdl.cc:806:import_module$56155 $auto$ghdl.cc:806:import_module$56152 $auto$ghdl.cc:806:import_module$56148 \sync_valid_i \reset_i }
+    Consolidated identical input bits for $mux cell \86507:
+      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B={ \word_count_s 3'000 $auto$ghdl.cc:806:import_module$56153 [63:4] \base_s [3:0] 3'101 }, Y=$auto$ghdl.cc:806:import_module$56158
+      New ports: A=70'0000000000000000000000000000000000000000000000000000000000000000000000, B={ \word_count_s $auto$ghdl.cc:806:import_module$56153 [63:4] \base_s [3:0] 1'1 }, Y={ $auto$ghdl.cc:806:import_module$56158 [74:70] $auto$ghdl.cc:806:import_module$56158 [66:3] $auto$ghdl.cc:806:import_module$56158 [0] }
+      New connections: { $auto$ghdl.cc:806:import_module$56158 [69:67] $auto$ghdl.cc:806:import_module$56158 [2:1] } = { 3'000 $auto$ghdl.cc:806:import_module$56158 [0] 1'0 }
+    Consolidated identical input bits for $mux cell \86585:
+      Old ports: A=133'0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$56179 2'11 $auto$ghdl.cc:806:import_module$56168 [63:3] \base_s [2:0] 3'011 }, Y=$auto$ghdl.cc:806:import_module$56180
+      New ports: A=129'000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$56179 $auto$ghdl.cc:806:import_module$56168 [63:3] \base_s [2:0] 1'1 }, Y={ $auto$ghdl.cc:806:import_module$56180 [132:69] $auto$ghdl.cc:806:import_module$56180 [66:3] $auto$ghdl.cc:806:import_module$56180 [0] }
+      New connections: { $auto$ghdl.cc:806:import_module$56180 [68:67] $auto$ghdl.cc:806:import_module$56180 [2:1] } = { $auto$ghdl.cc:806:import_module$56180 [0] $auto$ghdl.cc:806:import_module$56180 [0] 1'0 $auto$ghdl.cc:806:import_module$56180 [0] }
+    Consolidated identical input bits for $mux cell \86626:
+      Old ports: A=4'1001, B=4'0001, Y=$auto$ghdl.cc:806:import_module$56185
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$56185 [3]
+      New connections: $auto$ghdl.cc:806:import_module$56185 [2:0] = 3'001
+    Consolidated identical input bits for $mux cell \86677:
+      Old ports: A=2'01, B=2'11, Y=$auto$ghdl.cc:806:import_module$56207
+      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$56207 [1]
+      New connections: $auto$ghdl.cc:806:import_module$56207 [0] = 1'1
+    Consolidated identical input bits for $mux cell \86681:
+      Old ports: A={ 2'00 $auto$ghdl.cc:806:import_module$56207 }, B=4'1001, Y=$auto$ghdl.cc:806:import_module$56209
+      New ports: A={ 1'0 $auto$ghdl.cc:806:import_module$56207 }, B=3'101, Y={ $auto$ghdl.cc:806:import_module$56209 [3] $auto$ghdl.cc:806:import_module$56209 [1:0] }
+      New connections: $auto$ghdl.cc:806:import_module$56209 [2] = 1'0
+    New ctrl vector for $pmux cell \86768: { $auto$ghdl.cc:806:import_module$56215 $auto$opt_reduce.cc:134:opt_pmux$72214 }
+    Consolidated identical input bits for $pmux cell \86775:
+      Old ports: A=140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001, B=280'0000000000000000000000000000000000000000000000000000000000000000010000100100000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000100010011000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$56246
+      New ports: A=3'000, B=6'101011, Y={ $auto$ghdl.cc:806:import_module$56246 [69] $auto$ghdl.cc:806:import_module$56246 [67:66] }
+      New connections: { $auto$ghdl.cc:806:import_module$56246 [139:70] $auto$ghdl.cc:806:import_module$56246 [68] $auto$ghdl.cc:806:import_module$56246 [65:0] } = { 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$56246 [66] 3'000 $auto$ghdl.cc:806:import_module$56246 [67] 67'0000000000000000000000000000000000000000000000000000000000000000001 }
   Optimizing cells in module \ino_excm_unit.
-    Consolidated identical input bits for $mux cell \91789:
-      Old ports: A=$auto$ghdl.cc:806:import_module$57733, B={ \word_count_s 3'000 $auto$ghdl.cc:806:import_module$57728 [63:4] \base_s [3:0] 3'001 }, Y={ \stack_maint_o.length [7:0] \stack_maint_o.base \stack_maint_o.kind \stack_maint_o.valid }
-      New ports: A={ $auto$ghdl.cc:806:import_module$57733 [74:70] $auto$ghdl.cc:806:import_module$57733 [66:3] $auto$ghdl.cc:806:import_module$57733 [0] $auto$ghdl.cc:806:import_module$57733 [0] }, B={ \word_count_s $auto$ghdl.cc:806:import_module$57728 [63:4] \base_s [3:0] 2'01 }, Y={ \stack_maint_o.length [7:3] \stack_maint_o.base \stack_maint_o.kind [1] \stack_maint_o.valid }
+    Consolidated identical input bits for $mux cell \86509:
+      Old ports: A=$auto$ghdl.cc:806:import_module$56158, B={ \word_count_s 3'000 $auto$ghdl.cc:806:import_module$56153 [63:4] \base_s [3:0] 3'001 }, Y={ \stack_maint_o.length [7:0] \stack_maint_o.base \stack_maint_o.kind \stack_maint_o.valid }
+      New ports: A={ $auto$ghdl.cc:806:import_module$56158 [74:70] $auto$ghdl.cc:806:import_module$56158 [66:3] $auto$ghdl.cc:806:import_module$56158 [0] $auto$ghdl.cc:806:import_module$56158 [0] }, B={ \word_count_s $auto$ghdl.cc:806:import_module$56153 [63:4] \base_s [3:0] 2'01 }, Y={ \stack_maint_o.length [7:3] \stack_maint_o.base \stack_maint_o.kind [1] \stack_maint_o.valid }
       New connections: { \stack_maint_o.length [2:0] \stack_maint_o.kind [0] } = 4'0000
-    Consolidated identical input bits for $mux cell \91868:
-      Old ports: A=$auto$ghdl.cc:806:import_module$57755 [68:0], B={ 2'11 $auto$ghdl.cc:806:import_module$57743 [63:3] \base_s [2:0] 3'101 }, Y={ \mem_req_o.size \mem_req_o.address \mem_req_o.probe \mem_req_o.write \mem_req_o.valid }
-      New ports: A={ $auto$ghdl.cc:806:import_module$57755 [66:3] 1'0 $auto$ghdl.cc:806:import_module$57755 [0] $auto$ghdl.cc:806:import_module$57755 [0] }, B={ $auto$ghdl.cc:806:import_module$57743 [63:3] \base_s [2:0] 3'101 }, Y={ \mem_req_o.address \mem_req_o.probe \mem_req_o.write \mem_req_o.valid }
+    Consolidated identical input bits for $mux cell \86588:
+      Old ports: A=$auto$ghdl.cc:806:import_module$56180 [68:0], B={ 2'11 $auto$ghdl.cc:806:import_module$56168 [63:3] \base_s [2:0] 3'101 }, Y={ \mem_req_o.size \mem_req_o.address \mem_req_o.probe \mem_req_o.write \mem_req_o.valid }
+      New ports: A={ $auto$ghdl.cc:806:import_module$56180 [66:3] 1'0 $auto$ghdl.cc:806:import_module$56180 [0] $auto$ghdl.cc:806:import_module$56180 [0] }, B={ $auto$ghdl.cc:806:import_module$56168 [63:3] \base_s [2:0] 3'101 }, Y={ \mem_req_o.address \mem_req_o.probe \mem_req_o.write \mem_req_o.valid }
       New connections: \mem_req_o.size = { \mem_req_o.valid \mem_req_o.valid }
-    Consolidated identical input bits for $mux cell \91961:
-      Old ports: A={ 1'0 $auto$ghdl.cc:806:import_module$57782 }, B=3'101, Y={ $auto$ghdl.cc:806:import_module$57784 [3] $auto$ghdl.cc:806:import_module$57784 [1:0] }
-      New ports: A={ 1'0 $auto$ghdl.cc:806:import_module$57782 [1] }, B=2'10, Y={ $auto$ghdl.cc:806:import_module$57784 [3] $auto$ghdl.cc:806:import_module$57784 [1] }
-      New connections: $auto$ghdl.cc:806:import_module$57784 [0] = 1'1
-    Consolidated identical input bits for $mux cell \92008:
-      Old ports: A={ 2'01 $auto$ghdl.cc:806:import_module$57782 }, B=4'1001, Y=$auto$ghdl.cc:806:import_module$57802
-      New ports: A={ 2'01 $auto$ghdl.cc:806:import_module$57782 [1] }, B=3'100, Y=$auto$ghdl.cc:806:import_module$57802 [3:1]
-      New connections: $auto$ghdl.cc:806:import_module$57802 [0] = 1'1
+    Consolidated identical input bits for $mux cell \86681:
+      Old ports: A={ 1'0 $auto$ghdl.cc:806:import_module$56207 }, B=3'101, Y={ $auto$ghdl.cc:806:import_module$56209 [3] $auto$ghdl.cc:806:import_module$56209 [1:0] }
+      New ports: A={ 1'0 $auto$ghdl.cc:806:import_module$56207 [1] }, B=2'10, Y={ $auto$ghdl.cc:806:import_module$56209 [3] $auto$ghdl.cc:806:import_module$56209 [1] }
+      New connections: $auto$ghdl.cc:806:import_module$56209 [0] = 1'1
+    Consolidated identical input bits for $mux cell \86728:
+      Old ports: A={ 2'01 $auto$ghdl.cc:806:import_module$56207 }, B=4'1001, Y=$auto$ghdl.cc:806:import_module$56227
+      New ports: A={ 2'01 $auto$ghdl.cc:806:import_module$56207 [1] }, B=3'100, Y=$auto$ghdl.cc:806:import_module$56227 [3:1]
+      New connections: $auto$ghdl.cc:806:import_module$56227 [0] = 1'1
   Optimizing cells in module \ino_excm_unit.
 Performed a total of 12 changes.
 
@@ -676,140 +676,140 @@ Removed a total of 1 cells.
 3.18.14. Executing OPT_SHARE pass.
 
 3.18.15. Executing OPT_DFF pass (perform DFF optimizations).
-Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 3 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 4 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 6 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 7 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 8 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 9 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 10 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 11 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 12 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 13 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 14 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 15 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 16 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 17 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 18 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 19 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 20 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 21 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 22 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 23 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 24 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 25 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 26 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 27 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 28 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 29 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 30 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 31 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 32 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 33 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 34 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 35 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 36 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 37 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 38 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 39 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 40 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 41 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 42 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 43 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 44 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 45 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 46 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 47 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 48 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 49 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 50 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 51 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 52 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 53 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 54 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 55 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 56 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 57 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 58 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 59 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 60 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 61 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 62 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 63 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 64 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 65 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 68 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 76 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 77 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 78 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 79 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 80 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 81 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 82 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 83 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 84 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 85 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 86 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 87 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 88 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 89 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 90 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 91 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 92 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 93 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 94 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 95 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 96 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 97 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 98 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 99 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 100 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 101 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 102 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 103 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 104 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 105 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 106 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 107 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 108 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 109 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 110 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 111 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 112 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 113 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 114 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 115 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 116 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 117 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 118 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 119 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 120 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 121 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 122 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 123 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 124 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 125 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 126 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 127 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 128 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 129 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 130 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 131 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 132 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 133 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 134 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 135 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 136 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 137 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 138 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
-Setting constant 0-bit at position 139 on $auto$ff.cc:266:slice$73603 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 3 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 4 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 6 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 7 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 8 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 9 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 10 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 11 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 12 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 13 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 14 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 15 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 16 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 17 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 18 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 19 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 20 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 21 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 22 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 23 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 24 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 25 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 26 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 27 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 28 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 29 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 30 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 31 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 32 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 33 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 34 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 35 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 36 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 37 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 38 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 39 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 40 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 41 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 42 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 43 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 44 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 45 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 46 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 47 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 48 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 49 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 50 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 51 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 52 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 53 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 54 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 55 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 56 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 57 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 58 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 59 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 60 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 61 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 62 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 63 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 64 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 65 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 68 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 76 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 77 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 78 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 79 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 80 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 81 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 82 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 83 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 84 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 85 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 86 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 87 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 88 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 89 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 90 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 91 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 92 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 93 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 94 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 95 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 96 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 97 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 98 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 99 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 100 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 101 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 102 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 103 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 104 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 105 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 106 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 107 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 108 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 109 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 110 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 111 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 112 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 113 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 114 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 115 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 116 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 117 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 118 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 119 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 120 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 121 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 122 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 123 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 124 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 125 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 126 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 127 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 128 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 129 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 130 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 131 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 132 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 133 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 134 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 135 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 136 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 137 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 138 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
+Setting constant 0-bit at position 139 on $auto$ff.cc:266:slice$72028 ($sdffe) from module ino_excm_unit.
 
 3.18.16. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_excm_unit..
@@ -840,140 +840,140 @@ Removed a total of 0 cells.
 3.18.22. Executing OPT_SHARE pass.
 
 3.18.23. Executing OPT_DFF pass (perform DFF optimizations).
-Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 3 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 4 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 6 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 7 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 8 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 9 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 10 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 11 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 12 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 13 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 14 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 15 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 16 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 17 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 18 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 19 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 20 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 21 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 22 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 23 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 24 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 25 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 26 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 27 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 28 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 29 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 30 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 31 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 32 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 33 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 34 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 35 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 36 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 37 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 38 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 39 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 40 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 41 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 42 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 43 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 44 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 45 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 46 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 47 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 48 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 49 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 50 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 51 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 52 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 53 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 54 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 55 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 56 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 57 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 58 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 59 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 60 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 61 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 62 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 63 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 64 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 65 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 68 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 76 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 77 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 78 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 79 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 80 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 81 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 82 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 83 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 84 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 85 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 86 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 87 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 88 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 89 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 90 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 91 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 92 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 93 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 94 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 95 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 96 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 97 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 98 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 99 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 100 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 101 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 102 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 103 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 104 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 105 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 106 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 107 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 108 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 109 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 110 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 111 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 112 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 113 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 114 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 115 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 116 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 117 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 118 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 119 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 120 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 121 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 122 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 123 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 124 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 125 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 126 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 127 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 128 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 129 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 130 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 131 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 132 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 133 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 134 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 135 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 136 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 137 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 138 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
-Setting constant 0-bit at position 139 on $auto$ff.cc:266:slice$73785 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 3 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 4 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 6 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 7 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 8 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 9 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 10 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 11 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 12 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 13 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 14 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 15 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 16 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 17 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 18 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 19 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 20 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 21 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 22 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 23 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 24 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 25 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 26 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 27 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 28 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 29 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 30 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 31 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 32 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 33 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 34 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 35 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 36 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 37 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 38 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 39 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 40 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 41 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 42 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 43 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 44 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 45 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 46 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 47 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 48 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 49 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 50 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 51 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 52 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 53 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 54 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 55 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 56 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 57 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 58 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 59 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 60 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 61 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 62 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 63 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 64 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 65 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 68 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 76 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 77 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 78 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 79 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 80 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 81 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 82 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 83 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 84 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 85 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 86 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 87 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 88 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 89 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 90 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 91 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 92 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 93 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 94 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 95 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 96 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 97 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 98 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 99 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 100 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 101 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 102 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 103 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 104 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 105 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 106 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 107 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 108 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 109 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 110 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 111 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 112 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 113 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 114 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 115 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 116 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 117 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 118 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 119 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 120 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 121 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 122 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 123 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 124 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 125 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 126 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 127 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 128 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 129 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 130 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 131 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 132 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 133 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 134 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 135 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 136 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 137 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 138 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
+Setting constant 0-bit at position 139 on $auto$ff.cc:266:slice$72210 ($sdff) from module ino_excm_unit.
 
 3.18.24. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_excm_unit..
@@ -1345,6 +1345,6 @@ Finding unused cells or wires in module \ino_excm_unit..
 Removed 0 unused cells and 2775 unused wires.
 <suppressed ~4 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: be4f394ff8, CPU: user 2.07s system 0.06s, MEM: 114.23 MB peak
+End of script. Logfile hash: bab66d08f7, CPU: user 1.79s system 0.04s, MEM: 111.41 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 25% 2x read_rtlil (0 sec), 20% 2x abc (0 sec), ...
+Time spent: 24% 2x read_rtlil (0 sec), 20% 2x abc (0 sec), ...
