@@ -115,6 +115,24 @@ package INO_PORTS_PA is
    function TO_PA( r : mem_request_t ) return mem_request_pa_t;
    function TO_VA( r : mem_request_pa_t ) return mem_request_t;
 
+   -- Requete du port d'execution (INO_EXECUTE -> DATA_CACHE). Une adresse non
+   -- realisable (calculee par le backend : base + deplacement, cellule pointeur)
+   -- n'est pas tronquee : outside = '1' la signale, et TO_VA rend une adresse
+   -- non realisable (PA_LIMIT + address). Le cache n'en lit que la non
+   -- realisabilite (faute 132), d'ou l'exactitude du comportement.
+   type exec_mem_request_pa_t is record
+      valid     : std_logic;
+      write     : std_logic;
+      probe     : std_logic;
+      outside   : std_logic;          -- '1' : adresse d'origine non realisable
+      address   : paddr_t;
+      size      : unsigned( 1 downto 0 );
+      wdata     : word64_t;
+   end record;
+
+   function TO_PA_EXEC( r : mem_request_t ) return exec_mem_request_pa_t;
+   function TO_VA( r : exec_mem_request_pa_t ) return mem_request_t;
+
 end package INO_PORTS_PA;
 
 package body INO_PORTS_PA is
@@ -213,6 +231,26 @@ package body INO_PORTS_PA is
    function TO_VA( r : mem_request_pa_t ) return mem_request_t is
    begin
       return ( valid => r.valid, write => r.write, probe => r.probe, address => TO_VA( r.address ),
+               size => r.size, wdata => r.wdata );
+   end function;
+
+   function TO_PA_EXEC( r : mem_request_t ) return exec_mem_request_pa_t is
+      variable o : std_logic := '0';
+   begin
+      if not PA_OK( r.address ) then
+         o := '1';
+      end if;
+      return ( valid => r.valid, write => r.write, probe => r.probe, outside => o,
+               address => r.address( PA_BITS - 1 downto 0 ), size => r.size, wdata => r.wdata );
+   end function;
+
+   function TO_VA( r : exec_mem_request_pa_t ) return mem_request_t is
+      variable a : address_t := TO_VA( r.address );
+   begin
+      if r.outside = '1' then
+         a := a + PA_LIMIT;
+      end if;
+      return ( valid => r.valid, write => r.write, probe => r.probe, address => a,
                size => r.size, wdata => r.wdata );
    end function;
 

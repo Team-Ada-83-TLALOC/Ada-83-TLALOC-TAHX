@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_byte_queue ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_byte_queue ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_branch_unit
          synth -top ino_branch_unit -noshare
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -210,9 +210,9 @@ Finding identical cells in module `\ino_branch_unit'.
 Removed a total of 0 cells.
 
 3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on \118885 ($dff) from module ino_branch_unit (D = $auto$ghdl.cc:806:import_module$72001 [65:0], Q = \complete_s [65:0], rval = 66'000000000000000000000000000000000000000000000000000000000000000000).
-Adding SRST signal on \118885 ($dff) from module ino_branch_unit (D = \computed_s [74:66], Q = \complete_s [74:66], rval = 9'000000000).
-Adding SRST signal on \118885 ($dff) from module ino_branch_unit (D = $auto$ghdl.cc:806:import_module$71990, Q = \complete_s [139:75], rval = 65'00000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on \119119 ($dff) from module ino_branch_unit (D = $auto$ghdl.cc:806:import_module$72031 [65:0], Q = \complete_s [65:0], rval = 66'000000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on \119119 ($dff) from module ino_branch_unit (D = \computed_s [74:66], Q = \complete_s [74:66], rval = 9'000000000).
+Adding SRST signal on \119119 ($dff) from module ino_branch_unit (D = $auto$ghdl.cc:806:import_module$72020, Q = \complete_s [139:75], rval = 65'00000000000000000000000000000000000000000000000000000000000000000).
 
 3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_branch_unit..
@@ -280,11 +280,11 @@ Optimizing module ino_branch_unit.
 3.8.23. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 60 bits (of 64) from port B of cell ino_branch_unit.\118788 ($add).
-Removed top 2 bits (of 8) from port B of cell ino_branch_unit.\118813 ($eq).
-Removed top 139 bits (of 140) from mux cell ino_branch_unit.\118880 ($mux).
-Removed top 65 bits (of 74) from mux cell ino_branch_unit.\118875 ($mux).
-Removed top 139 bits (of 140) from wire ino_branch_unit.$auto$ghdl.cc:806:import_module$72001.
+Removed top 60 bits (of 64) from port B of cell ino_branch_unit.\119022 ($add).
+Removed top 2 bits (of 8) from port B of cell ino_branch_unit.\119047 ($eq).
+Removed top 139 bits (of 140) from mux cell ino_branch_unit.\119114 ($mux).
+Removed top 65 bits (of 74) from mux cell ino_branch_unit.\119109 ($mux).
+Removed top 139 bits (of 140) from wire ino_branch_unit.$auto$ghdl.cc:806:import_module$72031.
 Removed top 65 bits (of 140) from wire ino_branch_unit.computed_s.
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
@@ -296,20 +296,20 @@ Removed 0 unused cells and 2 unused wires.
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_branch_unit:
-  creating $macc model for \118788 ($add).
-  creating $macc model for \118794 ($add).
-  creating $alu model for $macc \118794.
-  creating $alu model for $macc \118788.
-  creating $alu model for \118797 ($ge): new $alu
-  creating $alu model for \118799 ($le): new $alu
-  creating $alu model for \118805 ($ge): new $alu
-  creating $alu model for \118807 ($le): new $alu
-  creating $alu cell for \118807: $auto$alumacc.cc:485:replace_alu$72021
-  creating $alu cell for \118805: $auto$alumacc.cc:485:replace_alu$72030
-  creating $alu cell for \118799: $auto$alumacc.cc:485:replace_alu$72043
-  creating $alu cell for \118797: $auto$alumacc.cc:485:replace_alu$72052
-  creating $alu cell for \118788: $auto$alumacc.cc:485:replace_alu$72065
-  creating $alu cell for \118794: $auto$alumacc.cc:485:replace_alu$72068
+  creating $macc model for \119022 ($add).
+  creating $macc model for \119028 ($add).
+  creating $alu model for $macc \119028.
+  creating $alu model for $macc \119022.
+  creating $alu model for \119031 ($ge): new $alu
+  creating $alu model for \119033 ($le): new $alu
+  creating $alu model for \119039 ($ge): new $alu
+  creating $alu model for \119041 ($le): new $alu
+  creating $alu cell for \119041: $auto$alumacc.cc:485:replace_alu$72051
+  creating $alu cell for \119039: $auto$alumacc.cc:485:replace_alu$72060
+  creating $alu cell for \119033: $auto$alumacc.cc:485:replace_alu$72073
+  creating $alu cell for \119031: $auto$alumacc.cc:485:replace_alu$72082
+  creating $alu cell for \119022: $auto$alumacc.cc:485:replace_alu$72095
+  creating $alu cell for \119028: $auto$alumacc.cc:485:replace_alu$72098
   created 6 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -338,71 +338,71 @@ Finding identical cells in module `\ino_branch_unit'.
 Removed a total of 0 cells.
 
 3.13.6. Executing OPT_DFF pass (perform DFF optimizations).
-Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 3 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 4 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 6 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 7 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 8 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 9 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 10 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 11 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 12 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 13 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 14 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 15 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 16 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 17 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 18 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 19 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 20 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 21 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 22 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 23 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 24 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 25 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 26 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 27 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 28 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 29 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 30 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 31 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 32 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 33 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 34 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 35 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 36 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 37 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 38 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 39 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 40 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 41 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 42 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 43 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 44 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 45 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 46 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 47 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 48 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 49 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 50 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 51 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 52 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 53 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 54 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 55 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 56 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 57 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 58 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 59 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 60 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 61 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 62 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 63 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 64 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 65 on $auto$ff.cc:266:slice$72004 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 3 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 4 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 6 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 7 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 8 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 9 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 10 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 11 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 12 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 13 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 14 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 15 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 16 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 17 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 18 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 19 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 20 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 21 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 22 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 23 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 24 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 25 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 26 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 27 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 28 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 29 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 30 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 31 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 32 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 33 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 34 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 35 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 36 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 37 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 38 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 39 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 40 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 41 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 42 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 43 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 44 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 45 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 46 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 47 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 48 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 49 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 50 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 51 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 52 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 53 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 54 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 55 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 56 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 57 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 58 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 59 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 60 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 61 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 62 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 63 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 64 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 65 on $auto$ff.cc:266:slice$72034 ($sdff) from module ino_branch_unit.
 
 3.13.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_branch_unit..
@@ -511,7 +511,7 @@ Removed 0 multiplexer ports.
 
 3.18.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_branch_unit.
-    Consolidated identical input bits for $mux cell \118875:
+    Consolidated identical input bits for $mux cell \119109:
       Old ports: A=9'000000000, B=9'100001001, Y=\computed_s [74:66]
       New ports: A=1'0, B=1'1, Y=\computed_s [66]
       New connections: \computed_s [74:67] = { \computed_s [66] 4'0000 \computed_s [66] 2'00 }
@@ -554,12 +554,12 @@ Removed a total of 0 cells.
 3.18.14. Executing OPT_SHARE pass.
 
 3.18.15. Executing OPT_DFF pass (perform DFF optimizations).
-Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$72005 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$72005 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 4 on $auto$ff.cc:266:slice$72005 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$72005 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 6 on $auto$ff.cc:266:slice$72005 ($sdff) from module ino_branch_unit.
-Setting constant 0-bit at position 7 on $auto$ff.cc:266:slice$72005 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$72035 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$72035 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 4 on $auto$ff.cc:266:slice$72035 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$72035 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 6 on $auto$ff.cc:266:slice$72035 ($sdff) from module ino_branch_unit.
+Setting constant 0-bit at position 7 on $auto$ff.cc:266:slice$72035 ($sdff) from module ino_branch_unit.
 
 3.18.16. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_branch_unit..
@@ -918,6 +918,6 @@ Finding unused cells or wires in module \ino_branch_unit..
 Removed 0 unused cells and 1597 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: b62b2852a7, CPU: user 1.11s system 0.05s, MEM: 111.90 MB peak
+End of script. Logfile hash: e476fa9c29, CPU: user 1.27s system 0.04s, MEM: 111.66 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 35% 2x read_rtlil (0 sec), 24% 2x abc (0 sec), ...
+Time spent: 36% 2x read_rtlil (0 sec), 24% 2x abc (0 sec), ...

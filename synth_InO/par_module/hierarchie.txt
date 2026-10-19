@@ -367,22 +367,22 @@
 
 === ino_core_system_16_8 ===
 
-   Number of wires:                223
-   Number of wire bits:          10581
-   Number of public wires:         101
-   Number of public wire bits:    7316
+   Number of wires:                228
+   Number of wire bits:          10856
+   Number of public wires:         103
+   Number of public wire bits:    7526
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:                 35
-     $add                            1
+   Number of cells:                 37
+     $add                            2
      $and                            3
      $eq                             9
-     $mux                            9
+     $mux                           10
      $ne                             1
      $not                            2
      $or                             7
-     ino_backend_excm                1
+     ino_execute                     1
      ino_system_unit                 1
      stack_unit_16_8                 1
 
@@ -458,6 +458,22 @@
      $not                            1
      $pmux                          10
      $sub                            1
+
+=== ino_execute ===
+
+   Number of wires:                 79
+   Number of wire bits:           2601
+   Number of public wires:          52
+   Number of public wire bits:    1868
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                  6
+     $add                            1
+     $eq                             1
+     $mux                            2
+     $not                            1
+     ino_backend_excm                1
 
 === ino_fetch ===
 
@@ -760,22 +776,23 @@
      data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e      1
        ino_cache_ram64_256          20
      ino_core_system_16_8            1
-       ino_backend_excm              1
-         ino_backend_block           1
-           ino_backend_complex       1
-             ino_backend_float       1
-               ino_backend_memory      1
-                 ino_address_unit      1
-                 ino_backend         1
-                   ino_branch_unit      1
-                   ino_integer_unit      1
-                   ino_muldiv_unit      1
-                 ino_memory_unit      1
-               ino_float_unit        1
-             ino_complex_unit        1
-               fexp_unit             1
-           ino_block_unit            1
-         ino_excm_unit               1
+       ino_execute                   1
+         ino_backend_excm            1
+           ino_backend_block         1
+             ino_backend_complex      1
+               ino_backend_float      1
+                 ino_backend_memory      1
+                   ino_address_unit      1
+                   ino_backend       1
+                     ino_branch_unit      1
+                     ino_integer_unit      1
+                     ino_muldiv_unit      1
+                   ino_memory_unit      1
+                 ino_float_unit      1
+               ino_complex_unit      1
+                 fexp_unit           1
+             ino_block_unit          1
+           ino_excm_unit             1
        ino_system_unit               1
        stack_unit_16_8               1
      ino_decode_queue                1
@@ -793,20 +810,20 @@
            ino_fetch_ram_1r_32_512      1
            ino_fetch_ram_1r_64_512      4
 
-   Number of wires:              62627
-   Number of wire bits:         1214181
-   Number of public wires:        1460
-   Number of public wire bits:   89330
+   Number of wires:              62711
+   Number of wire bits:         1217057
+   Number of public wires:        1514
+   Number of public wire bits:   91408
    Number of memories:              38
    Number of memory bits:       547960
    Number of processes:              0
-   Number of cells:              60769
-     $add                          380
+   Number of cells:              60776
+     $add                          382
      $and                        24516
      $assert                        12
      $dff                          219
      $div                           16
-     $eq                          2286
+     $eq                          2287
      $ge                            68
      $gt                            97
      $le                            69
@@ -816,10 +833,10 @@
      $memwr_v2                      30
      $modfloor                      14
      $mul                           37
-     $mux                        28895
+     $mux                        28898
      $ne                            67
      $neg                           25
-     $not                          892
+     $not                          893
      $or                           980
      $pmux                         553
      $reduce_and                    18

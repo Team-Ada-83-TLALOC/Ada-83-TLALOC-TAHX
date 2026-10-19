@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram64_256 ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram64_256 ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_complex_unit
          synth -top ino_complex_unit -noshare
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -121,15 +121,15 @@ Removed 0 multiplexer ports.
 
 3.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_complex_unit.
-    New ctrl vector for $pmux cell \96338: { $auto$ghdl.cc:806:import_module$64070 $auto$opt_reduce.cc:134:opt_pmux$72005 }
-    New ctrl vector for $pmux cell \96343: { $auto$ghdl.cc:806:import_module$64070 $auto$opt_reduce.cc:134:opt_pmux$72007 $auto$ghdl.cc:806:import_module$63956 }
-    New ctrl vector for $pmux cell \96347: { $auto$opt_reduce.cc:134:opt_pmux$72009 $auto$ghdl.cc:806:import_module$63956 }
-    New ctrl vector for $pmux cell \96350: { $auto$ghdl.cc:806:import_module$64071 $auto$opt_reduce.cc:134:opt_pmux$72011 }
-    New ctrl vector for $pmux cell \96352: { $auto$ghdl.cc:806:import_module$64070 $auto$opt_reduce.cc:134:opt_pmux$72013 $auto$ghdl.cc:806:import_module$64055 $auto$ghdl.cc:806:import_module$63956 }
-    New ctrl vector for $pmux cell \96354: { $auto$opt_reduce.cc:134:opt_pmux$72015 $auto$ghdl.cc:806:import_module$63956 }
-    New ctrl vector for $pmux cell \96356: { $auto$opt_reduce.cc:134:opt_pmux$72017 $auto$ghdl.cc:806:import_module$63956 }
-    New ctrl vector for $pmux cell \96358: { $auto$opt_reduce.cc:134:opt_pmux$72019 $auto$ghdl.cc:806:import_module$63956 }
-    New ctrl vector for $pmux cell \96360: { $auto$opt_reduce.cc:134:opt_pmux$72021 $auto$ghdl.cc:806:import_module$63956 }
+    New ctrl vector for $pmux cell \96572: { $auto$ghdl.cc:806:import_module$64100 $auto$opt_reduce.cc:134:opt_pmux$72035 }
+    New ctrl vector for $pmux cell \96577: { $auto$ghdl.cc:806:import_module$64100 $auto$opt_reduce.cc:134:opt_pmux$72037 $auto$ghdl.cc:806:import_module$63986 }
+    New ctrl vector for $pmux cell \96581: { $auto$opt_reduce.cc:134:opt_pmux$72039 $auto$ghdl.cc:806:import_module$63986 }
+    New ctrl vector for $pmux cell \96584: { $auto$ghdl.cc:806:import_module$64101 $auto$opt_reduce.cc:134:opt_pmux$72041 }
+    New ctrl vector for $pmux cell \96586: { $auto$ghdl.cc:806:import_module$64100 $auto$opt_reduce.cc:134:opt_pmux$72043 $auto$ghdl.cc:806:import_module$64085 $auto$ghdl.cc:806:import_module$63986 }
+    New ctrl vector for $pmux cell \96588: { $auto$opt_reduce.cc:134:opt_pmux$72045 $auto$ghdl.cc:806:import_module$63986 }
+    New ctrl vector for $pmux cell \96590: { $auto$opt_reduce.cc:134:opt_pmux$72047 $auto$ghdl.cc:806:import_module$63986 }
+    New ctrl vector for $pmux cell \96592: { $auto$opt_reduce.cc:134:opt_pmux$72049 $auto$ghdl.cc:806:import_module$63986 }
+    New ctrl vector for $pmux cell \96594: { $auto$opt_reduce.cc:134:opt_pmux$72051 $auto$ghdl.cc:806:import_module$63986 }
   Optimizing cells in module \ino_complex_unit.
 Performed a total of 9 changes.
 
@@ -223,24 +223,24 @@ Finding identical cells in module `\ino_complex_unit'.
 Removed a total of 0 cells.
 
 3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on \96454 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64090, Q = \link_new_csp_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$72022 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64081, Q = \link_new_csp_s).
-Adding SRST signal on \96453 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64089, Q = \mem_data_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$72042 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64080, Q = \mem_data_s).
-Adding SRST signal on \96452 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64088, Q = \mem_addr_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$72060 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64079, Q = \mem_addr_s).
-Adding SRST signal on \96451 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64087, Q = \mem_op_s, rval = 8'00000000).
-Adding EN signal on $auto$ff.cc:266:slice$72078 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64078, Q = \mem_op_s).
-Adding SRST signal on \96450 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64077, Q = \return_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$72096 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64077, Q = \return_s).
-Adding SRST signal on \96449 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64076, Q = \complete_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
-Adding SRST signal on \96448 ($dff) from module ino_complex_unit (D = { $auto$ghdl.cc:806:import_module$64084 $auto$ghdl.cc:806:import_module$64083 }, Q = \copile_s, rval = 193'0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$72117 ($sdff) from module ino_complex_unit (D = 1'1, Q = \copile_s [192]).
-Adding EN signal on $auto$ff.cc:266:slice$72117 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64083 [127:64], Q = \copile_s [127:64]).
-Adding EN signal on $auto$ff.cc:266:slice$72117 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64083 [191:128], Q = \copile_s [191:128]).
-Adding EN signal on $auto$ff.cc:266:slice$72117 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64083 [63:0], Q = \copile_s [63:0]).
-Adding SRST signal on \96447 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64072, Q = \state_s, rval = 3'000).
-Adding EN signal on $auto$ff.cc:266:slice$72168 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64072, Q = \state_s).
+Adding SRST signal on \96688 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64120, Q = \link_new_csp_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$72052 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64111, Q = \link_new_csp_s).
+Adding SRST signal on \96687 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64119, Q = \mem_data_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$72072 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64110, Q = \mem_data_s).
+Adding SRST signal on \96686 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64118, Q = \mem_addr_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$72090 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64109, Q = \mem_addr_s).
+Adding SRST signal on \96685 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64117, Q = \mem_op_s, rval = 8'00000000).
+Adding EN signal on $auto$ff.cc:266:slice$72108 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64108, Q = \mem_op_s).
+Adding SRST signal on \96684 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64107, Q = \return_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$72126 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64107, Q = \return_s).
+Adding SRST signal on \96683 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64106, Q = \complete_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on \96682 ($dff) from module ino_complex_unit (D = { $auto$ghdl.cc:806:import_module$64114 $auto$ghdl.cc:806:import_module$64113 }, Q = \copile_s, rval = 193'0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$72147 ($sdff) from module ino_complex_unit (D = 1'1, Q = \copile_s [192]).
+Adding EN signal on $auto$ff.cc:266:slice$72147 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64113 [127:64], Q = \copile_s [127:64]).
+Adding EN signal on $auto$ff.cc:266:slice$72147 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64113 [191:128], Q = \copile_s [191:128]).
+Adding EN signal on $auto$ff.cc:266:slice$72147 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64113 [63:0], Q = \copile_s [63:0]).
+Adding SRST signal on \96681 ($dff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64102, Q = \state_s, rval = 3'000).
+Adding EN signal on $auto$ff.cc:266:slice$72198 ($sdff) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64102, Q = \state_s).
 
 3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_complex_unit..
@@ -263,14 +263,14 @@ Removed 0 multiplexer ports.
 
 3.8.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_complex_unit.
-    New ctrl vector for $pmux cell \96338: $auto$ghdl.cc:806:import_module$64070
-    New ctrl vector for $pmux cell \96343: { $auto$ghdl.cc:806:import_module$64070 $auto$ghdl.cc:806:import_module$63956 }
-    New ctrl vector for $pmux cell \96347: $auto$ghdl.cc:806:import_module$63956
-    New ctrl vector for $pmux cell \96352: { $auto$ghdl.cc:806:import_module$64070 $auto$ghdl.cc:806:import_module$64055 $auto$ghdl.cc:806:import_module$63956 }
-    New ctrl vector for $pmux cell \96354: $auto$ghdl.cc:806:import_module$63956
-    New ctrl vector for $pmux cell \96356: $auto$ghdl.cc:806:import_module$63956
-    New ctrl vector for $pmux cell \96358: $auto$ghdl.cc:806:import_module$63956
-    New ctrl vector for $pmux cell \96360: $auto$ghdl.cc:806:import_module$63956
+    New ctrl vector for $pmux cell \96572: $auto$ghdl.cc:806:import_module$64100
+    New ctrl vector for $pmux cell \96577: { $auto$ghdl.cc:806:import_module$64100 $auto$ghdl.cc:806:import_module$63986 }
+    New ctrl vector for $pmux cell \96581: $auto$ghdl.cc:806:import_module$63986
+    New ctrl vector for $pmux cell \96586: { $auto$ghdl.cc:806:import_module$64100 $auto$ghdl.cc:806:import_module$64085 $auto$ghdl.cc:806:import_module$63986 }
+    New ctrl vector for $pmux cell \96588: $auto$ghdl.cc:806:import_module$63986
+    New ctrl vector for $pmux cell \96590: $auto$ghdl.cc:806:import_module$63986
+    New ctrl vector for $pmux cell \96592: $auto$ghdl.cc:806:import_module$63986
+    New ctrl vector for $pmux cell \96594: $auto$ghdl.cc:806:import_module$63986
   Optimizing cells in module \ino_complex_unit.
 Performed a total of 8 changes.
 
@@ -318,35 +318,35 @@ Optimizing module ino_complex_unit.
 3.8.23. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 3 bits (of 6) from port B of cell ino_complex_unit.$auto$opt_dff.cc:195:make_patterns_logic$72144 ($ne).
-Removed top 2 bits (of 5) from port B of cell ino_complex_unit.$auto$opt_dff.cc:195:make_patterns_logic$72125 ($ne).
-Removed top 1 bits (of 2) from port B of cell ino_complex_unit.$auto$opt_dff.cc:195:make_patterns_logic$72109 ($ne).
-Removed top 4 bits (of 6) from port B of cell ino_complex_unit.$auto$opt_dff.cc:195:make_patterns_logic$72103 ($ne).
-Removed top 4 bits (of 6) from port B of cell ino_complex_unit.$auto$opt_dff.cc:195:make_patterns_logic$72027 ($ne).
-Removed top 1 bits (of 3) from port B of cell ino_complex_unit.\95971 ($eq).
-Removed top 1 bits (of 8) from port B of cell ino_complex_unit.\95983 ($eq).
-Removed top 1 bits (of 8) from port B of cell ino_complex_unit.\95985 ($eq).
-Removed top 2 bits (of 8) from port B of cell ino_complex_unit.\96004 ($eq).
-Removed top 1 bits (of 65) from mux cell ino_complex_unit.\96033 ($mux).
-Removed top 2 bits (of 8) from port B of cell ino_complex_unit.\96045 ($eq).
-Removed top 1 bits (of 65) from port A of cell ino_complex_unit.\96055 ($add).
-Removed top 62 bits (of 65) from port B of cell ino_complex_unit.\96055 ($add).
-Removed top 2 bits (of 66) from port A of cell ino_complex_unit.\96063 ($add).
-Removed top 1 bits (of 66) from port B of cell ino_complex_unit.\96063 ($add).
-Removed top 2 bits (of 66) from port B of cell ino_complex_unit.\96066 ($gt).
-Removed top 2 bits (of 8) from port B of cell ino_complex_unit.\96085 ($eq).
-Removed top 1 bits (of 65) from port B of cell ino_complex_unit.\96104 ($gt).
-Removed top 1 bits (of 65) from port A of cell ino_complex_unit.\96108 ($sub).
-Removed top 1 bits (of 65) from port Y of cell ino_complex_unit.\96108 ($sub).
-Removed top 1 bits (of 65) from port B of cell ino_complex_unit.\96108 ($sub).
-Removed top 1 bits (of 8) from port B of cell ino_complex_unit.\96146 ($eq).
-Removed top 1 bits (of 8) from port B of cell ino_complex_unit.\96148 ($eq).
-Removed top 1 bits (of 65) from port A of cell ino_complex_unit.\96153 ($add).
-Removed top 61 bits (of 65) from port B of cell ino_complex_unit.\96153 ($add).
-Removed top 2 bits (of 3) from port B of cell ino_complex_unit.\96276 ($eq).
-Removed top 1 bits (of 3) from port B of cell ino_complex_unit.\96328 ($eq).
-Removed top 1 bits (of 65) from wire ino_complex_unit.$auto$ghdl.cc:806:import_module$63980.
-Removed top 1 bits (of 65) from wire ino_complex_unit.$auto$ghdl.cc:806:import_module$63995.
+Removed top 3 bits (of 6) from port B of cell ino_complex_unit.$auto$opt_dff.cc:195:make_patterns_logic$72174 ($ne).
+Removed top 2 bits (of 5) from port B of cell ino_complex_unit.$auto$opt_dff.cc:195:make_patterns_logic$72155 ($ne).
+Removed top 1 bits (of 2) from port B of cell ino_complex_unit.$auto$opt_dff.cc:195:make_patterns_logic$72139 ($ne).
+Removed top 4 bits (of 6) from port B of cell ino_complex_unit.$auto$opt_dff.cc:195:make_patterns_logic$72133 ($ne).
+Removed top 4 bits (of 6) from port B of cell ino_complex_unit.$auto$opt_dff.cc:195:make_patterns_logic$72057 ($ne).
+Removed top 1 bits (of 3) from port B of cell ino_complex_unit.\96205 ($eq).
+Removed top 1 bits (of 8) from port B of cell ino_complex_unit.\96217 ($eq).
+Removed top 1 bits (of 8) from port B of cell ino_complex_unit.\96219 ($eq).
+Removed top 2 bits (of 8) from port B of cell ino_complex_unit.\96238 ($eq).
+Removed top 1 bits (of 65) from mux cell ino_complex_unit.\96267 ($mux).
+Removed top 2 bits (of 8) from port B of cell ino_complex_unit.\96279 ($eq).
+Removed top 1 bits (of 65) from port A of cell ino_complex_unit.\96289 ($add).
+Removed top 62 bits (of 65) from port B of cell ino_complex_unit.\96289 ($add).
+Removed top 2 bits (of 66) from port A of cell ino_complex_unit.\96297 ($add).
+Removed top 1 bits (of 66) from port B of cell ino_complex_unit.\96297 ($add).
+Removed top 2 bits (of 66) from port B of cell ino_complex_unit.\96300 ($gt).
+Removed top 2 bits (of 8) from port B of cell ino_complex_unit.\96319 ($eq).
+Removed top 1 bits (of 65) from port B of cell ino_complex_unit.\96338 ($gt).
+Removed top 1 bits (of 65) from port A of cell ino_complex_unit.\96342 ($sub).
+Removed top 1 bits (of 65) from port Y of cell ino_complex_unit.\96342 ($sub).
+Removed top 1 bits (of 65) from port B of cell ino_complex_unit.\96342 ($sub).
+Removed top 1 bits (of 8) from port B of cell ino_complex_unit.\96380 ($eq).
+Removed top 1 bits (of 8) from port B of cell ino_complex_unit.\96382 ($eq).
+Removed top 1 bits (of 65) from port A of cell ino_complex_unit.\96387 ($add).
+Removed top 61 bits (of 65) from port B of cell ino_complex_unit.\96387 ($add).
+Removed top 2 bits (of 3) from port B of cell ino_complex_unit.\96510 ($eq).
+Removed top 1 bits (of 3) from port B of cell ino_complex_unit.\96562 ($eq).
+Removed top 1 bits (of 65) from wire ino_complex_unit.$auto$ghdl.cc:806:import_module$64010.
+Removed top 1 bits (of 65) from wire ino_complex_unit.$auto$ghdl.cc:806:import_module$64025.
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
 
@@ -357,26 +357,26 @@ Removed 0 unused cells and 2 unused wires.
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_complex_unit:
-  creating $macc model for \96055 ($add).
-  creating $macc model for \96063 ($add).
-  creating $macc model for \96108 ($sub).
-  creating $macc model for \96153 ($add).
-  creating $alu model for $macc \96153.
-  creating $alu model for $macc \96108.
-  creating $alu model for $macc \96063.
-  creating $alu model for $macc \96055.
-  creating $alu model for \96066 ($gt): new $alu
-  creating $alu model for \96104 ($gt): new $alu
-  creating $alu model for \96111 ($lt): new $alu
-  creating $alu model for \96157 ($gt): new $alu
-  creating $alu cell for \96157: $auto$alumacc.cc:485:replace_alu$72188
-  creating $alu cell for \96111: $auto$alumacc.cc:485:replace_alu$72199
-  creating $alu cell for \96104: $auto$alumacc.cc:485:replace_alu$72204
-  creating $alu cell for \96066: $auto$alumacc.cc:485:replace_alu$72209
-  creating $alu cell for \96055: $auto$alumacc.cc:485:replace_alu$72214
-  creating $alu cell for \96063: $auto$alumacc.cc:485:replace_alu$72217
-  creating $alu cell for \96108: $auto$alumacc.cc:485:replace_alu$72220
-  creating $alu cell for \96153: $auto$alumacc.cc:485:replace_alu$72223
+  creating $macc model for \96289 ($add).
+  creating $macc model for \96297 ($add).
+  creating $macc model for \96342 ($sub).
+  creating $macc model for \96387 ($add).
+  creating $alu model for $macc \96387.
+  creating $alu model for $macc \96342.
+  creating $alu model for $macc \96297.
+  creating $alu model for $macc \96289.
+  creating $alu model for \96300 ($gt): new $alu
+  creating $alu model for \96338 ($gt): new $alu
+  creating $alu model for \96345 ($lt): new $alu
+  creating $alu model for \96391 ($gt): new $alu
+  creating $alu cell for \96391: $auto$alumacc.cc:485:replace_alu$72218
+  creating $alu cell for \96345: $auto$alumacc.cc:485:replace_alu$72229
+  creating $alu cell for \96338: $auto$alumacc.cc:485:replace_alu$72234
+  creating $alu cell for \96300: $auto$alumacc.cc:485:replace_alu$72239
+  creating $alu cell for \96289: $auto$alumacc.cc:485:replace_alu$72244
+  creating $alu cell for \96297: $auto$alumacc.cc:485:replace_alu$72247
+  creating $alu cell for \96342: $auto$alumacc.cc:485:replace_alu$72250
+  creating $alu cell for \96387: $auto$alumacc.cc:485:replace_alu$72253
   created 8 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -485,9 +485,9 @@ Finding identical cells in module `\ino_complex_unit'.
 Removed a total of 3 cells.
 
 3.16.3. Executing OPT_DFF pass (perform DFF optimizations).
-Adding EN signal on $auto$ff.cc:266:slice$72140 ($sdffe) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64083 [130:128], Q = \copile_s [130:128]).
-Adding EN signal on $auto$ff.cc:266:slice$72121 ($sdffe) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64083 [66:64], Q = \copile_s [66:64]).
-Adding SRST signal on $auto$ff.cc:266:slice$72114 ($sdff) from module ino_complex_unit (D = \return_s, Q = \complete_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$72170 ($sdffe) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64113 [130:128], Q = \copile_s [130:128]).
+Adding EN signal on $auto$ff.cc:266:slice$72151 ($sdffe) from module ino_complex_unit (D = $auto$ghdl.cc:806:import_module$64113 [66:64], Q = \copile_s [66:64]).
+Adding SRST signal on $auto$ff.cc:266:slice$72144 ($sdff) from module ino_complex_unit (D = \return_s, Q = \complete_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
 
 3.16.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_complex_unit..
@@ -534,70 +534,70 @@ Removed 0 multiplexer ports.
 
 3.18.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_complex_unit.
-    New input vector for $reduce_or cell $auto$opt_dff.cc:254:combine_resets$72252: { $auto$ghdl.cc:806:import_module$64070 $auto$ghdl.cc:806:import_module$64055 $auto$ghdl.cc:806:import_module$63956 \sync_valid_i \mem_req_o.valid \reset_i }
-    New input vector for $reduce_and cell $auto$opt_dff.cc:220:make_patterns_logic$72248: { $auto$opt_dff.cc:194:make_patterns_logic$72245 $auto$opt_dff.cc:194:make_patterns_logic$72122 $auto$opt_dff.cc:194:make_patterns_logic$72124 $auto$opt_dff.cc:194:make_patterns_logic$72126 $auto$opt_dff.cc:194:make_patterns_logic$72128 $auto$opt_dff.cc:194:make_patterns_logic$72130 $auto$opt_dff.cc:194:make_patterns_logic$72132 $auto$opt_dff.cc:194:make_patterns_logic$72134 $auto$opt_dff.cc:194:make_patterns_logic$72136 }
-    New input vector for $reduce_and cell $auto$opt_dff.cc:220:make_patterns_logic$72242: { \sync_valid_i $auto$opt_dff.cc:194:make_patterns_logic$72122 $auto$opt_dff.cc:194:make_patterns_logic$72128 $auto$opt_dff.cc:194:make_patterns_logic$72143 $auto$opt_dff.cc:194:make_patterns_logic$72145 $auto$opt_dff.cc:194:make_patterns_logic$72147 $auto$opt_dff.cc:194:make_patterns_logic$72149 $auto$opt_dff.cc:194:make_patterns_logic$72153 $auto$opt_dff.cc:194:make_patterns_logic$72155 }
-    Consolidated identical input bits for $mux cell \96081:
-      Old ports: A=9'100001111, B=9'000000000, Y=$auto$ghdl.cc:806:import_module$63989
-      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$63989 [0]
-      New connections: $auto$ghdl.cc:806:import_module$63989 [8:1] = { $auto$ghdl.cc:806:import_module$63989 [0] 4'0000 $auto$ghdl.cc:806:import_module$63989 [0] $auto$ghdl.cc:806:import_module$63989 [0] $auto$ghdl.cc:806:import_module$63989 [0] }
-    Consolidated identical input bits for $mux cell \96126:
-      Old ports: A=9'100010001, B=9'000000000, Y=$auto$ghdl.cc:806:import_module$64000
-      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$64000 [0]
-      New connections: $auto$ghdl.cc:806:import_module$64000 [8:1] = { $auto$ghdl.cc:806:import_module$64000 [0] 3'000 $auto$ghdl.cc:806:import_module$64000 [0] 3'000 }
-    Consolidated identical input bits for $mux cell \96168:
-      Old ports: A=3'010, B=3'100, Y=$auto$ghdl.cc:806:import_module$64011
-      New ports: A=2'01, B=2'10, Y=$auto$ghdl.cc:806:import_module$64011 [2:1]
-      New connections: $auto$ghdl.cc:806:import_module$64011 [0] = 1'0
-    Consolidated identical input bits for $mux cell \96192:
-      Old ports: A=140'00000000000000000000000000000000000000000000000000000000000000000100001111000000000000000000000000000000000000000000000000000000000000000001, B={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$64004 $auto$ghdl.cc:806:import_module$64003 $auto$ghdl.cc:806:import_module$64002 1'1 }, Y=$auto$ghdl.cc:806:import_module$64025
-      New ports: A=74'10000111100000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$64004 $auto$ghdl.cc:806:import_module$64003 $auto$ghdl.cc:806:import_module$64002 }, Y=$auto$ghdl.cc:806:import_module$64025 [74:1]
-      New connections: { $auto$ghdl.cc:806:import_module$64025 [139:75] $auto$ghdl.cc:806:import_module$64025 [0] } = 66'000000000000000000000000000000000000000000000000000000000000000001
-    Consolidated identical input bits for $mux cell \96316:
-      Old ports: A=9'000000000, B=9'100001001, Y=$auto$ghdl.cc:806:import_module$64066
-      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$64066 [0]
-      New connections: $auto$ghdl.cc:806:import_module$64066 [8:1] = { $auto$ghdl.cc:806:import_module$64066 [0] 4'0000 $auto$ghdl.cc:806:import_module$64066 [0] 2'00 }
-    New ctrl vector for $pmux cell \96334: { \mem_req_o.valid $auto$opt_reduce.cc:134:opt_pmux$72254 $auto$ghdl.cc:806:import_module$63956 }
+    New input vector for $reduce_or cell $auto$opt_dff.cc:254:combine_resets$72282: { $auto$ghdl.cc:806:import_module$64100 $auto$ghdl.cc:806:import_module$64085 $auto$ghdl.cc:806:import_module$63986 \sync_valid_i \mem_req_o.valid \reset_i }
+    New input vector for $reduce_and cell $auto$opt_dff.cc:220:make_patterns_logic$72278: { $auto$opt_dff.cc:194:make_patterns_logic$72275 $auto$opt_dff.cc:194:make_patterns_logic$72152 $auto$opt_dff.cc:194:make_patterns_logic$72154 $auto$opt_dff.cc:194:make_patterns_logic$72156 $auto$opt_dff.cc:194:make_patterns_logic$72158 $auto$opt_dff.cc:194:make_patterns_logic$72160 $auto$opt_dff.cc:194:make_patterns_logic$72162 $auto$opt_dff.cc:194:make_patterns_logic$72164 $auto$opt_dff.cc:194:make_patterns_logic$72166 }
+    New input vector for $reduce_and cell $auto$opt_dff.cc:220:make_patterns_logic$72272: { \sync_valid_i $auto$opt_dff.cc:194:make_patterns_logic$72152 $auto$opt_dff.cc:194:make_patterns_logic$72158 $auto$opt_dff.cc:194:make_patterns_logic$72173 $auto$opt_dff.cc:194:make_patterns_logic$72175 $auto$opt_dff.cc:194:make_patterns_logic$72177 $auto$opt_dff.cc:194:make_patterns_logic$72179 $auto$opt_dff.cc:194:make_patterns_logic$72183 $auto$opt_dff.cc:194:make_patterns_logic$72185 }
+    Consolidated identical input bits for $mux cell \96315:
+      Old ports: A=9'100001111, B=9'000000000, Y=$auto$ghdl.cc:806:import_module$64019
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$64019 [0]
+      New connections: $auto$ghdl.cc:806:import_module$64019 [8:1] = { $auto$ghdl.cc:806:import_module$64019 [0] 4'0000 $auto$ghdl.cc:806:import_module$64019 [0] $auto$ghdl.cc:806:import_module$64019 [0] $auto$ghdl.cc:806:import_module$64019 [0] }
+    Consolidated identical input bits for $mux cell \96360:
+      Old ports: A=9'100010001, B=9'000000000, Y=$auto$ghdl.cc:806:import_module$64030
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$64030 [0]
+      New connections: $auto$ghdl.cc:806:import_module$64030 [8:1] = { $auto$ghdl.cc:806:import_module$64030 [0] 3'000 $auto$ghdl.cc:806:import_module$64030 [0] 3'000 }
+    Consolidated identical input bits for $mux cell \96402:
+      Old ports: A=3'010, B=3'100, Y=$auto$ghdl.cc:806:import_module$64041
+      New ports: A=2'01, B=2'10, Y=$auto$ghdl.cc:806:import_module$64041 [2:1]
+      New connections: $auto$ghdl.cc:806:import_module$64041 [0] = 1'0
+    Consolidated identical input bits for $mux cell \96426:
+      Old ports: A=140'00000000000000000000000000000000000000000000000000000000000000000100001111000000000000000000000000000000000000000000000000000000000000000001, B={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$64034 $auto$ghdl.cc:806:import_module$64033 $auto$ghdl.cc:806:import_module$64032 1'1 }, Y=$auto$ghdl.cc:806:import_module$64055
+      New ports: A=74'10000111100000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$64034 $auto$ghdl.cc:806:import_module$64033 $auto$ghdl.cc:806:import_module$64032 }, Y=$auto$ghdl.cc:806:import_module$64055 [74:1]
+      New connections: { $auto$ghdl.cc:806:import_module$64055 [139:75] $auto$ghdl.cc:806:import_module$64055 [0] } = 66'000000000000000000000000000000000000000000000000000000000000000001
+    Consolidated identical input bits for $mux cell \96550:
+      Old ports: A=9'000000000, B=9'100001001, Y=$auto$ghdl.cc:806:import_module$64096
+      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$64096 [0]
+      New connections: $auto$ghdl.cc:806:import_module$64096 [8:1] = { $auto$ghdl.cc:806:import_module$64096 [0] 4'0000 $auto$ghdl.cc:806:import_module$64096 [0] 2'00 }
+    New ctrl vector for $pmux cell \96568: { \mem_req_o.valid $auto$opt_reduce.cc:134:opt_pmux$72284 $auto$ghdl.cc:806:import_module$63986 }
   Optimizing cells in module \ino_complex_unit.
-    Consolidated identical input bits for $mux cell \96136:
-      Old ports: A=$auto$ghdl.cc:806:import_module$64000, B=9'100010001, Y=$auto$ghdl.cc:806:import_module$64004
-      New ports: A=$auto$ghdl.cc:806:import_module$64000 [0], B=1'1, Y=$auto$ghdl.cc:806:import_module$64004 [0]
-      New connections: $auto$ghdl.cc:806:import_module$64004 [8:1] = { $auto$ghdl.cc:806:import_module$64004 [0] 3'000 $auto$ghdl.cc:806:import_module$64004 [0] 3'000 }
-    Consolidated identical input bits for $mux cell \96178:
-      Old ports: A=3'010, B=$auto$ghdl.cc:806:import_module$64011, Y=$auto$ghdl.cc:806:import_module$64017
-      New ports: A=2'01, B=$auto$ghdl.cc:806:import_module$64011 [2:1], Y=$auto$ghdl.cc:806:import_module$64017 [2:1]
-      New connections: $auto$ghdl.cc:806:import_module$64017 [0] = 1'0
-    Consolidated identical input bits for $mux cell \96213:
-      Old ports: A=$auto$ghdl.cc:806:import_module$64025, B={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$63989 $auto$ghdl.cc:806:import_module$63988 $auto$alumacc.cc:502:replace_alu$72211 [65] 1'1 }, Y=$auto$ghdl.cc:806:import_module$64033
-      New ports: A=$auto$ghdl.cc:806:import_module$64025 [74:1], B={ $auto$ghdl.cc:806:import_module$63989 [0] 4'0000 $auto$ghdl.cc:806:import_module$63989 [0] $auto$ghdl.cc:806:import_module$63989 [0] $auto$ghdl.cc:806:import_module$63989 [0] $auto$ghdl.cc:806:import_module$63989 [0] $auto$ghdl.cc:806:import_module$63988 $auto$alumacc.cc:502:replace_alu$72211 [65] }, Y=$auto$ghdl.cc:806:import_module$64033 [74:1]
-      New connections: { $auto$ghdl.cc:806:import_module$64033 [139:75] $auto$ghdl.cc:806:import_module$64033 [0] } = 66'000000000000000000000000000000000000000000000000000000000000000001
+    Consolidated identical input bits for $mux cell \96370:
+      Old ports: A=$auto$ghdl.cc:806:import_module$64030, B=9'100010001, Y=$auto$ghdl.cc:806:import_module$64034
+      New ports: A=$auto$ghdl.cc:806:import_module$64030 [0], B=1'1, Y=$auto$ghdl.cc:806:import_module$64034 [0]
+      New connections: $auto$ghdl.cc:806:import_module$64034 [8:1] = { $auto$ghdl.cc:806:import_module$64034 [0] 3'000 $auto$ghdl.cc:806:import_module$64034 [0] 3'000 }
+    Consolidated identical input bits for $mux cell \96412:
+      Old ports: A=3'010, B=$auto$ghdl.cc:806:import_module$64041, Y=$auto$ghdl.cc:806:import_module$64047
+      New ports: A=2'01, B=$auto$ghdl.cc:806:import_module$64041 [2:1], Y=$auto$ghdl.cc:806:import_module$64047 [2:1]
+      New connections: $auto$ghdl.cc:806:import_module$64047 [0] = 1'0
+    Consolidated identical input bits for $mux cell \96447:
+      Old ports: A=$auto$ghdl.cc:806:import_module$64055, B={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$64019 $auto$ghdl.cc:806:import_module$64018 $auto$alumacc.cc:502:replace_alu$72241 [65] 1'1 }, Y=$auto$ghdl.cc:806:import_module$64063
+      New ports: A=$auto$ghdl.cc:806:import_module$64055 [74:1], B={ $auto$ghdl.cc:806:import_module$64019 [0] 4'0000 $auto$ghdl.cc:806:import_module$64019 [0] $auto$ghdl.cc:806:import_module$64019 [0] $auto$ghdl.cc:806:import_module$64019 [0] $auto$ghdl.cc:806:import_module$64019 [0] $auto$ghdl.cc:806:import_module$64018 $auto$alumacc.cc:502:replace_alu$72241 [65] }, Y=$auto$ghdl.cc:806:import_module$64063 [74:1]
+      New connections: { $auto$ghdl.cc:806:import_module$64063 [139:75] $auto$ghdl.cc:806:import_module$64063 [0] } = 66'000000000000000000000000000000000000000000000000000000000000000001
   Optimizing cells in module \ino_complex_unit.
-    Consolidated identical input bits for $mux cell \96189:
-      Old ports: A=$auto$ghdl.cc:806:import_module$64017, B=3'100, Y=$auto$ghdl.cc:806:import_module$64023
-      New ports: A=$auto$ghdl.cc:806:import_module$64017 [2:1], B=2'10, Y=$auto$ghdl.cc:806:import_module$64023 [2:1]
-      New connections: $auto$ghdl.cc:806:import_module$64023 [0] = 1'0
-    Consolidated identical input bits for $mux cell \96192:
-      Old ports: A=74'10000111100000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$64004 $auto$ghdl.cc:806:import_module$64003 $auto$ghdl.cc:806:import_module$64002 }, Y=$auto$ghdl.cc:806:import_module$64025 [74:1]
-      New ports: A=68'01100000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$64004 [0] 1'0 $auto$ghdl.cc:806:import_module$64004 [0] $auto$ghdl.cc:806:import_module$64003 $auto$ghdl.cc:806:import_module$64002 }, Y={ $auto$ghdl.cc:806:import_module$64025 [70] $auto$ghdl.cc:806:import_module$64025 [67:1] }
-      New connections: { $auto$ghdl.cc:806:import_module$64025 [74:71] $auto$ghdl.cc:806:import_module$64025 [69:68] } = { $auto$ghdl.cc:806:import_module$64025 [66] 3'000 $auto$ghdl.cc:806:import_module$64025 [67] $auto$ghdl.cc:806:import_module$64025 [67] }
-    Consolidated identical input bits for $pmux cell \96352:
-      Old ports: A={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$64066 66'000000000000000000000000000000000000000000000000000000000000000001 }, B={ 74'00000000000000000000000000000000000000000000000000000000000000000000000000 \fexp_r_s 2'11 $auto$ghdl.cc:806:import_module$64033 }, Y=$auto$ghdl.cc:806:import_module$64077
-      New ports: A={ $auto$ghdl.cc:806:import_module$64066 [0] 4'0000 $auto$ghdl.cc:806:import_module$64066 [0] 2'00 $auto$ghdl.cc:806:import_module$64066 [0] 65'00000000000000000000000000000000000000000000000000000000000000000 }, B={ 9'000000000 \fexp_r_s 1'1 $auto$ghdl.cc:806:import_module$64033 [74:1] }, Y=$auto$ghdl.cc:806:import_module$64077 [74:1]
-      New connections: { $auto$ghdl.cc:806:import_module$64077 [139:75] $auto$ghdl.cc:806:import_module$64077 [0] } = 66'000000000000000000000000000000000000000000000000000000000000000001
+    Consolidated identical input bits for $mux cell \96423:
+      Old ports: A=$auto$ghdl.cc:806:import_module$64047, B=3'100, Y=$auto$ghdl.cc:806:import_module$64053
+      New ports: A=$auto$ghdl.cc:806:import_module$64047 [2:1], B=2'10, Y=$auto$ghdl.cc:806:import_module$64053 [2:1]
+      New connections: $auto$ghdl.cc:806:import_module$64053 [0] = 1'0
+    Consolidated identical input bits for $mux cell \96426:
+      Old ports: A=74'10000111100000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$64034 $auto$ghdl.cc:806:import_module$64033 $auto$ghdl.cc:806:import_module$64032 }, Y=$auto$ghdl.cc:806:import_module$64055 [74:1]
+      New ports: A=68'01100000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$64034 [0] 1'0 $auto$ghdl.cc:806:import_module$64034 [0] $auto$ghdl.cc:806:import_module$64033 $auto$ghdl.cc:806:import_module$64032 }, Y={ $auto$ghdl.cc:806:import_module$64055 [70] $auto$ghdl.cc:806:import_module$64055 [67:1] }
+      New connections: { $auto$ghdl.cc:806:import_module$64055 [74:71] $auto$ghdl.cc:806:import_module$64055 [69:68] } = { $auto$ghdl.cc:806:import_module$64055 [66] 3'000 $auto$ghdl.cc:806:import_module$64055 [67] $auto$ghdl.cc:806:import_module$64055 [67] }
+    Consolidated identical input bits for $pmux cell \96586:
+      Old ports: A={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$64096 66'000000000000000000000000000000000000000000000000000000000000000001 }, B={ 74'00000000000000000000000000000000000000000000000000000000000000000000000000 \fexp_r_s 2'11 $auto$ghdl.cc:806:import_module$64063 }, Y=$auto$ghdl.cc:806:import_module$64107
+      New ports: A={ $auto$ghdl.cc:806:import_module$64096 [0] 4'0000 $auto$ghdl.cc:806:import_module$64096 [0] 2'00 $auto$ghdl.cc:806:import_module$64096 [0] 65'00000000000000000000000000000000000000000000000000000000000000000 }, B={ 9'000000000 \fexp_r_s 1'1 $auto$ghdl.cc:806:import_module$64063 [74:1] }, Y=$auto$ghdl.cc:806:import_module$64107 [74:1]
+      New connections: { $auto$ghdl.cc:806:import_module$64107 [139:75] $auto$ghdl.cc:806:import_module$64107 [0] } = 66'000000000000000000000000000000000000000000000000000000000000000001
   Optimizing cells in module \ino_complex_unit.
-    Consolidated identical input bits for $mux cell \96208:
-      Old ports: A=$auto$ghdl.cc:806:import_module$64023, B=3'100, Y=$auto$ghdl.cc:806:import_module$64030
-      New ports: A=$auto$ghdl.cc:806:import_module$64023 [2:1], B=2'10, Y=$auto$ghdl.cc:806:import_module$64030 [2:1]
-      New connections: $auto$ghdl.cc:806:import_module$64030 [0] = 1'0
-    Consolidated identical input bits for $mux cell \96213:
-      Old ports: A=$auto$ghdl.cc:806:import_module$64025 [74:1], B={ $auto$ghdl.cc:806:import_module$63989 [0] 4'0000 $auto$ghdl.cc:806:import_module$63989 [0] $auto$ghdl.cc:806:import_module$63989 [0] $auto$ghdl.cc:806:import_module$63989 [0] $auto$ghdl.cc:806:import_module$63989 [0] $auto$ghdl.cc:806:import_module$63988 $auto$alumacc.cc:502:replace_alu$72211 [65] }, Y=$auto$ghdl.cc:806:import_module$64033 [74:1]
-      New ports: A={ $auto$ghdl.cc:806:import_module$64025 [70] $auto$ghdl.cc:806:import_module$64025 [67:1] }, B={ 1'0 $auto$ghdl.cc:806:import_module$63989 [0] $auto$ghdl.cc:806:import_module$63989 [0] $auto$ghdl.cc:806:import_module$63988 $auto$alumacc.cc:502:replace_alu$72211 [65] }, Y={ $auto$ghdl.cc:806:import_module$64033 [70] $auto$ghdl.cc:806:import_module$64033 [67:1] }
-      New connections: { $auto$ghdl.cc:806:import_module$64033 [74:71] $auto$ghdl.cc:806:import_module$64033 [69:68] } = { $auto$ghdl.cc:806:import_module$64033 [66] 3'000 $auto$ghdl.cc:806:import_module$64033 [67] $auto$ghdl.cc:806:import_module$64033 [67] }
+    Consolidated identical input bits for $mux cell \96442:
+      Old ports: A=$auto$ghdl.cc:806:import_module$64053, B=3'100, Y=$auto$ghdl.cc:806:import_module$64060
+      New ports: A=$auto$ghdl.cc:806:import_module$64053 [2:1], B=2'10, Y=$auto$ghdl.cc:806:import_module$64060 [2:1]
+      New connections: $auto$ghdl.cc:806:import_module$64060 [0] = 1'0
+    Consolidated identical input bits for $mux cell \96447:
+      Old ports: A=$auto$ghdl.cc:806:import_module$64055 [74:1], B={ $auto$ghdl.cc:806:import_module$64019 [0] 4'0000 $auto$ghdl.cc:806:import_module$64019 [0] $auto$ghdl.cc:806:import_module$64019 [0] $auto$ghdl.cc:806:import_module$64019 [0] $auto$ghdl.cc:806:import_module$64019 [0] $auto$ghdl.cc:806:import_module$64018 $auto$alumacc.cc:502:replace_alu$72241 [65] }, Y=$auto$ghdl.cc:806:import_module$64063 [74:1]
+      New ports: A={ $auto$ghdl.cc:806:import_module$64055 [70] $auto$ghdl.cc:806:import_module$64055 [67:1] }, B={ 1'0 $auto$ghdl.cc:806:import_module$64019 [0] $auto$ghdl.cc:806:import_module$64019 [0] $auto$ghdl.cc:806:import_module$64018 $auto$alumacc.cc:502:replace_alu$72241 [65] }, Y={ $auto$ghdl.cc:806:import_module$64063 [70] $auto$ghdl.cc:806:import_module$64063 [67:1] }
+      New connections: { $auto$ghdl.cc:806:import_module$64063 [74:71] $auto$ghdl.cc:806:import_module$64063 [69:68] } = { $auto$ghdl.cc:806:import_module$64063 [66] 3'000 $auto$ghdl.cc:806:import_module$64063 [67] $auto$ghdl.cc:806:import_module$64063 [67] }
   Optimizing cells in module \ino_complex_unit.
-    Consolidated identical input bits for $pmux cell \96352:
-      Old ports: A={ $auto$ghdl.cc:806:import_module$64066 [0] 4'0000 $auto$ghdl.cc:806:import_module$64066 [0] 2'00 $auto$ghdl.cc:806:import_module$64066 [0] 65'00000000000000000000000000000000000000000000000000000000000000000 }, B={ 9'000000000 \fexp_r_s 1'1 $auto$ghdl.cc:806:import_module$64033 [74:1] }, Y=$auto$ghdl.cc:806:import_module$64077 [74:1]
-      New ports: A={ 1'0 $auto$ghdl.cc:806:import_module$64066 [0] 1'0 $auto$ghdl.cc:806:import_module$64066 [0] 65'00000000000000000000000000000000000000000000000000000000000000000 }, B={ 4'0000 \fexp_r_s 1'1 $auto$ghdl.cc:806:import_module$64033 [70] $auto$ghdl.cc:806:import_module$64033 [67] $auto$ghdl.cc:806:import_module$64033 [67:1] }, Y={ $auto$ghdl.cc:806:import_module$64077 [70:69] $auto$ghdl.cc:806:import_module$64077 [67:1] }
-      New connections: { $auto$ghdl.cc:806:import_module$64077 [74:71] $auto$ghdl.cc:806:import_module$64077 [68] } = { $auto$ghdl.cc:806:import_module$64077 [66] 3'000 $auto$ghdl.cc:806:import_module$64077 [67] }
+    Consolidated identical input bits for $pmux cell \96586:
+      Old ports: A={ $auto$ghdl.cc:806:import_module$64096 [0] 4'0000 $auto$ghdl.cc:806:import_module$64096 [0] 2'00 $auto$ghdl.cc:806:import_module$64096 [0] 65'00000000000000000000000000000000000000000000000000000000000000000 }, B={ 9'000000000 \fexp_r_s 1'1 $auto$ghdl.cc:806:import_module$64063 [74:1] }, Y=$auto$ghdl.cc:806:import_module$64107 [74:1]
+      New ports: A={ 1'0 $auto$ghdl.cc:806:import_module$64096 [0] 1'0 $auto$ghdl.cc:806:import_module$64096 [0] 65'00000000000000000000000000000000000000000000000000000000000000000 }, B={ 4'0000 \fexp_r_s 1'1 $auto$ghdl.cc:806:import_module$64063 [70] $auto$ghdl.cc:806:import_module$64063 [67] $auto$ghdl.cc:806:import_module$64063 [67:1] }, Y={ $auto$ghdl.cc:806:import_module$64107 [70:69] $auto$ghdl.cc:806:import_module$64107 [67:1] }
+      New connections: { $auto$ghdl.cc:806:import_module$64107 [74:71] $auto$ghdl.cc:806:import_module$64107 [68] } = { $auto$ghdl.cc:806:import_module$64107 [66] 3'000 $auto$ghdl.cc:806:import_module$64107 [67] }
   Optimizing cells in module \ino_complex_unit.
 Performed a total of 18 changes.
 
@@ -640,74 +640,74 @@ Removed a total of 2 cells.
 3.18.14. Executing OPT_SHARE pass.
 
 3.18.15. Executing OPT_DFF pass (perform DFF optimizations).
-Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 76 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 77 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 78 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 79 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 80 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 81 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 82 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 83 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 84 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 85 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 86 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 87 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 88 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 89 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 90 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 91 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 92 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 93 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 94 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 95 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 96 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 97 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 98 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 99 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 100 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 101 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 102 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 103 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 104 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 105 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 106 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 107 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 108 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 109 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 110 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 111 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 112 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 113 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 114 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 115 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 116 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 117 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 118 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 119 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 120 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 121 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 122 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 123 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 124 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 125 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 126 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 127 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 128 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 129 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 130 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 131 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 132 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 133 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 134 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 135 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 136 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 137 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 138 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
-Setting constant 0-bit at position 139 on $auto$ff.cc:266:slice$72099 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 76 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 77 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 78 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 79 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 80 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 81 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 82 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 83 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 84 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 85 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 86 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 87 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 88 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 89 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 90 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 91 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 92 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 93 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 94 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 95 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 96 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 97 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 98 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 99 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 100 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 101 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 102 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 103 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 104 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 105 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 106 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 107 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 108 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 109 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 110 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 111 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 112 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 113 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 114 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 115 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 116 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 117 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 118 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 119 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 120 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 121 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 122 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 123 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 124 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 125 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 126 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 127 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 128 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 129 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 130 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 131 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 132 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 133 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 134 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 135 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 136 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 137 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 138 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
+Setting constant 0-bit at position 139 on $auto$ff.cc:266:slice$72129 ($sdffe) from module ino_complex_unit.
 
 3.18.16. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_complex_unit..
@@ -738,74 +738,74 @@ Removed a total of 0 cells.
 3.18.22. Executing OPT_SHARE pass.
 
 3.18.23. Executing OPT_DFF pass (perform DFF optimizations).
-Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 76 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 77 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 78 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 79 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 80 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 81 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 82 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 83 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 84 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 85 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 86 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 87 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 88 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 89 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 90 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 91 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 92 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 93 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 94 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 95 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 96 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 97 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 98 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 99 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 100 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 101 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 102 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 103 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 104 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 105 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 106 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 107 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 108 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 109 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 110 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 111 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 112 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 113 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 114 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 115 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 116 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 117 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 118 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 119 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 120 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 121 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 122 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 123 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 124 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 125 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 126 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 127 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 128 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 129 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 130 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 131 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 132 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 133 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 134 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 135 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 136 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 137 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 138 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
-Setting constant 0-bit at position 139 on $auto$ff.cc:266:slice$72250 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 76 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 77 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 78 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 79 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 80 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 81 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 82 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 83 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 84 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 85 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 86 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 87 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 88 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 89 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 90 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 91 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 92 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 93 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 94 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 95 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 96 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 97 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 98 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 99 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 100 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 101 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 102 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 103 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 104 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 105 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 106 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 107 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 108 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 109 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 110 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 111 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 112 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 113 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 114 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 115 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 116 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 117 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 118 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 119 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 120 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 121 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 122 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 123 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 124 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 125 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 126 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 127 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 128 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 129 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 130 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 131 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 132 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 133 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 134 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 135 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 136 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 137 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 138 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
+Setting constant 0-bit at position 139 on $auto$ff.cc:266:slice$72280 ($sdff) from module ino_complex_unit.
 
 3.18.24. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_complex_unit..
@@ -1173,6 +1173,6 @@ Finding unused cells or wires in module \ino_complex_unit..
 Removed 0 unused cells and 5736 unused wires.
 <suppressed ~3 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: d995238993, CPU: user 2.99s system 0.05s, MEM: 111.61 MB peak
+End of script. Logfile hash: e746cfbfbb, CPU: user 3.57s system 0.05s, MEM: 111.73 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 27% 2x abc (1 sec), 13% 33x opt_expr (0 sec), ...
+Time spent: 25% 2x abc (1 sec), 14% 33x opt_expr (0 sec), ...

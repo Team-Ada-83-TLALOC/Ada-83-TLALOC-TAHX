@@ -50,6 +50,8 @@ of INO_CORE_SYSTEM is           ---
    signal backend_complete_s    : ino_complete_t;
    signal backend_maint_s       : stack_maint_t;
    signal backend_mem_req_s     : mem_request_t;
+   signal backend_mem_req_pa_s  : exec_mem_request_pa_t;
+   signal backend_complete_pa_s : complete_pa_t;
    signal copile_s              : copile_state_t;
 
    signal system_issue_valid_s  : std_logic;
@@ -159,16 +161,24 @@ U_STACK :
       IDLE_o		=> stack_idle_s
     );
 
-   U_BACKEND : entity work.INO_BACKEND_EXCM
+   -- Backend en macro : ports d'adresse physiques (INO_EXECUTE). Il recoit
+   -- directement les sorties PA de STACK_UNIT ; ses sorties sont rendues en
+   -- adresses de 64 bits pour la fusion avec SYSTEM_UNIT (TO_VA exact pour
+   -- COMPLETE ; pour la requete memoire, une adresse non realisable reste non
+   -- realisable, voir exec_mem_request_pa_t).
+   U_BACKEND : entity work.INO_EXECUTE( STRUCTURE )
       port map (
          CLK_i => CLK_i, RESET_i => RESET_i,
-         ISSUE_VALID_i => backend_issue_valid_s, ISSUE_i => issue_s, ISSUE_READY_o => backend_issue_ready_s,
-         FRAME_DSP_i => frame_dsp_s, FRAME_RSP_i => frame_rsp_s,
-         DISP_SEL_o => backend_disp_sel_s, DISP_i => disp_s, LIMITS_i => limits_s,
+         ISSUE_VALID_i => backend_issue_valid_s, ISSUE_i => stack_issue_pa_s, ISSUE_READY_o => backend_issue_ready_s,
+         FRAME_DSP_i => stack_dsp_pa_s, FRAME_RSP_i => stack_rsp_pa_s,
+         DISP_SEL_o => backend_disp_sel_s, DISP_i => stack_disp_pa_s, LIMITS_i => limits_s,
          SYNC_VALID_i => sync_valid_s, SYNC_COPILE_i => sync_copile_s, COPILE_o => copile_s,
          STACK_MAINT_o => backend_maint_s, STACK_MAINT_DONE_i => stack_maint_done_s,
-         MEM_REQ_o => backend_mem_req_s, MEM_READY_i => EXEC_MEM_READY_i, MEM_RSP_i => EXEC_MEM_RSP_i,
-         COMPLETE_o => backend_complete_s );
+         MEM_REQ_o => backend_mem_req_pa_s, MEM_READY_i => EXEC_MEM_READY_i, MEM_RSP_i => EXEC_MEM_RSP_i,
+         COMPLETE_o => backend_complete_pa_s );
+
+   backend_complete_s <= TO_VA( backend_complete_pa_s );
+   backend_mem_req_s  <= TO_VA( backend_mem_req_pa_s );
 
    U_SYSTEM : entity work.INO_SYSTEM_UNIT
       port map (

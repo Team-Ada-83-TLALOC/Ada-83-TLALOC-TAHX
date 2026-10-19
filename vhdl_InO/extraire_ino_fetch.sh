@@ -23,4 +23,9 @@ cp $T/RM_IHPSG13_2P_512x32_c2_bm_bist_blackbox.v "$DEST/"
 #echo "SRAM dans $DEST/ino_fetch.v :"
 #grep -c "RM_IHPSG13_2P_512x32_c2_bm_bist " "$DEST/ino_fetch.v" || true
 
-yosys -q -p "read_verilog -lib $DEST/RM_IHPSG13_2P_512x32_c2_bm_bist_blackbox.v; read_verilog $DEST/ino_fetch.v; hierarchy -top ino_fetch; flatten; stat" | grep RM_IHPSG13
+yosys -q -p "
+    read_verilog -lib $DEST/RM_IHPSG13_2P_512x32_c2_bm_bist_blackbox.v
+    read_verilog $DEST/ino_fetch.v
+    hierarchy -top ino_fetch
+    flatten
+    stat" | grep RM_IHPSG13

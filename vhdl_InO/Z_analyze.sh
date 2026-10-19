@@ -179,6 +179,8 @@ $A L7_INO_EXCM_UNIT.vhd
 $A L7_INO_EXCM_UNIT_rtl.vhd
 $A K7_INO_BACKEND_EXCM.vhd
 $A K7_INO_BACKEND_EXCM_rtl.vhd
+$A K7b_INO_EXECUTE.vhd
+$A K7b_INO_EXECUTE_structure.vhd
 
 # Systeme et assemblage du coeur.
 $A S1_INO_SYSTEM_UNIT.vhd
