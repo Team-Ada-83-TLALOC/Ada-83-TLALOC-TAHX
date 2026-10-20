@@ -133,6 +133,20 @@ package INO_PORTS_PA is
    function TO_PA_EXEC( r : mem_request_t ) return exec_mem_request_pa_t;
    function TO_VA( r : exec_mem_request_pa_t ) return mem_request_t;
 
+   -- Instruction systeme (TRAP, EXC_RAISE, RTX) vers INO_SYSTEM : seuls les champs
+   -- lus par INO_SYSTEM_UNIT (opcode, val, longueur, pc, operande 0). Les autres
+   -- champs de ino_issue_t sont rendus nuls par TO_VA, sans effet (non lus).
+   type sys_issue_pa_t is record
+      op        : opcode_t;
+      val       : value32_t;
+      len       : insn_length_t;
+      pc        : paddr_t;
+      operand0  : word64_t;
+   end record;
+
+   function TO_SYS( i : issue_pa_t ) return sys_issue_pa_t;
+   function TO_VA( i : sys_issue_pa_t ) return ino_issue_t;
+
 end package INO_PORTS_PA;
 
 package body INO_PORTS_PA is
@@ -252,6 +266,28 @@ package body INO_PORTS_PA is
       end if;
       return ( valid => r.valid, write => r.write, probe => r.probe, address => a,
                size => r.size, wdata => r.wdata );
+   end function;
+
+   function TO_SYS( i : issue_pa_t ) return sys_issue_pa_t is
+   begin
+      return ( op => i.slot.canon.op, val => i.slot.canon.val, len => i.slot.canon.len,
+               pc => i.slot.pc, operand0 => i.operand( 0 ) );
+   end function;
+
+   function TO_VA( i : sys_issue_pa_t ) return ino_issue_t is
+      variable r : ino_issue_t;
+   begin
+      r.slot          := ( valid => '1', canon => CANON_NOP, pc => TO_VA( i.pc ), pred => NO_PREDICTION );
+      r.slot.canon.op  := i.op;
+      r.slot.canon.val := i.val;
+      r.slot.canon.len := i.len;
+      r.issue_class   := ISSUE_COMPLEX;
+      r.operand_count := 0;
+      r.operand       := ( others => ( others => '0' ) );
+      r.operand( 0 )  := i.operand0;
+      r.address_known := '0';
+      r.address       := ( others => '0' );
+      return r;
    end function;
 
 end package body INO_PORTS_PA;

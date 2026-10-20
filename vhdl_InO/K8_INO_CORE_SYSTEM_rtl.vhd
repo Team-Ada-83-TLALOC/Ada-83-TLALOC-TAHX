@@ -52,6 +52,13 @@ of INO_CORE_SYSTEM is           ---
    signal backend_mem_req_s     : mem_request_t;
    signal backend_mem_req_pa_s  : exec_mem_request_pa_t;
    signal backend_complete_pa_s : complete_pa_t;
+   signal system_complete_pa_s  : complete_pa_t;
+   signal system_mem_req_pa_s   : exec_mem_request_pa_t;
+   signal system_redirect_pc_pa_s : paddr_t;
+   signal system_fpc_pa_s       : paddr_t;
+   signal sync_dsp_pa_s         : paddr_t;
+   signal sync_rsp_pa_s         : paddr_t;
+   signal disp_wdata_pa_s       : paddr_t;
    signal copile_s              : copile_state_t;
 
    signal system_issue_valid_s  : std_logic;
@@ -180,27 +187,39 @@ U_STACK :
    backend_complete_s <= TO_VA( backend_complete_pa_s );
    backend_mem_req_s  <= TO_VA( backend_mem_req_pa_s );
 
-   U_SYSTEM : entity work.INO_SYSTEM_UNIT
+   -- System_unit en macro : ports d'adresse physiques (INO_SYSTEM). Elle recoit
+   -- directement les sorties PA de STACK_UNIT ; ses sorties sont rendues en
+   -- adresses de 64 bits pour le reste de K8 (TO_VA exact ; pour la requete
+   -- memoire, une adresse non realisable reste non realisable).
+   U_SYSTEM : entity work.INO_SYSTEM( STRUCTURE )
       port map (
          CLK_i => CLK_i, RESET_i => RESET_i, BOOT_BLOCK_i => BOOT_BLOCK_i,
-         ISSUE_VALID_i => system_issue_valid_s, ISSUE_i => issue_s,
-         ISSUE_READY_o => system_issue_ready_s, COMPLETE_o => system_complete_s,
+         ISSUE_VALID_i => system_issue_valid_s, ISSUE_i => TO_SYS( stack_issue_pa_s ),
+         ISSUE_READY_o => system_issue_ready_s, COMPLETE_o => system_complete_pa_s,
          FAULT_VALID_i => commit_s.valid and commit_s.fault.valid,
-         FAULT_PC_i => commit_s.slot.pc, FAULT_i => commit_s.fault,
-         BOUNDARY_VALID_i => BOUNDARY_VALID_i, BOUNDARY_PC_i => BOUNDARY_PC_i,
+         FAULT_PC_i => stack_commit_pa_s.slot.pc, FAULT_i => commit_s.fault,
+         BOUNDARY_VALID_i => BOUNDARY_VALID_i, BOUNDARY_PC_i => TO_PA( BOUNDARY_PC_i ),
          SYSTEM_HOLD_o => system_hold_s,
-         REDIRECT_VALID_o => REDIRECT_VALID_o, REDIRECT_PC_o => REDIRECT_PC_o,
-         FRAME_DSP_i => frame_dsp_s, FRAME_RSP_i => frame_rsp_s,
-         DISP_SEL_o => system_disp_sel_s, DISP_i => disp_s, COPILE_i => copile_s,
-         SYNC_VALID_o => sync_valid_s, SYNC_DSP_o => sync_dsp_s, SYNC_RSP_o => sync_rsp_s,
-         DISP_WE_o => disp_we_s, DISP_WSEL_o => disp_wsel_s, DISP_WDATA_o => disp_wdata_s,
+         REDIRECT_VALID_o => REDIRECT_VALID_o, REDIRECT_PC_o => system_redirect_pc_pa_s,
+         FRAME_DSP_i => stack_dsp_pa_s, FRAME_RSP_i => stack_rsp_pa_s,
+         DISP_SEL_o => system_disp_sel_s, DISP_i => stack_disp_pa_s, COPILE_i => copile_s,
+         SYNC_VALID_o => sync_valid_s, SYNC_DSP_o => sync_dsp_pa_s, SYNC_RSP_o => sync_rsp_pa_s,
+         DISP_WE_o => disp_we_s, DISP_WSEL_o => disp_wsel_s, DISP_WDATA_o => disp_wdata_pa_s,
          SYNC_COPILE_o => sync_copile_s,
          STACK_MAINT_o => system_maint_s, STACK_MAINT_DONE_i => stack_maint_done_s,
          DR_o => DR_o, LIMITS_o => limits_s,
-         MEM_REQ_o => system_mem_req_s, MEM_READY_i => EXEC_MEM_READY_i, MEM_RSP_i => EXEC_MEM_RSP_i,
+         MEM_REQ_o => system_mem_req_pa_s, MEM_READY_i => EXEC_MEM_READY_i, MEM_RSP_i => EXEC_MEM_RSP_i,
          IRQ_PENDING_i => IRQ_PENDING_i, IRQ_ACK_o => IRQ_ACK_o, IRQ_ACK_CODE_o => IRQ_ACK_CODE_o,
          HALT_REQ_i => HALT_REQ_i, HALTED_o => HALTED_o, HALT_CAUSE_o => HALT_CAUSE_o,
-         EXIT_CODE_o => EXIT_CODE_o, FPC_o => FPC_o, FCODE_o => FCODE_o );
+         EXIT_CODE_o => EXIT_CODE_o, FPC_o => system_fpc_pa_s, FCODE_o => FCODE_o );
+
+   system_complete_s <= TO_VA( system_complete_pa_s );
+   system_mem_req_s  <= TO_VA( system_mem_req_pa_s );
+   sync_dsp_s        <= TO_VA( sync_dsp_pa_s );
+   sync_rsp_s        <= TO_VA( sync_rsp_pa_s );
+   disp_wdata_s      <= TO_VA( disp_wdata_pa_s );
+   REDIRECT_PC_o     <= TO_VA( system_redirect_pc_pa_s );
+   FPC_o             <= TO_VA( system_fpc_pa_s );
 
    -- pragma translate_off
    CHECK_EXCLUSION : process( CLK_i )
@@ -212,6 +231,10 @@ U_STACK :
             report "INO_CORE_SYSTEM : deux maintenances simultanees" severity failure;
          assert system_disp_sel_s = 0 or backend_disp_sel_s = 0
             report "INO_CORE_SYSTEM : deux lectures de DISPLAY simultanees" severity failure;
+         -- INO_SYSTEM ne recoit plus issue_class (sys_issue_pa_t) : controle ici.
+         assert not ( system_issue_valid_s = '1' and system_issue_ready_s = '1' )
+                or stack_issue_pa_s.issue_class = ISSUE_COMPLEX
+            report "INO_CORE_SYSTEM : instruction systeme de classe incorrecte" severity failure;
          assert not ( system_mem_req_s.valid = '1' and backend_mem_req_s.valid = '1' )
             report "INO_CORE_SYSTEM : deux requetes memoire d'execution simultanees" severity failure;
       end if;

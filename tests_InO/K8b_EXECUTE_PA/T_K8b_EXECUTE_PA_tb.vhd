@@ -22,6 +22,8 @@ use work.TB_UTILS.all;
         -- (8, valide dans le modele) : faute 132 a la terminaison, aucune ecriture
         -- en 8. Temoins : LQ 0,0 et SQ 0,64 sur DISPLAY(0) = DSP0, sans faute.
         -- Apres chaque faute, RTX quitte le traitant (DR revient a 0).
+        -- Etape 22 : meme controle pour le port memoire de INO_SYSTEM (CTX_SAVE
+        -- vers un bloc en 2**32 + 8).
         --------------------------------------------------------------------------------
 
 entity T_K8b_EXECUTE_PA_tb is end entity;
@@ -370,6 +372,16 @@ begin
       RUN_NORMAL( SLOT_L( x"67", 0, 64, 16#4045#, 3 ) );
       CHECK( c, RD64( DSP0 + 64 ) = x"0000000000000055", "EXECUTE_PA SQ temoin",
              HEX( word64_t'( x"0000000000000055" ) ), HEX( RD64( DSP0 + 64 ) ) );
+
+      -- Port memoire de INO_SYSTEM (etape 22) : CTX_SAVE vers un bloc
+      -- non realisable. LVA 1,16 empile 2**32 + 8 ; TRAP 16 (CTX_SAVE) y ecrirait
+      -- le contexte. L'adresse ne doit pas etre tronquee : faute 132, rien
+      -- d'ecrit en 8.
+      RUN_NORMAL( SLOT_L( x"47", 1, 16, 16#4050#, 3 ) );
+      RUN_FAULT( SLOT( OP_TRAP, 16, 16#4053#, 2 ), "CTX_SAVE vers 2**32 + 8" );
+      CHECK( c, RD64( 8 ) = x"0123456789ABCDEF", "EXECUTE_PA CTX_SAVE fautif n'ecrit pas en 8",
+             HEX( word64_t'( x"0123456789ABCDEF" ) ), HEX( RD64( 8 ) ) );
+      LEAVE_HANDLER;
 
       FINISH( c, "T_K8b_EXECUTE_PA_tb" ); running <= false; wait;
    end process STIMULI;

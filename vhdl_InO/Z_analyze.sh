@@ -185,6 +185,8 @@ $A K7b_INO_EXECUTE_structure.vhd
 # Systeme et assemblage du coeur.
 $A S1_INO_SYSTEM_UNIT.vhd
 $A S1_INO_SYSTEM_UNIT_rtl.vhd
+$A S1c_INO_SYSTEM.vhd
+$A S1c_INO_SYSTEM_structure.vhd
 $A K8_INO_CORE_SYSTEM.vhd
 $A K8_INO_CORE_SYSTEM_rtl.vhd
 
