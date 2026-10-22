@@ -29,20 +29,28 @@ of INO_BACKEND_MEMORY is        ---
    signal slow_mem_req_s        : mem_request_t;
 
    -----------------------------------------------------------------------------
-   -- Fast path des accès directs de famille B.
+   -- Fast path des chargements et rangements des familles B et C.
    --
-   -- Quand STACK_UNIT connaît déjà l'adresse effective (lvl 0..14), un load/store
-   -- simple n'a aucune raison de traverser le registre INO_ADDRESS_UNIT puis
-   -- ST_DISPATCH de INO_MEMORY_UNIT. La requête DATA_CACHE est présentée pendant
-   -- le cycle même de ISSUE. La réponse du cache devient COMPLETE dans son propre
-   -- cycle (V3, étude de vitesse : combinatoire, plus de registre de sortie) ;
-   -- STACK_UNIT l'enregistre au commit.
+   -- Un load/store simple n'a aucune raison de traverser le registre
+   -- INO_ADDRESS_UNIT puis ST_DISPATCH de INO_MEMORY_UNIT. La première requête
+   -- DATA_CACHE est présentée pendant le cycle même de ISSUE, à l'adresse :
+   --   - DISPLAY(lvl) + val, connue de STACK_UNIT (lvl 0..14, address_known) ;
+   --   - opérande 0 + val (lvl = 15, adresse sur la pile ; V4), comme
+   --     INO_ADDRESS_UNIT.
+   -- Famille B : c'est l'accès. Famille C (V4) : c'est la lecture de la cellule
+   -- pointeur ; au cycle de sa réponse, ea = pointeur + ofs est enregistré
+   -- (FAST_PTR), la requête de donnée est présentée au cycle suivant (FAST_DATA,
+   -- le cache n'accepte qu'en LIBRE). La réponse de l'accès devient COMPLETE dans
+   -- son propre cycle (V3 : combinatoire) ; STACK_UNIT l'enregistre au commit.
+   -- Sémantique de INO_MEMORY_UNIT : pointeur de 64 bits, ofs non signé, faute
+   -- 132 sur une réponse en faute (pointeur ou donnée), donnée d'un rangement =
+   -- dernière source dans l'ordre de pile.
    --
-   -- CHK, lvl=15, familles C et tous les cas spéciaux restent intégralement sur
-   -- le chemin lent de référence.
+   -- CHK (fmt = 11) et les cas spéciaux (mode = 00 : LIVA) restent intégralement
+   -- sur le chemin lent de référence.
    -----------------------------------------------------------------------------
 
-   type fast_state_t is ( FAST_IDLE, FAST_RSP );
+   type fast_state_t is ( FAST_IDLE, FAST_PTR, FAST_DATA, FAST_RSP );
 
    constant NO_COMPLETE : ino_complete_t := (
       valid        => '0',
@@ -58,6 +66,9 @@ of INO_BACKEND_MEMORY is        ---
    signal fast_size_s     : natural range 0 to 3 := 0;
    signal fast_signed_s   : boolean := false;
    signal fast_store_s    : boolean := false;
+   signal fast_ofs_s      : unsigned( 7 downto 0 ) := ( others => '0' );
+   signal fast_ea_s       : address_t := ( others => '0' );
+   signal fast_wdata_s    : word64_t := ( others => '0' );
    signal fast_complete_c : ino_complete_t;
 
    function FAST_DIRECT_MEMORY( ins : ino_issue_t ) return boolean is
@@ -65,14 +76,36 @@ of INO_BACKEND_MEMORY is        ---
       constant mode : std_logic_vector( 1 downto 0 ) := op( 5 downto 4 );
       constant fmt  : std_logic_vector( 1 downto 0 ) := op( 3 downto 2 );
    begin
-      -- Famille B, adresse déjà calculée, load signé / store / load non signé.
-      -- fmt="11" est réservé ici aux CHK directs, laissés au slow path.
+      -- Familles B et C, load signé / store / load non signé, adresse connue
+      -- (lvl 0..14) ou sur la pile (lvl = 15, opérande 0).
+      -- fmt="11" est réservé ici aux CHK, laissés au slow path.
       return ins.issue_class = ISSUE_MEMORY
-         and ins.address_known = '1'
-         and op( 7 downto 6 ) = "01"
+         and ( op( 7 downto 6 ) = "01" or op( 7 downto 6 ) = "10" )
          and mode /= "00"
          and fmt /= "11";
    end function FAST_DIRECT_MEMORY;
+
+   -- Adresse de la première requête : accès (famille B) ou cellule pointeur (C).
+   function FAST_ADDRESS( ins : ino_issue_t ) return address_t is
+   begin
+      if ins.address_known = '1' then
+         return ins.address;
+      end if;
+      -- Addition modulo 2^64, comme INO_ADDRESS_UNIT.
+      return unsigned( ins.operand( 0 ) ) + unsigned( resize( ins.slot.canon.val, 64 ) );
+   end function FAST_ADDRESS;
+
+   -- Donnée d'un rangement : la dernière source dans l'ordre de pile.
+   function FAST_WDATA( ins : ino_issue_t ) return word64_t is
+      variable data : word64_t := ( others => '0' );
+   begin
+      for s in 0 to 3 loop
+         if s = ins.operand_count - 1 then
+            data := ins.operand( s );
+         end if;
+      end loop;
+      return data;
+   end function FAST_WDATA;
 
    function EXTEND( w : word64_t; sz : natural; sgn : boolean ) return word64_t is
       variable r : word64_t := ( others => '0' );
@@ -158,7 +191,6 @@ begin
 
    MEM_MUX : process( all )
       variable rq   : mem_request_t;
-      variable data : word64_t;
    begin
       rq := slow_mem_req_s;
 
@@ -167,23 +199,31 @@ begin
          and FAST_DIRECT_MEMORY( ISSUE_i ) then
          rq := NO_MEM_REQUEST;
          rq.valid   := '1';
-         if ISSUE_i.slot.canon.op( 5 downto 4 ) = "10" then
-            rq.write := '1';
-         else
-            rq.write := '0';
-         end if;
          rq.probe   := '0';
-         rq.address := ISSUE_i.address;
-         rq.size    := unsigned( ISSUE_i.slot.canon.op( 1 downto 0 ) );
-         data := ( others => '0' );
-         if ISSUE_i.slot.canon.op( 5 downto 4 ) = "10" then
-            for s in 0 to 3 loop
-               if s = ISSUE_i.operand_count - 1 then
-                  data := ISSUE_i.operand( s );
-               end if;
-            end loop;
+         rq.address := FAST_ADDRESS( ISSUE_i );
+         if ISSUE_i.slot.canon.op( 7 downto 6 ) = "10" then
+            -- Famille C : lecture de la cellule pointeur (64 bits).
+            rq.write := '0';
+            rq.size  := "11";
+         else
+            if ISSUE_i.slot.canon.op( 5 downto 4 ) = "10" then
+               rq.write := '1';
+               rq.wdata := FAST_WDATA( ISSUE_i );
+            end if;
+            rq.size := unsigned( ISSUE_i.slot.canon.op( 1 downto 0 ) );
          end if;
-         rq.wdata := data;
+
+      elsif fast_state_s = FAST_DATA then
+         -- Famille C : accès à pointeur + ofs.
+         rq := NO_MEM_REQUEST;
+         rq.valid   := '1';
+         rq.probe   := '0';
+         rq.address := fast_ea_s;
+         rq.size    := to_unsigned( fast_size_s, 2 );
+         if fast_store_s then
+            rq.write := '1';
+            rq.wdata := fast_wdata_s;
+         end if;
       end if;
 
       MEM_REQ_o <= rq;
@@ -204,6 +244,9 @@ begin
             fast_size_s   <= 0;
             fast_signed_s <= false;
             fast_store_s  <= false;
+            fast_ofs_s    <= ( others => '0' );
+            fast_ea_s     <= ( others => '0' );
+            fast_wdata_s  <= ( others => '0' );
 
          else
             case fast_state_s is
@@ -215,7 +258,30 @@ begin
                      fast_size_s   <= to_integer( unsigned( ISSUE_i.slot.canon.op( 1 downto 0 ) ) );
                      fast_signed_s <= ISSUE_i.slot.canon.op( 5 downto 4 ) = "01";
                      fast_store_s  <= ISSUE_i.slot.canon.op( 5 downto 4 ) = "10";
-                     fast_state_s  <= FAST_RSP;
+                     fast_ofs_s    <= unsigned( ISSUE_i.slot.canon.ofs );
+                     fast_wdata_s  <= FAST_WDATA( ISSUE_i );
+                     if ISSUE_i.slot.canon.op( 7 downto 6 ) = "10" then
+                        fast_state_s <= FAST_PTR;
+                     else
+                        fast_state_s <= FAST_RSP;
+                     end if;
+                  end if;
+
+               when FAST_PTR =>
+                  -- Pointeur lu : ea = pointeur + ofs (non signé), comme
+                  -- INO_MEMORY_UNIT ; une faute termine ici (FAST_COMPLETE).
+                  if MEM_RSP_i.valid = '1' then
+                     if MEM_RSP_i.fault = '1' then
+                        fast_state_s <= FAST_IDLE;
+                     else
+                        fast_ea_s    <= unsigned( MEM_RSP_i.rdata ) + resize( fast_ofs_s, 64 );
+                        fast_state_s <= FAST_DATA;
+                     end if;
+                  end if;
+
+               when FAST_DATA =>
+                  if MEM_READY_i = '1' then
+                     fast_state_s <= FAST_RSP;
                   end if;
 
                when FAST_RSP =>
@@ -241,6 +307,11 @@ begin
             c.result_valid := '1';
             c.result := EXTEND( MEM_RSP_i.rdata, fast_size_s, fast_signed_s );
          end if;
+      elsif fast_state_s = FAST_PTR and MEM_RSP_i.valid = '1' and MEM_RSP_i.fault = '1'
+            and RESET_i = '0' then
+         -- Cellule pointeur en faute (famille C).
+         c.valid := '1';
+         c.fault := ( valid => '1', code => FAULT_ACCESS );
       end if;
       fast_complete_c <= c;
    end process FAST_COMPLETE;

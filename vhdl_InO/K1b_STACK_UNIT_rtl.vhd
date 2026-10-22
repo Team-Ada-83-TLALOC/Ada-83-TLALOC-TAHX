@@ -305,13 +305,19 @@ of STACK_UNIT is                ---
       return op = x"30" or op = x"31" or op = x"32";  -- DROP, DUP, OVER
    end function;
 
-   function IS_FAST_DIRECT_MEMORY_OP( op : opcode_t ) return boolean is
+   function IS_FAST_MEMORY_OP( op : opcode_t ) return boolean is
    begin
-      -- Famille B : load signé (01), store (10), load non signé (11).
-      -- fmt=11 correspond aux CHK directs, qui restent sur le slow path.
-      return op( 7 downto 6 ) = "01"
+      -- Familles B et C (V4 pour C) : load signé (01), store (10), load non signé
+      -- (11). fmt=11 correspond aux CHK, mode=00 aux cas spéciaux (LIVA) : ils
+      -- restent sur le slow path (de même dans INO_BACKEND_MEMORY).
+      return ( op( 7 downto 6 ) = "01" or op( 7 downto 6 ) = "10" )
          and op( 5 downto 4 ) /= "00"
          and op( 3 downto 2 ) /= "11";
+   end function;
+
+   function IS_LVA_OP( op : opcode_t ) return boolean is
+   begin
+      return op = x"47" or op = x"4B";
    end function;
 
    function IS_SPECIAL_NOT_YET_SUPPORTED( s : decoded_slot_t; e : isa_entry_t ) return boolean is
@@ -681,7 +687,11 @@ begin
             if e.stack_action = STACK_DROP then
                ri( 0 ) := WIDX( fast_src( 0 ) );
             end if;
-            if e.issue_class = ISSUE_MEMORY then
+            -- Cellules recouvertes par un accès à DISPLAY(lvl) + val (lvl 0..14) :
+            -- accès direct, cellule pointeur (famille C) ou cellule exposée (LVA).
+            -- Un accès calculé (lvl = 15) n'a pas à sonder le cache (V8) : ses
+            -- ports servent aux sources.
+            if ( e.issue_class = ISSUE_MEMORY or IS_LVA_OP( s.canon.op ) ) and lvl <= 14 then
                for k in 0 to 2 loop
                   ri( 1 + k ) := WIDX( fast_mem( k ) );
                end loop;
@@ -1752,13 +1762,18 @@ begin
                      fast_ok := true;
                   elsif e.issue_class = ISSUE_MEMORY
                      and e.lvl_use = LVL_ADDR
-                     and lvl <= 14
-                     and IS_FAST_DIRECT_MEMORY_OP( s.canon.op )
-                     -- Les ports 1..3 servent aux cellules recouvertes.
-                     and nsrc <= 1 then
-                     -- Accès direct famille B. L'adresse est déjà connue à partir
-                     -- de DISPLAY[lvl]+val ; seuls les hits de pile et l'absence
-                     -- de cellule sale recouverte permettent de sauter PREPARE/COH.
+                     and IS_FAST_MEMORY_OP( s.canon.op )
+                     -- lvl 0..14 : les ports 1..3 servent aux cellules recouvertes.
+                     and ( ( lvl <= 14 and nsrc <= 1 ) or lvl = 15 ) then
+                     -- Familles B et C. lvl 0..14 : l'adresse (accès, ou cellule
+                     -- pointeur en famille C) est DISPLAY[lvl]+val ; seuls les hits
+                     -- de pile et l'absence de cellule sale recouverte permettent de
+                     -- sauter PREPARE/COH. lvl = 15 (V4) : adresse sur la pile, accès
+                     -- calculé, aucun sondage (V8).
+                     fast_ok := true;
+                  elsif IS_LVA_OP( s.canon.op ) then
+                     -- LVA (V4) : entier ; la cellule exposée (lvl 0..14) ne doit pas
+                     -- être une cellule sale vivante (sinon ST_COH_SCAN la range).
                      fast_ok := true;
                   end if;
                end if;
@@ -1814,10 +1829,21 @@ begin
                   -- réécrite. Trois cellules de 8 octets suffisent pour une plage
                   -- d'au plus 8 octets, même non alignée. Le store conservera
                   -- l'invalidation postérieure via coh_invalidate_s au COMMIT.
-                  if fast_ok and e.issue_class = ISSUE_MEMORY then
+                  -- Mêmes plages que ST_COH_SCAN : LVA, la cellule alignée qui contient
+                  -- l'adresse ; famille C, la cellule pointeur (8 octets) ; famille B,
+                  -- les octets de l'accès.
+                  if fast_ok and lvl <= 14
+                     and ( e.issue_class = ISSUE_MEMORY or IS_LVA_OP( s.canon.op ) ) then
                      fast_mem_base := frame_s.display( lvl ) + U64( s.canon.val );
-                     fast_mem_len  := to_unsigned(
-                        2 ** to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ), 64 );
+                     if IS_LVA_OP( s.canon.op ) then
+                        fast_mem_base := fast_mem_base( 63 downto 3 ) & "000";
+                        fast_mem_len  := to_unsigned( 8, 64 );
+                     elsif s.canon.op( 7 downto 6 ) = "10" then
+                        fast_mem_len  := to_unsigned( 8, 64 );
+                     else
+                        fast_mem_len  := to_unsigned(
+                           2 ** to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ), 64 );
+                     end if;
                      for k in 0 to 2 loop
                         a := ( fast_mem_base( 63 downto 3 ) & "000" )
                              + to_unsigned( 8 * k, 64 );
@@ -1857,9 +1883,11 @@ begin
                         cp_idx( 0 ) := WIDX( tdsp );
                      end if;
                   end if;
-                  if e.issue_class = ISSUE_MEMORY and s.canon.op( 5 downto 4 ) = "10" then
-                     -- Rangement direct : copies du cache de pile qui intersectent
-                     -- les octets rangés (même règle que coh_invalidate_s).
+                  if e.issue_class = ISSUE_MEMORY and lvl <= 14
+                     and s.canon.op( 7 downto 6 ) = "01" and s.canon.op( 5 downto 4 ) = "10" then
+                     -- Rangement direct (famille B, lvl 0..14) : copies du cache de pile
+                     -- qui intersectent les octets rangés (même règle que
+                     -- coh_invalidate_s ; un rangement calculé n'en a pas, V8).
                      for k in 0 to 2 loop
                         a := ( fast_mem_base( 63 downto 3 ) & "000" ) + to_unsigned( 8 * k, 64 );
                         if a < fast_mem_base + fast_mem_len

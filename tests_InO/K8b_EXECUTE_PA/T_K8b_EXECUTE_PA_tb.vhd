@@ -24,6 +24,11 @@ use work.TB_UTILS.all;
         -- Apres chaque faute, RTX quitte le traitant (DR revient a 0).
         -- Etape 22 : meme controle pour le port memoire de INO_SYSTEM (CTX_SAVE
         -- vers un bloc en 2**32 + 8).
+        -- V4 (etude de vitesse) : le fast path de INO_BACKEND_MEMORY traite aussi la
+        -- famille C et l'adresse sur la pile (lvl 15). Temoins LIQ [C24] et LQ lvl 15
+        -- (valeurs recopiees en memoire par SQ et lues) ; fautes 132 sans troncature
+        -- pour un pointeur vers 2**32 + 8 (LIQ, SIQ), une cellule pointeur en
+        -- 2**32 + 8 (LIQ 1,16) et une adresse 2**32 + 8 sur la pile (LQ, SQ lvl 15).
         --------------------------------------------------------------------------------
 
 entity T_K8b_EXECUTE_PA_tb is end entity;
@@ -112,6 +117,15 @@ architecture TEST of T_K8b_EXECUTE_PA_tb is
       return s;
    end function;
 
+   -- Famille C : ofs ajoute au pointeur lu.
+   function SLOT_C( op : opcode_t; lvl : natural; val : integer; ofs : natural; pc : natural;
+                    len : natural ) return decoded_slot_t is
+      variable s : decoded_slot_t := SLOT_L( op, lvl, val, pc, len );
+   begin
+      s.canon.ofs := to_unsigned( ofs, s.canon.ofs'length );
+      return s;
+   end function;
+
 begin
    clk <= not clk after PERIOD/2 when running;
 
@@ -189,6 +203,7 @@ begin
 
    STIMULI : process
       variable c : tb_counter_t := TB_COUNTER_INIT;
+      variable dsp_v4 : address_t;                                     -- DSP avant les cas V4
 
       procedure POKE64( addr : natural; data : word64_t ) is
       begin
@@ -372,6 +387,59 @@ begin
       RUN_NORMAL( SLOT_L( x"67", 0, 64, 16#4045#, 3 ) );
       CHECK( c, RD64( DSP0 + 64 ) = x"0000000000000055", "EXECUTE_PA SQ temoin",
              HEX( word64_t'( x"0000000000000055" ) ), HEX( RD64( DSP0 + 64 ) ) );
+
+      -- V4 : temoin LIQ [C24] 0,72 : pointeur 0xD000 en DSP0 + 72, ofs 8 -> 0xD008.
+      dsp_v4 := frame.dsp;
+      POKE64( DSP0 + 72, W( 16#D000# ) );
+      POKE64( 16#D008#, x"0000000000000077" );
+      POKE64( DSP0 + 96, x"0000000100000008" );                       -- pointeur vers 2**32 + 8
+      RUN_NORMAL( SLOT_C( x"97", 0, 72, 8, 16#4060#, 4 ) );
+      RUN_NORMAL( SLOT_L( x"67", 0, 80, 16#4064#, 3 ) );
+      CHECK( c, RD64( DSP0 + 80 ) = x"0000000000000077", "EXECUTE_PA LIQ temoin",
+             HEX( word64_t'( x"0000000000000077" ) ), HEX( RD64( DSP0 + 80 ) ) );
+
+      -- LIQ 0,96 : le pointeur vise 2**32 + 8, faute 132 sur l'acces de donnee.
+      RUN_FAULT( SLOT_C( x"97", 0, 96, 0, 16#4070#, 4 ), "LIQ pointeur vers 2**32 + 8" );
+      CHECK( c, frame.dsp = dsp_v4, "EXECUTE_PA LIQ fautif sans effet de pile",
+             HEX( dsp_v4 ), HEX( frame.dsp ) );
+      LEAVE_HANDLER;
+
+      -- SIQ 0,96 : faute 132, rien d'ecrit en 8.
+      RUN_NORMAL( SLOT( OP_LI_D32, 16#BB#, 16#4080#, 5 ) );
+      RUN_FAULT( SLOT_C( x"A7", 0, 96, 0, 16#4085#, 4 ), "SIQ pointeur vers 2**32 + 8" );
+      CHECK( c, RD64( 8 ) = x"0123456789ABCDEF", "EXECUTE_PA SIQ fautif n'ecrit pas en 8",
+             HEX( word64_t'( x"0123456789ABCDEF" ) ), HEX( RD64( 8 ) ) );
+      LEAVE_HANDLER;
+      RUN_NORMAL( SLOT( x"30", 0, 16#4089#, 1 ) );                    -- DROP
+
+      -- LIQ 1,16 : la cellule pointeur est en 2**32 + 8, faute 132.
+      RUN_FAULT( SLOT_C( x"97", 1, 16, 0, 16#4090#, 4 ), "LIQ cellule pointeur en 2**32 + 8" );
+      LEAVE_HANDLER;
+
+      -- Temoin LQ lvl 15 : LVA 0,64 empile DSP0 + 64 (0x55), LQ la lit, SQ 0,88 la recopie.
+      RUN_NORMAL( SLOT_L( x"47", 0, 64, 16#40A0#, 3 ) );
+      RUN_NORMAL( SLOT_L( x"53", 15, 0, 16#40A3#, 1 ) );
+      RUN_NORMAL( SLOT_L( x"67", 0, 88, 16#40A4#, 3 ) );
+      CHECK( c, RD64( DSP0 + 88 ) = x"0000000000000055", "EXECUTE_PA LQ lvl 15 temoin",
+             HEX( word64_t'( x"0000000000000055" ) ), HEX( RD64( DSP0 + 88 ) ) );
+
+      -- LQ lvl 15 sur 2**32 + 8 (LVA 1,16) : faute 132.
+      RUN_NORMAL( SLOT_L( x"47", 1, 16, 16#40B0#, 3 ) );
+      RUN_FAULT( SLOT_L( x"53", 15, 0, 16#40B3#, 1 ), "LQ lvl 15 vers 2**32 + 8" );
+      LEAVE_HANDLER;
+
+      -- SQ lvl 15 vers 2**32 + 8 : faute 132, rien d'ecrit en 8.
+      RUN_NORMAL( SLOT( OP_LI_D32, 16#CC#, 16#40C0#, 5 ) );
+      RUN_FAULT( SLOT_L( x"63", 15, 0, 16#40C5#, 1 ), "SQ lvl 15 vers 2**32 + 8" );
+      CHECK( c, RD64( 8 ) = x"0123456789ABCDEF", "EXECUTE_PA SQ lvl 15 fautif n'ecrit pas en 8",
+             HEX( word64_t'( x"0123456789ABCDEF" ) ), HEX( RD64( 8 ) ) );
+      LEAVE_HANDLER;
+      -- Restent l'adresse de LQ (LVA 1,16) et celles de SQ (LVA 1,16, LI 0xCC) :
+      -- LQ et SQ fautifs ne dépilent rien ; le LVA de SQ est celui de LQ.
+      RUN_NORMAL( SLOT( x"30", 0, 16#40C6#, 1 ) );                    -- DROP
+      RUN_NORMAL( SLOT( x"30", 0, 16#40C7#, 1 ) );                    -- DROP
+      CHECK( c, frame.dsp = dsp_v4, "EXECUTE_PA pile revenue apres les cas V4",
+             HEX( dsp_v4 ), HEX( frame.dsp ) );
 
       -- Port memoire de INO_SYSTEM (etape 22) : CTX_SAVE vers un bloc
       -- non realisable. LVA 1,16 empile 2**32 + 8 ; TRAP 16 (CTX_SAVE) y ecrirait

@@ -26,7 +26,14 @@ use work.TB_UTILS.all;
         --
         --   LI, ADD, SUB, OUX, CGT, NEG, INC, MUL, DUP, DROP, OVER, BRA, BT, BF,
         --   LQ / SQ directs [B16] lvl 0 vers une zone de données ou vers une
-        --   cellule vivante de la pile (cohérence du cache de pile).
+        --   cellule vivante de la pile (cohérence du cache de pile) ;
+        --   (V4) LIQ / SIQ [C24] lvl 0 par une table de pointeurs, ou par une
+        --   cellule pointeur vivante de la pile ; LQ / SQ / LIQ / SIQ à adresse
+        --   sur la pile (lvl 15), précédés des LI qui la poussent ; LVA [B16]
+        --   vers une cellule vivante ou la zone de données.
+        -- Les accès calculés (lvl 15, pointeurs) ne visent que la zone de données
+        -- (règles V8). La zone de données est faite de 48 mots de valeurs, seuls
+        -- écrits, et d'une table de 16 pointeurs vers ces valeurs.
         --
         -- Cache de pile de 16 mots (configuration TAHX) et profondeur jusqu'à 40 :
         -- SPILL/FILL et collisions fréquents. ISSUE_READY, latence de COMPLETE,
@@ -80,6 +87,14 @@ of T_K1e_STACK_CHAIN_tb is      ----
    constant OP_BRA_T    : opcode_t := x"E1";
    constant OP_BT_T     : opcode_t := x"E5";
    constant OP_BF_T     : opcode_t := x"E9";
+   constant OP_LVA_T    : opcode_t := x"47";               -- LVA [B16]
+   constant OP_LQ0_T    : opcode_t := x"53";               -- LQ, adresse sur la pile
+   constant OP_SQ0_T    : opcode_t := x"63";               -- SQ, adresse sur la pile
+   constant OP_LIQ0_T   : opcode_t := x"93";               -- LIQ, cellule pointeur sur la pile
+   constant OP_LIQ_T    : opcode_t := x"97";               -- LIQ [C24]
+   constant OP_SIQ0_T   : opcode_t := x"A3";               -- SIQ, cellule pointeur sur la pile
+   constant OP_SIQ_T    : opcode_t := x"A7";               -- SIQ [C24]
+   constant VAL_WORDS   : positive := 48;                  -- valeurs ; puis 16 pointeurs
 
    type mem_t           is array( 0 to MEM_WORDS - 1 ) of word64_t;
    type prog_t          is array( 0 to N_INSN - 1 ) of decoded_slot_t;
@@ -104,7 +119,10 @@ of T_K1e_STACK_CHAIN_tb is      ----
 
    function INIT_WORD( i : natural ) return word64_t is
    begin
-      if i < DATA_WORDS then
+      if i >= VAL_WORDS and i < DATA_WORDS then
+         -- Table de pointeurs : vers les valeurs 0 .. 39 (pointeur + ofs <= 39 + 7).
+         return std_logic_vector( to_unsigned( MBASE + 8 * ( ( i * 7 ) mod 40 ), 64 ) );
+      elsif i < DATA_WORDS then
          return std_logic_vector( to_unsigned( ( i * 7919 + 13 ) mod 65536, 32 ) )
                 & std_logic_vector( to_unsigned( ( i * 104729 + 7 ) mod 65536, 32 ) );
       end if;
@@ -163,6 +181,14 @@ of T_K1e_STACK_CHAIN_tb is      ----
             r.target := TARGET_OF( i.slot.pc );
          else
             r.target := i.slot.pc + resize( i.slot.canon.len, 64 );
+         end if;
+      elsif op = OP_LVA_T then
+         -- Comme INO_INTEGER_UNIT : DISPLAY(lvl) + val, ou sommet + val (lvl 15).
+         r.result_valid := '1';
+         if i.address_known = '1' then
+            r.result := std_logic_vector( i.address );
+         else
+            r.result := std_logic_vector( unsigned( va ) + unsigned( resize( i.slot.canon.val, 64 ) ) );
          end if;
       else
          r.result_valid := '1';
@@ -248,7 +274,7 @@ begin
    begin
       complete_comb <= NO_COMPLETE;
       if reset = '0' and same_cycle = '1' and issue_valid = '1' and issue_ready = '1'
-         and issue.slot.canon.op /= OP_LQ_T and issue.slot.canon.op /= OP_SQ_T then
+         and issue.issue_class /= ISSUE_MEMORY then
          complete_comb <= COMPLETION( issue );
       end if;
    end process COMB;
@@ -273,6 +299,19 @@ begin
       variable tk     : std_logic;
       variable dmaxv  : natural := 0;
       variable force_inc, top_store : boolean := false;
+      -- Séquences de plusieurs instructions (V4) : LI d'une adresse, puis l'accès.
+      variable seq      : natural := 0;                -- étape suivante, 0 : aucune
+      variable seq_op   : opcode_t := x"00";           -- accès qui termine la séquence
+      variable seq_lvl  : std_logic_vector( 3 downto 0 ) := "0000";
+      variable seq_val  : integer := 0;
+      variable seq_ofs  : natural := 0;
+      variable seq_li   : integer := 0;                -- valeur du LI suivant
+      variable ia, ptr  : natural;
+      variable nkind    : natural := 0;
+      variable seq_start : boolean := false;
+      variable lva_a     : natural := 0;            -- LVA d'une séquence : cellule exposée
+      type count_t is array( 0 to 255 ) of natural;
+      variable nop      : count_t := ( others => 0 );
 
       impure function RAND_INT( n : natural ) return natural is   -- 0 .. n - 1
       begin
@@ -308,9 +347,17 @@ begin
          -- instructions, la pile monte (empilements favorisés) ou descend : les
          -- excursions jusqu'à DMAX font déborder le cache de pile de 16 mots.
          loop
-            k := RAND_INT( 20 );
+            k := RAND_INT( 28 );
             top_store := false;
-            if force_inc and d >= 1 then
+            seq_start := false;
+            if seq = 1 then
+               -- LI (adresse, cellule pointeur, ou valeur) d'une séquence.
+               op := OP_LI_T;
+               exit;
+            elsif seq = 2 then
+               op := seq_op;
+               exit;
+            elsif force_inc and d >= 1 then
                -- Consommateur immédiat de la cellule rangée par le SQ précédent.
                op := OP_INC_T;
                exit;
@@ -342,9 +389,67 @@ begin
                when 15     => op := OP_BT_T;   exit when d >= 1;
                when 16     => op := OP_BF_T;   exit when d >= 1;
                when 17 | 18 => op := OP_LQ_T;  exit when d < DMAX;
-               when others => op := OP_SQ_T;   exit when d >= 1;
+               when 19 => op := OP_SQ_T;   exit when d >= 1;
+               when 20 => op := OP_LIQ_T;  exit when d < DMAX;
+               when 21 => op := OP_SIQ_T;  exit when d >= 1;
+               when 22 => op := OP_LVA_T;  exit when d < DMAX;
+               when others =>
+                  -- Début d'une séquence (V4) : quelques LI, puis l'accès.
+                  seq_start := true;
+                  exit when d + 2 < DMAX;
             end case;
          end loop;
+
+         if seq_start then
+            -- Choix de la séquence ; la première instruction est un LI.
+            nkind := RAND_INT( 6 );
+            seq_ofs := RAND_INT( 8 );
+            ptr := VAL_WORDS + RAND_INT( DATA_WORDS - VAL_WORDS );     -- cellule pointeur
+            case nkind is
+               when 0 =>                                   -- LI a ; LQ (lvl 15)
+                  seq_op := OP_LQ0_T; seq_lvl := "1111"; seq_val := 0;
+                  seq_li := MBASE + 8 * RAND_INT( DATA_WORDS ); seq := 2;
+               when 1 =>                                   -- LI a ; LI v ; SQ (lvl 15)
+                  seq_op := OP_SQ0_T; seq_lvl := "1111"; seq_val := 0;
+                  seq_li := MBASE + 8 * RAND_INT( VAL_WORDS ); seq := 1;
+               when 2 =>                                   -- LI p ; LIQ (lvl 15)
+                  seq_op := OP_LIQ0_T; seq_lvl := "1111"; seq_val := 0;
+                  seq_li := MBASE + 8 * ptr; seq := 2;
+               when 3 =>                                   -- LI p ; LI v ; SIQ (lvl 15)
+                  seq_op := OP_SIQ0_T; seq_lvl := "1111"; seq_val := 0;
+                  seq_li := MBASE + 8 * ptr; seq := 1;
+               when 4 =>                                   -- LI q ; LIQ [C24] sur cette cellule
+                  seq_op := OP_LIQ_T; seq_lvl := "0000";
+                  seq_val := S0 + 8 * ( d + 1 ) - MBASE;   -- le LI est le nouveau sommet
+                  seq_li := MBASE + 8 * RAND_INT( 40 ); seq := 2;
+               when others =>                              -- LVA d'une cellule vivante ; LQ (lvl 15)
+                  -- V8 : une cellule de calcul lue par adresse calculée a été exposée
+                  -- par LVA, qui doit la rendre propre si elle est sale.
+                  seq_op := OP_LQ0_T; seq_lvl := "1111"; seq_val := 0; seq := 2;
+                  if d >= 1 then
+                     lva_a := S0 + 8 * ( 1 + RAND_INT( d ) );
+                  else
+                     lva_a := MBASE + 8 * RAND_INT( DATA_WORDS );
+                  end if;
+            end case;
+            if lva_a /= 0 then
+               op := OP_LVA_T;
+            else
+               op := OP_LI_T;
+               v := seq_li;
+            end if;
+         elsif seq = 1 then
+            -- Second LI d'un rangement : la valeur, puis l'accès.
+            op := OP_LI_T;
+            v := RAND_INT( 2001 ) - 1000;
+            seq := 2;
+         elsif seq = 2 and op = seq_op then
+            seq := 0;
+         elsif op = OP_LI_T then
+            v := RAND_INT( 2001 ) - 1000;
+         end if;
+         -- Un LI de séquence choisi en tête de boucle a déjà son v ; si seq = 2 vient
+         -- d'être fixé par ce LI, l'accès suit au tour suivant.
 
          sl := NO_SLOT;
          sl.valid := '1';
@@ -357,7 +462,6 @@ begin
 
          case op is
             when OP_LI_T =>
-               v := RAND_INT( 2001 ) - 1000;
                sl.canon.val := to_signed( v, sl.canon.val'length );
                EXPECT_OPS( 0 );
                PUSH( RESULT( op, sl.canon.val, ( others => '0' ), ( others => '0' ) ) );
@@ -407,13 +511,88 @@ begin
                EXPECT_OPS( 0 );
                PUSH( m( WIDX( A64( a ) ) ) );
 
+            when OP_LIQ_T | OP_LIQ0_T =>
+               -- Cellule pointeur : DISPLAY(0) + val (table, ou cellule de pile
+               -- d'une séquence), ou sommet (lvl 15, dépilé).
+               if op = OP_LIQ0_T then
+                  sl.canon.lvl := "1111";
+                  sl.canon.val := to_signed( 0, sl.canon.val'length );
+                  EXPECT_OPS( 1 );
+                  a := to_integer( unsigned( TOP( 0 ) ) );
+                  d := d - 1;
+               else
+                  if seq_op = OP_LIQ_T and seq_lvl = "0000" and seq_val /= 0 and seq = 0 then
+                     a := MBASE + seq_val;                -- séquence : cellule de pile
+                     seq_val := 0;
+                  else
+                     a := MBASE + 8 * ( VAL_WORDS + RAND_INT( DATA_WORDS - VAL_WORDS ) );
+                  end if;
+                  sl.canon.val := to_signed( a - MBASE, sl.canon.val'length );
+                  EXPECT_OPS( 0 );
+               end if;
+               sl.canon.ofs := to_unsigned( 8 * seq_ofs, sl.canon.ofs'length );
+               ia := to_integer( unsigned( m( WIDX( A64( a ) ) ) ) ) + 8 * seq_ofs;
+               PUSH( m( WIDX( A64( ia ) ) ) );
+               seq_ofs := RAND_INT( 8 );
+
+            when OP_SIQ_T | OP_SIQ0_T =>
+               if op = OP_SIQ0_T then
+                  sl.canon.lvl := "1111";
+                  sl.canon.val := to_signed( 0, sl.canon.val'length );
+                  EXPECT_OPS( 2 );
+                  a := to_integer( unsigned( TOP( 1 ) ) );
+                  va := TOP( 0 );
+                  d := d - 2;
+               else
+                  a := MBASE + 8 * ( VAL_WORDS + RAND_INT( DATA_WORDS - VAL_WORDS ) );
+                  sl.canon.val := to_signed( a - MBASE, sl.canon.val'length );
+                  EXPECT_OPS( 1 );
+                  va := TOP( 0 );
+                  d := d - 1;
+               end if;
+               sl.canon.ofs := to_unsigned( 8 * seq_ofs, sl.canon.ofs'length );
+               ia := to_integer( unsigned( m( WIDX( A64( a ) ) ) ) ) + 8 * seq_ofs;
+               m( WIDX( A64( ia ) ) ) := va;
+               seq_ofs := RAND_INT( 8 );
+
+            when OP_LQ0_T =>
+               sl.canon.lvl := "1111";
+               sl.canon.val := to_signed( 0, sl.canon.val'length );
+               EXPECT_OPS( 1 );
+               a := to_integer( unsigned( TOP( 0 ) ) );
+               d := d - 1;
+               PUSH( m( WIDX( A64( a ) ) ) );
+
+            when OP_SQ0_T =>
+               sl.canon.lvl := "1111";
+               sl.canon.val := to_signed( 0, sl.canon.val'length );
+               EXPECT_OPS( 2 );
+               a := to_integer( unsigned( TOP( 1 ) ) );
+               va := TOP( 0 );
+               d := d - 2;
+               m( WIDX( A64( a ) ) ) := va;
+
+            when OP_LVA_T =>
+               -- Cellule vivante de la pile (exposée) ou zone de données.
+               if lva_a /= 0 then
+                  a := lva_a;
+                  lva_a := 0;
+               elsif d >= 1 and RAND_INT( 2 ) = 0 then
+                  a := S0 + 8 * ( 1 + RAND_INT( d ) );
+               else
+                  a := MBASE + 8 * RAND_INT( DATA_WORDS );
+               end if;
+               sl.canon.val := to_signed( a - MBASE, sl.canon.val'length );
+               EXPECT_OPS( 0 );
+               PUSH( std_logic_vector( to_unsigned( a, 64 ) ) );
+
             when others =>                                -- OP_SQ_T
                if top_store then
                   a := S0 + 8 * ( d - 1 );
                elsif RAND_INT( 2 ) = 0 then
                   a := S0 + 8 * ( 1 + RAND_INT( d ) );    -- cellule vivante, sommet compris
                else
-                  a := MBASE + 8 * RAND_INT( DATA_WORDS );
+                  a := MBASE + 8 * RAND_INT( VAL_WORDS );
                end if;
                sl.canon.val := to_signed( a - MBASE, sl.canon.val'length );
                EXPECT_OPS( 1 );
@@ -422,6 +601,7 @@ begin
                m( WIDX( A64( a ) ) ) := va;
          end case;
          p( i ) := sl;
+         nop( to_integer( unsigned( op ) ) ) := nop( to_integer( unsigned( op ) ) ) + 1;
          force_inc := top_store;
          if d > dmaxv then dmaxv := d; end if;
       end loop;
@@ -434,7 +614,14 @@ begin
       gen_done  <= true;
       report "programme : " & integer'image( N_INSN ) & " instructions, " & integer'image( nx )
              & " émissions, profondeur finale " & integer'image( d ) & ", maximale "
-             & integer'image( dmaxv ) severity note;
+             & integer'image( dmaxv ) & " ; LIQ " & integer'image( nop( 16#97# ) ) & ", SIQ "
+             & integer'image( nop( 16#A7# ) ) & ", LQ/SQ/LIQ/SIQ lvl 15 "
+             & integer'image( nop( 16#53# ) ) & "/" & integer'image( nop( 16#63# ) ) & "/"
+             & integer'image( nop( 16#93# ) ) & "/" & integer'image( nop( 16#A3# ) ) & ", LVA "
+             & integer'image( nop( 16#47# ) ) severity note;
+      assert nop( 16#97# ) > 100 and nop( 16#A7# ) > 100 and nop( 16#53# ) > 30 and nop( 16#63# ) > 30
+             and nop( 16#93# ) > 30 and nop( 16#A3# ) > 30 and nop( 16#47# ) > 100
+         report "K1e : tirage insuffisant des acces V4" severity failure;
       wait;
    end process GENERATE_PROG;
 
@@ -539,17 +726,25 @@ begin
                vb := issue.operand( 1 );
                pend := NO_COMPLETE;
                pend.valid := '1';
-               case op is
-                  when OP_LQ_T =>
-                     assert issue.address_known = '1' report "K1e : LQ sans adresse" severity failure;
+               if issue.issue_class = ISSUE_MEMORY then
+                  -- Comme INO_ADDRESS_UNIT / INO_MEMORY_UNIT (accès de 8 octets).
+                  if issue.address_known = '1' then
+                     addr := issue.address;
+                  else
+                     addr := unsigned( va ) + unsigned( resize( issue.slot.canon.val, 64 ) );
+                  end if;
+                  if op( 7 downto 6 ) = "10" then
+                     addr := unsigned( m( WIDX( addr ) ) ) + resize( unsigned( issue.slot.canon.ofs ), 64 );
+                  end if;
+                  if op( 5 downto 4 ) = "10" then
+                     m( WIDX( addr ) ) := issue.operand( issue.operand_count - 1 );
+                  else
                      pend.result_valid := '1';
-                     pend.result := m( WIDX( issue.address ) );
-                  when OP_SQ_T =>
-                     assert issue.address_known = '1' report "K1e : SQ sans adresse" severity failure;
-                     m( WIDX( issue.address ) ) := va;
-                  when others =>
-                     pend := COMPLETION( issue );
-               end case;
+                     pend.result := m( WIDX( addr ) );
+                  end if;
+               else
+                  pend := COMPLETION( issue );
+               end if;
 
                if complete_comb.valid = '1' then
                   -- Déjà terminée dans le cycle d'émission (COMB).

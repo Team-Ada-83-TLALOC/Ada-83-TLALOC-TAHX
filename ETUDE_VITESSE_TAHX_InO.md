@@ -241,6 +241,29 @@ Gain : ≈ 0,58 M cycles.
 
 Gain : ≈ 0,83 M cycles.
 
+**Réalisé (22 octobre)**, dans `K3_INO_BACKEND_MEMORY_rtl.vhd` et `K1b_STACK_UNIT_rtl.vhd` :
+
+- **FAST_PIPE généralisé** (états IDLE, PTR, DATA, RSP) : familles B et C, load signé / store / load non signé (CHK et mode 00 — LIVA — restent sur M1/M2). Première requête pendant ISSUE à DISPLAY(lvl) + val (`address_known`) ou à opérande 0 + val (lvl 15), comme INO_ADDRESS_UNIT. Famille C : c'est la cellule pointeur ; au cycle de sa réponse, ea = pointeur + ofs (non signé) est enregistré, la requête de donnée part au cycle suivant (le cache n'accepte qu'en LIBRE), sa réponse devient COMPLETE dans son cycle. Faute 132 sur le pointeur ou la donnée, comme INO_MEMORY_UNIT. M1/M2 ne servent plus qu'aux CHK et à LIVA.
+- **Chemin rapide de la `stack_unit`** : accès des familles B et C (`IS_FAST_MEMORY_OP`) ; lvl 0..14 avec le contrôle de cohérence de ST_COH_SCAN fait à la prise sur les ports 1 à 3 (octets de l'accès en famille B, cellule pointeur de 8 octets en famille C) ; lvl 15 : accès calculé, pas de sondage (V8), ports 0 à 3 aux sources. LVA : chemin rapide de l'entier si la cellule alignée exposée n'est pas une cellule sale vivante. Seuls les rangements directs de famille B (lvl 0..14) invalident des copies au commit.
+- **K1e** : LIQ/SIQ [C24] par une table de pointeurs, LIQ dont la cellule pointeur est le sommet (sale), LQ/SQ/LIQ/SIQ à adresse sur la pile précédés de leurs LI, LVA, et LVA d'une cellule vivante suivi d'une lecture calculée de cette adresse (V8). Mutations détectées : cellule pointeur non contrôlée, cellule exposée par LVA non contrôlée. Le détournement des ports 1 à 3 à lvl 15 n'est pas une erreur : les sources ne correspondent plus et l'instruction prend le chemin lent.
+- **K8b** (cœur réel, mémoire de 64 Kio) : témoins LIQ [C24] et LQ lvl 15 (valeurs recopiées en mémoire puis lues) ; fautes 132 sans troncature pour un pointeur vers 2**32 + 8 (LIQ, SIQ : rien d'écrit en 8), une cellule pointeur en 2**32 + 8, une adresse 2**32 + 8 sur la pile (LQ, SQ).
+
+| banc | cycles V3 | cycles V4 | IPC V3 | IPC V4 (modèle) |
+|---|---|---|---|---|
+| B_APPELS | 240 115 | 231 065 | 0,265 | 0,275 (0,258) |
+| B_ARBRE | 433 769 | 358 796 | 0,225 | 0,272 (0,282) |
+| B_CHAINES | 517 259 | 328 856 | 0,258 | 0,405 (0,345) |
+| B_CRIBLE | 381 262 | 230 840 | 0,317 | 0,524 (0,488) |
+| B_EXPR | 376 924 | 247 354 | 0,269 | 0,410 (0,395) |
+| B_FLOTTANT | 296 697 | 287 991 | 0,255 | 0,263 (0,271) |
+| B_MATRICE | 592 160 | 325 156 | 0,265 | 0,482 (0,432) |
+| B_TRI | 441 034 | 266 182 | 0,274 | 0,454 (0,420) |
+| **total** | **3 279 220** | **2 276 240** | **0,265** | **0,382 (0,360)** |
+
+−30,6 % de cycles (×1,44 ; **×2,43 depuis le départ**, IPC 0,157 → 0,382). Latences : LID [C24] 11 → 4, LIQ 12 → 6, LD à adresse sur la pile 8 → 2, SB 10 → 3, ULB 8 → 2, LVA 4,9 → 1,2. Le modèle sous-estimait le gain des indirects (4 cycles obtenus, 4 à 5 visés). B_APPELS et B_FLOTTANT plafonnent comme prévu : LINK/UNLINKR (7 cycles), CALL/RTD, unité flottante (FDIV 24, MODI 22).
+
+À l'implantation : le chemin le plus long reste celui de V3 ; V4 ajoute l'additionneur de 64 bits de l'adresse calculée (opérande 0 + val) devant la requête au cache, dans le cycle d'émission.
+
 ## 5. Au-delà du palier V4
 
 Répartition estimée des cycles restants : direct 24 %, indirect 17 %, MUL/DIV 13 %, entier 12 %, complexes 9 %, flottant 6 %.
