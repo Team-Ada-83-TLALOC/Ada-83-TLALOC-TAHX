@@ -173,6 +173,31 @@ Mêmes sorties, mêmes retraits ; −17,5 % de cycles (×1,21). Le modèle prév
 - C'est l'étape la plus délicate : bancs dirigés K1* à compléter par des suites dépendantes (LI ; DUP ; ADD ; BT…), puis les B_*.
 - Gain : 1 cycle par instruction, ≈ 0,87 M cycles.
 
+**Réalisé (22 octobre)**, dans `K1b_STACK_UNIT_rtl.vhd` et `K8_INO_CORE_SYSTEM_rtl.vhd` :
+
+- **Instructions concernées** : celles prises par le chemin rapide (`fast_s`) : DROP/DUP/OVER, entier, **MUL/DIV** (ajoutés au chemin rapide : V0 avait montré 3 cycles de ST_PREPARE), BRA/BT/BF, LD/SD directs famille B. Leurs sources sont présentes, aucune cellule sale vivante n'est recouverte, et rien ne change le cache de pile entre leur prise et leur commit.
+- **Commit décidé à la prise** : les cellules que ce commit invalide (sources dépilées, sommet de DROP, copies recouvertes par un rangement direct) sont enregistrées à la prise (`cp_inv_en_s`, `cp_inv_idx_s`). Le commit (ST_WAIT_EXEC avec `fast_s`, ST_FAST_COMMIT) n'utilise plus aucun port de lecture.
+- **Prise au cycle du commit** (`chain_s` : ST_FAST_COMMIT, ou COMPLETE sans faute ni mauvaise prédiction d'une instruction du chemin rapide) : les 5 ports de lecture servent à la prise suivante, qui voit l'état d'après commit : `tdsp = new_dsp_s` et ports contournés (invalidations, puis destination, qui l'emporte). Le code de prise sort du `case` (bloc `take_v`), commun à ST_IDLE et à l'enchaînement. Les autres instructions (chemin lent, cadres, appels, système) gardent le cycle ST_IDLE.
+- **Interruptions** : `BOUNDARY_VALID` (K9) exige `STACK_IDLE`. K8 n'offre la prise qu'au repos quand une interruption est en attente : la frontière reste observable, la livraison est inchangée. Aucune broche ajoutée.
+- **Banc dirigé `K1e_STACK_CHAIN`** : flux continu d'un programme aléatoire de 6 000 instructions (LI, ADD, SUB, OUX, CGT, NEG, INC, MUL, DUP, DROP, OVER, BRA, BT, BF, LQ/SQ directs vers des données ou des cellules vivantes de la pile, dont SQ sur le futur sommet suivi d'un INC), comparé à un modèle de référence : opérandes de chaque ISSUE, ordre des commits, DSP et mémoire finals après WRITEBACK_ALL. Cache de pile de 16 mots, profondeur jusqu'à 40, latences, ISSUE_READY, offre de DECODE et mémoire aléatoires ; 4 451 prises enchaînées, 608 SPILL, 437 FILL, 71 mauvaises prédictions. Mutations détectées : contournement de la destination, contournement des invalidations, DSP de la prise, invalidation des copies recouvertes par un rangement. Seule l'invalidation des sources dépilées survit : ces cellules sont mortes (au-dessus de DSP), c'est une hygiène sans effet architectural.
+- **N3** : une prise au cycle d'un commit ouvre son chronomètre au cycle suivant (le cycle du commit reste à l'instruction sortante) ; vérification ajoutée : aucun commit sans prise.
+
+| banc | cycles V1 | cycles V2 | IPC V1 | IPC V2 (modèle) |
+|---|---|---|---|---|
+| B_APPELS | 321 954 | 284 186 | 0,198 | 0,224 (0,213) |
+| B_ARBRE | 558 040 | 494 505 | 0,175 | 0,198 (0,197) |
+| B_CHAINES | 719 966 | 600 165 | 0,185 | 0,222 (0,222) |
+| B_CRIBLE | 579 136 | 467 392 | 0,209 | 0,259 (0,262) |
+| B_EXPR | 508 434 | 431 463 | 0,199 | 0,235 (0,239) |
+| B_FLOTTANT | 412 962 | 347 936 | 0,183 | 0,218 (0,222) |
+| B_MATRICE | 840 410 | 689 191 | 0,187 | 0,228 (0,228) |
+| B_TRI | 628 140 | 518 156 | 0,192 | 0,233 (0,234) |
+| **total** | **4 569 042** | **3 832 994** | **0,190** | **0,227 (0,227)** |
+
+−16,1 % de cycles (×1,19 ; ×1,445 depuis le départ). ST_IDLE passe de 920 954 à 277 610 cycles (226 k prises hors enchaînement : chemin lent, cadres, appels) et ST_PREPARE de 417 092 à 324 388 (MUL/DIV). Latences : BT 3 → 2, entier 3 → 2,3, MUL 8 → 4, DUP 2 → 1,1, LD [B16] 4,7 → 3,9, LID [C24] 12 → 11.
+
+À l'implantation : le chemin COMPLETE (ino_execute) → `chain_s` (comparaison de cible de MISPREDICTED comprise) → DECODE_TAKE → decode_queue traverse deux frontières de macro ; la prise lit aussi `complete_w.result` (contournement de la destination) jusqu'aux registres d'opérandes.
+
 ### V3 — Complétion dans le cycle d'émission
 
 Deux variantes :

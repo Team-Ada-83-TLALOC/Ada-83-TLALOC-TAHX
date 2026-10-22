@@ -85,7 +85,13 @@ of INO_CORE_SYSTEM is           ---
 begin
 
    -- STACK_UNIT ne voit que le premier slot de DECODE_QUEUE (une prise par cycle au plus).
+   -- Prise sur le cycle du commit (V2) : STACK_UNIT peut prendre l'instruction
+   -- suivante au cycle du commit, sans passer par IDLE. Une interruption n'est
+   -- livree qu'a une frontiere observee unite de pile au repos (BOUNDARY_VALID de
+   -- INO_FRONTEND_CONTROL) : quand une interruption est en attente, la prise n'est
+   -- offerte qu'au repos, ce qui garde cette frontiere.
    decode_valid_s <= '1' when system_hold_s = '0' and DECODE_COUNT_i /= 0 and DECODE_BLOCK_i( 0 ).valid = '1'
+                              and ( stack_idle_s = '1' or IRQ_PENDING_i = ( IRQ_PENDING_i'range => '0' ) )
                      else '0';
    DECODE_TAKE_o  <= to_unsigned( 1, DECODE_TAKE_o'length ) when decode_take_s = '1' else ( others => '0' );
 

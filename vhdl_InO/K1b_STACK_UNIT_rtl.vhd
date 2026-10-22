@@ -40,6 +40,20 @@ use work.INO_PORTS_PA.all;
         -- Les accès calculés suivent les invariants V8 des cellules de calcul et n'ont pas à
         -- sonder le cache. LINK/UNLINK et les opérations système sérialisantes restent à faire.
         --
+        -- Prise sur le cycle du commit (V2, etude de vitesse). Une instruction prise
+        -- par le chemin rapide (fast_s) a toutes ses sources presentes et aucune
+        -- cellule sale vivante recouverte ; rien ne modifie le cache de pile entre sa
+        -- prise et son commit (pas de FILL/SPILL, pas de maintenance, pas de SYNC).
+        -- Les cellules que son commit invalide sont donc connues des la prise
+        -- (cp_inv_*), et ce commit n'utilise aucun port de lecture. Au cycle de ce
+        -- commit (ST_WAIT_EXEC avec COMPLETE sans faute ni mauvaise prediction, ou
+        -- ST_FAST_COMMIT), l'instruction suivante est prise (chain_s) : son decodage
+        -- voit l'etat d'apres le commit, DSP = new_dsp_s et cellules lues par les
+        -- ports corrigees (invalidations cp_inv_*, destination ecrite). Les autres
+        -- instructions gardent le cycle ST_IDLE entre leur commit et la prise
+        -- suivante. INO_CORE_SYSTEM interdit l'enchainement quand une interruption
+        -- est en attente : la frontiere d'instruction (STACK_IDLE) reste observable.
+        --
         -- Espace physique InO (INO_PADDR) : DSP, RSP, DISPLAY, adresses des cellules, des
         -- sources, de la destination, des FILL/SPILL et cibles de retour ne gardent que
         -- PA_BITS bits (CUT a chaque ecriture de registre). Elles sont realisables par
@@ -163,6 +177,15 @@ of STACK_UNIT is                ---
    -- Maintenance lancée pendant ST_WAIT_EXEC (blocs complexes) :
    -- revenir attendre COMPLETE au lieu de libérer STACK_UNIT.
    signal maint_return_exec_s  : std_logic := '0';
+
+   -- Prise sur le cycle du commit (V2) : commit d'une instruction du chemin rapide
+   -- decide a sa prise. Emplacements j = 0..3 : sources depilees (STACK_LINEAR),
+   -- cellule du sommet (DROP), cellules recouvertes par un rangement direct (1..3).
+   type inv_index_array_t is array( 0 to 3 ) of cell_index_t;
+   signal fast_s               : std_logic := '0';
+   signal cp_inv_en_s          : std_logic_vector( 0 to 3 ) := ( others => '0' );
+   signal cp_inv_idx_s         : inv_index_array_t := ( others => 0 );
+   signal chain_s              : std_logic;
 
    -- pragma translate_off
    -- Observation (simulation seulement) : etat courant (state_t'pos) et noms des
@@ -325,6 +348,24 @@ begin
    IDLE_o <= '1' when state_s = ST_IDLE or state_s = ST_FAULT_HOLD else '0';
 
         --------------------------------------------------------------------------------
+        -- Commit avec prise de l'instruction suivante dans le même cycle (V2) :
+        -- commit local du chemin rapide (ST_FAST_COMMIT), ou COMPLETE sans faute ni
+        -- mauvaise prédiction d'une instruction prise par le chemin rapide.
+        --------------------------------------------------------------------------------
+
+   CHAIN : process( all )
+   begin
+      chain_s <= '0';
+      if state_s = ST_FAST_COMMIT then
+         chain_s <= '1';
+      elsif state_s = ST_WAIT_EXEC and fast_s = '1' and complete_w.valid = '1'
+         and complete_w.fault.valid = '0'
+         and not ( entry_s.control and MISPREDICTED( slot_s, complete_w ) ) then
+         chain_s <= '1';
+      end if;
+   end process CHAIN;
+
+        --------------------------------------------------------------------------------
         -- Sorties combinatoires : prise de DECODE_QUEUE, émission et port mémoire.
         --------------------------------------------------------------------------------
 
@@ -350,7 +391,8 @@ begin
 
       -- Une instruction est retirée de DECODE_QUEUE dès qu'elle devient l'unique
       -- instruction interne de STACK_UNIT. Les FILL éventuels sont ensuite privés.
-      if state_s = ST_IDLE and RESET_i = '0' and SYNC_VALID_i = '0'
+      -- Même condition que la prise de SEQUENTIAL (take_v).
+      if ( state_s = ST_IDLE or chain_s = '1' ) and RESET_i = '0' and SYNC_VALID_i = '0'
          and MAINT_i.valid = '0' and DECODE_VALID_i = '1' then
          DECODE_TAKE_o <= '1';
       end if;
@@ -445,8 +487,28 @@ begin
       variable range_lo         : address_t;
       variable range_hi         : address_t;
       variable range_keep       : boolean;
+      -- Prise sur le cycle du commit (V2).
+      variable chain_view       : boolean;           -- commit possible : vue d'apres commit
+      variable tdsp             : address_t;         -- DSP vu par la prise
+      variable take_v           : boolean;
+      variable dst_data         : word64_t;
+      variable cp_en            : std_logic_vector( 0 to 3 );
+      variable cp_idx           : inv_index_array_t;
+      variable fast_dst_idx     : natural;
    begin
       if rising_edge( CLK_i ) then
+
+         ------------------------------------------------------------------------------
+         -- Etat vu par la prise. En ST_FAST_COMMIT, et en ST_WAIT_EXEC pour une
+         -- instruction du chemin rapide, la prise eventuelle a lieu au cycle du
+         -- commit : elle voit le DSP d'apres commit. DISPLAY et RSP ne changent pas
+         -- au commit d'une instruction du chemin rapide.
+         ------------------------------------------------------------------------------
+         chain_view := state_s = ST_FAST_COMMIT or ( state_s = ST_WAIT_EXEC and fast_s = '1' );
+         tdsp := frame_s.dsp;
+         if chain_view then
+            tdsp := new_dsp_s;
+         end if;
 
          ------------------------------------------------------------------------------
          -- Décodage de l'instruction offerte par DECODE_QUEUE (utilisé en ST_IDLE).
@@ -486,19 +548,19 @@ begin
                npop := npop + 1;
             end if;
 
-            ndsp := frame_s.dsp;
+            ndsp := tdsp;
             lvl := to_integer( s.canon.lvl );
             case e.stack_action is
                when STACK_LINEAR =>
                   if npop > e.pushes then
-                     ndsp := frame_s.dsp - 8 * ( npop - e.pushes );
+                     ndsp := tdsp - 8 * ( npop - e.pushes );
                   elsif e.pushes > npop then
-                     ndsp := frame_s.dsp + 8 * ( e.pushes - npop );
+                     ndsp := tdsp + 8 * ( e.pushes - npop );
                   end if;
                when STACK_DROP =>
-                  ndsp := frame_s.dsp - 8;
+                  ndsp := tdsp - 8;
                when STACK_DUP | STACK_OVER =>
-                  ndsp := frame_s.dsp + 8;
+                  ndsp := tdsp + 8;
                when STACK_KEEP_TOP =>
                   null;
             end case;
@@ -510,7 +572,7 @@ begin
             if IS_LINK_OP( s.canon.op ) then
                alloc65 := resize( unsigned( std_logic_vector( s.canon.val ) ), 65 ) + 7;
                alloc65( 2 downto 0 ) := "000";
-               ndsp65 := resize( frame_s.dsp, 65 ) + alloc65;
+               ndsp65 := resize( tdsp, 65 ) + alloc65;
                if lvl > 0 then
                   ndsp65 := ndsp65 + 8;
                end if;
@@ -523,7 +585,7 @@ begin
                ndsp := frame_s.display( lvl ) - 8;
             elsif IS_RTD_OP( s.canon.op ) then
                -- RTD n : n est un nombre d'octets à abandonner.
-               ndsp := frame_s.dsp - U64( s.canon.val );
+               ndsp := tdsp - U64( s.canon.val );
             end if;
 
             nrsp := frame_s.rsp;
@@ -531,7 +593,7 @@ begin
                nrsp := frame_s.rsp - 8;
             end if;
 
-            if f.valid = '0' and ndsp > LIM_DSP_i and ndsp > frame_s.dsp then
+            if f.valid = '0' and ndsp > LIM_DSP_i and ndsp > tdsp then
                f := ( valid => '1', code => FAULT_DSP_LIMIT );
             elsif f.valid = '0' and nrsp < LIM_RSP_i and nrsp < frame_s.rsp then
                f := ( valid => '1', code => FAULT_RSP_LIMIT );
@@ -562,18 +624,19 @@ begin
             case e.stack_action is
                when STACK_LINEAR =>
                   if j < npop then
-                     fast_src( j ) := frame_s.dsp - 8 * ( npop - 1 - j );
+                     fast_src( j ) := tdsp - 8 * ( npop - 1 - j );
                   end if;
                when STACK_KEEP_TOP | STACK_DUP =>
-                  fast_src( j ) := frame_s.dsp;
+                  fast_src( j ) := tdsp;
                when STACK_OVER =>
-                  fast_src( j ) := frame_s.dsp - 8;
+                  fast_src( j ) := tdsp - 8;
                when STACK_DROP =>
-                  fast_src( j ) := frame_s.dsp;
+                  fast_src( j ) := tdsp;
             end case;
          end loop;
          -- DISPLAY n'a que 15 niveaux (0..14) ; lvl = 15 désigne la pile.
          fast_mem_base := ( others => '0' );
+         fast_mem_len  := ( others => '0' );
          if lvl <= 14 then
             fast_mem_base := frame_s.display( lvl ) + U64( s.canon.val );
          end if;
@@ -587,23 +650,25 @@ begin
          ------------------------------------------------------------------------------
          ri  := ( others => 0 );
          rri := 0;
-         case state_s is
-            when ST_IDLE =>
-               for j in 0 to 3 loop
-                  if j < nsrc then
-                     ri( j ) := WIDX( fast_src( j ) );
-                  end if;
-               end loop;
-               if e.issue_class = ISSUE_MEMORY then
-                  for k in 0 to 2 loop
-                     ri( 1 + k ) := WIDX( fast_mem( k ) );
-                  end loop;
+         if state_s = ST_IDLE or chain_view then
+            -- Prise : sources du fast path, cellule du sommet (DROP), cellules
+            -- recouvertes par un accès direct, destination.
+            for j in 0 to 3 loop
+               if j < nsrc then
+                  ri( j ) := WIDX( fast_src( j ) );
                end if;
-               ri( 4 ) := WIDX( ndsp );
-
-            when ST_FAST_COMMIT =>
-               ri( 0 ) := WIDX( old_dsp_s );
-
+            end loop;
+            if e.stack_action = STACK_DROP then
+               ri( 0 ) := WIDX( fast_src( 0 ) );
+            end if;
+            if e.issue_class = ISSUE_MEMORY then
+               for k in 0 to 2 loop
+                  ri( 1 + k ) := WIDX( fast_mem( k ) );
+               end loop;
+            end if;
+            ri( 4 ) := WIDX( ndsp );
+         else
+         case state_s is
             when ST_PREPARE =>
                if source_index_s < source_count_s then
                   ri( 0 ) := WIDX( source_address_s( source_index_s ) );
@@ -650,11 +715,36 @@ begin
             when others =>
                null;
          end case;
+         end if;
 
          for k in 0 to READ_PORTS - 1 loop
             rd( k ) := cells_s( ri( k ) );
          end loop;
          rrd := return_cells_s( rri );
+
+         -- Contournement (V2) : au cycle d'un commit du chemin rapide, les ports
+         -- rendent les cellules d'après ce commit (invalidations, puis destination ;
+         -- la destination l'emporte, comme dans le commit). Sans commit dans ce
+         -- cycle, aucune prise n'a lieu et les valeurs ne servent pas.
+         if chain_view then
+            if state_s = ST_FAST_COMMIT then
+               dst_data := source_value_s( 0 );           -- DUP / OVER
+            else
+               dst_data := complete_w.result;
+            end if;
+            for k in 0 to READ_PORTS - 1 loop
+               for j in 0 to 3 loop
+                  if cp_inv_en_s( j ) = '1' and ri( k ) = cp_inv_idx_s( j ) then
+                     rd( k ).valid := '0';
+                     rd( k ).dirty := '0';
+                  end if;
+               end loop;
+               if destination_valid_s = '1' and ri( k ) = WIDX( destination_address_s ) then
+                  rd( k ) := ( valid => '1', dirty => '1', addr => destination_address_s,
+                               data => dst_data );
+               end if;
+            end loop;
+         end if;
 
          -- pragma translate_off
          -- Les cellules 2..4 d'un rangement direct partagent les ports des sources 2..3.
@@ -689,6 +779,8 @@ begin
             coh_index_s       <= 0;
             maint_return_fault_s <= '0';
             maint_return_exec_s  <= '0';
+            fast_s           <= '0';
+            cp_inv_en_s      <= ( others => '0' );
             commit_s         <= ( valid => '0', slot => ( valid => '0', canon => CANON_NOP,
                                   pc => ( others => '0' ), pred => NO_PREDICTION ),
                                   fault => NO_FAULT, taken => '0', target => ( others => '0' ) );
@@ -713,8 +805,13 @@ begin
             coh_index_s      <= 0;
             maint_return_fault_s <= '0';
             maint_return_exec_s  <= '0';
+            fast_s           <= '0';
+            cp_inv_en_s      <= ( others => '0' );
 
          else
+            take_v := MAINT_i.valid = '0' and DECODE_VALID_i = '1'
+                      and ( state_s = ST_IDLE or chain_s = '1' );
+
             case state_s is
 
                -------------------------------------------------------------------------
@@ -729,263 +826,8 @@ begin
                      maint_return_fault_s <= '0';
                      maint_return_exec_s  <= '0';
                      state_s              <= ST_MAINT_SCAN;
-
-                  elsif DECODE_VALID_i = '1' then
-                     -- s, e, f, npop, lvl, ndsp, nrsp : décodage de la prise, calculé
-                     -- avant le case (il sert aussi aux indices des ports de lecture).
-
-                     slot_s              <= s;
-                     entry_s             <= e;
-                     old_dsp_s           <= CUT( frame_s.dsp );
-                     new_dsp_s           <= CUT( ndsp );
-                     new_rsp_s           <= CUT( nrsp );
-                     return_target_s     <= ( others => '0' );
-                     ret_after_spill_fill_s <= '0';
-                     initial_fault_s     <= f;
-                     source_index_s      <= 0;
-                     source_value_s      <= ( others => ( others => '0' ) );
-                     destination_valid_s <= '0';
-
-                     -- Cohérence du cache de pile pour les accès visibles en mémoire.
-                     -- Les accès calculés n'ont pas à sonder le cache : V8 impose qu'une
-                     -- cellule de calcul lue par adresse calculée ait été exposée auparavant
-                     -- par un LVA connu, et interdit de l'écrire par un accès calculé.
-                     coh_required_s   <= '0';
-                     coh_invalidate_s <= '0';
-                     coh_base_s       <= ( others => '0' );
-                     coh_length_s     <= ( others => '0' );
-                     coh_index_s      <= 0;
-
-                     if ( s.canon.op = OP_LVA_B16 or s.canon.op = OP_LVA_B24 )
-                        and to_integer( s.canon.lvl ) <= 14 then
-                        -- LVA expose la cellule qui contient l'adresse rendue : une
-                        -- implantation à écriture différée doit la rendre propre.
-                        a := frame_s.display( to_integer( s.canon.lvl ) ) + U64( s.canon.val );
-                        coh_required_s <= '1';
-                        coh_base_s     <= CUT( a( 63 downto 3 ) & "000" );
-                        coh_length_s   <= to_unsigned( 8, 64 );
-
-                     elsif e.memory and not e.frame and not IS_SYSTEM_OP( s.canon.op )
-                        and to_integer( s.canon.lvl ) <= 14 then
-                        -- LINK/UNLINK portent memory=true parce que COMPLEX_UNIT accède
-                        -- à la co-pile. Ce ne sont pas des accès mémoire adressés par
-                        -- lvl/val dans la pile data : ne pas déclencher ici la cohérence
-                        -- générique du cache de pile.
-                        a := frame_s.display( to_integer( s.canon.lvl ) ) + U64( s.canon.val );
-                        coh_required_s <= '1';
-                        coh_base_s     <= CUT( a );
-
-                        if s.canon.op( 7 downto 6 ) = "10" then
-                           -- Famille C : avant toute chose l'unité mémoire lit la
-                           -- cellule pointeur M64[a].
-                           coh_length_s <= to_unsigned( 8, 64 );
-                        elsif s.canon.op( 3 downto 2 ) = "11"
-                           and ( s.canon.op( 5 downto 4 ) = "01"
-                                 or s.canon.op( 5 downto 4 ) = "11" ) then
-                           -- CHK direct : deux bornes contiguës de même taille.
-                           coh_length_s <= to_unsigned(
-                              2 * ( 2 ** to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ) ), 64 );
-                        else
-                           coh_length_s <= to_unsigned(
-                              2 ** to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ), 64 );
-                           if s.canon.op( 5 downto 4 ) = "10" then
-                              coh_invalidate_s <= '1';
-                           end if;
-                        end if;
-                     end if;
-
-                     -- Sources dans l'ordre de la notation de pile : la plus profonde
-                     -- d'abord, comme dans RENAME_DISPATCH. Les opérations de frame ont
-                     -- leur propre convention.
-                     nsrc := 0;
-                     source_address_s <= ( others => ( others => '0' ) );
-                     if IS_LINK_OP( s.canon.op ) then
-                        if lvl > 0 then
-                           -- Réserver la cellule qui sauvera l'ancien DISPLAY[lvl].
-                           destination_valid_s   <= '1';
-                           destination_address_s <= CUT( frame_s.dsp + 8 );
-                        end if;
-                     elsif IS_UNLINK_OP( s.canon.op ) then
-                        -- FP sauvegardé par LINK, restauré au commit si la lecture de co-pile réussit.
-                        nsrc := 1;
-                        source_address_s( 0 ) <= CUT( frame_s.display( lvl ) );
-                     else
-                        case e.stack_action is
-                           when STACK_LINEAR =>
-                              nsrc := npop;
-                              for j in 0 to 3 loop
-                                 if j < npop then
-                                    source_address_s( j ) <= CUT( frame_s.dsp - 8 * ( npop - 1 - j ) );
-                                 end if;
-                              end loop;
-                              if e.pushes = 1 then
-                                 destination_valid_s   <= '1';
-                                 destination_address_s <= CUT( ndsp );
-                              end if;
-
-                           when STACK_KEEP_TOP =>
-                              nsrc := 1;
-                              source_address_s( 0 ) <= CUT( frame_s.dsp );
-
-                           when STACK_DUP =>
-                              nsrc := 1;
-                              source_address_s( 0 ) <= CUT( frame_s.dsp );
-                              destination_valid_s   <= '1';
-                              destination_address_s <= CUT( ndsp );
-
-                           when STACK_OVER =>
-                              nsrc := 1;
-                              source_address_s( 0 ) <= CUT( frame_s.dsp - 8 );
-                              destination_valid_s   <= '1';
-                              destination_address_s <= CUT( ndsp );
-
-                           when STACK_DROP =>
-                              nsrc := 0;
-                        end case;
-                     end if;
-                     source_count_s <= nsrc;
-
-                     -- pragma translate_off
-                     assert not IS_SPECIAL_NOT_YET_SUPPORTED( s, e )
-                        report "STACK_UNIT: instruction speciale non encore implementee"
-                        severity failure;
-                     -- pragma translate_on
-
-                     ------------------------------------------------------------------
-                     -- FAST PATH de préparation.
-                     --
-                     -- Le chemin initial lisait une source de pile par cycle dans
-                     -- ST_PREPARE, puis passait seulement à ST_ISSUE. Pour les
-                     -- opérations ordinaires, toutes les cellules nécessaires sont
-                     -- dans un petit tableau de registres ; les lire en parallèle ne
-                     -- demande aucun mécanisme OoO.
-                     --
-                     -- Si toutes les sources sont des hits et si la destination peut
-                     -- être remplacée sans SPILL, on saute directement à ST_ISSUE.
-                     -- DROP/DUP/OVER peuvent même committer ici. Tout cas douteux
-                     -- retombe exactement sur le chemin lent déjà validé.
-                     ------------------------------------------------------------------
-                     fast_ok        := false;
-                     fast_values    := ( others => ( others => '0' ) );
-                     fast_dst_addr  := ndsp;
-                     fast_dst_valid := false;
-
-                     if f.valid = '0' then
-                        if IS_FAST_STACK_OP( s.canon.op ) then
-                           fast_ok := true;
-                        elsif e.issue_class = ISSUE_INTEGER
-                           and e.lvl_use = LVL_NONE
-                           and not e.memory and not e.frame
-                           and not e.serializing and not e.control then
-                           fast_ok := true;
-                        elsif e.issue_class = ISSUE_BRANCH
-                           and IS_FAST_BRANCH_OP( s.canon.op ) then
-                           fast_ok := true;
-                        elsif e.issue_class = ISSUE_MEMORY
-                           and e.lvl_use = LVL_ADDR
-                           and lvl <= 14
-                           and IS_FAST_DIRECT_MEMORY_OP( s.canon.op )
-                           -- Les ports 1..3 servent aux cellules recouvertes.
-                           and nsrc <= 1 then
-                           -- Accès direct famille B. L'adresse est déjà connue à partir
-                           -- de DISPLAY[lvl]+val ; seuls les hits de pile et l'absence
-                           -- de cellule sale recouverte permettent de sauter PREPARE/COH.
-                           fast_ok := true;
-                        end if;
-                     end if;
-
-                     if fast_ok then
-                        -- Toutes les sources doivent déjà être dans le cache.
-                        -- L'ordre est le même que source_address_s / RENAME_DISPATCH.
-                        for j in 0 to 3 loop
-                           if j < nsrc then
-                              case e.stack_action is
-                                 when STACK_LINEAR =>
-                                    fast_addr := frame_s.dsp - 8 * ( npop - 1 - j );
-                                 when STACK_KEEP_TOP | STACK_DUP =>
-                                    fast_addr := frame_s.dsp;
-                                 when STACK_OVER =>
-                                    fast_addr := frame_s.dsp - 8;
-                                 when STACK_DROP =>
-                                    fast_addr := frame_s.dsp; -- non utilisé (nsrc=0)
-                              end case;
-
-                              -- Port j : cellule WIDX( fast_src( j ) ), fast_src( j ) = fast_addr.
-                              if rd( j ).valid = '1'
-                                 and rd( j ).addr = fast_addr then
-                                 fast_values( j ) := rd( j ).data;
-                              else
-                                 fast_ok := false;
-                              end if;
-                           end if;
-                        end loop;
-
-                        -- Même critère de collision que ST_PREPARE : une ancienne
-                        -- cellule sale encore vivante doit être rangée avant réemploi.
-                        if e.stack_action = STACK_DUP or e.stack_action = STACK_OVER then
-                           fast_dst_valid := true;
-                           fast_dst_addr  := ndsp;
-                        elsif e.stack_action = STACK_LINEAR and e.pushes = 1 then
-                           fast_dst_valid := true;
-                           fast_dst_addr  := ndsp;
-                        end if;
-
-                        if fast_dst_valid then
-                           -- Port 4 : cellule WIDX( ndsp ), et fast_dst_addr = ndsp.
-                           if rd( 4 ).valid = '1'
-                              and rd( 4 ).addr /= fast_dst_addr
-                              and rd( 4 ).dirty = '1'
-                              and rd( 4 ).addr <= frame_s.dsp then
-                              fast_ok := false;
-                           end if;
-                        end if;
-
-                        -- Un accès direct simple peut éviter ST_COH_SCAN uniquement si
-                        -- aucune cellule de pile sale recouverte n'a besoin d'être
-                        -- réécrite. Trois cellules de 8 octets suffisent pour une plage
-                        -- d'au plus 8 octets, même non alignée. Le store conservera
-                        -- l'invalidation postérieure via coh_invalidate_s au COMMIT.
-                        if fast_ok and e.issue_class = ISSUE_MEMORY then
-                           fast_mem_base := frame_s.display( lvl ) + U64( s.canon.val );
-                           fast_mem_len  := to_unsigned(
-                              2 ** to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ), 64 );
-                           for k in 0 to 2 loop
-                              a := ( fast_mem_base( 63 downto 3 ) & "000" )
-                                   + to_unsigned( 8 * k, 64 );
-                              if a < fast_mem_base + fast_mem_len then
-                                 -- Port 1 + k : cellule WIDX( fast_mem( k ) ), fast_mem( k ) = a.
-                                 if rd( 1 + k ).valid = '1'
-                                    and rd( 1 + k ).addr = a
-                                    and rd( 1 + k ).dirty = '1'
-                                    and rd( 1 + k ).addr <= frame_s.dsp then
-                                    fast_ok := false;
-                                 end if;
-                              end if;
-                           end loop;
-                        end if;
-                     end if;
-
-                     if fast_ok then
-                        source_value_s <= fast_values;
-                        source_index_s <= nsrc;
-
-                        if e.issue_class = ISSUE_NONE then
-                           -- Les trois manipulations de pile sont entièrement locales,
-                           -- mais ne doivent pas COMMITTER sur le même front que
-                           -- DECODE_TAKE. Les consommateurs de STACK_UNIT utilisent le
-                           -- contrat historique : prise au cycle N, terminaison au plus
-                           -- tôt au cycle N+1. ST_FAST_COMMIT conserve ce contrat tout
-                           -- en évitant ST_PREPARE et toute émission backend.
-                           state_s <= ST_FAST_COMMIT;
-                        else
-                           -- INTEGER et BRA/BT/BF : l'émission devient visible dès le
-                           -- cycle suivant la prise de DECODE_QUEUE.
-                           state_s <= ST_ISSUE;
-                        end if;
-                     else
-                        state_s <= ST_PREPARE;
-                     end if;
                   end if;
+                  -- Sinon, prise éventuelle après le case (take_v).
 
                -------------------------------------------------------------------------
                -- Commit local du fast path DROP/DUP/OVER. Les opérandes ont été lus
@@ -994,25 +836,30 @@ begin
                -------------------------------------------------------------------------
 
                when ST_FAST_COMMIT =>
-                  case entry_s.stack_action is
-                     when STACK_DROP =>
-                        INVALIDATE_CELL( cells_s, rd( 0 ), old_dsp_s );
-                        frame_s.dsp <= new_dsp_s;
-
-                     when STACK_DUP | STACK_OVER =>
-                        idx := WIDX( destination_address_s );
-                        cells_s( idx ) <= ( valid => '1', dirty => '1',
-                                            addr => CUT( destination_address_s ),
-                                            data => source_value_s( 0 ) );
-                        frame_s.dsp <= new_dsp_s;
-
-                     when others =>
-                        -- pragma translate_off
-                        assert false
-                           report "STACK_UNIT: ST_FAST_COMMIT sur operation non locale"
-                           severity failure;
-                        -- pragma translate_on
-                  end case;
+                  -- pragma translate_off
+                  assert entry_s.stack_action = STACK_DROP or entry_s.stack_action = STACK_DUP
+                         or entry_s.stack_action = STACK_OVER
+                     report "STACK_UNIT: ST_FAST_COMMIT sur operation non locale"
+                     severity failure;
+                  assert MAINT_i.valid = '0'
+                     report "STACK_UNIT: maintenance pendant ST_FAST_COMMIT"
+                     severity failure;
+                  -- pragma translate_on
+                  -- DROP : cellule du sommet (cp_inv_*, décidé à la prise) ;
+                  -- DUP/OVER : copie à la destination.
+                  for j in 0 to 3 loop
+                     if cp_inv_en_s( j ) = '1' then
+                        cells_s( cp_inv_idx_s( j ) ).valid <= '0';
+                        cells_s( cp_inv_idx_s( j ) ).dirty <= '0';
+                     end if;
+                  end loop;
+                  if destination_valid_s = '1' then
+                     idx := WIDX( destination_address_s );
+                     cells_s( idx ) <= ( valid => '1', dirty => '1',
+                                         addr => CUT( destination_address_s ),
+                                         data => source_value_s( 0 ) );
+                  end if;
+                  frame_s.dsp <= new_dsp_s;
 
                   commit_s <= ( valid => '1', slot => slot_s, fault => NO_FAULT,
                                 taken => '0', target => ( others => '0' ) );
@@ -1351,6 +1198,11 @@ begin
                   end if;
 
                when ST_WAIT_EXEC =>
+                  -- pragma translate_off
+                  assert not ( fast_s = '1' and MAINT_i.valid = '1' )
+                     report "STACK_UNIT: maintenance pendant une instruction du chemin rapide"
+                     severity failure;
+                  -- pragma translate_on
                   -- Les opérations de bloc peuvent demander une maintenance du cache
                   -- pendant leur exécution. La requête MAINT_i est une impulsion ; le
                   -- backend attend MAINT_DONE_o avant de poursuivre ses accès mémoire.
@@ -1367,6 +1219,37 @@ begin
                         commit_s <= ( valid => '1', slot => slot_s, fault => complete_w.fault,
                                       taken => complete_w.taken, target => complete_w.target );
                         state_s <= ST_FAULT_HOLD;
+                     elsif fast_s = '1' then
+                        -- Commit d'une instruction du chemin rapide (STACK_LINEAR) :
+                        -- invalidations décidées à la prise (sources dépilées, copies
+                        -- recouvertes par un rangement direct), puis résultat. Aucun
+                        -- port de lecture : ils servent à la prise suivante (chain_s).
+                        for j in 0 to 3 loop
+                           if cp_inv_en_s( j ) = '1' then
+                              cells_s( cp_inv_idx_s( j ) ).valid <= '0';
+                              cells_s( cp_inv_idx_s( j ) ).dirty <= '0';
+                           end if;
+                        end loop;
+                        frame_s.dsp <= new_dsp_s;
+                        if destination_valid_s = '1' then
+                           -- pragma translate_off
+                           assert complete_w.result_valid = '1'
+                              report "STACK_UNIT: resultat attendu mais absent"
+                              severity failure;
+                           -- pragma translate_on
+                           idx := WIDX( destination_address_s );
+                           cells_s( idx ) <= ( valid => '1', dirty => '1',
+                                               addr => CUT( destination_address_s ),
+                                               data => complete_w.result );
+                        end if;
+                        commit_s <= ( valid => '1', slot => slot_s, fault => NO_FAULT,
+                                      taken => complete_w.taken, target => complete_w.target );
+                        if entry_s.control and MISPREDICTED( slot_s, complete_w ) then
+                           state_s <= ST_MISPRED_HOLD;
+                        else
+                           state_s <= ST_IDLE;
+                        end if;
+
                      else
                         -- Un rangement direct lvl=0..14 est le seul accès mémoire du
                         -- programme autorisé à modifier une cellule de calcul. La mémoire
@@ -1650,6 +1533,318 @@ begin
                   end if;
 
             end case;
+
+            -------------------------------------------------------------------------
+            -- Prise d'une instruction : en ST_IDLE, ou au cycle d'un commit du
+            -- chemin rapide (chain_s, V2). Dans ce dernier cas les affectations
+            -- ci-dessous (state_s, slot_s...) remplacent celles du commit, qui ne
+            -- concernent que l'instruction sortante ; le décodage (s, e, f, ndsp...)
+            -- et les ports de lecture voient l'état d'après le commit (tdsp, rd).
+            -------------------------------------------------------------------------
+
+            if take_v then
+               -- s, e, f, npop, lvl, ndsp, nrsp : décodage de la prise, calculé
+               -- avant le case (il sert aussi aux indices des ports de lecture).
+
+               slot_s              <= s;
+               entry_s             <= e;
+               old_dsp_s           <= CUT( tdsp );
+               new_dsp_s           <= CUT( ndsp );
+               new_rsp_s           <= CUT( nrsp );
+               return_target_s     <= ( others => '0' );
+               ret_after_spill_fill_s <= '0';
+               initial_fault_s     <= f;
+               source_index_s      <= 0;
+               source_value_s      <= ( others => ( others => '0' ) );
+               destination_valid_s <= '0';
+
+               -- Cohérence du cache de pile pour les accès visibles en mémoire.
+               -- Les accès calculés n'ont pas à sonder le cache : V8 impose qu'une
+               -- cellule de calcul lue par adresse calculée ait été exposée auparavant
+               -- par un LVA connu, et interdit de l'écrire par un accès calculé.
+               coh_required_s   <= '0';
+               coh_invalidate_s <= '0';
+               coh_base_s       <= ( others => '0' );
+               coh_length_s     <= ( others => '0' );
+               coh_index_s      <= 0;
+
+               if ( s.canon.op = OP_LVA_B16 or s.canon.op = OP_LVA_B24 )
+                  and to_integer( s.canon.lvl ) <= 14 then
+                  -- LVA expose la cellule qui contient l'adresse rendue : une
+                  -- implantation à écriture différée doit la rendre propre.
+                  a := frame_s.display( to_integer( s.canon.lvl ) ) + U64( s.canon.val );
+                  coh_required_s <= '1';
+                  coh_base_s     <= CUT( a( 63 downto 3 ) & "000" );
+                  coh_length_s   <= to_unsigned( 8, 64 );
+
+               elsif e.memory and not e.frame and not IS_SYSTEM_OP( s.canon.op )
+                  and to_integer( s.canon.lvl ) <= 14 then
+                  -- LINK/UNLINK portent memory=true parce que COMPLEX_UNIT accède
+                  -- à la co-pile. Ce ne sont pas des accès mémoire adressés par
+                  -- lvl/val dans la pile data : ne pas déclencher ici la cohérence
+                  -- générique du cache de pile.
+                  a := frame_s.display( to_integer( s.canon.lvl ) ) + U64( s.canon.val );
+                  coh_required_s <= '1';
+                  coh_base_s     <= CUT( a );
+
+                  if s.canon.op( 7 downto 6 ) = "10" then
+                     -- Famille C : avant toute chose l'unité mémoire lit la
+                     -- cellule pointeur M64[a].
+                     coh_length_s <= to_unsigned( 8, 64 );
+                  elsif s.canon.op( 3 downto 2 ) = "11"
+                     and ( s.canon.op( 5 downto 4 ) = "01"
+                           or s.canon.op( 5 downto 4 ) = "11" ) then
+                     -- CHK direct : deux bornes contiguës de même taille.
+                     coh_length_s <= to_unsigned(
+                        2 * ( 2 ** to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ) ), 64 );
+                  else
+                     coh_length_s <= to_unsigned(
+                        2 ** to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ), 64 );
+                     if s.canon.op( 5 downto 4 ) = "10" then
+                        coh_invalidate_s <= '1';
+                     end if;
+                  end if;
+               end if;
+
+               -- Sources dans l'ordre de la notation de pile : la plus profonde
+               -- d'abord, comme dans RENAME_DISPATCH. Les opérations de frame ont
+               -- leur propre convention.
+               nsrc := 0;
+               source_address_s <= ( others => ( others => '0' ) );
+               if IS_LINK_OP( s.canon.op ) then
+                  if lvl > 0 then
+                     -- Réserver la cellule qui sauvera l'ancien DISPLAY[lvl].
+                     destination_valid_s   <= '1';
+                     destination_address_s <= CUT( tdsp + 8 );
+                  end if;
+               elsif IS_UNLINK_OP( s.canon.op ) then
+                  -- FP sauvegardé par LINK, restauré au commit si la lecture de co-pile réussit.
+                  nsrc := 1;
+                  source_address_s( 0 ) <= CUT( frame_s.display( lvl ) );
+               else
+                  case e.stack_action is
+                     when STACK_LINEAR =>
+                        nsrc := npop;
+                        for j in 0 to 3 loop
+                           if j < npop then
+                              source_address_s( j ) <= CUT( tdsp - 8 * ( npop - 1 - j ) );
+                           end if;
+                        end loop;
+                        if e.pushes = 1 then
+                           destination_valid_s   <= '1';
+                           destination_address_s <= CUT( ndsp );
+                        end if;
+
+                     when STACK_KEEP_TOP =>
+                        nsrc := 1;
+                        source_address_s( 0 ) <= CUT( tdsp );
+
+                     when STACK_DUP =>
+                        nsrc := 1;
+                        source_address_s( 0 ) <= CUT( tdsp );
+                        destination_valid_s   <= '1';
+                        destination_address_s <= CUT( ndsp );
+
+                     when STACK_OVER =>
+                        nsrc := 1;
+                        source_address_s( 0 ) <= CUT( tdsp - 8 );
+                        destination_valid_s   <= '1';
+                        destination_address_s <= CUT( ndsp );
+
+                     when STACK_DROP =>
+                        nsrc := 0;
+                  end case;
+               end if;
+               source_count_s <= nsrc;
+
+               -- pragma translate_off
+               assert not IS_SPECIAL_NOT_YET_SUPPORTED( s, e )
+                  report "STACK_UNIT: instruction speciale non encore implementee"
+                  severity failure;
+               -- pragma translate_on
+
+               ------------------------------------------------------------------
+               -- FAST PATH de préparation.
+               --
+               -- Le chemin initial lisait une source de pile par cycle dans
+               -- ST_PREPARE, puis passait seulement à ST_ISSUE. Pour les
+               -- opérations ordinaires, toutes les cellules nécessaires sont
+               -- dans un petit tableau de registres ; les lire en parallèle ne
+               -- demande aucun mécanisme OoO.
+               --
+               -- Si toutes les sources sont des hits et si la destination peut
+               -- être remplacée sans SPILL, on saute directement à ST_ISSUE.
+               -- DROP/DUP/OVER peuvent même committer ici. Tout cas douteux
+               -- retombe exactement sur le chemin lent déjà validé.
+               ------------------------------------------------------------------
+               fast_ok        := false;
+               fast_values    := ( others => ( others => '0' ) );
+               fast_dst_addr  := ndsp;
+               fast_dst_valid := false;
+
+               if f.valid = '0' then
+                  if IS_FAST_STACK_OP( s.canon.op ) then
+                     fast_ok := true;
+                  elsif e.issue_class = ISSUE_INTEGER
+                     and e.lvl_use = LVL_NONE
+                     and not e.memory and not e.frame
+                     and not e.serializing and not e.control then
+                     fast_ok := true;
+                  elsif e.issue_class = ISSUE_MUL_DIV
+                     and e.lvl_use = LVL_NONE
+                     and not e.memory and not e.frame
+                     and not e.serializing and not e.control then
+                     -- MUL/DIV (V2) : STACK_LINEAR, un résultat, comme l'entier.
+                     fast_ok := true;
+                  elsif e.issue_class = ISSUE_BRANCH
+                     and IS_FAST_BRANCH_OP( s.canon.op ) then
+                     fast_ok := true;
+                  elsif e.issue_class = ISSUE_MEMORY
+                     and e.lvl_use = LVL_ADDR
+                     and lvl <= 14
+                     and IS_FAST_DIRECT_MEMORY_OP( s.canon.op )
+                     -- Les ports 1..3 servent aux cellules recouvertes.
+                     and nsrc <= 1 then
+                     -- Accès direct famille B. L'adresse est déjà connue à partir
+                     -- de DISPLAY[lvl]+val ; seuls les hits de pile et l'absence
+                     -- de cellule sale recouverte permettent de sauter PREPARE/COH.
+                     fast_ok := true;
+                  end if;
+               end if;
+
+               if fast_ok then
+                  -- Toutes les sources doivent déjà être dans le cache.
+                  -- L'ordre est le même que source_address_s / RENAME_DISPATCH.
+                  for j in 0 to 3 loop
+                     if j < nsrc then
+                        case e.stack_action is
+                           when STACK_LINEAR =>
+                              fast_addr := tdsp - 8 * ( npop - 1 - j );
+                           when STACK_KEEP_TOP | STACK_DUP =>
+                              fast_addr := tdsp;
+                           when STACK_OVER =>
+                              fast_addr := tdsp - 8;
+                           when STACK_DROP =>
+                              fast_addr := tdsp; -- non utilisé (nsrc=0)
+                        end case;
+
+                        -- Port j : cellule WIDX( fast_src( j ) ), fast_src( j ) = fast_addr.
+                        if rd( j ).valid = '1'
+                           and rd( j ).addr = fast_addr then
+                           fast_values( j ) := rd( j ).data;
+                        else
+                           fast_ok := false;
+                        end if;
+                     end if;
+                  end loop;
+
+                  -- Même critère de collision que ST_PREPARE : une ancienne
+                  -- cellule sale encore vivante doit être rangée avant réemploi.
+                  if e.stack_action = STACK_DUP or e.stack_action = STACK_OVER then
+                     fast_dst_valid := true;
+                     fast_dst_addr  := ndsp;
+                  elsif e.stack_action = STACK_LINEAR and e.pushes = 1 then
+                     fast_dst_valid := true;
+                     fast_dst_addr  := ndsp;
+                  end if;
+
+                  if fast_dst_valid then
+                     -- Port 4 : cellule WIDX( ndsp ), et fast_dst_addr = ndsp.
+                     if rd( 4 ).valid = '1'
+                        and rd( 4 ).addr /= fast_dst_addr
+                        and rd( 4 ).dirty = '1'
+                        and rd( 4 ).addr <= tdsp then
+                        fast_ok := false;
+                     end if;
+                  end if;
+
+                  -- Un accès direct simple peut éviter ST_COH_SCAN uniquement si
+                  -- aucune cellule de pile sale recouverte n'a besoin d'être
+                  -- réécrite. Trois cellules de 8 octets suffisent pour une plage
+                  -- d'au plus 8 octets, même non alignée. Le store conservera
+                  -- l'invalidation postérieure via coh_invalidate_s au COMMIT.
+                  if fast_ok and e.issue_class = ISSUE_MEMORY then
+                     fast_mem_base := frame_s.display( lvl ) + U64( s.canon.val );
+                     fast_mem_len  := to_unsigned(
+                        2 ** to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ), 64 );
+                     for k in 0 to 2 loop
+                        a := ( fast_mem_base( 63 downto 3 ) & "000" )
+                             + to_unsigned( 8 * k, 64 );
+                        if a < fast_mem_base + fast_mem_len then
+                           -- Port 1 + k : cellule WIDX( fast_mem( k ) ), fast_mem( k ) = a.
+                           if rd( 1 + k ).valid = '1'
+                              and rd( 1 + k ).addr = a
+                              and rd( 1 + k ).dirty = '1'
+                              and rd( 1 + k ).addr <= tdsp then
+                              fast_ok := false;
+                           end if;
+                        end if;
+                     end loop;
+                  end if;
+               end if;
+
+               -- Commit du chemin rapide décidé à la prise (V2) : cellules qu'il
+               -- invalidera. Aucune ne change d'ici au commit ; la destination, écrite
+               -- après, n'est pas invalidée.
+               cp_en  := ( others => '0' );
+               cp_idx := ( others => 0 );
+               fast_dst_idx := WIDX( ndsp );
+               if fast_ok then
+                  if e.stack_action = STACK_LINEAR then
+                     -- Sources dépilées : présentes (fast path).
+                     for j in 0 to 3 loop
+                        if j < nsrc and not ( fast_dst_valid
+                                              and WIDX( fast_src( j ) ) = fast_dst_idx ) then
+                           cp_en( j )  := '1';
+                           cp_idx( j ) := WIDX( fast_src( j ) );
+                        end if;
+                     end loop;
+                  elsif e.stack_action = STACK_DROP then
+                     -- Port 0 : cellule du sommet.
+                     if rd( 0 ).valid = '1' and rd( 0 ).addr = tdsp then
+                        cp_en( 0 )  := '1';
+                        cp_idx( 0 ) := WIDX( tdsp );
+                     end if;
+                  end if;
+                  if e.issue_class = ISSUE_MEMORY and s.canon.op( 5 downto 4 ) = "10" then
+                     -- Rangement direct : copies du cache de pile qui intersectent
+                     -- les octets rangés (même règle que coh_invalidate_s).
+                     for k in 0 to 2 loop
+                        a := ( fast_mem_base( 63 downto 3 ) & "000" ) + to_unsigned( 8 * k, 64 );
+                        if a < fast_mem_base + fast_mem_len
+                           and rd( 1 + k ).valid = '1' and rd( 1 + k ).addr = a then
+                           cp_en( 1 + k )  := '1';
+                           cp_idx( 1 + k ) := WIDX( a );
+                        end if;
+                     end loop;
+                  end if;
+               end if;
+               cp_inv_en_s  <= cp_en;
+               cp_inv_idx_s <= cp_idx;
+
+               if fast_ok then
+                  fast_s <= '1';
+                  source_value_s <= fast_values;
+                  source_index_s <= nsrc;
+
+                  if e.issue_class = ISSUE_NONE then
+                     -- Les trois manipulations de pile sont entièrement locales,
+                     -- mais ne doivent pas COMMITTER sur le même front que
+                     -- DECODE_TAKE. Les consommateurs de STACK_UNIT utilisent le
+                     -- contrat historique : prise au cycle N, terminaison au plus
+                     -- tôt au cycle N+1. ST_FAST_COMMIT conserve ce contrat tout
+                     -- en évitant ST_PREPARE et toute émission backend.
+                     state_s <= ST_FAST_COMMIT;
+                  else
+                     -- INTEGER, MUL/DIV, BRA/BT/BF et accès directs : l'émission
+                     -- devient visible dès le cycle suivant la prise.
+                     state_s <= ST_ISSUE;
+                  end if;
+               else
+                  fast_s  <= '0';
+                  state_s <= ST_PREPARE;
+               end if;
+            end if;
          end if;
 
          -- Ecriture d'une entrée de DISPLAY par SYSTEM_UNIT, avant une SYNC

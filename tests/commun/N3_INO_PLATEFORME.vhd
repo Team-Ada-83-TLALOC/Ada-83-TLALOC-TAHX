@@ -255,6 +255,12 @@ begin
       variable dq_occ_sum, dq_occ_max : natural := 0;
       variable recoveries : natural := 0;
       variable inflight : boolean := false;
+      -- Prise au cycle du commit (V2) : l'instruction prise pendant que la
+      -- précédente est encore ouverte (son COMMIT, enregistré, n'est visible qu'au
+      -- cycle suivant) est ouverte au cycle suivant. Le cycle du commit reste à
+      -- l'instruction sortante : la somme des latences reste celle des cycles.
+      variable pending_open : boolean := false;
+      variable orphans      : natural := 0;            -- commits sans prise ouverte
       variable take_cycle : natural := 0;
       variable lat : natural := 0;
       variable cls : perf_class_t := PERF_NONE;
@@ -574,6 +580,7 @@ begin
             else
                -- Un commit sans DECODE_TAKE ne devrait pas arriver pour une instruction HX.
                lat := 0;
+               orphans := orphans + 1;
             end if;
             class_count( cls ) := class_count( cls ) + 1;
             class_lat_sum( cls ) := class_lat_sum( cls ) + lat;
@@ -583,14 +590,23 @@ begin
             op_lat_max( opi ) := maximum( op_lat_max( opi ), lat );
          end if;
 
-         -- Ouvrir ensuite le chronometre de l'instruction nouvellement prise.
+         -- Ouvrir ensuite le chronometre de l'instruction prise au cycle du commit
+         -- precedent, puis celui de l'instruction nouvellement prise.
+         if pending_open and not inflight then
+            inflight := true;
+            take_cycle := now;
+            pending_open := false;
+         end if;
          if dq_take /= 0 then
             takes := takes + to_integer( dq_take );
             famine := FAM_AUTRE;
-            -- STACK_UNIT ne prend actuellement qu'une instruction a la fois.
+            -- Une prise par cycle au plus ; au cycle d'un commit, elle est ouverte
+            -- au cycle suivant (pending_open).
             if not inflight then
                inflight := true;
                take_cycle := now;
+            else
+               pending_open := true;
             end if;
          end if;
 
@@ -629,6 +645,7 @@ begin
          & ", FPC " & HEX( fpc ) & ", FCODE " & integer'image( to_integer( fcode ) ) severity note;
 
       CHECK( c, commits > 0, "au moins une instruction commise" );
+      CHECK( c, orphans = 0, "chaque commit a sa prise (instrumentation)", "0", integer'image( orphans ) );
       CHECK( c, halted = '1' and halt_cause = HALT_EXIT, "arret par EXIT" );
       CHECK( c, to_integer( signed( exit_code ) ) = exp_exit, "code de sortie",
              integer'image( exp_exit ), integer'image( to_integer( signed( exit_code ) ) ) );
