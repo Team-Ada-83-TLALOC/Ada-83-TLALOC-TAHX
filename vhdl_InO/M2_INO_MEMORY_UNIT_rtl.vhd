@@ -52,6 +52,20 @@ of INO_MEMORY_UNIT is           ---
    signal special_s      : boolean := false;
    signal complete_s     : ino_complete_t := NO_COMPLETE;
 
+   -- pragma translate_off
+   -- Observation (simulation seulement) : etat courant (state_t'pos) et noms des
+   -- etats, lus par N3_INO_PLATEFORME par noms externes. Hors synthese.
+   function OBS_NOMS( s : state_t ) return string is
+   begin
+      if s = state_t'high then
+         return state_t'image( s );
+      end if;
+      return state_t'image( s ) & " " & OBS_NOMS( state_t'succ( s ) );
+   end function;
+   constant OBS_STATE_NAMES : string := OBS_NOMS( state_t'low );
+   signal obs_state_s    : natural := 0;
+   -- pragma translate_on
+
    function EXTEND( w : word64_t; sz : natural; sgn : boolean ) return word64_t is
       variable r : word64_t := ( others => '0' );
    begin
@@ -81,6 +95,10 @@ of INO_MEMORY_UNIT is           ---
    end function EXTEND;
 
 begin
+
+   -- pragma translate_off
+   obs_state_s <= state_t'pos( state_s );
+   -- pragma translate_on
 
    ADDRESS_READY_o <= '1' when state_s = ST_IDLE else '0';
    COMPLETE_o      <= complete_s;

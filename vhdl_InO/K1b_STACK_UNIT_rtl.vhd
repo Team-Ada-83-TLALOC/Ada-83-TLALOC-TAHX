@@ -164,6 +164,20 @@ of STACK_UNIT is                ---
    -- revenir attendre COMPLETE au lieu de libérer STACK_UNIT.
    signal maint_return_exec_s  : std_logic := '0';
 
+   -- pragma translate_off
+   -- Observation (simulation seulement) : etat courant (state_t'pos) et noms des
+   -- etats, lus par N3_INO_PLATEFORME par noms externes. Hors synthese.
+   function OBS_NOMS( s : state_t ) return string is
+   begin
+      if s = state_t'high then
+         return state_t'image( s );
+      end if;
+      return state_t'image( s ) & " " & OBS_NOMS( state_t'succ( s ) );
+   end function;
+   constant OBS_STATE_NAMES    : string := OBS_NOMS( state_t'low );
+   signal obs_state_s          : natural := 0;
+   -- pragma translate_on
+
    -- Emission vers le port a adresses physiques. L'adresse emise est realisable
    -- (cible de retour, ou base DISPLAY(lvl) quand ofs = '1').
    function ISSUE_PORT( i : ino_issue_t; ofs : std_logic ) return issue_pa_t is
@@ -294,6 +308,10 @@ of STACK_UNIT is                ---
    end procedure;
 
 begin
+
+   -- pragma translate_off
+   obs_state_s <= state_t'pos( state_s );
+   -- pragma translate_on
 
    -- Ports a adresses physiques : frame_s et commit_s sont realisables (CUT).
    FRAME_DSP_o  <= TO_PA( frame_s.dsp );

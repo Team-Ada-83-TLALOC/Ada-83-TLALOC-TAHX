@@ -87,6 +87,19 @@ is                              ----
    type natural_by_class_t is array( perf_class_t ) of natural;
    type natural_by_opcode_t is array( 0 to 255 ) of natural;
 
+   -- Etats des unites observees (V0) : 0 STACK_UNIT, 1 INO_MEMORY_UNIT (M2),
+   -- 2 INO_DCACHE_CORE. Chacune expose hors synthese l'indice de son etat
+   -- (state_t'pos) et la liste des noms de ses etats (OBS_STATE_NAMES).
+   constant OBS_UNITS    : positive := 3;
+   constant OBS_STATES   : positive := 32;            -- etats par unite, au plus
+   type obs_by_unit_t is array( 0 to OBS_UNITS - 1 ) of natural;
+   type natural_by_port_t is array( 0 to 1 ) of natural;
+   type obs_by_state_t is array( 0 to OBS_UNITS - 1, 0 to OBS_STATES - 1 ) of natural;
+   type obs_by_op_state_t is array( 0 to 255, 0 to OBS_UNITS - 1, 0 to OBS_STATES - 1 ) of natural;
+   -- Famine du frontal, selon le dernier evenement avant elle.
+   type famine_t is ( FAM_AUTRE, FAM_REPRISE, FAM_TRANSFERT );
+   type natural_by_famine_t is array( famine_t ) of natural;
+
    signal mem_ready      : boolean := false;
 
 begin
@@ -218,6 +231,15 @@ begin
       alias system_hold   is << signal DUT.system_hold : std_logic >>;
       alias stack_mem_req is << signal DUT.stack_mem_req : mem_request_t >>;
       alias exec_mem_req  is << signal DUT.exec_mem_req : mem_request_t >>;
+      -- Etats observes (V0), hors synthese dans le RTL (pragma translate_off).
+      alias st_stack is << signal DUT.U_CORE.U_STACK.obs_state_s : natural >>;
+      alias st_m2    is << signal
+         DUT.U_CORE.U_BACKEND.U_BACKEND.U_BASE.U_BASE.U_BASE.U_BASE.U_MEMORY.obs_state_s : natural >>;
+      alias st_cache is << signal DUT.U_DATA_CACHE.U_CORE.obs_state : natural >>;
+      alias noms_stack is << constant DUT.U_CORE.U_STACK.OBS_STATE_NAMES : string >>;
+      alias noms_m2    is << constant
+         DUT.U_CORE.U_BACKEND.U_BACKEND.U_BASE.U_BASE.U_BASE.U_BASE.U_MEMORY.OBS_STATE_NAMES : string >>;
+      alias noms_cache is << constant DUT.U_DATA_CACHE.U_CORE.OBS_STATE_NAMES : string >>;
 
       file fa : text;
       file fp : text;
@@ -241,6 +263,22 @@ begin
       variable opi : natural := 0;
       variable ch : character;
       variable good : boolean;
+
+      -- V0 : etats des unites (cycles, entrees ; par opcode, cycles de l'instruction
+      -- en vol, de sa prise a son commit exclu, comme lat).
+      variable stv          : obs_by_unit_t := ( others => 0 );
+      variable st_prev      : obs_by_unit_t := ( others => natural'high );
+      variable st_cycles    : obs_by_state_t := ( others => ( others => 0 ) );
+      variable st_entries   : obs_by_state_t := ( others => ( others => 0 ) );
+      variable st_cur       : obs_by_state_t := ( others => ( others => 0 ) );
+      variable st_op        : obs_by_op_state_t := ( others => ( others => ( others => 0 ) ) );
+      -- V0 : requetes acceptees par le cache (port 0 STACK, 1 EXEC).
+      variable acc_read, acc_write, acc_probe : natural_by_port_t := ( others => 0 );
+      -- V0 : famine du frontal.
+      variable famine       : famine_t := FAM_AUTRE;
+      variable fam_cycles, fam_episodes : natural_by_famine_t := ( others => 0 );
+      variable starving, starving_prev : boolean := false;
+      variable transfers_ok : natural := 0;
 
       procedure READ_FIELD( prefix : string; value : out line ) is
       begin
@@ -276,6 +314,48 @@ begin
          return r;
       end function;
 
+      -- Mot k (depuis 0) d'une liste de noms separes par une espace.
+      function MOT( s : string; k : natural ) return string is
+         variable debut : integer := s'low;
+         variable n     : natural := 0;
+      begin
+         for i in s'range loop
+            if s( i ) = ' ' then
+               if n = k then
+                  return s( debut to i - 1 );
+               end if;
+               n := n + 1;
+               debut := i + 1;
+            end if;
+         end loop;
+         if n = k then
+            return s( debut to s'high );
+         end if;
+         return "?";
+      end function;
+
+      function NB_MOTS( s : string ) return natural is
+         variable n : natural := 1;
+      begin
+         for i in s'range loop
+            if s( i ) = ' ' then
+               n := n + 1;
+            end if;
+         end loop;
+         return n;
+      end function;
+
+      -- Indice du nom x dans la liste s (casse ignoree), -1 s'il n'y est pas.
+      function INDICE( s : string; x : string ) return integer is
+      begin
+         for k in 0 to NB_MOTS( s ) - 1 loop
+            if UPPER( MOT( s, k ) ) = UPPER( x ) then
+               return k;
+            end if;
+         end loop;
+         return -1;
+      end function;
+
       function PERF_CLASS( op : opcode_t ) return perf_class_t is
          variable e : isa_entry_t;
       begin
@@ -308,6 +388,92 @@ begin
          end case;
       end function;
 
+      impure function NOMS_ETATS( u : natural ) return string is
+      begin
+         case u is
+            when 0      => return noms_stack;
+            when 1      => return noms_m2;
+            when others => return noms_cache;
+         end case;
+      end function;
+
+      function NOM_UNITE( u : natural ) return string is
+      begin
+         case u is
+            when 0      => return "STACK";
+            when 1      => return "M2";
+            when others => return "CACHE";
+         end case;
+      end function;
+
+      function IMG( n : natural ) return string is
+      begin
+         return integer'image( n );
+      end function;
+
+      -- Compteurs de V0 (etude de vitesse) :
+      --   PERF SPILL / FILL           requetes STACK acceptees (ecritures /lectures)
+      --   PERF CACHE ...              requetes acceptees par port, defauts, reecritures
+      --   PERF famine ...             famine du frontal selon l'evenement qui la precede
+      --   PERF ETAT <u> <etat>        cycles passes dans l'etat, entrees dans l'etat
+      --   PERF OPETAT <op> <u> e=n    cycles de l'etat e pendant les instructions <op>
+      --                               (de la prise au commit exclu : la somme sur les
+      --                               etats d'une unite vaut lat_sum)
+      procedure PERF_LINES_V0 is
+         variable ll : line;
+         variable i_fill, i_wb : integer;
+         variable any : boolean;
+      begin
+         PERF_LINE( "PERF SPILL / FILL (requetes STACK acceptees)        "
+                    & IMG( acc_write( 0 ) ) & " /" & IMG( acc_read( 0 ) ) );
+         PERF_LINE( "PERF CACHE requetes STACK (lect / ecr / sondes)     "
+                    & IMG( acc_read( 0 ) ) & " / " & IMG( acc_write( 0 ) ) & " / " & IMG( acc_probe( 0 ) ) );
+         PERF_LINE( "PERF CACHE requetes EXEC (lect / ecr / sondes)      "
+                    & IMG( acc_read( 1 ) ) & " / " & IMG( acc_write( 1 ) ) & " / " & IMG( acc_probe( 1 ) ) );
+         i_fill := INDICE( noms_cache, "REMPLISSAGE" );
+         i_wb   := INDICE( noms_cache, "RECRITURE" );
+         if i_fill >= 0 then
+            PERF_LINE( "PERF CACHE remplissages de lignes (defauts)         " & IMG( st_entries( 2, i_fill ) ) );
+         end if;
+         if i_wb >= 0 then
+            PERF_LINE( "PERF CACHE reecritures de victimes                  " & IMG( st_entries( 2, i_wb ) ) );
+         end if;
+         PERF_LINE( "PERF famine apres reprise (cycles / episodes)       "
+                    & IMG( fam_cycles( FAM_REPRISE ) ) & " / " & IMG( fam_episodes( FAM_REPRISE ) ) );
+         PERF_LINE( "PERF famine apres transfert pris bien predit        "
+                    & IMG( fam_cycles( FAM_TRANSFERT ) ) & " / " & IMG( fam_episodes( FAM_TRANSFERT ) )
+                    & " (transferts " & IMG( transfers_ok ) & ")" );
+         PERF_LINE( "PERF famine autre (cycles / episodes)               "
+                    & IMG( fam_cycles( FAM_AUTRE ) ) & " / " & IMG( fam_episodes( FAM_AUTRE ) ) );
+
+         for u in 0 to OBS_UNITS - 1 loop
+            for s in 0 to NB_MOTS( NOMS_ETATS( u ) ) - 1 loop
+               PERF_LINE( "PERF ETAT " & NOM_UNITE( u ) & " " & UPPER( MOT( NOMS_ETATS( u ), s ) )
+                          & " cycles " & IMG( st_cycles( u, s ) ) & " entrees " & IMG( st_entries( u, s ) ) );
+            end loop;
+         end loop;
+
+         for op in 0 to 255 loop
+            if op_count( op ) /= 0 then
+               for u in 0 to OBS_UNITS - 1 loop
+                  any := false;
+                  write( ll, "PERF OPETAT " & to_hstring( std_logic_vector( to_unsigned( op, 8 ) ) )
+                             & " " & NOM_UNITE( u ) );
+                  for s in 0 to NB_MOTS( NOMS_ETATS( u ) ) - 1 loop
+                     if st_op( op, u, s ) /= 0 then
+                        any := true;
+                        write( ll, " " & UPPER( MOT( NOMS_ETATS( u ), s ) ) & "=" & IMG( st_op( op, u, s ) ) );
+                     end if;
+                  end loop;
+                  if any then
+                     PERF_LINE( ll.all );
+                  end if;
+                  deallocate( ll );
+               end loop;
+            end if;
+         end loop;
+      end procedure;
+
    begin
       file_open( status, fa, "attendu.txt", read_mode );
       CHECK( c, status = open_ok, "ouverture de attendu.txt" );
@@ -315,6 +481,9 @@ begin
       READ_FIELD( "INSTRUCTIONS", v );                         -- conserve pour les futurs compteurs
       READ_FIELD( "SORTIE", exp_out );
       file_close( fa );
+
+      CHECK( c, NB_MOTS( noms_stack ) <= OBS_STATES and NB_MOTS( noms_m2 ) <= OBS_STATES
+                and NB_MOTS( noms_cache ) <= OBS_STATES, "etats observes : au plus OBS_STATES par unite" );
 
       wait until mem_ready;
       wait until falling_edge( clk );
@@ -327,11 +496,31 @@ begin
          wait for 1 ns;
          now := now + 1;
 
+         -- Evenement qui precede une famine du frontal (V0), vu avant la partition :
+         -- le cycle du commit est deja un cycle de famine si la file est vide.
+         -- Transfert pris (BRA, BT/BF pris, CALL, RTD...) bien predit : la famine
+         -- qui suit vient de la redirection du frontal, pas d'une reprise.
+         if commit.valid = '1' and commit.taken = '1' and commit.slot.pred.taken = '1'
+            and commit.slot.pred.target = commit.target and commit.fault.valid = '0' then
+            transfers_ok := transfers_ok + 1;
+            famine := FAM_TRANSFERT;
+         end if;
+         if recovery.valid = '1' then
+            famine := FAM_REPRISE;
+         end if;
+
          -- Partition exclusive des cycles hors reset.
+         starving := false;
          if system_hold = '1' then
             cyc_system := cyc_system + 1;
          elsif stack_idle = '1' and dq_count = 0 then
             cyc_front_starve := cyc_front_starve + 1;
+            -- Famine attribuee au dernier evenement depuis la derniere prise.
+            starving := true;
+            fam_cycles( famine ) := fam_cycles( famine ) + 1;
+            if not starving_prev then
+               fam_episodes( famine ) := fam_episodes( famine ) + 1;
+            end if;
          elsif stack_idle = '1' then
             cyc_idle_work := cyc_idle_work + 1;
          else
@@ -344,6 +533,27 @@ begin
          dq_occ_sum := dq_occ_sum + dq_occupancy;
          dq_occ_max := maximum( dq_occ_max, dq_occupancy );
 
+         -- V0 : etats des unites (cycles, entrees) ; requetes acceptees par le cache.
+         stv := ( st_stack, st_m2, st_cache );
+         for u in 0 to OBS_UNITS - 1 loop
+            st_cycles( u, stv( u ) ) := st_cycles( u, stv( u ) ) + 1;
+            if stv( u ) /= st_prev( u ) then
+               st_entries( u, stv( u ) ) := st_entries( u, stv( u ) ) + 1;
+            end if;
+            st_prev( u ) := stv( u );
+         end loop;
+         for p in 0 to 1 loop
+            if dc_req( p ).valid = '1' and dc_ready( p ) = '1' then
+               if dc_req( p ).probe = '1' then
+                  acc_probe( p ) := acc_probe( p ) + 1;
+               elsif dc_req( p ).write = '1' then
+                  acc_write( p ) := acc_write( p ) + 1;
+               else
+                  acc_read( p ) := acc_read( p ) + 1;
+               end if;
+            end if;
+         end loop;
+
          -- Fermer d'abord l'instruction qui se retire.  COMMIT et la prise de
          -- l'instruction suivante peuvent se produire sur le meme front ; traiter
          -- DECODE_TAKE en premier associerait alors le COMMIT precedent au nouveau
@@ -355,6 +565,12 @@ begin
             if inflight then
                lat := now - take_cycle;
                inflight := false;
+               for u in 0 to OBS_UNITS - 1 loop
+                  for s in 0 to OBS_STATES - 1 loop
+                     st_op( opi, u, s ) := st_op( opi, u, s ) + st_cur( u, s );
+                     st_cur( u, s ) := 0;
+                  end loop;
+               end loop;
             else
                -- Un commit sans DECODE_TAKE ne devrait pas arriver pour une instruction HX.
                lat := 0;
@@ -370,12 +586,21 @@ begin
          -- Ouvrir ensuite le chronometre de l'instruction nouvellement prise.
          if dq_take /= 0 then
             takes := takes + to_integer( dq_take );
+            famine := FAM_AUTRE;
             -- STACK_UNIT ne prend actuellement qu'une instruction a la fois.
             if not inflight then
                inflight := true;
                take_cycle := now;
             end if;
          end if;
+
+         -- Cycles de l'instruction en vol, de sa prise (comprise) a son commit (exclu).
+         if inflight then
+            for u in 0 to OBS_UNITS - 1 loop
+               st_cur( u, stv( u ) ) := st_cur( u, stv( u ) ) + 1;
+            end loop;
+         end if;
+         starving_prev := starving;
 
          for p in dc_req'range loop
             if dc_req( p ).valid = '1' and dc_ready( p ) = '1'
@@ -447,6 +672,8 @@ begin
                           & " lat_max " & integer'image( op_lat_max( op ) ) );
             end if;
          end loop;
+
+         PERF_LINES_V0;
          file_close( fp );
       end if;
 

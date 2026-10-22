@@ -109,6 +109,34 @@ Dans `N3_INO_PLATEFORME` (noms externes, comme l'occupation de la decode_queue) 
 
 Ce sont les compteurs qui valideront chaque palier : on saura combien de cycles ST_COH_SCAN disparaissent, etc. Côté logiciel : statistiques de **paires** d'instructions dans `tx_run -p` (utile pour le repliement, § 5).
 
+**Réalisation (22 octobre).** Chaque unité observée expose, entre `-- pragma translate_off` et `translate_on`, l'indice de son état (`obs_state_s`, `obs_state` dans le cache) et la liste des noms de ses états (`OBS_STATE_NAMES`, construite par `'image`). Le Verilog de `ghdl synth TAHX_1 IN_ORDER` est identique à celui d'avant V0, aux numéros de ligne près. `N3_INO_PLATEFORME` ajoute à `perf.txt` :
+
+- `PERF SPILL / FILL` (requêtes STACK acceptées : remplit les colonnes du BILAN) ; `PERF CACHE requetes STACK/EXEC` (lectures, écritures, sondes), remplissages de lignes, réécritures de victimes ;
+- `PERF famine …` : famine du frontal attribuée au dernier événement avant elle (reprise, transfert pris bien prédit, autre) ;
+- `PERF ETAT <unité> <état> cycles n entrees e` pour STACK, M2 et CACHE ;
+- `PERF OPETAT <op> <unité> état=cycles …` : cycles de chaque état pendant les instructions de cet opcode, de la prise au commit exclu (la somme sur les états d'une unité vaut `lat_sum`).
+
+`tests_InO/etats_par_opcode.py` vérifie cette égalité et résume les bancs (famines, états, opcodes les plus coûteux).
+
+**Premiers résultats (8 bancs, cycles inchangés).**
+
+| constat | cycles | part |
+|---|---|---|
+| STACK ST_WAIT_EXEC (backend, cache compris) | 2 962 306 | 53,5 % |
+| STACK ST_IDLE + ST_ISSUE (prise, émission) | 1 726 853 | 31,2 % |
+| STACK ST_PREPARE | 417 092 | 7,5 % |
+| STACK cohérence (ST_COH_SCAN + spills de cohérence) | 292 872 | 5,3 % |
+| CACHE LECTURE + PARTIE + REPONSE (486 k accès) | 1 458 722 | 26,3 % |
+| CACHE REMPLISSAGE (1 974 défauts, 0,4 % des accès) | 13 818 | 0,2 % |
+| famine après reprise (7 045 reprises, 6,4 cycles chacune) | 45 376 | 0,8 % |
+| famine après transfert pris bien prédit (597 sur 59 784) | 3 254 | 0,06 % |
+
+- **Le cache réussit presque toujours** : le protocole de 4 cycles par accès est tout le coût, ce que vise V1.
+- **LID [C24]** (18 % des cycles) : 1 prise + 1 ST_PREPARE + **2 ST_COH_SCAN** + 1 ST_ISSUE + 11 ST_WAIT_EXEC (M2 : DISPATCH 1, pointeur 1 + 3, donnée 1 + 3, plus 2). Chronologie du § 2 confirmée ; le balayage de cohérence de la cellule pointeur coûte 2 cycles même sans spill (155 k cycles pour LID [C24] et [C32]).
+- **Accès directs sur des cellules sales du cache de pile** : LD [B16] passe en moyenne 0,48 cycle en cohérence (2,36 sur B_APPELS), SQ [B16] 1,4. Peu sur l'ensemble (≈ 90 k cycles), mais la piste du § 5 « accès directs servis par le cache de pile » vise surtout B_APPELS (pour LD [B16] seul, 8 % de ses cycles).
+- **MUL/DIV ne prennent pas le chemin rapide** : MUL fait 1 + **3 ST_PREPARE** + 1 + 3 (multiplieur) = 8 cycles ; MODI 3 + 20. Les étendre au chemin rapide de l'entier gagnerait ≈ 95 k cycles (1,7 %) pour une modification locale de la `stack_unit` (à placer avec V2).
+- Le frontal suit : 1 % des transferts pris bien prédits seulement laissent une famine.
+
 ### V1 — Cache de données : succès en 2 cycles
 
 - En LIBRE, quand une requête est choisie, présenter tout de suite son ensemble à la SRAM (lecture au même front que l'acceptation) et passer directement en PARTIE ; LECTURE ne sert plus qu'à la seconde partie d'un accès non aligné.

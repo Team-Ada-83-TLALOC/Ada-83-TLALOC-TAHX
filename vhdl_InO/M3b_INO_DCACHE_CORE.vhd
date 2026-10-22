@@ -134,6 +134,20 @@ architecture RTL of INO_DCACHE_CORE is
 
    signal hit_way        : integer range -1 to WAYS_G - 1;
 
+   -- pragma translate_off
+   -- Observation (simulation seulement) : etat courant (state_t'pos) et noms des
+   -- etats, lus par N3_INO_PLATEFORME par noms externes. Hors synthese.
+   function OBS_NOMS( s : state_t ) return string is
+   begin
+      if s = state_t'high then
+         return state_t'image( s );
+      end if;
+      return state_t'image( s ) & " " & OBS_NOMS( state_t'succ( s ) );
+   end function;
+   constant OBS_STATE_NAMES : string := OBS_NOMS( state_t'low );
+   signal obs_state      : natural := 0;
+   -- pragma translate_on
+
    function SET_OF( a : paddr_t ) return natural is
    begin
       return to_integer( ( a / LINE_BYTES ) mod SETS );
@@ -181,6 +195,10 @@ architecture RTL of INO_DCACHE_CORE is
    end function;
 
 begin
+
+   -- pragma translate_off
+   obs_state <= state_t'pos( state );
+   -- pragma translate_on
 
    assert SETS * LINE_BYTES * WAYS_G = SIZE_BYTES_G and 2 ** SET_BITS = SETS
       report "INO_DCACHE_CORE : taille non puissance de 2 de ligne*voies" severity failure;
