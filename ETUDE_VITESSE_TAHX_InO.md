@@ -146,6 +146,24 @@ Ce sont les compteurs qui valideront chaque palier : on saura combien de cycles 
 - Chemins allongés : registres du client → arbitrage → adresse SRAM ; sortie SRAM → comparaison des tags → extraction → registre du client. Les deux traversent une frontière de macro : à budgéter dans les SDC (§ 6).
 - Gain : 2 cycles par accès (LD direct 6 → 4, LID 16 → 12). Plus tard : accepter une nouvelle requête dès le cycle PARTIE (cache pipeliné), utile à V4.
 
+**Réalisé (22 octobre)**, dans `M3b_INO_DCACHE_CORE.vhd` seul : lecture des RAM au front d'acceptation (RAM_CTRL en LIBRE, adresse de `REQ_i( pick )`), réponse combinatoire en PARTIE sur le succès de la dernière partie (`hit_result`, extraction déplacée dans HIT), retour en LIBRE. Tous les clients (FAST_PIPE, M2, COMPLEX, BLOCK, EXCM, SYSTEM, STACK_UNIT) attendent `RSP.valid` dans un état atteint au front d'acceptation : aucun n'a changé. Banc M3 : 11 022 vérifications (8 625 avant, même durée).
+
+| banc | cycles avant | cycles V1 | IPC avant | IPC V1 (modèle) |
+|---|---|---|---|---|
+| B_APPELS | 400 975 | 321 954 | 0,159 | 0,198 (0,176) |
+| B_ARBRE | 691 706 | 558 040 | 0,141 | 0,175 (0,165) |
+| B_CHAINES | 856 411 | 719 966 | 0,156 | 0,185 (0,182) |
+| B_CRIBLE | 710 649 | 579 136 | 0,170 | 0,209 (0,208) |
+| B_EXPR | 608 520 | 508 434 | 0,167 | 0,199 (0,193) |
+| B_FLOTTANT | 484 891 | 412 962 | 0,156 | 0,183 (0,181) |
+| B_MATRICE | 1 021 511 | 840 410 | 0,154 | 0,187 (0,185) |
+| B_TRI | 762 871 | 628 140 | 0,158 | 0,192 (0,190) |
+| **total** | **5 537 534** | **4 569 042** | **0,157** | **0,190 (0,185)** |
+
+Mêmes sorties, mêmes retraits ; −17,5 % de cycles (×1,21). Le modèle prévoyait ×1,18 : il gardait constants les SPILL/FILL de la `stack_unit`, qui gagnent aussi 2 cycles chacun (B_APPELS, B_ARBRE). Latences conformes : LID [C24] 16 → 12, LD [B16] 6,8 → 4,7 ; le cache passe 1 cycle en PARTIE par succès (LECTURE et REPONSE : 1 974 et 1 850 cycles, défauts et fautes seulement).
+
+À l'implantation : `ino_data_cache` est à réextraire ; les chemins REQ (stack_unit, ino_execute) → adresse SRAM et sortie SRAM → RSP (vers ces mêmes macros) deviennent combinatoires à travers la frontière de macro (`set_input_delay`/`set_output_delay` à budgéter).
+
 ### V2 — Prise sur le cycle de commit (pipeline à deux étages)
 
 - Dans ST_WAIT_EXEC (COMPLETE sans faute ni mauvaise prédiction) et ST_FAST_COMMIT, prendre l'instruction suivante au même front que le commit.

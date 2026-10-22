@@ -28,6 +28,19 @@ use ieee.numeric_std.all;
 --
 -- Adresses : REQ_i en exec_mem_request_pa_t (bit outside : adresse d'origine non
 -- realisable, faute 132) ; D_ADDR_o en paddr_t (le sommet etend de zeros).
+--
+-- Succes en 2 cycles (V1, etude de vitesse) :
+--   cycle 0 (LIBRE)  : la requete choisie est acceptee (READY) et son adresse est
+--                      presentee aux RAM, qui la lisent au front de fin de cycle ;
+--   cycle 1 (PARTIE) : tags compares ; sur un succes, la reponse est rendue dans ce
+--                      cycle (RSP combinatoire : sortie des RAM -> comparaison ->
+--                      extraction -> RSP_o) et le cache revient en LIBRE.
+-- LECTURE ne sert plus qu'a la seconde partie d'un acces a cheval sur deux mots et
+-- a la relecture apres un remplissage ; REPONSE (reponse enregistree) qu'aux fautes,
+-- aux sondages et a la fin d'un remplissage en faute. Les clients enregistrent la
+-- reponse : leur contrat (REQ accepte par READY, puis attente de RSP.valid) ne
+-- change pas, seule la latence baisse (reponse 1 cycle apres l'acceptation au lieu
+-- de 3).
 ------------------------------------------------------------------------------------------------------------------------
 
 use work.TAHX_1_ISA.all;
@@ -133,6 +146,7 @@ architecture RTL of INO_DCACHE_CORE is
    signal fill_fault     : std_logic;
 
    signal hit_way        : integer range -1 to WAYS_G - 1;
+   signal hit_result     : word64_t;               -- result complete par la partie lue
 
    -- pragma translate_off
    -- Observation (simulation seulement) : etat courant (state_t'pos) et noms des
@@ -258,6 +272,9 @@ begin
       RSP_o <= ( others => NO_MEM_RESPONSE );
       if state = REPONSE then
          RSP_o( cur_port ) <= ( valid => '1', rdata => result, fault => result_fault );
+      elsif state = PARTIE and hit_way >= 0 and rest_n = 0 then
+         -- Succes de la derniere partie : reponse dans le cycle.
+         RSP_o( cur_port ) <= ( valid => '1', rdata => hit_result, fault => '0' );
       end if;
    end process REPONSES;
 
@@ -266,8 +283,11 @@ begin
    ---------------------------------------------------------------------------------------------------------------------
 
    HIT : process( all )
-      variable h : integer;
-      variable s : natural;
+      variable h   : integer;
+      variable s   : natural;
+      variable off : natural;
+      variable w   : word64_t;
+      variable r   : word64_t;
    begin
       h := -1;
       if state = PARTIE then
@@ -279,6 +299,21 @@ begin
          end loop;
       end if;
       hit_way <= h;
+
+      -- Lecture : octets de la partie extraits du mot de la voie du succes et
+      -- places apres les done_n octets deja lus. Ecriture : result inchange.
+      r := result;
+      if h >= 0 and cur.write = '0' then
+         off := to_integer( part_addr mod 8 );
+         w := data_rdata( h );
+         for i in 0 to 7 loop
+            if i < part_n then
+               r( 8 * ( done_n + i ) + 7 downto 8 * ( done_n + i ) ) :=
+                  w( 8 * ( off + i ) + 7 downto 8 * ( off + i ) );
+            end if;
+         end loop;
+      end if;
+      hit_result <= r;
    end process HIT;
 
    ---------------------------------------------------------------------------------------------------------------------
@@ -307,6 +342,17 @@ begin
       tag_bm     <= ( others => '0' );
 
       case state is
+
+         when LIBRE =>
+            -- Lecture au front d'acceptation : sorties valides en PARTIE. Une
+            -- requete en faute ou un sondage lit aussi, sans effet.
+            if pick >= 0 then
+               s := SET_OF( REQ_i( pick ).address );
+               data_en   <= ( others => '1' );
+               data_addr <= s * WORDS + WORD_OF( REQ_i( pick ).address );
+               tag_en    <= ( others => '1' );
+               tag_addr  <= s;
+            end if;
 
          when LECTURE =>
             s := SET_OF( part_addr );
@@ -414,8 +460,6 @@ begin
    AUTOMATE : process( CLK_i )
       variable n, first_n : natural;
       variable s, way     : natural;
-      variable off        : natural;
-      variable r, w       : word64_t;
    begin
       if rising_edge( CLK_i ) then
          if RESET_i = '1' then
@@ -469,34 +513,25 @@ begin
                         part_addr <= REQ_i( pick ).address;
                         part_n <= first_n;
                         rest_n <= n - first_n;
-                        state <= LECTURE;
+                        -- Les RAM lisent l'adresse a ce front (RAM_CTRL, LIBRE).
+                        state <= PARTIE;
                      end if;
                   end if;
 
                when LECTURE =>
-                  -- Les RAM echantillonnent leur adresse sur ce front ; leurs sorties
-                  -- sont valides pendant l'etat PARTIE qui suit.
+                  -- Seconde partie ou relecture apres remplissage : les RAM
+                  -- echantillonnent leur adresse sur ce front ; leurs sorties sont
+                  -- valides pendant l'etat PARTIE qui suit.
                   state <= PARTIE;
 
                when PARTIE =>
                   s := SET_OF( part_addr );
 
                   if hit_way >= 0 then
-                     off := to_integer( part_addr mod 8 );
-                     w := data_rdata( hit_way );
-
                      if cur.write = '1' then
                         dirty( hit_way )( s ) <= '1';
-                     else
-                        r := result;
-                        for i in 0 to 7 loop
-                           if i < part_n then
-                              r( 8 * ( done_n + i ) + 7 downto 8 * ( done_n + i ) ) :=
-                                 w( 8 * ( off + i ) + 7 downto 8 * ( off + i ) );
-                           end if;
-                        end loop;
-                        result <= r;
                      end if;
+                     result <= hit_result;
 
                      if rest_n > 0 then
                         part_addr <= part_addr + part_n;
@@ -505,7 +540,8 @@ begin
                         rest_n <= 0;
                         state <= LECTURE;
                      else
-                        state <= REPONSE;
+                        -- Reponse rendue dans ce cycle (REPONSES).
+                        state <= LIBRE;
                      end if;
 
                   else
