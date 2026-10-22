@@ -68,7 +68,6 @@ of INO_INTEGER_UNIT is          ---
       target       => ( others => '0' ) );
 
    signal computed_s            : ino_complete_t := NO_COMPLETE;
-   signal complete_s            : ino_complete_t := NO_COMPLETE;
 
         --------------------------------------------------------------------------------
         -- Champs de bits
@@ -277,31 +276,26 @@ of INO_INTEGER_UNIT is          ---
 begin
 
    ISSUE_READY_o <= '1';
-   COMPLETE_o    <= complete_s;
 
+   -- Terminaison dans le cycle d'émission (V3) : aucun registre de sortie.
    computed_s <= EXECUTE( ISSUE_i );
+   COMPLETE_o <= computed_s when ISSUE_VALID_i = '1' and RESET_i = '0' else NO_COMPLETE;
 
-   PIPELINE : process( CLK_i )
+   -- pragma translate_off
+   CHECK_ISSUE : process( CLK_i )
    begin
       if rising_edge( CLK_i ) then
-         if RESET_i = '1' then
-            complete_s <= NO_COMPLETE;
-         elsif ISSUE_VALID_i = '1' then
-            complete_s <= computed_s;
-
-            -- pragma translate_off
+         if RESET_i = '0' and ISSUE_VALID_i = '1' then
             assert ISSUE_i.issue_class = ISSUE_INTEGER
                report "INO_INTEGER_UNIT : issue_class /= ISSUE_INTEGER"
                severity failure;
             assert IS_INTEGER_OP( ISSUE_i.slot.canon.op )
                report "INO_INTEGER_UNIT : opcode hors de l'unité entière"
                severity failure;
-            -- pragma translate_on
-         else
-            complete_s <= NO_COMPLETE;
          end if;
       end if;
-   end process PIPELINE;
+   end process CHECK_ISSUE;
+   -- pragma translate_on
 
                                 ---
 end architecture                RTL;

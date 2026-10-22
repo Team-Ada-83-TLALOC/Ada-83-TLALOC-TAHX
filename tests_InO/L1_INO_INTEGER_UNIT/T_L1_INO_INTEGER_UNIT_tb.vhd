@@ -149,13 +149,9 @@ begin
          issue.address         <= address;
          issue_valid           <= '1';
 
-         wait until rising_edge( clk );
-         CHECK( c, issue_ready = '1', name & " : ready" );
-         issue_valid <= '0';
-         issue       <= NO_ISSUE;
-
-         -- Laisser se propager complete_s puis COMPLETE_o (deux deltas).
+         -- COMPLETE_o est combinatoire : valide pendant le cycle d'émission (V3).
          wait for 1 ns;
+         CHECK( c, issue_ready = '1', name & " : ready" );
          CHECK( c, complete.valid = '1', name & " : complete.valid" );
          CHECK( c, complete.fault.valid = expected_fault.valid,
                 name & " : fault.valid",
@@ -174,7 +170,10 @@ begin
          CHECK( c, complete.taken = '0', name & " : taken" );
          CHECK( c, complete.target = 0, name & " : target" );
 
+         -- Acceptée au front : plus de COMPLETE sans émission.
          wait until rising_edge( clk );
+         issue_valid <= '0';
+         issue       <= NO_ISSUE;
          wait for 1 ns;
          CHECK( c, complete.valid = '0', name & " : impulsion complete" );
       end procedure EXEC;

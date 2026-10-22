@@ -22,6 +22,9 @@ use work.IN_ORDER_TYPES.all;
         -- La sortie target est toujours l'adresse où l'exécution doit continuer :
         -- cible si le transfert est pris, PC suivant sinon. STACK_UNIT conserve slot.pred
         -- et peut donc déterminer si une reprise du frontal est nécessaire.
+        --
+        -- Latence nulle (V3, étude de vitesse) : COMPLETE_o est combinatoire et
+        -- valide pendant le cycle d'émission (ISSUE_VALID_i).
         --------------------------------------------------------------------------------
 
                                 -----------------

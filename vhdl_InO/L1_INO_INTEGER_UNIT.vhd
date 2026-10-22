@@ -19,9 +19,11 @@ use work.IN_ORDER_TYPES.all;
         --  valeurs d'opérandes : aucun tag physique, fichier de registres, bypass,
         --  rob_index ou recovery n'apparaît dans cette interface.
         --
-        --  Latence : l'instruction acceptée au front t produit COMPLETE_o pendant le
-        --  cycle suivant. ISSUE_READY_o reste à '1'. STACK_UNIT n'émettant qu'une
-        --  instruction à la fois, aucun protocole de reprise de sortie n'est requis.
+        --  Latence nulle (V3, étude de vitesse) : COMPLETE_o est combinatoire et
+        --  valide pendant le cycle d'émission (ISSUE_VALID_i), l'instruction étant
+        --  acceptée au front qui le termine. ISSUE_READY_o reste à '1'. STACK_UNIT
+        --  n'émettant qu'une instruction à la fois, aucun protocole de reprise de
+        --  sortie n'est requis.
         --------------------------------------------------------------------------------
 
                                 ----------------

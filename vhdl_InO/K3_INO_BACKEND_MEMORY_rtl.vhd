@@ -34,7 +34,9 @@ of INO_BACKEND_MEMORY is        ---
    -- Quand STACK_UNIT connaît déjà l'adresse effective (lvl 0..14), un load/store
    -- simple n'a aucune raison de traverser le registre INO_ADDRESS_UNIT puis
    -- ST_DISPATCH de INO_MEMORY_UNIT. La requête DATA_CACHE est présentée pendant
-   -- le cycle même de ISSUE ; seule la réponse est enregistrée.
+   -- le cycle même de ISSUE. La réponse du cache devient COMPLETE dans son propre
+   -- cycle (V3, étude de vitesse : combinatoire, plus de registre de sortie) ;
+   -- STACK_UNIT l'enregistre au commit.
    --
    -- CHK, lvl=15, familles C et tous les cas spéciaux restent intégralement sur
    -- le chemin lent de référence.
@@ -56,7 +58,7 @@ of INO_BACKEND_MEMORY is        ---
    signal fast_size_s     : natural range 0 to 3 := 0;
    signal fast_signed_s   : boolean := false;
    signal fast_store_s    : boolean := false;
-   signal fast_complete_s : ino_complete_t := NO_COMPLETE;
+   signal fast_complete_c : ino_complete_t;
 
    function FAST_DIRECT_MEMORY( ins : ino_issue_t ) return boolean is
       constant op   : opcode_t := ins.slot.canon.op;
@@ -193,11 +195,8 @@ begin
    -----------------------------------------------------------------------------
 
    FAST_PIPE : process( CLK_i )
-      variable c : ino_complete_t;
    begin
       if rising_edge( CLK_i ) then
-         fast_complete_s <= NO_COMPLETE;
-
          if RESET_i = '1' then
             fast_state_s  <= FAST_IDLE;
             fast_slot_s   <= ( valid => '0', canon => CANON_NOP,
@@ -220,16 +219,8 @@ begin
                   end if;
 
                when FAST_RSP =>
+                  -- COMPLETE rendu dans ce cycle (FAST_COMPLETE).
                   if MEM_RSP_i.valid = '1' then
-                     c := NO_COMPLETE;
-                     c.valid := '1';
-                     if MEM_RSP_i.fault = '1' then
-                        c.fault := ( valid => '1', code => FAULT_ACCESS );
-                     elsif not fast_store_s then
-                        c.result_valid := '1';
-                        c.result := EXTEND( MEM_RSP_i.rdata, fast_size_s, fast_signed_s );
-                     end if;
-                     fast_complete_s <= c;
                      fast_state_s <= FAST_IDLE;
                   end if;
             end case;
@@ -237,7 +228,24 @@ begin
       end if;
    end process FAST_PIPE;
 
-   COMPLETE_o <= fast_complete_s when fast_complete_s.valid = '1'
+   -- Terminaison du fast path dans le cycle de la réponse du cache (V3).
+   FAST_COMPLETE : process( all )
+      variable c : ino_complete_t;
+   begin
+      c := NO_COMPLETE;
+      if fast_state_s = FAST_RSP and MEM_RSP_i.valid = '1' and RESET_i = '0' then
+         c.valid := '1';
+         if MEM_RSP_i.fault = '1' then
+            c.fault := ( valid => '1', code => FAULT_ACCESS );
+         elsif not fast_store_s then
+            c.result_valid := '1';
+            c.result := EXTEND( MEM_RSP_i.rdata, fast_size_s, fast_signed_s );
+         end if;
+      end if;
+      fast_complete_c <= c;
+   end process FAST_COMPLETE;
+
+   COMPLETE_o <= fast_complete_c when fast_complete_c.valid = '1'
                  else memory_complete_s when memory_complete_s.valid = '1'
                  else base_complete_s;
 

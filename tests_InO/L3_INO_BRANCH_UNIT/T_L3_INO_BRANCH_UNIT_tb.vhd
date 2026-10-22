@@ -115,12 +115,9 @@ begin
          issue.address         <= A64( address );
          issue_valid           <= '1';
 
-         wait until rising_edge( clk );
-         CHECK( c, issue_ready = '1', name & " : ready" );
-         issue_valid <= '0';
-         issue       <= NO_ISSUE;
+         -- COMPLETE_o est combinatoire : valide pendant le cycle d'émission (V3).
          wait for 1 ns;
-
+         CHECK( c, issue_ready = '1', name & " : ready" );
          CHECK( c, complete.valid = '1', name & " : complete.valid" );
          CHECK( c, complete.result_valid = '0', name & " : aucun resultat pile" );
          CHECK( c, complete.fault.valid = '0', name & " : aucune faute" );
@@ -129,6 +126,8 @@ begin
                 name & " : target", HEX( A64( expected_target ) ), HEX( complete.target ) );
 
          wait until rising_edge( clk );
+         issue_valid <= '0';
+         issue       <= NO_ISSUE;
          wait for 1 ns;
          CHECK( c, complete.valid = '0', name & " : impulsion complete" );
       end procedure EXEC;
@@ -158,11 +157,8 @@ begin
          issue.address         <= address;
          issue_valid           <= '1';
 
-         wait until rising_edge( clk );
-         issue_valid <= '0';
-         issue       <= NO_ISSUE;
+         -- COMPLETE_o est combinatoire : valide pendant le cycle d'émission (V3).
          wait for 1 ns;
-
          CHECK( c, complete.valid = '1', name & " : complete.valid" );
          CHECK( c, complete.fault.valid = faute, name & " : faute",
                 std_logic'image( faute ), std_logic'image( complete.fault.valid ) );
@@ -174,6 +170,8 @@ begin
                    name & " : target", HEX( expected_target ), HEX( complete.target ) );
          end if;
          wait until rising_edge( clk );
+         issue_valid <= '0';
+         issue       <= NO_ISSUE;
       end procedure EXEC64;
 
       constant HAUT : address_t := x"0000000100000000";        -- 2**PA_BITS

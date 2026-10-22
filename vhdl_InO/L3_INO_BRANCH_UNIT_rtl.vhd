@@ -49,7 +49,6 @@ of INO_BRANCH_UNIT is           ---
       target       => ( others => '0' ) );
 
    signal computed_s            : ino_complete_t := NO_COMPLETE;
-   signal complete_s            : ino_complete_t := NO_COMPLETE;
 
    constant OP_CALLI : opcode_t := x"33";
 
@@ -103,9 +102,10 @@ of INO_BRANCH_UNIT is           ---
 begin
 
    ISSUE_READY_o <= '1';
-   COMPLETE_o    <= complete_s;
 
+   -- Terminaison dans le cycle d'émission (V3) : aucun registre de sortie.
    computed_s <= EXECUTE( ISSUE_i );
+   COMPLETE_o <= computed_s when ISSUE_VALID_i = '1' and RESET_i = '0' else NO_COMPLETE;
 
    -- pragma translate_off
    -- Contrôle au front d'horloge : ISSUE_i est un bus commun aux unités du
@@ -136,19 +136,6 @@ begin
       end if;
    end process CHECK_OPCODE;
    -- pragma translate_on
-
-   PIPE : process( CLK_i )
-   begin
-      if rising_edge( CLK_i ) then
-         if RESET_i = '1' then
-            complete_s <= NO_COMPLETE;
-         elsif ISSUE_VALID_i = '1' then
-            complete_s <= computed_s;
-         else
-            complete_s <= NO_COMPLETE;
-         end if;
-      end if;
-   end process PIPE;
 
                                 ---
 end architecture                RTL;

@@ -30,7 +30,9 @@ use work.TB_UTILS.all;
         --
         -- Cache de pile de 16 mots (configuration TAHX) et profondeur jusqu'à 40 :
         -- SPILL/FILL et collisions fréquents. ISSUE_READY, latence de COMPLETE,
-        -- offre de DECODE et acceptation mémoire sont tirés au hasard. Les mauvaises
+        -- offre de DECODE et acceptation mémoire sont tirés au hasard ; l'entier, MUL
+        -- et les branches terminent une fois sur deux dans le cycle d'émission
+        -- (COMPLETE combinatoire, V3). Les mauvaises
         -- prédictions (BT/BF) sont volontaires : elles interdisent l'enchaînement.
         --
         -- Vérifications : opérandes de chaque ISSUE (ordre du programme), opcode et
@@ -144,6 +146,31 @@ of T_K1e_STACK_CHAIN_tb is      ----
       return pc + 64;
    end function;
 
+   -- Terminaison d'une instruction hors mémoire (entier, MUL, branches).
+   function COMPLETION( i : ino_issue_t ) return ino_complete_t is
+      constant op : opcode_t := i.slot.canon.op;
+      variable r  : ino_complete_t := NO_COMPLETE;
+      variable va : word64_t := i.operand( 0 );
+   begin
+      r.valid := '1';
+      if op = OP_BRA_T or op = OP_BT_T or op = OP_BF_T then
+         r.taken := '1';
+         if ( op = OP_BT_T and va = x"0000000000000000" )
+            or ( op = OP_BF_T and va /= x"0000000000000000" ) then
+            r.taken := '0';
+         end if;
+         if r.taken = '1' then
+            r.target := TARGET_OF( i.slot.pc );
+         else
+            r.target := i.slot.pc + resize( i.slot.canon.len, 64 );
+         end if;
+      else
+         r.result_valid := '1';
+         r.result := RESULT( op, i.slot.canon.val, va, i.operand( 1 ) );
+      end if;
+      return r;
+   end function;
+
    signal clk           : std_logic := '0';
    signal running       : boolean := true;
    signal reset         : std_logic := '1';
@@ -168,6 +195,12 @@ of T_K1e_STACK_CHAIN_tb is      ----
    signal issue         : ino_issue_t;
    signal issue_ready   : std_logic := '0';
    signal complete      : ino_complete_t := NO_COMPLETE;
+   -- Terminaison enregistrée (latence 1 à 3) ou, une fois sur deux pour l'entier,
+   -- MUL et les branches, combinatoire dans le cycle d'émission (comme V3).
+   signal complete_reg  : ino_complete_t := NO_COMPLETE;
+   signal complete_comb : ino_complete_t := NO_COMPLETE;
+   signal same_cycle    : std_logic := '0';
+   signal same_count    : natural := 0;
    signal commit        : ino_commit_t;
    signal frame         : frame_state_t;
 
@@ -208,6 +241,17 @@ begin
          IDLE_o => idle );
 
    clk <= not clk after PERIOD / 2 when running;
+
+   complete <= complete_comb when complete_comb.valid = '1' else complete_reg;
+
+   COMB : process( all )
+   begin
+      complete_comb <= NO_COMPLETE;
+      if reset = '0' and same_cycle = '1' and issue_valid = '1' and issue_ready = '1'
+         and issue.slot.canon.op /= OP_LQ_T and issue.slot.canon.op /= OP_SQ_T then
+         complete_comb <= COMPLETION( issue );
+      end if;
+   end process COMB;
 
         --------------------------------------------------------------------------------
         -- Programme tiré au hasard, exécuté sur la référence : pile = mémoire aux
@@ -432,10 +476,11 @@ begin
       variable addr     : address_t;
       variable tk       : std_logic;
       variable nrd, nwr : natural := 0;
+      variable nsame    : natural := 0;
    begin
       if rising_edge( clk ) then
-         mem_rsp  <= NO_MEM_RESPONSE;
-         complete <= NO_COMPLETE;
+         mem_rsp      <= NO_MEM_RESPONSE;
+         complete_reg <= NO_COMPLETE;
 
          if reset = '0' then
             -- Port mémoire de STACK_UNIT : réponse au cycle suivant l'acceptation.
@@ -455,7 +500,7 @@ begin
             -- Terminaison en attente.
             if busy then
                if wait_n = 0 then
-                  complete <= pend;
+                  complete_reg <= pend;
                   busy := false;
                else
                   wait_n := wait_n - 1;
@@ -495,18 +540,6 @@ begin
                pend := NO_COMPLETE;
                pend.valid := '1';
                case op is
-                  when OP_BRA_T | OP_BT_T | OP_BF_T =>
-                     tk := '1';
-                     if ( op = OP_BT_T and va = x"0000000000000000" )
-                        or ( op = OP_BF_T and va /= x"0000000000000000" ) then
-                        tk := '0';
-                     end if;
-                     pend.taken := tk;
-                     if tk = '1' then
-                        pend.target := TARGET_OF( issue.slot.pc );
-                     else
-                        pend.target := issue.slot.pc + resize( issue.slot.canon.len, 64 );
-                     end if;
                   when OP_LQ_T =>
                      assert issue.address_known = '1' report "K1e : LQ sans adresse" severity failure;
                      pend.result_valid := '1';
@@ -515,15 +548,22 @@ begin
                      assert issue.address_known = '1' report "K1e : SQ sans adresse" severity failure;
                      m( WIDX( issue.address ) ) := va;
                   when others =>
-                     pend.result_valid := '1';
-                     pend.result := RESULT( op, issue.slot.canon.val, va, vb );
+                     pend := COMPLETION( issue );
                end case;
 
-               -- Latence : 0 (60 %), 1 ou 2 cycles de plus.
-               uniform( s1, s2, r );
-               if r < 0.6 then wait_n := 0; elsif r < 0.85 then wait_n := 1; else wait_n := 2; end if;
-               busy := true;
+               if complete_comb.valid = '1' then
+                  -- Déjà terminée dans le cycle d'émission (COMB).
+                  nsame := nsame + 1;
+               else
+                  -- Latence : 0 (60 %), 1 ou 2 cycles de plus.
+                  uniform( s1, s2, r );
+                  if r < 0.6 then wait_n := 0; elsif r < 0.85 then wait_n := 1; else wait_n := 2; end if;
+                  busy := true;
+               end if;
             end if;
+
+            uniform( s1, s2, r );
+            if r < 0.5 then same_cycle <= '1'; else same_cycle <= '0'; end if;
 
             uniform( s1, s2, r );
             if r < 0.8 then issue_ready <= '1'; else issue_ready <= '0'; end if;
@@ -537,6 +577,7 @@ begin
          exec_errors <= nerr;
          exec_checks <= nchk;
          issued      <= ne;
+         same_count  <= nsame;
       end if;
    end process MACHINE;
 
@@ -601,15 +642,20 @@ begin
          end if;
       end loop;
 
-      -- Repos, puis écriture de tout le cache de pile.
-      loop
+      -- Repos, puis écriture de tout le cache de pile (attentes bornées).
+      for k in 1 to 1000 loop
          wait until rising_edge( clk );
          exit when idle = '1';
       end loop;
+      if idle /= '1' then
+         CHECK( c, false, "STACK_UNIT au repos en fin de programme" );
+         running <= false;
+         FINISH( c, "T_K1e_STACK_CHAIN_tb" );
+      end if;
       maint <= ( valid => '1', kind => MAINT_WRITEBACK_ALL, base => ( others => '0' ), length => ( others => '0' ) );
       wait until rising_edge( clk );
       maint.valid <= '0';
-      loop
+      for k in 1 to 1000 loop
          wait until rising_edge( clk );
          exit when maint_done = '1';
       end loop;
@@ -634,13 +680,16 @@ begin
       CHECK( c, nchain > N_INSN / 5, "prises au cycle du commit",
              "> " & integer'image( N_INSN / 5 ), integer'image( nchain ) );
       CHECK( c, nmispred > 50, "mauvaises predictions exercees", "> 50", integer'image( nmispred ) );
+      CHECK( c, same_count > N_INSN / 5, "terminaisons dans le cycle d'emission",
+             "> " & integer'image( N_INSN / 5 ), integer'image( same_count ) );
       CHECK( c, spills > 200 and fills > 200, "SPILL et FILL exerces", "> 200",
              integer'image( spills ) & " / " & integer'image( fills ) );
 
       report "K1e : " & integer'image( ncommit ) & " commits en " & integer'image( cycles ) & " cycles, "
              & integer'image( nchain ) & " prises enchainees, " & integer'image( nmispred )
              & " mauvaises predictions, SPILL " & integer'image( spills ) & ", FILL "
-             & integer'image( fills ) severity note;
+             & integer'image( fills ) & ", terminaisons dans le cycle d'emission "
+             & integer'image( same_count ) severity note;
       running <= false;
       FINISH( c, "T_K1e_STACK_CHAIN_tb" );
       wait;

@@ -54,6 +54,13 @@ use work.INO_PORTS_PA.all;
         -- suivante. INO_CORE_SYSTEM interdit l'enchainement quand une interruption
         -- est en attente : la frontiere d'instruction (STACK_IDLE) reste observable.
         --
+        -- Terminaison dans le cycle d'emission (V3, etude de vitesse) : l'entier, les
+        -- branchements et le fast path memoire (reponse du cache) rendent COMPLETE
+        -- combinatoirement. En ST_ISSUE, une instruction du chemin rapide dont
+        -- COMPLETE arrive avec ISSUE_READY commite dans ce cycle (et la suivante est
+        -- prise, chain_s). Pour une autre instruction, COMPLETE est enregistre
+        -- (complete_q_s) et traite en ST_WAIT_EXEC au cycle suivant, comme avant.
+        --
         -- Espace physique InO (INO_PADDR) : DSP, RSP, DISPLAY, adresses des cellules, des
         -- sources, de la destination, des FILL/SPILL et cibles de retour ne gardent que
         -- PA_BITS bits (CUT a chaque ecriture de registre). Elles sont realisables par
@@ -186,6 +193,15 @@ of STACK_UNIT is                ---
    signal cp_inv_en_s          : std_logic_vector( 0 to 3 ) := ( others => '0' );
    signal cp_inv_idx_s         : inv_index_array_t := ( others => 0 );
    signal chain_s              : std_logic;
+
+   -- Terminaison dans le cycle d'émission (V3) : COMPLETE reçu en ST_ISSUE pour une
+   -- instruction hors chemin rapide, traité en ST_WAIT_EXEC au cycle suivant.
+   -- cpl : terminaison vue par le commit (enregistrée, sinon COMPLETE_i).
+   constant NO_COMPLETE_W      : ino_complete_t := (
+      valid => '0', result_valid => '0', result => ( others => '0' ),
+      fault => NO_FAULT, taken => '0', target => ( others => '0' ) );
+   signal complete_q_s         : ino_complete_t := NO_COMPLETE_W;
+   signal cpl                  : ino_complete_t;
 
    -- pragma translate_off
    -- Observation (simulation seulement) : etat courant (state_t'pos) et noms des
@@ -343,6 +359,7 @@ begin
                    else ( others => '0' );
    COMMIT_o     <= TO_PA( commit_s );
    complete_w   <= TO_VA( COMPLETE_i );
+   cpl          <= complete_q_s when complete_q_s.valid = '1' else complete_w;
    MAINT_DONE_o <= maint_done_s;
 
    IDLE_o <= '1' when state_s = ST_IDLE or state_s = ST_FAULT_HOLD else '0';
@@ -358,9 +375,10 @@ begin
       chain_s <= '0';
       if state_s = ST_FAST_COMMIT then
          chain_s <= '1';
-      elsif state_s = ST_WAIT_EXEC and fast_s = '1' and complete_w.valid = '1'
-         and complete_w.fault.valid = '0'
-         and not ( entry_s.control and MISPREDICTED( slot_s, complete_w ) ) then
+      elsif ( state_s = ST_WAIT_EXEC or ( state_s = ST_ISSUE and ISSUE_READY_i = '1' ) )
+         and fast_s = '1' and cpl.valid = '1' and cpl.fault.valid = '0'
+         and not ( entry_s.control and MISPREDICTED( slot_s, cpl ) ) then
+         -- ST_ISSUE : terminaison dans le cycle d'émission (V3).
          chain_s <= '1';
       end if;
    end process CHAIN;
@@ -495,6 +513,7 @@ begin
       variable cp_en            : std_logic_vector( 0 to 3 );
       variable cp_idx           : inv_index_array_t;
       variable fast_dst_idx     : natural;
+      variable fast_commit_v    : boolean;           -- commit du chemin rapide (après le case)
    begin
       if rising_edge( CLK_i ) then
 
@@ -504,7 +523,8 @@ begin
          -- commit : elle voit le DSP d'apres commit. DISPLAY et RSP ne changent pas
          -- au commit d'une instruction du chemin rapide.
          ------------------------------------------------------------------------------
-         chain_view := state_s = ST_FAST_COMMIT or ( state_s = ST_WAIT_EXEC and fast_s = '1' );
+         chain_view := state_s = ST_FAST_COMMIT
+                       or ( ( state_s = ST_WAIT_EXEC or state_s = ST_ISSUE ) and fast_s = '1' );
          tdsp := frame_s.dsp;
          if chain_view then
             tdsp := new_dsp_s;
@@ -730,7 +750,7 @@ begin
             if state_s = ST_FAST_COMMIT then
                dst_data := source_value_s( 0 );           -- DUP / OVER
             else
-               dst_data := complete_w.result;
+               dst_data := cpl.result;
             end if;
             for k in 0 to READ_PORTS - 1 loop
                for j in 0 to 3 loop
@@ -781,6 +801,7 @@ begin
             maint_return_exec_s  <= '0';
             fast_s           <= '0';
             cp_inv_en_s      <= ( others => '0' );
+            complete_q_s     <= NO_COMPLETE_W;
             commit_s         <= ( valid => '0', slot => ( valid => '0', canon => CANON_NOP,
                                   pc => ( others => '0' ), pred => NO_PREDICTION ),
                                   fault => NO_FAULT, taken => '0', target => ( others => '0' ) );
@@ -807,8 +828,10 @@ begin
             maint_return_exec_s  <= '0';
             fast_s           <= '0';
             cp_inv_en_s      <= ( others => '0' );
+            complete_q_s     <= NO_COMPLETE_W;
 
          else
+            fast_commit_v := false;
             take_v := MAINT_i.valid = '0' and DECODE_VALID_i = '1'
                       and ( state_s = ST_IDLE or chain_s = '1' );
 
@@ -1193,8 +1216,26 @@ begin
                -------------------------------------------------------------------------
 
                when ST_ISSUE =>
+                  -- pragma translate_off
+                  assert not ( ISSUE_READY_i = '0' and complete_w.valid = '1' )
+                     report "STACK_UNIT: COMPLETE avant l'acceptation de l'émission"
+                     severity failure;
+                  -- pragma translate_on
                   if ISSUE_READY_i = '1' then
                      state_s <= ST_WAIT_EXEC;
+                     if complete_w.valid = '1' then
+                        -- Terminaison dans le cycle d'émission (V3).
+                        if fast_s = '0' then
+                           -- Chemin lent : commit (ports de lecture) en ST_WAIT_EXEC.
+                           complete_q_s <= complete_w;
+                        elsif complete_w.fault.valid = '1' then
+                           commit_s <= ( valid => '1', slot => slot_s, fault => complete_w.fault,
+                                         taken => complete_w.taken, target => complete_w.target );
+                           state_s <= ST_FAULT_HOLD;
+                        else
+                           fast_commit_v := true;
+                        end if;
+                     end if;
                   end if;
 
                when ST_WAIT_EXEC =>
@@ -1214,41 +1255,15 @@ begin
                      maint_return_exec_s  <= '1';
                      state_s              <= ST_MAINT_SCAN;
 
-                  elsif complete_w.valid = '1' then
-                     if complete_w.fault.valid = '1' then
-                        commit_s <= ( valid => '1', slot => slot_s, fault => complete_w.fault,
-                                      taken => complete_w.taken, target => complete_w.target );
+                  elsif cpl.valid = '1' then
+                     complete_q_s.valid <= '0';
+                     if cpl.fault.valid = '1' then
+                        commit_s <= ( valid => '1', slot => slot_s, fault => cpl.fault,
+                                      taken => cpl.taken, target => cpl.target );
                         state_s <= ST_FAULT_HOLD;
                      elsif fast_s = '1' then
-                        -- Commit d'une instruction du chemin rapide (STACK_LINEAR) :
-                        -- invalidations décidées à la prise (sources dépilées, copies
-                        -- recouvertes par un rangement direct), puis résultat. Aucun
-                        -- port de lecture : ils servent à la prise suivante (chain_s).
-                        for j in 0 to 3 loop
-                           if cp_inv_en_s( j ) = '1' then
-                              cells_s( cp_inv_idx_s( j ) ).valid <= '0';
-                              cells_s( cp_inv_idx_s( j ) ).dirty <= '0';
-                           end if;
-                        end loop;
-                        frame_s.dsp <= new_dsp_s;
-                        if destination_valid_s = '1' then
-                           -- pragma translate_off
-                           assert complete_w.result_valid = '1'
-                              report "STACK_UNIT: resultat attendu mais absent"
-                              severity failure;
-                           -- pragma translate_on
-                           idx := WIDX( destination_address_s );
-                           cells_s( idx ) <= ( valid => '1', dirty => '1',
-                                               addr => CUT( destination_address_s ),
-                                               data => complete_w.result );
-                        end if;
-                        commit_s <= ( valid => '1', slot => slot_s, fault => NO_FAULT,
-                                      taken => complete_w.taken, target => complete_w.target );
-                        if entry_s.control and MISPREDICTED( slot_s, complete_w ) then
-                           state_s <= ST_MISPRED_HOLD;
-                        else
-                           state_s <= ST_IDLE;
-                        end if;
+                        -- Commit du chemin rapide : après le case (fast_commit_v).
+                        fast_commit_v := true;
 
                      else
                         -- Un rangement direct lvl=0..14 est le seul accès mémoire du
@@ -1365,14 +1380,14 @@ begin
 
                            if entry_s.pushes = 1 then
                               -- pragma translate_off
-                              assert complete_w.result_valid = '1'
+                              assert cpl.result_valid = '1'
                                  report "STACK_UNIT: resultat attendu mais absent"
                                  severity failure;
                               -- pragma translate_on
                               idx := WIDX( destination_address_s );
                               cells_s( idx ) <= ( valid => '1', dirty => '1',
                                                   addr => CUT( destination_address_s ),
-                                                  data => complete_w.result );
+                                                  data => cpl.result );
                            end if;
 
                         elsif entry_s.stack_action = STACK_KEEP_TOP then
@@ -1381,8 +1396,8 @@ begin
                         end if;
 
                         commit_s <= ( valid => '1', slot => slot_s, fault => NO_FAULT,
-                                      taken => complete_w.taken, target => complete_w.target );
-                        if entry_s.control and MISPREDICTED( slot_s, complete_w ) then
+                                      taken => cpl.taken, target => cpl.target );
+                        if entry_s.control and MISPREDICTED( slot_s, cpl ) then
                            state_s <= ST_MISPRED_HOLD;
                         else
                            state_s <= ST_IDLE;
@@ -1533,6 +1548,42 @@ begin
                   end if;
 
             end case;
+
+            -------------------------------------------------------------------------
+            -- Commit d'une instruction du chemin rapide (STACK_LINEAR), en
+            -- ST_WAIT_EXEC ou dès ST_ISSUE (V3) : invalidations décidées à la prise
+            -- (sources dépilées, copies recouvertes par un rangement direct), puis
+            -- résultat. Aucun port de lecture : ils servent à la prise suivante
+            -- (chain_s), qui suit ce bloc et en remplace state_s.
+            -------------------------------------------------------------------------
+
+            if fast_commit_v then
+               for j in 0 to 3 loop
+                  if cp_inv_en_s( j ) = '1' then
+                     cells_s( cp_inv_idx_s( j ) ).valid <= '0';
+                     cells_s( cp_inv_idx_s( j ) ).dirty <= '0';
+                  end if;
+               end loop;
+               frame_s.dsp <= new_dsp_s;
+               if destination_valid_s = '1' then
+                  -- pragma translate_off
+                  assert cpl.result_valid = '1'
+                     report "STACK_UNIT: resultat attendu mais absent"
+                     severity failure;
+                  -- pragma translate_on
+                  idx := WIDX( destination_address_s );
+                  cells_s( idx ) <= ( valid => '1', dirty => '1',
+                                      addr => CUT( destination_address_s ),
+                                      data => cpl.result );
+               end if;
+               commit_s <= ( valid => '1', slot => slot_s, fault => NO_FAULT,
+                             taken => cpl.taken, target => cpl.target );
+               if entry_s.control and MISPREDICTED( slot_s, cpl ) then
+                  state_s <= ST_MISPRED_HOLD;
+               else
+                  state_s <= ST_IDLE;
+               end if;
+            end if;
 
             -------------------------------------------------------------------------
             -- Prise d'une instruction : en ST_IDLE, ou au cycle d'un commit du

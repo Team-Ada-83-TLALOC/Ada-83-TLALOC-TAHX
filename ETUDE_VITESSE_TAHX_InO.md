@@ -209,6 +209,29 @@ Recommandation : (a) d'abord pour mesurer, (b) avant la prochaine passe d'implan
 
 Gain : ≈ 0,58 M cycles.
 
+**Réalisé (22 octobre), variante (a)** : la `stack_unit` n'absorbe pas d'unité d'exécution (macros déjà lourdes ; un découpage futur en macros plus petites est préféré).
+
+- `INO_INTEGER_UNIT` et `INO_BRANCH_UNIT` : COMPLETE combinatoire pendant le cycle d'émission (`ISSUE_VALID_i`), plus de registre de sortie ; contrôles de simulation inchangés.
+- `INO_BACKEND_MEMORY`, FAST_PIPE : la réponse du cache devient COMPLETE dans son propre cycle (`FAST_COMPLETE`, combinatoire) ; un LD direct qui réussit dans le cache termine donc en ST_WAIT_EXEC, un cycle après son émission.
+- `STACK_UNIT` : en ST_ISSUE, une instruction du chemin rapide dont COMPLETE arrive avec ISSUE_READY commite dans ce cycle et la suivante est prise (`chain_s` étendu à ST_ISSUE, vue d'après commit `chain_view` aussi) ; le commit du chemin rapide est devenu un bloc commun après le `case` (`fast_commit_v`), appelé de ST_ISSUE et de ST_WAIT_EXEC. Une instruction du chemin lent (CALL, LVA, entier dont une source a manqué…) dont COMPLETE arrive en ST_ISSUE l'enregistre (`complete_q_s`) et la traite en ST_WAIT_EXEC au cycle suivant (`cpl`), avec ses ports de lecture : même minutage qu'avant V3.
+- Bancs : L1 et L3 vérifient COMPLETE pendant le cycle d'émission, puis son retour à 0 ; K1c et K2 n'attendent plus le cycle supplémentaire ; K2c et K2d font moins de vérifications « pas de nouvelle prise pendant l'exécution » (un tour de boucle de moins par instruction). K1e : l'exécuteur termine une fois sur deux l'entier, MUL et les branches dans le cycle d'émission (1 786 fois) ; ses attentes finales sont bornées. Mutations détectées : terminaison du chemin lent non enregistrée en ST_ISSUE (le programme se bloque), ST_ISSUE oublié dans la vue d'après commit.
+
+| banc | cycles V2 | cycles V3 | IPC V2 | IPC V3 (modèle) |
+|---|---|---|---|---|
+| B_APPELS | 284 186 | 240 115 | 0,224 | 0,265 (0,252) |
+| B_ARBRE | 494 505 | 433 769 | 0,198 | 0,225 (0,225) |
+| B_CHAINES | 600 165 | 517 259 | 0,222 | 0,258 (0,261) |
+| B_CRIBLE | 467 392 | 381 262 | 0,259 | 0,317 (0,324) |
+| B_EXPR | 431 463 | 376 924 | 0,235 | 0,269 (0,278) |
+| B_FLOTTANT | 347 936 | 296 697 | 0,218 | 0,255 (0,265) |
+| B_MATRICE | 689 191 | 592 160 | 0,228 | 0,265 (0,265) |
+| B_TRI | 518 156 | 441 034 | 0,233 | 0,274 (0,278) |
+| **total** | **3 832 994** | **3 279 220** | **0,227** | **0,265 (0,268)** |
+
+−14,4 % de cycles (×1,17 ; ×1,69 depuis le départ). Latences : BT 2 → 1, ADD 2,3 → 1,3, LI 2,2 → 1,35, LD [B16] 3,9 → 2,9, LQ [B16] 3,6 → 2,7. Le frontal commence à se voir : la famine après un transfert pris bien prédit passe de 3 983 à 13 444 cycles (5 426 épisodes de 2,5 cycles), encore 0,4 % des cycles.
+
+À l'implantation : nouveaux chemins combinatoires entre macros, ISSUE (registres de la `stack_unit`) → unité entière ou de branchement (`ino_execute`) → COMPLETE → commit, `chain_s` et prise enchaînée (`stack_unit`) → DECODE_TAKE (`ino_decode_queue`) ; et sortie SRAM du cache → RSP (`ino_data_cache`) → FAST_COMPLETE (`ino_execute`) → commit (`stack_unit`). Trois frontières de macro dans un cycle : budgets d'entrée/sortie à fixer dans les SDC, puis vérification au niveau puce.
+
 ### V4 — Chemins rapides pour les accès restants
 
 - **Famille C (LID, LIQ, ULIB…)** : au moment de la prise, tester la cellule pointeur (8 octets) avec les ports déjà utilisés pour les accès directs (fin de ST_PREPARE et ST_COH_SCAN) ; émettre directement la requête du pointeur (sans le registre de M1 ni ST_DISPATCH) ; dans le cycle de réponse du pointeur, ajouter `ofs` et lancer la requête de donnée (suppose le cache pipeliné de V1).

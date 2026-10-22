@@ -294,11 +294,9 @@ begin
          PRESENT( s );
          CHECK_ISSUE( s.canon.op, noperand, operand0, operand1 );
 
-         -- L'instruction observée pendant ST_ISSUE est acceptée au prochain front.
-         -- Après ce front, INO_INTEGER_UNIT présente COMPLETE pendant un cycle.
-         wait until rising_edge( clk );
-         wait for 1 ns;
-
+         -- L'instruction observée pendant ST_ISSUE est acceptée au prochain front ;
+         -- INO_INTEGER_UNIT présente COMPLETE pendant ce même cycle (V3, terminaison
+         -- dans le cycle d'émission).
          CHECK( c, complete.valid = '1', "COMPLETE.valid" );
          CHECK( c, complete.fault.valid = expected_fault.valid,
                 "COMPLETE.fault.valid",
@@ -314,7 +312,7 @@ begin
                    "résultat INTEGER", HEX( expected_result ), HEX( complete.result ) );
          end if;
 
-         -- STACK_UNIT consomme COMPLETE au front suivant et produit COMMIT.
+         -- STACK_UNIT consomme COMPLETE à ce front et produit COMMIT.
          wait until rising_edge( clk );
          wait for 1 ns;
 
