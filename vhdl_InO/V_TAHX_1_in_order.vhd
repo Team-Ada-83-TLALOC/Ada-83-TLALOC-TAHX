@@ -72,9 +72,9 @@ of TAHX_1 is                    --------
    signal exec_mem_req         : mem_request_t;
    signal exec_mem_rsp         : mem_response_t;
 
-   signal dc_req               : mem_request_bus_t( 0 to 1 );
+   signal dc_req               : mem_request_bus_t( 0 to 1 );   -- observation (N3)
    signal dc_ready             : std_logic_vector( 0 to 1 );
-   signal dc_rsp               : mem_response_bus_t( 0 to 1 );
+   signal dc_d_addr            : paddr_t;
 
    signal halted               : std_logic;
 
@@ -165,22 +165,28 @@ U_CORE :
          BOUNDARY_VALID_o => boundary_valid, BOUNDARY_PC_o => boundary_pc );
 
    -----------------------------------------------------------------------------
-   -- Cache de donnees commun. Deux ports suffisent au coeur InO.
+   -- Cache de donnees commun (macro INO_DATA_CACHE, adresses physiques). Deux
+   -- ports suffisent au coeur InO. Les requetes de STACK_UNIT sont realisables
+   -- (TO_PA exact) ; celles du port d'execution passent par TO_PA_EXEC (bit
+   -- outside). La memoire recoit des mots de 64 bits alignes.
    -----------------------------------------------------------------------------
 
+   -- Requetes vues a l'entree du cache, en adresses de 64 bits : lues par la
+   -- plateforme de test N3 (console), sans charge en materiel.
    dc_req( 0 ) <= stack_mem_req;
    dc_req( 1 ) <= exec_mem_req;
-   stack_mem_rsp <= dc_rsp( 0 );
-   exec_mem_rsp  <= dc_rsp( 1 );
 
-   U_DATA_CACHE : entity work.DATA_CACHE(IN_ORDER)
-      generic map ( PORTS_G => 2 )
+   U_DATA_CACHE : entity work.INO_DATA_CACHE(STRUCTURE)
       port map (
          CLK_i => CLK_i, RESET_i => RESET_i,
-         REQ_i => dc_req, READY_o => dc_ready, RSP_o => dc_rsp,
-         D_REQ_o => D_REQ_o, D_WRITE_o => D_WRITE_o, D_ADDR_o => D_ADDR_o, D_SIZE_o => D_SIZE_o,
-         D_WDATA_o => D_WDATA_o, D_WSTRB_o => D_WSTRB_o,
+         STACK_REQ_i => TO_PA( stack_mem_req ), STACK_READY_o => dc_ready( 0 ), STACK_RSP_o => stack_mem_rsp,
+         EXEC_REQ_i => TO_PA_EXEC( exec_mem_req ), EXEC_READY_o => dc_ready( 1 ), EXEC_RSP_o => exec_mem_rsp,
+         D_REQ_o => D_REQ_o, D_WRITE_o => D_WRITE_o, D_ADDR_o => dc_d_addr, D_WDATA_o => D_WDATA_o,
          D_READY_i => D_READY_i, D_RVALID_i => D_RVALID_i, D_RDATA_i => D_RDATA_i, D_FAULT_i => D_FAULT_i );
+
+   D_ADDR_o  <= TO_VA( dc_d_addr );
+   D_SIZE_o  <= "11";
+   D_WSTRB_o <= ( others => '1' );
 
    -- pragma translate_off
    CHECK : process( CLK_i )
@@ -188,6 +194,9 @@ U_CORE :
       if rising_edge( CLK_i ) then
          assert not ( recovery.valid = '1' and dq_take /= 0 )
             report "TAHX_1(IN_ORDER) : retrait DECODE_QUEUE pendant une reprise" severity failure;
+         assert not ( stack_mem_req.valid = '1' and not PA_OK( stack_mem_req.address ) )
+            report "TAHX_1(IN_ORDER) : requete STACK_UNIT non realisable vers INO_DATA_CACHE"
+            severity failure;
          -- TO_PA( fe_block ) est exact : le frontal ne presente que des adresses
          -- realisables (CUT dans branch_predict).
          if fe_valid = '1' then

@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_backend_excm
          synth -top ino_backend_excm -noshare
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -115,9 +115,9 @@ Removed a total of 10 cells.
 Running muxtree optimizer on module \ino_backend_excm..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
-      Replacing known input bits on port B of cell \80842: \excm_maint_s -> { \excm_maint_s [130:1] 1'1 }
-      Replacing known input bits on port B of cell \80844: \excm_mem_req_s -> { \excm_mem_req_s [132:1] 1'1 }
-      Replacing known input bits on port B of cell \80846: \excm_complete_s -> { \excm_complete_s [139:1] 1'1 }
+      Replacing known input bits on port B of cell \81133: \excm_maint_s -> { \excm_maint_s [130:1] 1'1 }
+      Replacing known input bits on port B of cell \81135: \excm_mem_req_s -> { \excm_mem_req_s [132:1] 1'1 }
+      Replacing known input bits on port B of cell \81137: \excm_complete_s -> { \excm_complete_s [139:1] 1'1 }
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
 <suppressed ~6 debug messages>
@@ -223,8 +223,8 @@ Optimizing module ino_backend_excm.
 3.8.9. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 1 bits (of 8) from port B of cell ino_backend_excm.\80749 ($eq).
-Removed top 1 bits (of 8) from port B of cell ino_backend_excm.\80751 ($eq).
+Removed top 1 bits (of 8) from port B of cell ino_backend_excm.\81040 ($eq).
+Removed top 1 bits (of 8) from port B of cell ino_backend_excm.\81042 ($eq).
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
 
@@ -638,6 +638,6 @@ Finding unused cells or wires in module \ino_backend_excm..
 Removed 0 unused cells and 1243 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: e4718fc4a0, CPU: user 0.82s system 0.03s, MEM: 111.78 MB peak
+End of script. Logfile hash: 72591709a4, CPU: user 0.78s system 0.04s, MEM: 112.52 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 51% 2x read_rtlil (0 sec), 18% 2x abc (0 sec), ...
+Time spent: 51% 2x read_rtlil (0 sec), 17% 2x abc (0 sec), ...

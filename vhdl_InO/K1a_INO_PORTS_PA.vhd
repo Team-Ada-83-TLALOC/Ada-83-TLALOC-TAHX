@@ -130,6 +130,8 @@ package INO_PORTS_PA is
       wdata     : word64_t;
    end record;
 
+   type exec_mem_request_pa_bus_t is array ( natural range <> ) of exec_mem_request_pa_t;
+
    function TO_PA_EXEC( r : mem_request_t ) return exec_mem_request_pa_t;
    function TO_VA( r : exec_mem_request_pa_t ) return mem_request_t;
 

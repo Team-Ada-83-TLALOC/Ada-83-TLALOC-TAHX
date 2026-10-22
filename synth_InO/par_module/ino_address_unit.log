@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e decode_bloc fexp_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram64_256 ino_complex_unit ino_core_system_16_8 ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict decode_bloc fexp_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_address_unit
          synth -top ino_address_unit -noshare
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -210,8 +210,8 @@ Finding identical cells in module `\ino_address_unit'.
 Removed a total of 0 cells.
 
 3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on \116322 ($dff) from module ino_address_unit (D = $auto$ghdl.cc:806:import_module$71186 [0], Q = \result_s [0], rval = 1'0).
-Adding SRST signal on \116322 ($dff) from module ino_address_unit (D = { $auto$ghdl.cc:806:import_module$71185 $auto$ghdl.cc:806:import_module$71169 \issue_i.slot }, Q = \result_s [335:1], rval = 335'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on \117881 ($dff) from module ino_address_unit (D = $auto$ghdl.cc:806:import_module$71512 [0], Q = \result_s [0], rval = 1'0).
+Adding SRST signal on \117881 ($dff) from module ino_address_unit (D = { $auto$ghdl.cc:806:import_module$71511 $auto$ghdl.cc:806:import_module$71495 \issue_i.slot }, Q = \result_s [335:1], rval = 335'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
 
 3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_address_unit..
@@ -250,14 +250,14 @@ Optimizing module ino_address_unit.
 3.8.16. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 29 bits (of 32) from port A of cell ino_address_unit.\116280 ($sub).
-Removed top 31 bits (of 32) from port B of cell ino_address_unit.\116280 ($sub).
-Removed top 28 bits (of 32) from port Y of cell ino_address_unit.\116280 ($sub).
-Removed top 31 bits (of 32) from port A of cell ino_address_unit.\116290 ($eq).
-Removed top 30 bits (of 32) from port A of cell ino_address_unit.\116298 ($eq).
-Removed top 30 bits (of 32) from port A of cell ino_address_unit.\116306 ($eq).
-Removed top 335 bits (of 336) from mux cell ino_address_unit.\116316 ($mux).
-Removed top 335 bits (of 336) from wire ino_address_unit.$auto$ghdl.cc:806:import_module$71186.
+Removed top 29 bits (of 32) from port A of cell ino_address_unit.\117839 ($sub).
+Removed top 31 bits (of 32) from port B of cell ino_address_unit.\117839 ($sub).
+Removed top 28 bits (of 32) from port Y of cell ino_address_unit.\117839 ($sub).
+Removed top 31 bits (of 32) from port A of cell ino_address_unit.\117849 ($eq).
+Removed top 30 bits (of 32) from port A of cell ino_address_unit.\117857 ($eq).
+Removed top 30 bits (of 32) from port A of cell ino_address_unit.\117865 ($eq).
+Removed top 335 bits (of 336) from mux cell ino_address_unit.\117875 ($mux).
+Removed top 335 bits (of 336) from wire ino_address_unit.$auto$ghdl.cc:806:import_module$71512.
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
 
@@ -268,12 +268,12 @@ Removed 0 unused cells and 1 unused wires.
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_address_unit:
-  creating $macc model for \116271 ($add).
-  creating $macc model for \116280 ($sub).
-  creating $alu model for $macc \116280.
-  creating $alu model for $macc \116271.
-  creating $alu cell for \116271: $auto$alumacc.cc:485:replace_alu$71995
-  creating $alu cell for \116280: $auto$alumacc.cc:485:replace_alu$71998
+  creating $macc model for \117830 ($add).
+  creating $macc model for \117839 ($sub).
+  creating $alu model for $macc \117839.
+  creating $alu model for $macc \117830.
+  creating $alu cell for \117830: $auto$alumacc.cc:485:replace_alu$72321
+  creating $alu cell for \117839: $auto$alumacc.cc:485:replace_alu$72324
   created 2 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -657,8 +657,8 @@ ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
 ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
-ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
-ABC: Memory =    2.86 MB. Time =     0.02 sec
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
+ABC: Memory =    2.86 MB. Time =     0.01 sec
 ABC: + strash 
 ABC: + &get -n 
 ABC: + &fraig -x 
@@ -701,6 +701,6 @@ Finding unused cells or wires in module \ino_address_unit..
 Removed 0 unused cells and 1802 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: b40cd09a4a, CPU: user 1.06s system 0.03s, MEM: 111.55 MB peak
+End of script. Logfile hash: df33ed2a70, CPU: user 0.99s system 0.04s, MEM: 112.25 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 39% 2x read_rtlil (0 sec), 21% 2x abc (0 sec), ...
+Time spent: 40% 2x read_rtlil (0 sec), 21% 2x abc (0 sec), ...

@@ -106,8 +106,6 @@ $A J1_DECODE_QUEUE_in_order.vhd
 
 # Cache de donnees commun.
 $A ../vhdl/M3_DATA_CACHE.vhd
-$A M3a_INO_CACHE_RAM64.vhd
-$A M3_DATA_CACHE_in_order.vhd
 
 # Entite de sommet commune aux deux microarchitectures.
 $A ../vhdl/V_TAHX_1.vhd
@@ -118,6 +116,11 @@ $A ../vhdl/V_TAHX_1.vhd
 
 $A K1a__in_order_types.vhd
 $A K1a_INO_PORTS_PA.vhd
+$A M3a_INO_CACHE_RAM1P.vhd
+$A M3b_INO_DCACHE_CORE.vhd
+$A M3_DATA_CACHE_in_order.vhd
+$A M3c_INO_DATA_CACHE.vhd
+$A M3c_INO_DATA_CACHE_structure.vhd
 
 # File de decodage InO a ports reduits (ports en INO_PORTS_PA).
 $A J1b_INO_DECODE_QUEUE.vhd

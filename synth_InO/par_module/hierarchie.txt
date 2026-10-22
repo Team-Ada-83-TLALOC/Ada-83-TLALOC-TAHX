@@ -3,18 +3,20 @@
 
 === TAHX_1 ===
 
-   Number of wires:                125
-   Number of wire bits:           8750
-   Number of public wires:          53
-   Number of public wire bits:    4335
+   Number of wires:                131
+   Number of wire bits:           8345
+   Number of public wires:          52
+   Number of public wire bits:    3969
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:                  8
-     $mux                            2
+   Number of cells:                 11
+     $eq                             1
+     $mux                            3
      $ne                             1
-     data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e      1
+     $not                            1
      ino_core_system_16_8            1
+     ino_data_cache                  1
      ino_decode_queue                1
      ino_frontend_control            1
      instruction_unit                1
@@ -45,35 +47,6 @@
      $sub                           25
      $xor                            3
      ino_pred_table2_2r_1024         1
-
-=== data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e ===
-
-   Number of wires:              28121
-   Number of wire bits:          70349
-   Number of public wires:          45
-   Number of public wire bits:    6067
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:              28076
-     $add                           39
-     $and                        15154
-     $dff                           19
-     $div                            6
-     $eq                            25
-     $ge                             4
-     $gt                             3
-     $le                             1
-     $lt                            23
-     $modfloor                      14
-     $mul                            2
-     $mux                        12520
-     $not                          156
-     $or                             2
-     $pmux                          20
-     $shl                            1
-     $sub                           67
-     ino_cache_ram64_256            20
 
 === decode_bloc ===
 
@@ -329,18 +302,37 @@
      $pmux                         160
      $sub                            1
 
-=== ino_cache_ram64_256 ===
+=== ino_cache_ram1p_48_256 ===
 
-   Number of wires:                  9
-   Number of wire bits:          16595
+   Number of wires:                155
+   Number of wire bits:          12684
    Number of public wires:           7
-   Number of public wire bits:     147
-   Number of memories:               1
-   Number of memory bits:        16384
+   Number of public wire bits:     155
+   Number of memories:              48
+   Number of memory bits:        12288
    Number of processes:              0
-   Number of cells:                  2
-     $memrd_v2                       1
-     $memwr_v2                       1
+   Number of cells:                148
+     $and                           49
+     $dff                            1
+     $memrd_v2                      48
+     $memwr_v2                      48
+     $mux                            2
+
+=== ino_cache_ram1p_64_1024 ===
+
+   Number of wires:                203
+   Number of wire bits:          66062
+   Number of public wires:           7
+   Number of public wire bits:     205
+   Number of memories:              64
+   Number of memory bits:        65536
+   Number of processes:              0
+   Number of cells:                196
+     $and                           65
+     $dff                            1
+     $memrd_v2                      64
+     $memwr_v2                      64
+     $mux                            2
 
 === ino_complex_unit ===
 
@@ -385,6 +377,48 @@
      ino_execute                     1
      ino_system                      1
      stack_unit_16_8                 1
+
+=== ino_data_cache ===
+
+   Number of wires:                 40
+   Number of wire bits:           1074
+   Number of public wires:          34
+   Number of public wire bits:     842
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                  1
+     ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e      1
+
+=== ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ===
+
+   Number of wires:              28132
+   Number of wire bits:          60382
+   Number of public wires:          46
+   Number of public wire bits:    3941
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:              28086
+     $add                           50
+     $and                        15148
+     $dff                           19
+     $div                            9
+     $eq                            24
+     $ge                             4
+     $gt                             3
+     $le                             1
+     $lt                            24
+     $modfloor                       9
+     $mul                            7
+     $mux                        12527
+     $not                          171
+     $or                             1
+     $pmux                          29
+     $shl                            1
+     $sub                           53
+     ino_cache_ram1p_48_256          2
+     ino_cache_ram1p_64_1024         4
 
 === ino_decode_predict ===
 
@@ -788,8 +822,6 @@
 === design hierarchy ===
 
    TAHX_1                            1
-     data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e      1
-       ino_cache_ram64_256          20
      ino_core_system_16_8            1
        ino_execute                   1
          ino_backend_excm            1
@@ -811,6 +843,10 @@
        ino_system                    1
          ino_system_unit             1
        stack_unit_16_8               1
+     ino_data_cache                  1
+       ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e      1
+         ino_cache_ram1p_48_256      2
+         ino_cache_ram1p_64_1024      4
      ino_decode_queue                1
        ino_decode_queue_ram207_2_143      4
      ino_frontend_control            1
@@ -826,40 +862,40 @@
            ino_fetch_ram_1r_32_512      1
            ino_fetch_ram_1r_64_512      4
 
-   Number of wires:              62760
-   Number of wire bits:         1220861
-   Number of public wires:        1609
-   Number of public wire bits:   94754
-   Number of memories:              38
-   Number of memory bits:       547960
+   Number of wires:              63759
+   Number of wire bits:         1169279
+   Number of public wires:        1545
+   Number of public wire bits:   91294
+   Number of memories:             370
+   Number of memory bits:       507000
    Number of processes:              0
-   Number of cells:              60684
-     $add                          383
-     $and                        24536
+   Number of cells:              61751
+     $add                          394
+     $and                        24888
      $assert                        10
-     $dff                          226
-     $div                           16
+     $dff                          232
+     $div                           19
      $eq                          2291
      $ge                            68
      $gt                           101
      $le                            69
-     $lt                           870
+     $lt                           871
      $meminit_v2                     8
-     $memrd_v2                      39
-     $memwr_v2                      30
-     $modfloor                      14
-     $mul                           37
-     $mux                        28805
+     $memrd_v2                     371
+     $memwr_v2                     362
+     $modfloor                       9
+     $mul                           42
+     $mux                        28825
      $ne                            71
      $neg                           27
-     $not                          892
-     $or                           980
-     $pmux                         568
+     $not                          908
+     $or                           979
+     $pmux                         577
      $reduce_and                    18
      $reduce_or                     78
      $shl                           27
      $shr                           14
      $sshr                           1
-     $sub                          485
+     $sub                          471
      $xor                           20
 

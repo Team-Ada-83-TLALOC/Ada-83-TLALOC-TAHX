@@ -1,6 +1,6 @@
-# TAHX_InO vers le silicium — fiche de passation (mise à jour du 19 octobre 2026)
+# TAHX_InO vers le silicium — fiche de passation (mise à jour du 21 octobre 2026)
 
-Suite de la fiche `PASSATION.md` (septembre 2026, phase codi_HX / exécuteur HX). Cette fiche couvre la phase **implantation physique** du processeur TAHX en ordre (InO) : réduction de surface, réduction des broches, macros LibreLane (`stack_unit`, `ino_decode_queue`, `ino_decode_predict`, `ino_fetch` terminées ; `ino_execute` en cours).
+Suite de la fiche `PASSATION.md` (septembre 2026, phase codi_HX / exécuteur HX). Cette fiche couvre la phase **implantation physique** du processeur TAHX en ordre (InO) : réduction de surface, réduction des broches, macros LibreLane (`stack_unit`, `ino_decode_queue`, `ino_decode_predict`, `ino_fetch`, `ino_execute`, `ino_system` terminées ; `ino_data_cache` à router).
 
 ## 1. Cadre de travail (règles convenues)
 
@@ -27,7 +27,7 @@ Hiérarchie `TAHX_1(IN_ORDER)` (`V_TAHX_1_in_order.vhd`), découpée en macros :
 - **`INO_DECODE_QUEUE`** (`J1b_*`) ;
 - `INO_CORE_SYSTEM` (K8) : **`STACK_UNIT`**, **`INO_EXECUTE`** (`K7b_*` : `INO_BACKEND_EXCM`, qui contient K2…K6 et L1…L7, M1, M2), `INO_SYSTEM_UNIT` (S1) ;
 - `INO_FRONTEND_CONTROL` (K9, petite logique de niveau puce) ;
-- `DATA_CACHE(IN_ORDER)` à 2 ports (0 : stack_unit ; 1 : exécution, système ou backend multiplexés).
+- **`INO_DATA_CACHE`** (`M3c_*`, autour de `INO_DCACHE_CORE`, `M3b_*`) à 2 ports (0 : stack_unit ; 1 : exécution, système ou backend multiplexés), 6 SRAM ; `DATA_CACHE(IN_ORDER)` n'en est plus que l'enveloppe en adresses de 64 bits (bancs M3, M3b).
 
 Une seule instruction en vol. La `stack_unit` décode, lit les opérandes dans son cache de pile, émet vers le backend ou la `system_unit`, et commite.
 
@@ -54,7 +54,7 @@ Mesures par module (sg13g2, µm²) : stack_unit 721 685 ; data_cache 420 074 ; s
   - system_unit : BOOT/FAULT/IRQ → HALT_DELIVERY ; TRAP/CTX_RESTORE/RTX/EXC_RAISE → FAULT_ACCESS ; `FRAME_OK`.
 - Le frontal (fetch, branch_predict, decode_queue) travaille en 32 bits ; la decode_queue range les slots sur `PACKED_W = 79 + 2·PA_BITS = 143` bits.
 
-### Étapes 5 à 20
+### Étapes 5 à 23
 
 | Étape | Contenu | Résultat |
 |---|---|---|
@@ -77,6 +77,7 @@ Mesures par module (sg13g2, µm²) : stack_unit 721 685 ; data_cache 420 074 ; s
 | 20b | `extraire_units.sh`, bloc ino_execute : `chformal -remove` (les `assert` de l'unité flottante et de `ieee.float_pkg` deviennent des cellules `$assert`, refusées par LibreLane : « Unmapped Yosys instances ») et `setundef -zero` (Classfp teste `Is_X`, que GHDL rend par une constante `'z'` ; refusée par le lint Verilator) | sans effet sur le matériel |
 | 21 | `INO_FLOAT_UNIT` (`L4_INO_FLOAT_UNIT_rtl.vhd`) : (1) FDIV séquentiel. `divide` de float_pkg faisait une division restaurante combinatoire de 57 pas (≈ 230 ns, WNS −136 ns sur `ino_execute`) ; désormais `DIV_PREP` (cas particuliers, mantisses alignées, comme `divide` avant `short_divide`), 4 pas par cycle pendant 15 cycles (`DIV_STEP`), arrondi `normalize` au dernier cycle (`DIV_FINAL`). (2) L'instruction émise est rangée (`issue_q_s`) et le calcul se fait au premier cycle d'ATTENTE : chemin interne d'un cycle entier, sans le temps d'arrivée par `ISSUE_i`. Latences inchangées (3/4/5/20). Banc `L4b_INO_FDIV` : 6000 divisions comparées à l'ancien `divide`, bit pour bit (échoue si l'on casse le bit sticky) | cycles inchangés ; unité flottante (synthèse, coin typique, sans fils) 0,484 → **0,345 mm²**, chemin le plus long 48,5 ns |
 | 22 | Entité `INO_SYSTEM` (`S1c_*`) : INO_SYSTEM_UNIT avec ports d'adresse physiques. ISSUE en `sys_issue_pa_t` (`K1a` : opcode, val, longueur, pc, opérande 0 — les seuls champs lus ; `TO_SYS`/`TO_VA`), `paddr_t` pour FAULT_PC, BOUNDARY_PC, FRAME_DSP/RSP, DISP, REDIRECT_PC, SYNC_DSP/RSP, DISP_WDATA, FPC (coupés par CUT dans la system_unit : exact), COMPLETE en `complete_pa_t`, requête mémoire en `exec_mem_request_pa_t`. K8 relie directement les sorties PA de STACK_UNIT et contrôle la classe des instructions système. Banc `K8b_EXECUTE_PA` étendu : CTX_SAVE vers 2**32 + 8 (faute 132, rien d'écrit en 8 ; échoue si la requête système est tronquée). `extraire_units.sh` : ino_system | cycles inchangés ; system_unit 2498 → **1721** broches |
+| 23 | Cache de données en adresses physiques et en SRAM 1P plus grandes. `INO_DCACHE_CORE` (`M3b_*`, générique : ports, taille, voies, règle de validité) : requêtes en `exec_mem_request_pa_t` (bit `outside` : faute 132), `D_ADDR_o` en `paddr_t` ; données en une RAM par voie, (ensembles × 4) × 64, adresse = ensemble·4 + mot (on lit le mot utile des 4 voies) ; tags de 19 bits, deux voies par RAM 256 × 48 (champs de 24 bits, écriture par masque de bits) ; store par masque d'octets (plus de lecture-modification-écriture) ; réécriture d'une victime mot par mot (mot 0 lu en PARTIE, mot k + 1 lu au front qui accepte le mot k) : mêmes cycles. RAM `INO_CACHE_RAM1P` (`M3a_*`, contrat des SRAM IHP 1P : un port, masque de bits, sortie tenue) ; wrappers `ino_cache_ram1p_{64_1024,48_256}_ihp.v`. Macro `INO_DATA_CACHE` (`M3c_*`, sans générique) : ports STACK (`mem_request_pa_t`), EXEC (`exec_mem_request_pa_t`), D_* (D_SIZE et D_WSTRB constants, fixés par TAHX_1). `DATA_CACHE(IN_ORDER)` devient une enveloppe (`TO_PA_EXEC`). `extraire_data_cache.sh` ; `prepare_IHP.sh`, `mesure_par_module.sh` et `synth_data_cache.sh` mis à jour | cycles inchangés ; SRAM 20 × 1P 256×64 (1,86 mm²) → **4 × 1P 1024×64 + 2 × 1P 256×48 (1,20 mm²)** ; logique (synthèse) **0,38 mm²** ; **504** broches |
 
 Points de conception à retenir :
 
@@ -118,7 +119,7 @@ Les 39 tests unitaires de `LISTE` et N3 passent (48 tests avec les B_*, environ 
 
 Chez l'utilisateur : `~/tahx_pnr/macros/<macro>/` (hors dépôt), une macro par dossier (`config.yaml`, `pin_order.cfg`, `src/`). LibreLane 3.0.0rc0, flot Classic, PDK `ihp-sg13cmos5l` (couches de routage Metal2 à Metal4 et TopMetal1). Horloge 100 ns (10 MHz), SDC générique.
 
-### Macros terminées (19 octobre)
+### Macros terminées (21 octobre)
 
 | Macro | Boîte (µm) | Broches | Setup (slow) | Hold | DRC | Remarques |
 |---|---|---|---|---|---|---|
@@ -126,16 +127,18 @@ Chez l'utilisateur : `~/tahx_pnr/macros/<macro>/` (hors dépôt), une macro par 
 | `ino_decode_predict` | 800 × 1050 | 1025 | +13,1 ns | OK | 0 | chemin critique : `window_i` → `consumed_bytes_o` (décodage série de 4 instructions) |
 | `ino_decode_queue` | 350 × 800 | 727 | +54,9 ns | OK | 0 | |
 | `stack_unit_16_8` | 1645 × 1664 | 1513 | +33,6 ns | OK | 0 | boîte héritée d'un ancien état (`FP_CORE_UTIL` ignoré) : passer en `FP_SIZING: absolute` |
-| `ino_execute` | 1900 × 1700 (prévu) | 1595 | — | — | — | en cours (cellules ≈ 1,44 mm²) |
+| `ino_execute` | 1900 × 1700 | 1597 | +31,6 ns | +0,059 ns (fast) | 0 | cellules 1,38 mm² (44 %) ; 3 antennes restantes ; 597 slews au coin lent (fils jusqu'à 2,9 mm) ; 75 mW ; chute de tension 10,8 mV |
+| `ino_system` | 1645 × 520 | 1723 | +43,4 ns | +0,116 ns (fast) | 0 | cellules 0,39 mm² (49 %) ; 0 antenne ; 567 slews au coin lent ; 6,3 mW |
+| `ino_data_cache` | 1770 × 1330 (proposé) | 504 | — | — | — | à router : 4 SRAM 1P 1024×64 + 2 SRAM 1P 256×48, cellules ≈ 0,38 mm² |
 
 LEF abstraits : par OpenROAD (`read_db final/odb/<macro>.odb ; write_abstract_lef -bloat_occupied_layers <macro>.lef`), Magic ne fonctionnant pas avec cmos5l. Fait pour `ino_fetch` ; à faire pour les autres.
 
 ### Plan de masse (flot d'ouest en est)
 
 ```
-                                         DATA_CACHE (au nord, à faire)
+                                         DATA_CACHE (au nord)
 ino_fetch → ino_decode_predict → ino_decode_queue → stack_unit → ino_execute
-                                                    SYSTEM_UNIT (au sud, à faire)
+                                                    ino_system (au sud)
 ```
 
 `pin_order.cfg` en vigueur (côtés selon les voisins) :
@@ -164,14 +167,19 @@ ino_fetch → ino_decode_predict → ino_decode_queue → stack_unit → ino_exe
 - **Densité** : une densité basse n'aide que si la place libre est d'un seul tenant ; sur un plan morcelé, elle disperse la logique (fils longs). Garder `PL_ROUTABILITY_DRIVEN`.
 - **Arbre d'horloge avec macros** : OpenROAD fait un arbre séparé pour les broches CLK des macros. Avec `CTS_CLK_MAX_WIRE_LENGTH: 0` (défaut), un fil de 1 pF (slew 2,1 ns) le retardait de 1,3 ns : violations de hold aux entrées des SRAM. `CTS_CLK_MAX_WIRE_LENGTH: 300` et `CTS_DISTANCE_BETWEEN_BUFFERS: 300` règlent le problème.
 - **Lecture des échecs** : congestion du routage global (tableau final : Max H/V = pire dépassement local, Total Overflow = somme) ; cartes de congestion dans l'interface d'OpenROAD (`--flow OpenInOpenROAD`, *Heat Maps*, `gui::dump_heatmap`) ; rapport du routeur détaillé `<NN>-openroad-detailedrouting/<macro>.drc` (résumé par `analyser_drc.py`, livré) ; hold : `<NN>-openroad-stapostpnr/nom_fast_1p32V_m40C/min.rpt`.
-- **Extraction pour `ino_execute`** : `chformal -remove` et `setundef -zero` (étape 20b).
+- **Extraction pour `ino_execute` et `ino_system`** : `chformal -remove` et `setundef -zero` (étape 20b).
+- **Antennes** : `GRT_ANTENNA_REPAIR_ITERS: 6`, `GRT_ANTENNA_REPAIR_MARGIN: 20`, `DIODE_ON_PORTS: in`, et **`DIODE_CELL: sg13cmos5l_antennanp/A`** (le PDK ne donne pas la broche : sans elle, plantage `DIODE_CELL.split("/")` ; reprise par `--from Odb.PortDiodePlacement`). S'il reste des violations : marge plus forte, ou `RUN_HEURISTIC_DIODE_INSERTION: true` avec `HEURISTIC_ANTENNA_THRESHOLD` explicite (sans seuil, l'étape ne fait rien). Elles restent dans le GDS de la macro : à corriger avant l'assemblage.
+- **Slews** : fils de 2,5 à 6 mm dans les grandes macros ; `DESIGN_REPAIR_MAX_WIRE_LENGTH: 800` et `GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 800` pour le run final.
+- **SRAM 1P du cache** (1024×64 : 784,48 × 336,46 µm ; 256×48 : 596,48 × 118,78 µm) : même structure que la 2P (broches au bord sud en Metal2, alimentation Metal4) ; règle de grille en FS : y = k·0,48 − (H − 0,13).
+- **Noms dans `brut.il`** : le module de tête d'une élaboration garde sa casse (`INO_DATA_CACHE` élaboré seul), les sous-modules sont en minuscules (`ino_data_cache` dans `brut.il`, élaboré depuis TAHX_1) ; un module générique reçoit ses valeurs en suffixe (`ino_cache_ram1p_64_1024`).
 
 ## 6. Outils écrits pendant cette phase
 
 - `vhdl_InO/mesure_par_module.sh` (dans le dépôt) : élaboration unique, synthèse IHP de chaque module, les autres en boîte noire ; `-noshare` ; `ulimit` (MEM_GO, 16 Go par défaut) ; bilan multiplié par le nombre d'instances. `LIB` doit être le `.lib` des cellules standard.
 - `remonter_net.py` (livré à l'utilisateur) : remonte l'origine d'un net dans un netlist à plat (`python3 remonter_net.py netlist.nl.v _NET_ [profondeur]`). Il s'arrête sur un port ou une bascule et donne la sortance.
 - Livrés hors dépôt (dossier de macro) : `placer_sram.py` (bloc `instances` des 11 SRAM d'`ino_fetch`, y calés sur la grille), `analyser_drc.py` (résumé du rapport DRC du routeur : types, couches, nets, cases, position par rapport aux SRAM).
-- Dans le dépôt : `vhdl_InO/extraire_ino_fetch.sh` (Verilog d'`ino_fetch` avec ses SRAM) ; `vhdl_InO/extraire_units.sh` (Verilog des autres macros depuis `brut.il`).
+- Dans le dépôt : `vhdl_InO/extraire_ino_fetch.sh` (Verilog d'`ino_fetch` avec ses SRAM) ; `vhdl_InO/extraire_data_cache.sh` (Verilog d'`ino_data_cache` avec ses 6 SRAM) ; `vhdl_InO/extraire_units.sh` (Verilog des autres macros depuis `brut.il`).
+- Livrés hors dépôt pour `ino_data_cache` : `placer_sram.py` (deux blocs `instances`, y calés sur la grille), `config.yaml` (1770 × 1330, options d'horloge, de hold, d'antennes et de slews), `pin_order.cfg` (N : D_* ; E : EXEC_* ; S : STACK_*, horloge, reset).
 
 ## 7. Méthode pour les autres blocs (macros)
 
@@ -184,11 +192,12 @@ ino_fetch → ino_decode_predict → ino_decode_queue → stack_unit → ino_exe
 ## 8. Pistes et questions ouvertes
 
 - **decode_queue** : fait à l'étape 10 (entité `INO_DECODE_QUEUE`). `DECODE_QUEUE(IN_ORDER)` reste dans le dépôt avec son banc J1, mais n'est plus instanciée par TAHX_1(IN_ORDER).
-- **data_cache** : 20 SRAM 1P 256×64 (1,86 mm²) à revoir comme celles du fetch (passées de 40 à 11) ; son port d'exécution peut prendre `exec_mem_request_pa_t` (adresse 32 bits + `outside`).
+- **data_cache** : fait à l'étape 23 (6 SRAM, 1,20 mm²). Reste possible : les bits `present`/`dirty`/`rr` (2560 bascules, ≈ 0,13 mm²) iraient dans les SRAM de tags avec un balayage d'effacement au RESET (256 cycles) ; cela décale le démarrage, donc les cycles des B_*.
+- **K8** : `STACK_MEM_REQ_o` et `EXEC_MEM_REQ_o` restent en `mem_request_t` (64 bits) ; TAHX_1 les reconvertit (`TO_PA`, `TO_PA_EXEC`) devant `INO_DATA_CACHE`. Logique de colle triviale, mais les passer en PA simplifierait le niveau puce.
 - **ino_fetch** : les 3 bits faibles de `i_addr_o`, toujours nuls, peuvent être retirés ; environ 260 entrées tirées par SRAM (BIST, BM) : un contrôleur BIST simple pourrait les utiliser.
 - **ino_decode_predict** : si la vitesse devient un objectif, décoder 2 instructions par cycle au lieu de 4 (chemin critique).
 - **Unité flottante** : `ieee.float_pkg` est général (cas spéciaux, `Is_X`) ; une réécriture ciblée réduirait ses 0,48 mm².
-- La **system_unit** est déjà passée de 4281 à 2498 broches ; elle reste à passer en `paddr_t` (ports encore en `address_t`).
+- La **system_unit** : 4281 → 2498 → 1721 broches (étape 22, `paddr_t`).
 - **stack_unit, restes possibles** : opérandes d'ISSUE (256 bits), slot de COMMIT (143), MAINT base/length (128 ; `maint_s` reste en 64 bits), limites (128 ; les tronquer change la sémantique, sauf saturation).
 - **Surface** : arithmétique (float ≈ 0,48 mm², muldiv ≈ 0,35 mm², fexp ≈ 0,22 mm²), multiplieur itératif (environ −0,25 mm²), SRAM de tags et de prédiction en 32 bits.
 - **Débogage matériel** (proposé, pas encore spécifié) :
@@ -207,8 +216,9 @@ ino_fetch → ino_decode_predict → ino_decode_queue → stack_unit → ino_exe
 
 ## 9. Prochaine étape attendue
 
-- Résultat du routage d'`ino_execute` (`metrics.json`, congestion ou chemins critiques : flottant, mul/div).
-- `ino_fetch` : corriger les 2 antennes (`GRT_ANTENNA_REPAIR_ITERS: 6`, `GRT_ANTENNA_REPAIR_MARGIN: 20`, `DIODE_ON_PORTS: in`), éventuellement `DESIGN_REPAIR_MAX_WIRE_LENGTH: 800` contre les violations de slew (fils jusqu'à 6,3 mm).
+- Routage d'`ino_data_cache` (étape 23) : extraire (`extraire_data_cache.sh`), placer les SRAM (`placer_sram.py`), lancer ; noms d'instance à plat `u_core.gen_data:k.u_data.u_sram` (k = 1 à 4 : GHDL numérote les `generate` depuis 1) et `u_core.gen_tag:k.u_tag.u_sram` (k = 1, 2), déjà placés dans le `config.yaml` livré.
+- `ino_execute` : les 3 antennes restantes ; run final avec les options de slews.
+- `ino_fetch` : les 2 antennes (avec `DIODE_CELL`).
 - LEF abstraits des autres macros ; `stack_unit` en `FP_SIZING: absolute`.
-- Macros suivantes : `INO_SYSTEM_UNIT` (au sud de `stack_unit`, encore en `address_t`), puis `DATA_CACHE` (au nord, revue des SRAM).
-- Plus tard : assemblage au niveau puce, LVS avec KLayout et DRC complet avant la fabrication ; spécification du système (Octo-SPI, horloges, JTAG et débogage).
+- Assemblage : grille d'alimentation (`PDN_MULTILAYER: false` dans les macros, TopMetal1 au niveau puce), assemblage pilote (`ino_decode_queue` + `ino_decode_predict`), plan replié (ino_execute au nord de stack_unit, data_cache au nord du frontal), pin_orders à refaire, couronne de plots IHP.
+- Plus tard : LVS avec KLayout et DRC complet avant la fabrication ; spécification du système (Octo-SPI, horloges, JTAG et débogage).

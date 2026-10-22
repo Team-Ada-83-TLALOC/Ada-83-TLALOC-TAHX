@@ -6,11 +6,11 @@ SYNTH_DIR="$HERE/../synth_InO"
 mkdir -p "$SYNTH_DIR/stats"
 LOG="$SYNTH_DIR/data_cache_in_order.log"
 
-# DATA_CACHE(IN_ORDER) only: no TAHX_1 elaboration, no frontend.
-# M3a_INO_CACHE_RAM64.vhd must already have been analyzed (Z_analyze.sh does it).
+# INO_DATA_CACHE (macro du cache de donnees) seule : ni TAHX_1, ni frontal.
+# Les fichiers M3* doivent avoir ete analyses (Z_analyze.sh le fait).
 cat <<'YOSYS' | yosys -m ghdl | tee "$LOG"
-ghdl --std=08 -gPORTS_G=2 -gSIZE_BYTES_G=32768 -gLINE_BYTES_G=32 -gWAYS_G=4 DATA_CACHE IN_ORDER
-hierarchy -check -top DATA_CACHE
+ghdl --std=08 INO_DATA_CACHE STRUCTURE
+hierarchy -check -top INO_DATA_CACHE
 proc
 stat
 check
@@ -60,6 +60,6 @@ extract_last_stat()
 }
 
 extract_last_stat \
-    "DATA_CACHE" \
+    "INO_DATA_CACHE" \
     ../synth_InO/data_cache_in_order.log \
     ../synth_InO/stats/data_cache_in_order.txt

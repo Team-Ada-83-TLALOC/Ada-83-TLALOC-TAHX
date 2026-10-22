@@ -27,7 +27,7 @@ mkdir -p "$SYNTH_DIR"
 # Nom observe dans : ghdl --std=08 TAHX_1 IN_ORDER ; ls
 # Il peut etre surcharge depuis l'environnement si les generiques changent :
 #   DATA_CACHE_MOD=... ./synth.sh
-DATA_CACHE_MOD="${DATA_CACHE_MOD:-data_cache_2_32768_32_4_0670975198601484cafb86c5e6d381ebe42bbd9e}"
+DATA_CACHE_MOD="${DATA_CACHE_MOD:-ino_data_cache}"
 
 ###############################################################################
 # Preparation : repartir d'une bibliotheque GHDL coherente avec les sources.
