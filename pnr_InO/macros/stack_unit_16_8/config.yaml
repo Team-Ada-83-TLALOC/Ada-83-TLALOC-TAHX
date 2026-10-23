@@ -1,0 +1,37 @@
+PDK: ihp-sg13cmos5l
+
+DESIGN_NAME: stack_unit_16_8
+
+IO_PIN_ORDER_CFG: dir::pin_order.cfg
+
+VERILOG_FILES:
+  - dir::src/stack_unit_16_8.v
+
+CLOCK_PORT: clk_i
+CLOCK_PERIOD: 100
+
+FP_CORE_UTIL: 30
+PL_TARGET_DENSITY_PCT: 40
+FP_ASPECT_RATIO: 1.0
+
+RUN_LVS: false               # extraction SPICE (Magic) et LVS (Netgen)
+meta:
+  version: 2
+  flow: Classic
+  substituting_steps:
+    Odb.CheckDesignAntennaProperties: null   # retire l'étape (pas de LEF sans Magic)
+    Magic.SpiceExtraction: null
+    Checker.IllegalOverlap: null
+    Netgen.LVS: null
+    Checker.LVS: null
+
+RUN_POST_GRT_DESIGN_REPAIR: true
+RUN_POST_GRT_RESIZER_TIMING: true
+
+RUN_MAGIC_STREAMOUT: false
+RUN_MAGIC_WRITE_LEF: false
+RUN_MAGIC_DRC: false
+
+RUN_KLAYOUT_STREAMOUT: true
+RUN_KLAYOUT_DRC: false
+RUN_KLAYOUT_XOR: false

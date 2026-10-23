@@ -5,7 +5,7 @@ yosys -p "
    hierarchy -check -top stack_unit_16_8
    proc
    opt_clean
-   write_verilog -noattr ~/tahx_pnr/macros/stack_unit_16_8/src/stack_unit_16_8.v
+   write_verilog -noattr ../pnr_InO/macros/stack_unit_16_8/src/stack_unit_16_8.v
 "
 
 yosys -p "
@@ -13,7 +13,7 @@ yosys -p "
    hierarchy -check -top ino_decode_queue
    proc
    opt_clean
-   write_verilog -noattr ~/tahx_pnr/macros/decode_queue/src/ino_decode_queue.v
+   write_verilog -noattr ../pnr_InO/macros/decode_queue/src/ino_decode_queue.v
 "
 
 yosys -p "
@@ -21,7 +21,7 @@ yosys -p "
    hierarchy -check -top ino_decode_predict
    proc
    opt_clean
-   write_verilog -noattr ~/tahx_pnr/macros/ino_decode_predict/src/ino_decode_predict.v
+   write_verilog -noattr ../pnr_InO/macros/ino_decode_predict/src/ino_decode_predict.v
 "
 
 # ino_execute : l'unite flottante utilise ieee.float_pkg.
@@ -38,7 +38,7 @@ yosys -p "
    chformal -remove
    setundef -zero
    opt_clean
-   write_verilog -noattr ~/tahx_pnr/macros/ino_execute/src/ino_execute.v
+   write_verilog -noattr ../pnr_InO/macros/ino_execute/src/ino_execute.v
 "
 
 yosys -p "
@@ -48,5 +48,5 @@ yosys -p "
    chformal -remove
    setundef -zero
    opt_clean
-   write_verilog -noattr ~/tahx_pnr/macros/ino_system/src/ino_system.v
+   write_verilog -noattr ../pnr_InO/macros/ino_system/src/ino_system.v
 "

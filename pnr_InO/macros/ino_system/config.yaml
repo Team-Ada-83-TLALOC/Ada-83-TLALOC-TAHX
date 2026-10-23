@@ -1,0 +1,48 @@
+PDK: ihp-sg13cmos5l
+
+DESIGN_NAME: ino_system
+
+IO_PIN_ORDER_CFG: dir::pin_order.cfg
+
+VERILOG_FILES:
+  - dir::src/ino_system.v
+
+CLOCK_PORT: clk_i
+CLOCK_PERIOD: 100
+
+# System_unit (environ 0,29 mm2 de cellules en synthese, 1721 broches) : boite
+# fixee sous stack_unit (meme largeur, 1645 um), son bord nord face au bord sud
+# de stack_unit.
+FP_SIZING: absolute
+DIE_AREA: [0, 0, 1645, 520]
+PL_TARGET_DENSITY_PCT: 55
+PL_ROUTABILITY_DRIVEN: true
+GRT_ALLOW_CONGESTION: true
+
+GRT_ANTENNA_REPAIR_ITERS: 6
+GRT_ANTENNA_REPAIR_MARGIN: 20
+DIODE_ON_PORTS: in
+DIODE_CELL: sg13cmos5l_antennanp/A
+
+RUN_LVS: false
+RUN_KLAYOUT_DRC: false
+
+meta:
+  version: 2
+  flow: Classic
+  substituting_steps:
+    Odb.CheckDesignAntennaProperties: null
+    Magic.SpiceExtraction: null
+    Checker.IllegalOverlap: null
+    Netgen.LVS: null
+    Checker.LVS: null
+
+RUN_POST_GRT_DESIGN_REPAIR: true
+RUN_POST_GRT_RESIZER_TIMING: true
+
+RUN_MAGIC_STREAMOUT: false
+RUN_MAGIC_WRITE_LEF: false
+RUN_MAGIC_DRC: false
+
+RUN_KLAYOUT_STREAMOUT: true
+RUN_KLAYOUT_XOR: false
