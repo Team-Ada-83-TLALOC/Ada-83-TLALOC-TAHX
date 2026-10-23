@@ -278,6 +278,41 @@ Répartition estimée des cycles restants : direct 24 %, indirect 17 %, MUL/DIV 
 
 Pour situer : l'étude de limites donnait 0,46 pour une machine séquentielle idéalisée (M0). Les paliers V1 à V4, plus la multiplication et les appels, approcheraient 0,4 ; au-delà, il faut le repliement ou la machine hors ordre.
 
+### V5 — Appels, cadres et accès servis par le cache de pile (réalisé le 23 octobre)
+
+Cible : B_APPELS (IPC 0,275 après V4). Quatre changements, sans nouvelle broche ni unité déplacée dans la `stack_unit` :
+
+1. **Unité COMPLEX** (`L5_INO_COMPLEX_UNIT_rtl.vhd`) : la requête de co-pile de LINK / UNLINK / UNLINKR est présentée pendant le cycle d'émission (acceptée avec MEM_READY, comme FAST_PIPE) et la réponse du cache devient COMPLETE dans son cycle (combinatoire) ; CFP/CSP changent au front qui la termine. Plus d'états S_MEM_REQ et S_RETURN pour elles : 4 cycles d'exécution → 1.
+2. **Préparation rapide** (`stack_unit`) : CALL/CALLI, RTD, LINK et UNLINK/UNLINKR dont tout est déjà dans les caches de pile (cible CALLI au sommet, cible de retour au RSP courant, FP sauvegardé en DISPLAY(lvl) et réalisable, aucune collision sale) passent de la prise à ST_ISSUE sans ST_PREPARE, avec les mêmes critères que ST_PREPARE évalués sur les ports de la prise. Leur commit reste celui du chemin lent (`fast_s = '0'`).
+3. **Chargements directs servis par le cache de pile** : un chargement de famille B (lvl 0..14) dont les octets tiennent dans une cellule vivante présente (sale ou propre) lit cette cellule, qui tient la valeur architecturale ; l'extraction (`CELL_EXTRACT`, petit-boutiste, extension comme le cache) est faite à la prise et le commit est local (ST_FAST_COMMIT, enchaîné). Ni spill de cohérence, ni accès au cache de données.
+4. **Rangements directs fusionnés** : un rangement de famille B dont les octets tiennent dans une cellule vivante **sale** autre que le sommet qu'il dépile est fusionné dans cette cellule (`CELL_MERGE`), qui reste sale. Restriction aux cellules sales, par la règle V8 : une cellule exposée par LVA est rendue propre et ne redevient sale qu'empilée de nouveau (nouvelle vie) ; une cellule sale n'a donc pas d'adresse exposée en cours, aucun accès calculé (qui lit la mémoire sans sonder) ne peut la viser. Une cellule propre garde le chemin mémoire (rangement puis invalidation).
+
+Restriction commune à 3 et 4 : un accès direct à une cellule de pile qui n'aurait jamais été rangée et dont l'adresse serait hors de la zone valide du cache de données ne faute plus (le chemin mémoire fautait au spill de cohérence ou à l'accès). C'est le cas d'une pile placée hors de la mémoire valide : un empilement n'y faute pas non plus avant son premier spill.
+
+Bancs :
+
+- **K1e** : chargements partiels LB/LW/LD signés ou non à tout décalage, contenus ou à cheval sur deux cellules ; rangements partiels SB/SW/SD/SQ ; séquence V8 « LVA a ; LI v ; SQ a ; LQ (lvl 15) ; INC » ; CALL/RTD imbriqués jusqu'à une profondeur de 22 pour un cache des retours de 8 entrées, avec vérification de l'adresse de retour reçue par chaque RTD et de RSP à la fin. Référence et exécuteur à l'octet ; opérandes attendus indexés par instruction (un accès servi par le cache de pile n'est pas émis). Mutations détectées : décalage d'extraction, extension de signe, chargement à cheval servi par une cellule, fusion décalée, rangement à cheval fusionné, **fusion dans une cellule propre** (exposée : la lecture calculée lit la mémoire), collision de la cellule de retour d'un CALL. Survivants justifiés : test « vivante » des chargements (une cellule valide au-dessus de DSP n'apparaît pas, les cellules dépilées sont invalidées), test d'adresse de la cible RTD (une entrée valide d'une autre adresse au RSP courant n'apparaît pas en flot normal), fusion dans le sommet dépilé (adresse morte, que rien ne relit).
+- **K2e** : l'étape 5 (LQ direct d'une cellule sale) attend désormais un service par le cache de pile ; l'étape 3 (SB dans une cellule sale) une fusion ; 3b (SB dans la même cellule rendue propre par WRITEBACK_ALL) le chemin mémoire et l'invalidation (FILL au DUP qui suit) ; 6 (ULW à cheval sur deux cellules sales) les deux writebacks puis la lecture mémoire. Le modèle mémoire de ce banc est au mot : la valeur d'un accès à cheval n'y est pas vérifiée (elle l'est dans K1e).
+- **L5b** : COMPLETE observé dès le cycle qui suit l'acceptation, attente bornée, CFP/CSP contrôlés après le front du commit (le banc passe aussi sur l'unité V4).
+
+| banc | cycles V4 | cycles V5 | IPC V4 | IPC V5 | écart |
+|---|---|---|---|---|---|
+| B_APPELS | 231 065 | 160 979 | 0,275 | **0,395** | −30,3 % |
+| B_ARBRE | 358 796 | 297 662 | 0,272 | 0,328 | −17,0 % |
+| B_CHAINES | 328 856 | 308 740 | 0,405 | 0,432 | −6,1 % |
+| B_CRIBLE | 230 840 | 230 156 | 0,524 | 0,525 | −0,3 % |
+| B_EXPR | 247 354 | 224 945 | 0,410 | 0,451 | −9,1 % |
+| B_FLOTTANT | 287 991 | 284 178 | 0,263 | 0,266 | −1,3 % |
+| B_MATRICE | 325 156 | 324 536 | 0,482 | 0,483 | −0,2 % |
+| B_TRI | 266 182 | 252 184 | 0,454 | 0,479 | −5,3 % |
+| **total** | **2 276 240** | **2 083 380** | **0,382** | **0,418** | −8,5 % |
+
+Depuis le départ : ×2,66 (IPC 0,157 → 0,418). B_APPELS, par étape : COMPLEX seul 207 791 cycles (−10 %), puis préparation rapide et chargements servis par le cache de pile 172 786, puis rangements fusionnés 160 979. Latences sur B_APPELS : LINK 7,1 → 3,1, UNLINKR 7,5 → 3,3, RTD 4,1 → 3,2, CALL 3,1 → 2,2, LD [B16] 4,6 → 2,3, SQ [B16] 7,0 → 1,8. Les SPILL / FILL de la `stack_unit` sur B_APPELS passent de 8 342 / 2 921 à 3 449 / 1 295.
+
+Reste sur B_APPELS : le cycle ST_IDLE après le commit (lent) de LINK, RTD, CALL et UNLINKR (≈ 12 k cycles) ; l'enchaîner demande de contourner, pour la prise suivante, les changements de RSP, de DISPLAY(lvl), du cache des retours et le parcours de plage — un chantier en soi.
+
+À l'implantation : `ino_execute` (COMPLEX) a un nouveau chemin combinatoire ISSUE → requête mémoire et réponse du cache → COMPLETE, comme FAST_PIPE ; la `stack_unit` ajoute l'extraction / la fusion d'octets d'une cellule lue par le port 1 à la prise (multiplexeur 64 bits devant les registres d'opérandes).
+
 ## 6. Points d'attention
 
 - **Non-régression** : les cycles des B_* vont changer à chaque palier. Nouveau critère : mêmes sorties et codes de sortie, mêmes nombres de retraits, cycles en baisse, et latence par opcode conforme à la chronologie attendue (ex. après V1 : LD [B16] passe de 6 à 4, LID de 16 à 12). Garder un BILAN de référence par palier.

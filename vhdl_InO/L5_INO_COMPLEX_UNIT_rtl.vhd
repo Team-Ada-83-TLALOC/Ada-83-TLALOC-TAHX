@@ -22,7 +22,12 @@ of INO_COMPLEX_UNIT is          ---
    constant OP_LINK16_T         : opcode_t := x"44";
    constant OP_LINK24_T         : opcode_t := x"48";
 
-   type state_t                 is ( S_IDLE, S_FEXP, S_MEM_REQ, S_MEM_RSP, S_RETURN );
+   -- LINK / UNLINK / UNLINKR (V5, étude de vitesse) : la requête de co-pile est
+   -- présentée pendant le cycle d'émission (S_IDLE, acceptée avec MEM_READY), la
+   -- réponse du cache devient COMPLETE dans son propre cycle (S_MEM_RSP,
+   -- combinatoire), CFP/CSP changent au front qui la termine. Les autres
+   -- opérations gardent S_RETURN (terminaison enregistrée).
+   type state_t                 is ( S_IDLE, S_FEXP, S_MEM_RSP, S_RETURN );
    signal state_s               : state_t := S_IDLE;
 
    signal copile_s              : copile_state_t := (
@@ -33,9 +38,10 @@ of INO_COMPLEX_UNIT is          ---
    signal return_s              : ino_complete_t;
 
    signal mem_op_s              : opcode_t := ( others => '0' );
-   signal mem_addr_s            : address_t := ( others => '0' );
-   signal mem_data_s            : word64_t := ( others => '0' );
    signal link_new_csp_s        : address_t := ( others => '0' );
+
+   signal mem_now_s             : std_logic;          -- requête de co-pile pendant l'émission
+   signal mem_complete_c        : ino_complete_t;     -- terminaison à la réponse
 
    signal fexp_start_s          : std_logic;
    signal fexp_abort_s          : std_logic;
@@ -71,15 +77,52 @@ of INO_COMPLEX_UNIT is          ---
 begin
 
    COPILE_o      <= copile_s;
-   COMPLETE_o    <= complete_s;
-   ISSUE_READY_o <= '1' when state_s = S_IDLE and SYNC_VALID_i = '0' else '0';
+   COMPLETE_o    <= mem_complete_c when mem_complete_c.valid = '1' else complete_s;
 
-   MEM_REQ_o.valid   <= '1' when state_s = S_MEM_REQ else '0';
-   MEM_REQ_o.write   <= '1' when state_s = S_MEM_REQ and IS_LINK( mem_op_s ) else '0';
+   -- Requête de co-pile du cycle d'émission : LINK sans faute de limite, UNLINK,
+   -- UNLINKR. L'émission n'est acceptée qu'avec la requête (MEM_READY_i).
+   MEM_NOW : process( all )
+      variable op    : opcode_t;
+      variable csp65 : unsigned( 64 downto 0 );
+   begin
+      mem_now_s <= '0';
+      op := ISSUE_i.slot.canon.op;
+      if state_s = S_IDLE and ISSUE_VALID_i = '1' and SYNC_VALID_i = '0' and RESET_i = '0' then
+         if IS_LINK( op ) then
+            csp65 := resize( copile_s.csp, 65 ) + 8;
+            if not ( csp65( 64 ) = '1' or csp65( 63 downto 0 ) > LIMITS_i.lim_csp ) then
+               mem_now_s <= '1';
+            end if;
+         elsif op = OP_UNLINK or op = OP_UNLINKR then
+            mem_now_s <= '1';
+         end if;
+      end if;
+   end process MEM_NOW;
+
+   ISSUE_READY_o <= MEM_READY_i when mem_now_s = '1'
+                    else '1' when state_s = S_IDLE and SYNC_VALID_i = '0'
+                    else '0';
+
+   MEM_REQ_o.valid   <= mem_now_s;
+   MEM_REQ_o.write   <= '1' when mem_now_s = '1' and IS_LINK( ISSUE_i.slot.canon.op ) else '0';
    MEM_REQ_o.probe   <= '0';
-   MEM_REQ_o.address <= mem_addr_s;
+   MEM_REQ_o.address <= copile_s.csp when IS_LINK( ISSUE_i.slot.canon.op ) else copile_s.cfp;
    MEM_REQ_o.size    <= "11";
-   MEM_REQ_o.wdata   <= mem_data_s;
+   MEM_REQ_o.wdata   <= std_logic_vector( copile_s.cfp );
+
+   -- Terminaison de LINK / UNLINK / UNLINKR dans le cycle de la réponse.
+   MEM_COMPLETE : process( all )
+      variable c : ino_complete_t;
+   begin
+      c := EMPTY_COMPLETE;
+      if state_s = S_MEM_RSP and MEM_RSP_i.valid = '1' and RESET_i = '0' and SYNC_VALID_i = '0' then
+         c.valid := '1';
+         if MEM_RSP_i.fault = '1' then
+            c.fault := ( valid => '1', code => FAULT_ACCESS );
+         end if;
+      end if;
+      mem_complete_c <= c;
+   end process MEM_COMPLETE;
 
    fexp_start_s <= '1' when state_s = S_IDLE and ISSUE_VALID_i = '1'
                             and ISSUE_i.issue_class = ISSUE_COMPLEX
@@ -119,8 +162,6 @@ begin
                hp => ( others => '0' ), hp_valid => '0' );
             return_s <= EMPTY_COMPLETE;
             mem_op_s <= ( others => '0' );
-            mem_addr_s <= ( others => '0' );
-            mem_data_s <= ( others => '0' );
             link_new_csp_s <= ( others => '0' );
 
          elsif SYNC_VALID_i = '1' then
@@ -198,20 +239,18 @@ begin
                            c.fault := ( valid => '1', code => FAULT_CSP_LIMIT );
                            return_s <= c;
                            state_s <= S_RETURN;
-                        else
+                        elsif MEM_READY_i = '1' then
+                           -- M64[CSP] := CFP présenté dans ce cycle (MEM_NOW).
                            mem_op_s       <= op;
-                           mem_addr_s     <= copile_s.csp;
-                           mem_data_s     <= std_logic_vector( copile_s.cfp );
                            link_new_csp_s <= csp65( 63 downto 0 );
-                           state_s        <= S_MEM_REQ;
+                           state_s        <= S_MEM_RSP;
                         end if;
 
-                     else
-                        -- UNLINK / UNLINKR : lecture du CFP sauvegardé à l'adresse CFP.
+                     elsif MEM_READY_i = '1' then
+                        -- UNLINK / UNLINKR : lecture du CFP sauvegardé à l'adresse CFP,
+                        -- présentée dans ce cycle (MEM_NOW).
                         mem_op_s   <= op;
-                        mem_addr_s <= copile_s.cfp;
-                        mem_data_s <= ( others => '0' );
-                        state_s    <= S_MEM_REQ;
+                        state_s    <= S_MEM_RSP;
                      end if;
                   end if;
 
@@ -225,17 +264,11 @@ begin
                      state_s <= S_RETURN;
                   end if;
 
-               when S_MEM_REQ =>
-                  if MEM_READY_i = '1' then
-                     state_s <= S_MEM_RSP;
-                  end if;
-
                when S_MEM_RSP =>
+                  -- COMPLETE rendu dans ce cycle (MEM_COMPLETE).
                   if MEM_RSP_i.valid = '1' then
-                     c := EMPTY_COMPLETE;
-                     c.valid := '1';
                      if MEM_RSP_i.fault = '1' then
-                        c.fault := ( valid => '1', code => FAULT_ACCESS );
+                        null;
                      elsif IS_LINK( mem_op_s ) then
                         copile_s.cfp <= copile_s.csp;
                         copile_s.csp <= link_new_csp_s;
@@ -245,8 +278,7 @@ begin
                         copile_s.csp <= copile_s.cfp;
                         copile_s.cfp <= unsigned( MEM_RSP_i.rdata );
                      end if;
-                     return_s <= c;
-                     state_s <= S_RETURN;
+                     state_s <= S_IDLE;
                   end if;
 
                when S_RETURN =>

@@ -138,18 +138,23 @@ begin
             exit when issue_ready = '1';
          end loop;
          issue_valid <= '0';
-         loop
+         -- COMPLETE peut être combinatoire dans le cycle qui suit l'acceptation
+         -- (LINK/UNLINK, V5) : l'observer dès ce cycle. Attente bornée.
+         wait for 1 ns;
+         while complete.valid = '0' and cycles < 30 loop
             wait until rising_edge( clk );
             wait for 1 ns;
-            exit when complete.valid = '1';
             cycles := cycles + 1;
-            CHECK( c, cycles < 30, "latence bornee frame COMPLEX" );
          end loop;
+         CHECK( c, complete.valid = '1', "latence bornee frame COMPLEX" );
          CHECK( c, complete.fault.valid = expected_fault.valid, "fault.valid frame COMPLEX" );
          if expected_fault.valid = '1' then
             CHECK( c, complete.fault.code = expected_fault.code, "fault.code frame COMPLEX" );
          end if;
          CHECK( c, complete.result_valid = '0', "frame COMPLEX sans resultat de pile" );
+         -- CFP / CSP changent au front qui termine le cycle de COMPLETE (commit).
+         wait until rising_edge( clk );
+         wait for 1 ns;
       end procedure RUN;
 
       constant F_CSP : fault_t := ( valid => '1', code => FAULT_CSP_LIMIT );

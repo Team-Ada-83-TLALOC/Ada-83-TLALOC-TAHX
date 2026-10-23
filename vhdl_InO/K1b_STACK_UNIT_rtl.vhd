@@ -61,6 +61,25 @@ use work.INO_PORTS_PA.all;
         -- prise, chain_s). Pour une autre instruction, COMPLETE est enregistre
         -- (complete_q_s) et traite en ST_WAIT_EXEC au cycle suivant, comme avant.
         --
+        -- Préparation rapide des appels et cadres (V5) : CALL/CALLI, RTD, LINK et
+        -- UNLINK/UNLINKR dont tout est déjà dans les caches de pile (source, cible de
+        -- retour, aucune collision sale à ranger) passent de la prise à ST_ISSUE sans
+        -- ST_PREPARE. Leur commit reste celui du chemin lent (ports de lecture,
+        -- parcours de plage), suivi du cycle ST_IDLE : fast_s = '0'.
+        --
+        -- Chargements directs servis par le cache de pile (V5) : un chargement de
+        -- famille B (lvl 0..14) dont les octets tiennent dans une cellule vivante
+        -- présente (sale ou propre) lit cette cellule, qui tient la valeur
+        -- architecturale : ni rangement de cohérence ni accès au cache de données.
+        -- Il commite en ST_FAST_COMMIT, comme DUP, le résultat étant extrait à la prise.
+        -- De même, un rangement de famille B (lvl 0..14) dont les octets tiennent dans
+        -- une cellule vivante SALE, autre que le sommet qu'il dépile, est fusionné dans
+        -- cette cellule (qui reste sale) au lieu d'être rangé en mémoire. Règle V8 : une
+        -- cellule exposée par LVA est rendue propre, et ne redevient sale qu'empilée à
+        -- nouveau ; une cellule sale n'a donc pas d'adresse exposée en cours, et aucun
+        -- accès calculé (qui lit la mémoire sans sonder le cache) ne peut la viser. Une
+        -- cellule propre garde le chemin mémoire (rangement puis invalidation).
+        --
         -- Espace physique InO (INO_PADDR) : DSP, RSP, DISPLAY, adresses des cellules, des
         -- sources, de la destination, des FILL/SPILL et cibles de retour ne gardent que
         -- PA_BITS bits (CUT a chaque ecriture de registre). Elles sont realisables par
@@ -320,6 +339,42 @@ of STACK_UNIT is                ---
       return op = x"47" or op = x"4B";
    end function;
 
+   -- Cellule w dont les octets [ off, off + 2**sz ) sont remplacés par ceux de v
+   -- (octets bas de v), comme un rangement du cache de données.
+   function CELL_MERGE( w : word64_t; v : word64_t; off : natural; sz : natural ) return word64_t is
+      variable r : word64_t := w;
+   begin
+      for i in 0 to 7 loop
+         if i >= off and i < off + 2 ** sz then
+            r( 8 * i + 7 downto 8 * i ) := v( 8 * ( i - off ) + 7 downto 8 * ( i - off ) );
+         end if;
+      end loop;
+      return r;
+   end function;
+
+   -- Octets [ off, off + 2**sz ) de la cellule w, étendus comme par le cache de
+   -- données (petit-boutiste : octet off = w( 8*off + 7 downto 8*off )).
+   function CELL_EXTRACT( w : word64_t; off : natural; sz : natural; sgn : boolean ) return word64_t is
+      variable v : unsigned( 63 downto 0 );
+      variable r : word64_t := ( others => '0' );
+   begin
+      v := shift_right( unsigned( w ), 8 * off );
+      case sz is
+         when 0 =>
+            r( 7 downto 0 ) := std_logic_vector( v( 7 downto 0 ) );
+            if sgn and v( 7 ) = '1' then r( 63 downto 8 ) := ( others => '1' ); end if;
+         when 1 =>
+            r( 15 downto 0 ) := std_logic_vector( v( 15 downto 0 ) );
+            if sgn and v( 15 ) = '1' then r( 63 downto 16 ) := ( others => '1' ); end if;
+         when 2 =>
+            r( 31 downto 0 ) := std_logic_vector( v( 31 downto 0 ) );
+            if sgn and v( 31 ) = '1' then r( 63 downto 32 ) := ( others => '1' ); end if;
+         when others =>
+            r := std_logic_vector( v );
+      end case;
+      return r;
+   end function;
+
    function IS_SPECIAL_NOT_YET_SUPPORTED( s : decoded_slot_t; e : isa_entry_t ) return boolean is
       variable op : opcode_t;
    begin
@@ -520,6 +575,10 @@ begin
       variable cp_idx           : inv_index_array_t;
       variable fast_dst_idx     : natural;
       variable fast_commit_v    : boolean;           -- commit du chemin rapide (après le case)
+      variable prep_ok          : boolean;           -- préparation rapide d'un appel / cadre (V5)
+      variable local_ld         : boolean;           -- chargement servi par le cache de pile (V5)
+      variable local_st         : boolean;           -- rangement fusionné dans une cellule sale (V5)
+      variable ld_off           : natural range 0 to 7;
    begin
       if rising_edge( CLK_i ) then
 
@@ -686,6 +745,19 @@ begin
             end loop;
             if e.stack_action = STACK_DROP then
                ri( 0 ) := WIDX( fast_src( 0 ) );
+            end if;
+            -- Préparation rapide (V5) : LINK lvl > 0, cellule qui recevra l'ancien
+            -- DISPLAY(lvl) ; UNLINK, FP sauvegardé en DISPLAY(lvl) ; CALL, cellule du
+            -- futur RSP ; RTD, cible au RSP courant.
+            if IS_LINK_OP( s.canon.op ) then
+               ri( 0 ) := WIDX( tdsp + 8 );
+            elsif IS_UNLINK_OP( s.canon.op ) and lvl <= 14 then
+               ri( 0 ) := WIDX( frame_s.display( lvl ) );
+            end if;
+            if IS_CALL_OP( s.canon.op ) then
+               rri := RWIDX( nrsp );
+            elsif IS_RTD_OP( s.canon.op ) then
+               rri := RWIDX( frame_s.rsp );
             end if;
             -- Cellules recouvertes par un accès à DISPLAY(lvl) + val (lvl 0..14) :
             -- accès direct, cellule pointeur (famille C) ou cellule exposée (LVA).
@@ -872,6 +944,8 @@ begin
                   -- pragma translate_off
                   assert entry_s.stack_action = STACK_DROP or entry_s.stack_action = STACK_DUP
                          or entry_s.stack_action = STACK_OVER
+                         or ( entry_s.issue_class = ISSUE_MEMORY and destination_valid_s = '1'
+                              and source_count_s <= 1 )
                      report "STACK_UNIT: ST_FAST_COMMIT sur operation non locale"
                      severity failure;
                   assert MAINT_i.valid = '0'
@@ -879,7 +953,10 @@ begin
                      severity failure;
                   -- pragma translate_on
                   -- DROP : cellule du sommet (cp_inv_*, décidé à la prise) ;
-                  -- DUP/OVER : copie à la destination.
+                  -- DUP/OVER : copie à la destination ; chargement servi par le cache
+                  -- de pile : valeur extraite à la prise (source_value_s( 0 )) ; rangement
+                  -- fusionné : cellule rangée, fusionnée à la prise, et valeur dépilée
+                  -- invalidée (cp_inv_*).
                   for j in 0 to 3 loop
                      if cp_inv_en_s( j ) = '1' then
                         cells_s( cp_inv_idx_s( j ) ).valid <= '0';
@@ -1739,6 +1816,8 @@ begin
                -- retombe exactement sur le chemin lent déjà validé.
                ------------------------------------------------------------------
                fast_ok        := false;
+               local_ld       := false;
+               local_st       := false;
                fast_values    := ( others => ( others => '0' ) );
                fast_dst_addr  := ndsp;
                fast_dst_valid := false;
@@ -1844,19 +1923,44 @@ begin
                         fast_mem_len  := to_unsigned(
                            2 ** to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ), 64 );
                      end if;
-                     for k in 0 to 2 loop
-                        a := ( fast_mem_base( 63 downto 3 ) & "000" )
-                             + to_unsigned( 8 * k, 64 );
-                        if a < fast_mem_base + fast_mem_len then
-                           -- Port 1 + k : cellule WIDX( fast_mem( k ) ), fast_mem( k ) = a.
-                           if rd( 1 + k ).valid = '1'
-                              and rd( 1 + k ).addr = a
-                              and rd( 1 + k ).dirty = '1'
-                              and rd( 1 + k ).addr <= tdsp then
-                              fast_ok := false;
+                     -- Chargement direct de famille B contenu dans une cellule vivante
+                     -- présente (port 1 : cellule fast_mem( 0 )) : servi localement.
+                     ld_off := to_integer( fast_mem_base( 2 downto 0 ) );
+                     if e.issue_class = ISSUE_MEMORY and s.canon.op( 7 downto 6 ) = "01"
+                        and s.canon.op( 5 downto 4 ) /= "10"
+                        and ld_off + to_integer( fast_mem_len( 3 downto 0 ) ) <= 8
+                        and rd( 1 ).valid = '1' and rd( 1 ).addr = fast_mem( 0 )
+                        and rd( 1 ).addr <= tdsp then
+                        local_ld := true;
+                        fast_values( 0 ) := CELL_EXTRACT( rd( 1 ).data, ld_off,
+                           to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ),
+                           s.canon.op( 5 downto 4 ) = "01" );
+                     elsif e.issue_class = ISSUE_MEMORY and s.canon.op( 7 downto 6 ) = "01"
+                        and s.canon.op( 5 downto 4 ) = "10"
+                        and ld_off + to_integer( fast_mem_len( 3 downto 0 ) ) <= 8
+                        and nsrc = 1
+                        and rd( 1 ).valid = '1' and rd( 1 ).addr = fast_mem( 0 )
+                        and rd( 1 ).dirty = '1' and rd( 1 ).addr < tdsp then
+                        -- Rangement direct dans une cellule vivante sale, sous le sommet
+                        -- (port 0 : la valeur rangée, au sommet).
+                        local_st := true;
+                        fast_values( 0 ) := CELL_MERGE( rd( 1 ).data, fast_values( 0 ), ld_off,
+                           to_integer( unsigned( s.canon.op( 1 downto 0 ) ) ) );
+                     else
+                        for k in 0 to 2 loop
+                           a := ( fast_mem_base( 63 downto 3 ) & "000" )
+                                + to_unsigned( 8 * k, 64 );
+                           if a < fast_mem_base + fast_mem_len then
+                              -- Port 1 + k : cellule WIDX( fast_mem( k ) ), fast_mem( k ) = a.
+                              if rd( 1 + k ).valid = '1'
+                                 and rd( 1 + k ).addr = a
+                                 and rd( 1 + k ).dirty = '1'
+                                 and rd( 1 + k ).addr <= tdsp then
+                                 fast_ok := false;
+                              end if;
                            end if;
-                        end if;
-                     end loop;
+                        end loop;
+                     end if;
                   end if;
                end if;
 
@@ -1883,7 +1987,7 @@ begin
                         cp_idx( 0 ) := WIDX( tdsp );
                      end if;
                   end if;
-                  if e.issue_class = ISSUE_MEMORY and lvl <= 14
+                  if e.issue_class = ISSUE_MEMORY and lvl <= 14 and not local_st
                      and s.canon.op( 7 downto 6 ) = "01" and s.canon.op( 5 downto 4 ) = "10" then
                      -- Rangement direct (famille B, lvl 0..14) : copies du cache de pile
                      -- qui intersectent les octets rangés (même règle que
@@ -1901,13 +2005,57 @@ begin
                cp_inv_en_s  <= cp_en;
                cp_inv_idx_s <= cp_idx;
 
+               -- Préparation rapide d'un appel ou d'un cadre (V5) : mêmes critères
+               -- que ST_PREPARE, évalués sur les ports de la prise. RSP, DISPLAY et
+               -- le cache des retours ne changent pas au commit d'une instruction du
+               -- chemin rapide : rrd et frame_s sont ceux d'après commit.
+               prep_ok := false;
+               if not fast_ok and f.valid = '0' then
+                  if IS_LINK_OP( s.canon.op ) then
+                     -- Port 0 : cellule WIDX( tdsp + 8 ).
+                     prep_ok := lvl = 0
+                                or not ( rd( 0 ).valid = '1' and rd( 0 ).addr /= tdsp + 8
+                                         and rd( 0 ).dirty = '1' and rd( 0 ).addr <= tdsp );
+                  elsif IS_UNLINK_OP( s.canon.op ) then
+                     -- Port 0 : cellule WIDX( DISPLAY( lvl ) ). FP sauvegardé non
+                     -- réalisable : chemin lent (faute avant émission).
+                     if lvl <= 14 and rd( 0 ).valid = '1' and rd( 0 ).addr = frame_s.display( lvl )
+                        and PA_OK( unsigned( rd( 0 ).data ) ) then
+                        prep_ok := true;
+                        fast_values( 0 ) := rd( 0 ).data;
+                     end if;
+                  elsif IS_CALL_OP( s.canon.op ) then
+                     -- CALLI : sa cible au sommet (port 0) ; cellule du futur RSP sans
+                     -- autre occupant sale.
+                     prep_ok := not ( rrd.valid = '1' and rrd.addr /= nrsp and rrd.dirty = '1' );
+                     for j in 0 to 3 loop
+                        if j < nsrc then
+                           if rd( j ).valid = '1' and rd( j ).addr = fast_src( j ) then
+                              fast_values( j ) := rd( j ).data;
+                           else
+                              prep_ok := false;
+                           end if;
+                        end if;
+                     end loop;
+                  elsif IS_RTD_OP( s.canon.op ) then
+                     prep_ok := nsrc = 0 and rrd.valid = '1' and rrd.addr = frame_s.rsp;
+                  end if;
+               end if;
+
                if fast_ok then
                   fast_s <= '1';
                   source_value_s <= fast_values;
                   source_index_s <= nsrc;
 
-                  if e.issue_class = ISSUE_NONE then
-                     -- Les trois manipulations de pile sont entièrement locales,
+                  if local_st then
+                     -- La cellule rangée devient la « destination » du commit local :
+                     -- ST_FAST_COMMIT l'écrit (sale) avec source_value_s( 0 ), fusionnée.
+                     destination_valid_s   <= '1';
+                     destination_address_s <= CUT( fast_mem( 0 ) );
+                  end if;
+                  if e.issue_class = ISSUE_NONE or local_ld or local_st then
+                     -- Les trois manipulations de pile, et les chargements servis
+                     -- par le cache de pile (V5), sont entièrement locales,
                      -- mais ne doivent pas COMMITTER sur le même front que
                      -- DECODE_TAKE. Les consommateurs de STACK_UNIT utilisent le
                      -- contrat historique : prise au cycle N, terminaison au plus
@@ -1919,6 +2067,14 @@ begin
                      -- devient visible dès le cycle suivant la prise.
                      state_s <= ST_ISSUE;
                   end if;
+               elsif prep_ok then
+                  fast_s <= '0';
+                  source_value_s <= fast_values;
+                  source_index_s <= nsrc;
+                  if IS_RTD_OP( s.canon.op ) then
+                     return_target_s <= CUT( unsigned( rrd.data ) );
+                  end if;
+                  state_s <= ST_ISSUE;
                else
                   fast_s  <= '0';
                   state_s <= ST_PREPARE;

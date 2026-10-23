@@ -20,10 +20,15 @@ use work.TB_UTILS.all;
         -- Le scénario force successivement :
         --   1. LVA direct d'une cellule de calcul sale : writeback avant exposition ;
         --   2. ADD qui rend cette cellule sale à nouveau ;
-        --   3. SB direct dans cette cellule : writeback avant rangement partiel, puis
-        --      invalidation de la copie cache après succès ;
+        --   3. SB direct dans cette cellule sale : fusionné dans le cache de pile (V5),
+        --      ni writeback ni rangement mémoire ;
+        --   3b. après WRITEBACK_ALL, SB direct dans la même cellule, propre : rangement
+        --      mémoire, puis invalidation de la copie cache après succès ;
         --   4. DUP : FILL obligatoire de la valeur modifiée par SB ;
-        --   5. LQ direct d'une autre cellule sale : writeback avant lecture mémoire.
+        --   5. LQ direct d'une autre cellule sale : servi par le cache de pile (V5),
+        --      ni writeback ni lecture mémoire ;
+        --   6. ULW direct à cheval sur deux cellules sales : writeback des deux avant
+        --      la lecture mémoire.
         --
         -- Le port mémoire interne de STACK_UNIT et celui du backend partagent ici un
         -- modèle mémoire par un arbitre minimal à une requête en vol.
@@ -352,17 +357,32 @@ begin
       RUN_OK( SLOT( x"10" ), BASE + 8 );                           -- ADD -> 12345679
 
       ------------------------------------------------------------------
-      -- 3. Store direct partiel dans la cellule sale : writeback de
-      --    l'ancien mot avant SB, puis invalidation de la copie cache.
+      -- 3. Store direct partiel dans la cellule sale 1008, sous le sommet :
+      --    fusionné dans le cache de pile (V5), la cellule reste sale.
       ------------------------------------------------------------------
       RUN_OK( SLOT( OP_LI_D32, 0, 16#AA#, 5 ), BASE + 16 );
       sw0 := stack_writes; bw0 := back_writes;
       RUN_OK( SLOT( x"64", 0, 8, 3 ), BASE + 8 );                  -- SB 0,8
-      CHECK( c, stack_writes = sw0 + 1, "SB direct : writeback avant store partiel" );
-      CHECK( c, back_writes = bw0 + 1, "SB direct : rangement backend" );
+      CHECK( c, stack_writes = sw0, "SB direct dans une cellule sale : aucun writeback" );
+      CHECK( c, back_writes = bw0, "SB direct dans une cellule sale : aucun rangement backend" );
+
+      ------------------------------------------------------------------
+      -- 3b. WRITEBACK_ALL : 1008 propre, valeur fusionnée en mémoire. Un SB
+      --     direct dans cette cellule propre est rangé en mémoire, puis la
+      --     copie cache est invalidée.
+      ------------------------------------------------------------------
+      MAINT_ALL;
       CHECK( c, memory_s( 1 ) = x"00000000123456AA",
-               "SB direct conserve les octets non ecrits",
+               "SB fusionne : valeur remise en memoire, octets non ecrits conserves",
                HEX( word64_t'(x"00000000123456AA") ), HEX( memory_s( 1 ) ) );
+      RUN_OK( SLOT( OP_LI_D32, 0, 16#BB#, 5 ), BASE + 16 );
+      sw0 := stack_writes; bw0 := back_writes;
+      RUN_OK( SLOT( x"64", 0, 8, 3 ), BASE + 8 );                  -- SB 0,8
+      CHECK( c, stack_writes = sw0, "SB direct dans une cellule propre : aucun writeback" );
+      CHECK( c, back_writes = bw0 + 1, "SB direct dans une cellule propre : rangement backend" );
+      CHECK( c, memory_s( 1 ) = x"00000000123456BB",
+               "SB direct conserve les octets non ecrits",
+               HEX( word64_t'(x"00000000123456BB") ), HEX( memory_s( 1 ) ) );
 
       ------------------------------------------------------------------
       -- 4. DUP de la cellule invalidée : elle doit être relue en mémoire,
@@ -373,25 +393,38 @@ begin
       CHECK( c, stack_reads = sr0 + 1, "DUP apres store direct : FILL" );
 
       ------------------------------------------------------------------
-      -- 5. La cellule dupliquée à 1010 est sale. Un LQ direct de 1010 doit
-      --    la réécrire avant que le backend ne lise la mémoire.
+      -- 5. La cellule dupliquée à 1010 est sale et vivante. Un LQ direct de
+      --    1010 est servi par le cache de pile (V5) : ni writeback, ni
+      --    lecture backend.
       ------------------------------------------------------------------
       sw0 := stack_writes; br0 := back_reads;
       RUN_OK( SLOT( x"57", 0, 16, 3 ), BASE + 24 );                 -- LQ 0,16
-      CHECK( c, stack_writes = sw0 + 1, "LQ direct : writeback cellule sale" );
-      CHECK( c, back_reads = br0 + 1, "LQ direct : lecture backend" );
-      CHECK( c, memory_s( 2 ) = x"00000000123456AA",
+      CHECK( c, stack_writes = sw0, "LQ direct servi par le cache de pile : aucun writeback" );
+      CHECK( c, back_reads = br0, "LQ direct servi par le cache de pile : aucune lecture backend" );
+
+      ------------------------------------------------------------------
+      -- 6. ULW 0,23 lit l'octet 7 de 1010 et l'octet 0 de 1018, deux cellules
+      --    sales : l'accès ne tient pas dans une cellule, les deux sont
+      --    réécrites avant la lecture mémoire. Le modèle mémoire de ce banc
+      --    travaille au mot (décalage ignoré) : la valeur d'un accès à cheval
+      --    n'est pas vérifiée ici (elle l'est, à l'octet près, dans K1e).
+      ------------------------------------------------------------------
+      sw0 := stack_writes; br0 := back_reads;
+      RUN_OK( SLOT( x"75", 0, 23, 3 ), BASE + 32 );                 -- ULW 0,23
+      CHECK( c, stack_writes = sw0 + 2, "ULW a cheval : writeback des deux cellules sales" );
+      CHECK( c, back_reads = br0 + 1, "ULW a cheval : lecture backend" );
+      CHECK( c, memory_s( 2 ) = x"00000000123456BB",
                "writeback de la cellule dupliquee",
-               HEX( word64_t'(x"00000000123456AA") ), HEX( memory_s( 2 ) ) );
+               HEX( word64_t'(x"00000000123456BB") ), HEX( memory_s( 2 ) ) );
 
-      -- Le résultat du LQ est à 1018 et sale ; WRITEBACK_ALL permet de
-      -- vérifier sa valeur sans dépendre de l'organisation interne du cache.
+      -- Le résultat du LQ (1018) est sale ; WRITEBACK_ALL permet
+      -- de vérifier leur valeur sans dépendre de l'organisation interne du cache.
       MAINT_ALL;
-      CHECK( c, memory_s( 3 ) = x"00000000123456AA",
+      CHECK( c, memory_s( 3 ) = x"00000000123456BB",
                "resultat LQ remis en memoire",
-               HEX( word64_t'(x"00000000123456AA") ), HEX( memory_s( 3 ) ) );
+               HEX( word64_t'(x"00000000123456BB") ), HEX( memory_s( 3 ) ) );
 
-      CHECK( c, frame.dsp = A64( BASE + 24 ), "DSP final" );
+      CHECK( c, frame.dsp = A64( BASE + 32 ), "DSP final" );
       FINISH( c, "T_K2e_STACK_BACKEND_MEMORY_tb" );
       running <= false;
       wait;

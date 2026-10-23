@@ -31,6 +31,17 @@ use work.TB_UTILS.all;
         --   cellule pointeur vivante de la pile ; LQ / SQ / LIQ / SIQ à adresse
         --   sur la pile (lvl 15), précédés des LI qui la poussent ; LVA [B16]
         --   vers une cellule vivante ou la zone de données.
+        --   (V5) chargements partiels LB / LW / LD, signés ou non, [B16] lvl 0, à
+        --   tout décalage, vers une cellule vivante (servis par le cache de pile
+        --   quand ils y tiennent) ou la zone de données, parfois à cheval sur deux
+        --   cellules.
+        --   (V5) rangements partiels SB / SW / SD / SQ [B16] lvl 0 dans une cellule
+        --   vivante sous le sommet ou dans la zone de données, contenus ou à cheval ;
+        --   séquence V8 « LVA a ; LI v ; SQ a ; LQ (lvl 15) ; INC » : un rangement
+        --   dans une cellule exposée doit être vu par la lecture calculée.
+        --   (V5) CALL / RTD imbriqués jusqu'à une profondeur de 24, pour un cache
+        --   des retours de 8 entrées : l'adresse de retour reçue par chaque RTD est
+        --   vérifiée, ainsi que RSP à la fin.
         -- Les accès calculés (lvl 15, pointeurs) ne visent que la zone de données
         -- (règles V8). La zone de données est faite de 48 mots de valeurs, seuls
         -- écrits, et d'une table de 16 pointeurs vers ces valeurs.
@@ -66,7 +77,10 @@ of T_K1e_STACK_CHAIN_tb is      ----
    constant S0          : natural := 16#100000#;           -- DSP initial : pile vide
    constant MBASE       : natural := S0 - 512;             -- DISPLAY(0) : zone de données
    constant DATA_WORDS  : positive := 64;                  -- [ MBASE, S0 )
-   constant MEM_WORDS   : positive := DATA_WORDS + DMAX + 8;
+   constant RET_WORDS   : positive := 32;                  -- pile des retours (V5)
+   constant RDMAX       : positive := 24;                  -- profondeur d'appel maximale
+   constant MEM_WORDS   : positive := DATA_WORDS + DMAX + 8 + RET_WORDS;
+   constant RSP0        : natural := MBASE + 8 * MEM_WORDS; -- RSP initial (pile vide)
    constant P0          : natural := 16#400000#;
    constant SEED_1      : positive := 2026;
    constant SEED_2      : positive := 1022;
@@ -87,6 +101,8 @@ of T_K1e_STACK_CHAIN_tb is      ----
    constant OP_BRA_T    : opcode_t := x"E1";
    constant OP_BT_T     : opcode_t := x"E5";
    constant OP_BF_T     : opcode_t := x"E9";
+   constant OP_CALL_T   : opcode_t := x"F2";
+   constant OP_RTD0_T   : opcode_t := x"F7";
    constant OP_LVA_T    : opcode_t := x"47";               -- LVA [B16]
    constant OP_LQ0_T    : opcode_t := x"53";               -- LQ, adresse sur la pile
    constant OP_SQ0_T    : opcode_t := x"63";               -- SQ, adresse sur la pile
@@ -99,9 +115,13 @@ of T_K1e_STACK_CHAIN_tb is      ----
    type mem_t           is array( 0 to MEM_WORDS - 1 ) of word64_t;
    type prog_t          is array( 0 to N_INSN - 1 ) of decoded_slot_t;
    type operands_t      is array( 0 to 3 ) of word64_t;
+   -- Opérandes attendus à l'émission, par instruction (indice (pc - P0) / 16) :
+   -- un chargement servi par le cache de pile (V5) n'est pas émis.
    type exp_t           is record
+                           e  : boolean;              -- émission possible
                            n  : natural range 0 to 4;
                            op : operands_t;
+                           ret : address_t;           -- RTD : adresse de retour attendue
                         end record;
    type exp_array_t     is array( 0 to N_INSN - 1 ) of exp_t;
 
@@ -141,6 +161,45 @@ of T_K1e_STACK_CHAIN_tb is      ----
       return to_integer( ( a - A64( MBASE ) ) / 8 );
    end function;
 
+   -- Écriture des 2**sz octets bas de v à l'adresse a (petit-boutiste, à cheval sur
+   -- deux mots possible).
+   procedure MWRITE( m : inout mem_t; a : natural; sz : natural; v : word64_t ) is
+      variable w : word64_t;
+      variable b : natural;
+   begin
+      for i in 0 to 7 loop
+         if i < 2 ** sz then
+            w := m( ( a + i - MBASE ) / 8 );
+            b := ( a + i ) mod 8;
+            w( 8 * b + 7 downto 8 * b ) := v( 8 * i + 7 downto 8 * i );
+            m( ( a + i - MBASE ) / 8 ) := w;
+         end if;
+      end loop;
+   end procedure;
+
+   -- Lecture de 2**sz octets à l'adresse a (petit-boutiste, à cheval sur deux mots
+   -- possible), étendue comme par le cache de données.
+   function MREAD( m : mem_t; a : natural; sz : natural; sgn : boolean ) return word64_t is
+      variable r : word64_t := ( others => '0' );
+      variable n : natural := 2 ** sz;
+      variable w : word64_t;
+      variable b : natural;
+   begin
+      for i in 0 to 7 loop
+         if i < n then
+            w := m( ( a + i - MBASE ) / 8 );
+            b := ( a + i ) mod 8;
+            r( 8 * i + 7 downto 8 * i ) := w( 8 * b + 7 downto 8 * b );
+         end if;
+      end loop;
+      if sgn and n < 8 and r( 8 * n - 1 ) = '1' then
+         for i in 0 to 63 loop
+            if i >= 8 * n then r( i ) := '1'; end if;
+         end loop;
+      end if;
+      return r;
+   end function;
+
    -- Résultat d'une opération (référence et exécuteur) ; a : le plus profond.
    function RESULT( op : opcode_t; val : signed; a, b : word64_t ) return word64_t is
       variable p : signed( 127 downto 0 );
@@ -171,7 +230,14 @@ of T_K1e_STACK_CHAIN_tb is      ----
       variable va : word64_t := i.operand( 0 );
    begin
       r.valid := '1';
-      if op = OP_BRA_T or op = OP_BT_T or op = OP_BF_T then
+      if op = OP_CALL_T then
+         r.taken  := '1';
+         r.target := TARGET_OF( i.slot.pc );
+      elsif op = OP_RTD0_T then
+         -- Cible : adresse de retour fournie par STACK_UNIT.
+         r.taken  := '1';
+         r.target := i.address;
+      elsif op = OP_BRA_T or op = OP_BT_T or op = OP_BF_T then
          r.taken := '1';
          if ( op = OP_BT_T and va = x"0000000000000000" )
             or ( op = OP_BF_T and va /= x"0000000000000000" ) then
@@ -205,7 +271,9 @@ of T_K1e_STACK_CHAIN_tb is      ----
    signal prog          : prog_t := ( others => NO_SLOT );
    signal expect        : exp_array_t;
    signal n_expect      : natural := 0;
+   signal nop_ld        : natural := 0;              -- accès directs (chargements, rangements)
    signal final_d       : natural := 0;
+   signal final_rd      : natural := 0;              -- profondeur d'appel finale
    signal final_mem     : mem_t;
    signal gen_done      : boolean := false;
    signal go            : boolean := false;
@@ -290,7 +358,14 @@ begin
       variable m      : mem_t := INIT_MEM;
       variable d      : natural := 0;
       variable p      : prog_t;
-      variable x      : exp_array_t;
+      variable x      : exp_array_t := ( others => ( e => false, n => 0,
+                                                    op => ( others => ( others => '0' ) ),
+                                                    ret => ( others => '0' ) ) );
+      type ret_stack_t is array( 0 to RDMAX ) of natural;
+      variable rs     : ret_stack_t := ( others => 0 );
+      variable rd_n   : natural := 0;                  -- profondeur d'appel
+      variable rd_max : natural := 0;
+      variable cur_i  : natural := 0;
       variable nx     : natural := 0;
       variable sl     : decoded_slot_t;
       variable op     : opcode_t;
@@ -310,6 +385,8 @@ begin
       variable nkind    : natural := 0;
       variable seq_start : boolean := false;
       variable lva_a     : natural := 0;            -- LVA d'une séquence : cellule exposée
+      variable sq_a      : natural := 0;            -- SQ d'une séquence : même cellule
+      variable seq_inc   : boolean := false;        -- INC consommateur après la séquence
       type count_t is array( 0 to 255 ) of natural;
       variable nop      : count_t := ( others => 0 );
 
@@ -332,10 +409,11 @@ begin
 
       procedure EXPECT_OPS( n : natural ) is              -- n sources, la plus profonde d'abord
       begin
-         x( nx ).n := n;
-         x( nx ).op := ( others => ( others => '0' ) );
+         x( cur_i ).e := true;
+         x( cur_i ).n := n;
+         x( cur_i ).op := ( others => ( others => '0' ) );
          for j in 0 to 3 loop
-            if j < n then x( nx ).op( j ) := TOP( n - 1 - j ); end if;
+            if j < n then x( cur_i ).op( j ) := TOP( n - 1 - j ); end if;
          end loop;
          nx := nx + 1;
       end procedure;
@@ -343,16 +421,20 @@ begin
    begin
       s2 := SEED_2;
       for i in 0 to N_INSN - 1 loop
+         cur_i := i;
          -- Tirage d'une opération possible à la profondeur d. Par phases de 150
          -- instructions, la pile monte (empilements favorisés) ou descend : les
          -- excursions jusqu'à DMAX font déborder le cache de pile de 16 mots.
          loop
-            k := RAND_INT( 28 );
+            k := RAND_INT( 36 );
             top_store := false;
             seq_start := false;
-            if seq = 1 then
+            if seq = 1 or seq = 3 then
                -- LI (adresse, cellule pointeur, ou valeur) d'une séquence.
                op := OP_LI_T;
+               exit;
+            elsif seq = 4 then
+               op := OP_SQ_T;
                exit;
             elsif seq = 2 then
                op := seq_op;
@@ -385,7 +467,21 @@ begin
                when 10     => op := OP_DUP_T;  exit when d >= 1 and d < DMAX;
                when 11     => op := OP_OVER_T; exit when d >= 2 and d < DMAX;
                when 12 | 13 => op := OP_DROP_T; exit when d >= 1;
-               when 14     => op := OP_BRA_T;  exit;
+               when 14 | 32 | 33 | 34 | 35 =>
+                  -- BRA, ou CALL / RTD (V5) : appels imbriqués, un peu plus d'appels
+                  -- que de retours dans les phases montantes.
+                  case RAND_INT( 4 ) is
+                     when 0 => op := OP_BRA_T; exit;
+                     when 1 | 2 =>
+                        -- Phases d'appel de 600 instructions : profondeur jusqu'à RDMAX.
+                        if ( ( i / 600 ) mod 2 = 0 and rd_n < RDMAX ) or rd_n = 0 then
+                           op := OP_CALL_T; exit;
+                        end if;
+                        op := OP_RTD0_T; exit;
+                     when others =>
+                        if rd_n > 0 then op := OP_RTD0_T; exit; end if;
+                        op := OP_CALL_T; exit;
+                  end case;
                when 15     => op := OP_BT_T;   exit when d >= 1;
                when 16     => op := OP_BF_T;   exit when d >= 1;
                when 17 | 18 => op := OP_LQ_T;  exit when d < DMAX;
@@ -393,6 +489,8 @@ begin
                when 20 => op := OP_LIQ_T;  exit when d < DMAX;
                when 21 => op := OP_SIQ_T;  exit when d >= 1;
                when 22 => op := OP_LVA_T;  exit when d < DMAX;
+               when 23 | 24 => op := x"56"; exit when d < DMAX;   -- chargement partiel (V5)
+               when 25 | 26 => op := x"66"; exit when d >= 1;     -- rangement partiel (V5)
                when others =>
                   -- Début d'une séquence (V4) : quelques LI, puis l'accès.
                   seq_start := true;
@@ -402,7 +500,7 @@ begin
 
          if seq_start then
             -- Choix de la séquence ; la première instruction est un LI.
-            nkind := RAND_INT( 6 );
+            nkind := RAND_INT( 7 );
             seq_ofs := RAND_INT( 8 );
             ptr := VAL_WORDS + RAND_INT( DATA_WORDS - VAL_WORDS );     -- cellule pointeur
             case nkind is
@@ -422,6 +520,14 @@ begin
                   seq_op := OP_LIQ_T; seq_lvl := "0000";
                   seq_val := S0 + 8 * ( d + 1 ) - MBASE;   -- le LI est le nouveau sommet
                   seq_li := MBASE + 8 * RAND_INT( 40 ); seq := 2;
+               when 6 =>                                   -- LVA a ; LI v ; SQ a ; LQ (lvl 15) ; INC
+                  seq_op := OP_LQ0_T; seq_lvl := "1111"; seq_val := 0; seq := 3;
+                  if d >= 1 then
+                     lva_a := S0 + 8 * ( 1 + RAND_INT( d ) );
+                  else
+                     lva_a := MBASE + 8 * RAND_INT( VAL_WORDS );
+                  end if;
+                  sq_a := lva_a;
                when others =>                              -- LVA d'une cellule vivante ; LQ (lvl 15)
                   -- V8 : une cellule de calcul lue par adresse calculée a été exposée
                   -- par LVA, qui doit la rendre propre si elle est sale.
@@ -443,6 +549,14 @@ begin
             op := OP_LI_T;
             v := RAND_INT( 2001 ) - 1000;
             seq := 2;
+         elsif seq = 3 then
+            -- LI v, puis SQ dans la cellule exposée.
+            op := OP_LI_T;
+            v := RAND_INT( 2001 ) - 1000;
+            seq := 4;
+         elsif seq = 4 then
+            seq := 2;
+            seq_inc := true;
          elsif seq = 2 and op = seq_op then
             seq := 0;
          elsif op = OP_LI_T then
@@ -488,6 +602,20 @@ begin
             when OP_BRA_T =>
                sl.pred.taken := '1';
                EXPECT_OPS( 0 );
+
+            when OP_CALL_T =>
+               sl.pred.taken := '1';
+               EXPECT_OPS( 0 );
+               rs( rd_n ) := to_integer( sl.pc ) + ISA_TABLE( 16#F2# ).length;
+               rd_n := rd_n + 1;
+               if rd_n > rd_max then rd_max := rd_n; end if;
+
+            when OP_RTD0_T =>
+               rd_n := rd_n - 1;
+               sl.pred.taken  := '1';
+               sl.pred.target := A64( rs( rd_n ) );
+               EXPECT_OPS( 0 );
+               x( cur_i ).ret := A64( rs( rd_n ) );
 
             when OP_BT_T | OP_BF_T =>
                EXPECT_OPS( 1 );
@@ -572,6 +700,37 @@ begin
                d := d - 2;
                m( WIDX( A64( a ) ) ) := va;
 
+            when x"56" =>
+               -- Chargement partiel : taille 1, 2 ou 4 octets, signé ou non, à un
+               -- décalage quelconque d'une cellule vivante ou de la zone de données ;
+               -- une fois sur quatre l'accès déborde sur la cellule suivante.
+               ia := RAND_INT( 3 );                                -- taille 2**ia
+               if RAND_INT( 2 ) = 0 then
+                  sl.canon.op := std_logic_vector( to_unsigned( 16#54# + ia, 8 ) );   -- LB/LW/LD
+               else
+                  sl.canon.op := std_logic_vector( to_unsigned( 16#74# + ia, 8 ) );   -- ULB/ULW/ULD
+               end if;
+               if RAND_INT( 4 ) = 0 then
+                  ptr := 8 - 2 ** ia + 1 + RAND_INT( 2 ** ia - 1 + 1 );          -- déborde (si > 8 - n)
+                  if ptr > 7 then ptr := 7; end if;
+               else
+                  ptr := RAND_INT( 8 - 2 ** ia + 1 );                            -- contenu
+               end if;
+               if d >= 2 and RAND_INT( 3 ) /= 0 then
+                  -- Cellule vivante (la suivante aussi), le plus souvent près du sommet,
+                  -- donc présente dans le cache de pile.
+                  if RAND_INT( 4 ) /= 0 then
+                     a := S0 + 8 * ( d - 1 - RAND_INT( minimum( d - 1, 5 ) ) ) + ptr;
+                  else
+                     a := S0 + 8 * ( 1 + RAND_INT( d - 1 ) ) + ptr;
+                  end if;
+               else
+                  a := MBASE + 8 * RAND_INT( DATA_WORDS - 1 ) + ptr;
+               end if;
+               sl.canon.val := to_signed( a - MBASE, sl.canon.val'length );
+               EXPECT_OPS( 0 );
+               PUSH( MREAD( m, a, ia, sl.canon.op( 5 downto 4 ) = "01" ) );
+
             when OP_LVA_T =>
                -- Cellule vivante de la pile (exposée) ou zone de données.
                if lva_a /= 0 then
@@ -586,8 +745,39 @@ begin
                EXPECT_OPS( 0 );
                PUSH( std_logic_vector( to_unsigned( a, 64 ) ) );
 
+            when x"66" =>
+               -- Rangement partiel : taille 1, 2, 4 ou 8 octets, dans une cellule
+               -- vivante sous le sommet (dépilé par l'instruction) ou dans la zone
+               -- de valeurs ; une fois sur quatre à cheval sur la cellule suivante.
+               ia := RAND_INT( 4 );
+               sl.canon.op := std_logic_vector( to_unsigned( 16#64# + ia, 8 ) );   -- SB/SW/SD/SQ
+               if ia > 0 and ia < 3 and RAND_INT( 4 ) = 0 then
+                  ptr := 9 - 2 ** ia + RAND_INT( 2 ** ia - 1 );                  -- à cheval
+               else
+                  ptr := RAND_INT( 8 - 2 ** ia + 1 );                            -- contenu
+               end if;
+               EXPECT_OPS( 1 );
+               va := TOP( 0 );
+               if d >= 3 and RAND_INT( 3 ) /= 0 then
+                  -- Cellules 1 .. d - 2 : la cellule suivante reste vivante après le
+                  -- dépilement ; souvent près du sommet (présente, sale).
+                  if RAND_INT( 4 ) /= 0 then
+                     a := S0 + 8 * ( d - 2 - RAND_INT( minimum( d - 2, 5 ) ) ) + ptr;
+                  else
+                     a := S0 + 8 * ( 1 + RAND_INT( d - 2 ) ) + ptr;
+                  end if;
+               else
+                  a := MBASE + 8 * RAND_INT( VAL_WORDS - 1 ) + ptr;
+               end if;
+               sl.canon.val := to_signed( a - MBASE, sl.canon.val'length );
+               d := d - 1;
+               MWRITE( m, a, ia, va );
+
             when others =>                                -- OP_SQ_T
-               if top_store then
+               if sq_a /= 0 then
+                  a := sq_a;                              -- séquence : cellule exposée
+                  sq_a := 0;
+               elsif top_store then
                   a := S0 + 8 * ( d - 1 );
                elsif RAND_INT( 2 ) = 0 then
                   a := S0 + 8 * ( 1 + RAND_INT( d ) );    -- cellule vivante, sommet compris
@@ -602,14 +792,17 @@ begin
          end case;
          p( i ) := sl;
          nop( to_integer( unsigned( op ) ) ) := nop( to_integer( unsigned( op ) ) ) + 1;
-         force_inc := top_store;
+         force_inc := top_store or ( seq_inc and op = OP_LQ0_T );
+         if op = OP_LQ0_T then seq_inc := false; end if;
          if d > dmaxv then dmaxv := d; end if;
       end loop;
 
+      nop_ld    <= nop( 16#56# ) + nop( 16#57# ) + nop( 16#66# ) + nop( 16#67# );
       prog      <= p;
       expect    <= x;
       n_expect  <= nx;
       final_d   <= d;
+      final_rd  <= rd_n;
       final_mem <= m;
       gen_done  <= true;
       report "programme : " & integer'image( N_INSN ) & " instructions, " & integer'image( nx )
@@ -618,9 +811,15 @@ begin
              & integer'image( nop( 16#A7# ) ) & ", LQ/SQ/LIQ/SIQ lvl 15 "
              & integer'image( nop( 16#53# ) ) & "/" & integer'image( nop( 16#63# ) ) & "/"
              & integer'image( nop( 16#93# ) ) & "/" & integer'image( nop( 16#A3# ) ) & ", LVA "
-             & integer'image( nop( 16#47# ) ) severity note;
+             & integer'image( nop( 16#47# ) ) & ", chargements partiels "
+             & integer'image( nop( 16#56# ) ) & ", rangements partiels "
+             & integer'image( nop( 16#66# ) ) & ", CALL/RTD " & integer'image( nop( 16#F2# ) ) & "/"
+             & integer'image( nop( 16#F7# ) ) & " (profondeur maximale " & integer'image( rd_max )
+             & ")" severity note;
       assert nop( 16#97# ) > 100 and nop( 16#A7# ) > 100 and nop( 16#53# ) > 30 and nop( 16#63# ) > 30
              and nop( 16#93# ) > 30 and nop( 16#A3# ) > 30 and nop( 16#47# ) > 100
+             and nop( 16#56# ) > 150 and nop( 16#F2# ) > 100 and nop( 16#F7# ) > 100
+             and rd_max > 12 and nop( 16#66# ) > 150
          report "K1e : tirage insuffisant des acces V4" severity failure;
       wait;
    end process GENERATE_PROG;
@@ -698,13 +897,17 @@ begin
             if issue_valid = '1' and issue_ready = '1' then
                assert not busy report "K1e : emission pendant une execution" severity failure;
                op := issue.slot.canon.op;
-               if ne < n_expect then
-                  e := expect( ne );
-               else
-                  e := ( n => 0, op => ( others => ( others => '0' ) ) );
-               end if;
+               e := expect( ( to_integer( issue.slot.pc ) - P0 ) / 16 );
                nchk := nchk + 1;
-               if issue.operand_count /= e.n then
+               if not e.e then
+                  nerr := nerr + 1;
+                  report "K1e : emission inattendue (" & HEX( op ) & ", pc " & HEX( issue.slot.pc ) & ")"
+                         severity error;
+               elsif op = OP_RTD0_T and ( issue.address_known /= '1' or issue.address /= e.ret ) then
+                  nerr := nerr + 1;
+                  report "K1e : RTD (pc " & HEX( issue.slot.pc ) & ") : retour " & HEX( issue.address )
+                         & ", attendu " & HEX( e.ret ) severity error;
+               elsif issue.operand_count /= e.n then
                   nerr := nerr + 1;
                   report "K1e : emission " & integer'image( ne ) & " (" & HEX( op ) & ") : "
                          & integer'image( issue.operand_count ) & " operandes, attendu "
@@ -737,10 +940,12 @@ begin
                      addr := unsigned( m( WIDX( addr ) ) ) + resize( unsigned( issue.slot.canon.ofs ), 64 );
                   end if;
                   if op( 5 downto 4 ) = "10" then
-                     m( WIDX( addr ) ) := issue.operand( issue.operand_count - 1 );
+                     MWRITE( m, to_integer( addr ), to_integer( unsigned( op( 1 downto 0 ) ) ),
+                             issue.operand( issue.operand_count - 1 ) );
                   else
                      pend.result_valid := '1';
-                     pend.result := m( WIDX( addr ) );
+                     pend.result := MREAD( m, to_integer( addr ),
+                                           to_integer( unsigned( op( 1 downto 0 ) ) ), op( 5 downto 4 ) = "01" );
                   end if;
                else
                   pend := COMPLETION( issue );
@@ -796,7 +1001,7 @@ begin
       reset <= '0';
 
       sync_frame.dsp          <= A64( S0 );
-      sync_frame.rsp          <= A64( 16#200000# );
+      sync_frame.rsp          <= A64( RSP0 );
       sync_frame.display      <= ( others => ( others => '0' ) );
       sync_frame.display( 0 ) <= A64( MBASE );
       sync_valid              <= '1';
@@ -857,9 +1062,13 @@ begin
       wait until rising_edge( clk );
       wait until rising_edge( clk );
 
-      CHECK( c, issued = n_expect, "nombre d'emissions", integer'image( n_expect ), integer'image( issued ) );
+      -- Les accès servis par le cache de pile ne sont pas émis.
+      CHECK( c, issued <= n_expect and issued >= n_expect - nop_ld, "nombre d'emissions",
+             integer'image( n_expect - nop_ld ) & " .. " & integer'image( n_expect ), integer'image( issued ) );
       CHECK( c, exec_errors = 0, "operandes des emissions (" & integer'image( exec_checks ) & " emissions)",
              "0 erreur", integer'image( exec_errors ) & " erreur(s)" );
+      CHECK( c, frame.rsp = A64( RSP0 - 8 * final_rd ), "RSP final",
+             HEX( A64( RSP0 - 8 * final_rd ) ), HEX( frame.rsp ) );
       CHECK( c, frame.dsp = A64( S0 + 8 * final_d ), "DSP final",
              HEX( A64( S0 + 8 * final_d ) ), HEX( frame.dsp ) );
       for i in 0 to DATA_WORDS + final_d loop
@@ -874,7 +1083,9 @@ begin
       CHECK( c, bad = 0, "memoire finale (donnees et pile vivante)", "0", integer'image( bad ) );
       CHECK( c, nchain > N_INSN / 5, "prises au cycle du commit",
              "> " & integer'image( N_INSN / 5 ), integer'image( nchain ) );
-      CHECK( c, nmispred > 50, "mauvaises predictions exercees", "> 50", integer'image( nmispred ) );
+      CHECK( c, nmispred > 15, "mauvaises predictions exercees", "> 15", integer'image( nmispred ) );
+      CHECK( c, n_expect - issued > 60, "acces servis par le cache de pile",
+             "> 60", integer'image( n_expect - issued ) );
       CHECK( c, same_count > N_INSN / 5, "terminaisons dans le cycle d'emission",
              "> " & integer'image( N_INSN / 5 ), integer'image( same_count ) );
       CHECK( c, spills > 200 and fills > 200, "SPILL et FILL exerces", "> 200",
@@ -884,7 +1095,8 @@ begin
              & integer'image( nchain ) & " prises enchainees, " & integer'image( nmispred )
              & " mauvaises predictions, SPILL " & integer'image( spills ) & ", FILL "
              & integer'image( fills ) & ", terminaisons dans le cycle d'emission "
-             & integer'image( same_count ) severity note;
+             & integer'image( same_count ) & ", acces servis par le cache de pile "
+             & integer'image( n_expect - issued ) severity note;
       running <= false;
       FINISH( c, "T_K1e_STACK_CHAIN_tb" );
       wait;
