@@ -543,6 +543,10 @@ begin
       variable f               : fault_t;
       variable live_collision  : boolean;
       variable lvl             : natural range 0 to 15;
+      -- Niveau de l'instruction qui commite (LINK, UNLINK). Distinct de lvl, celui
+      -- de la prise : une variable commune ferait dépendre tout le décodage de la
+      -- prise de COMPLETE (multiplexeur commandé par cpl.valid en tête du cône).
+      variable clvl            : natural range 0 to 15;
       variable alloc65         : unsigned( 64 downto 0 );
       variable ndsp65          : unsigned( 64 downto 0 );
       -- Préparation accélérée des instructions ordinaires. Les variables sont
@@ -1406,23 +1410,23 @@ begin
                         -- L'effet de co-pile a déjà été rendu atomiquement par COMPLEX_UNIT ;
                         -- l'état de frame ne devient visible qu'ici, après succès complet.
                         if IS_LINK_OP( slot_s.canon.op ) then
-                           lvl := to_integer( slot_s.canon.lvl );
+                           clvl := to_integer( slot_s.canon.lvl );
                            -- Zone locale invalidée par le parcours commun ci-dessus. La
                            -- cellule du FP sauvegardé est réinstallée ici.
-                           if lvl > 0 then
+                           if clvl > 0 then
                               a := old_dsp_s + 8;
                               idx := WIDX( a );
                               cells_s( idx ) <= ( valid => '1', dirty => '1', addr => CUT( a ),
-                                                  data => std_logic_vector( frame_s.display( lvl ) ) );
-                              frame_s.display( lvl ) <= CUT( a );
+                                                  data => std_logic_vector( frame_s.display( clvl ) ) );
+                              frame_s.display( clvl ) <= CUT( a );
                            end if;
                            frame_s.dsp <= new_dsp_s;
 
                         elsif IS_UNLINK_OP( slot_s.canon.op ) then
-                           lvl := to_integer( slot_s.canon.lvl );
+                           clvl := to_integer( slot_s.canon.lvl );
                            -- Tout le frame courant est mort : parcours commun ci-dessus.
                            frame_s.dsp <= new_dsp_s;
-                           frame_s.display( lvl ) <= CUT( unsigned( source_value_s( 0 ) ) );
+                           frame_s.display( clvl ) <= CUT( unsigned( source_value_s( 0 ) ) );
 
                         -- CALL/CALLI et RTD ont un effet architectural supplémentaire
                         -- sur RSP et sur la pile de retours. Rien n'a été modifié avant

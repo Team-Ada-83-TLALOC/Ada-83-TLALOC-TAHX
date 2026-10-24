@@ -319,3 +319,63 @@ Reste sur B_APPELS : le cycle ST_IDLE après le commit (lent) de LINK, RTD, CALL
 - **Macros déjà routées** : V1 touche `ino_data_cache` (en cours de routage), V2 et V4 la `stack_unit`, V3 la `stack_unit` et `ino_execute`. Mener les paliers dans une branche « vitesse » et ne relancer LibreLane qu'à des points choisis (après V1, puis après V3 ou V4).
 - **Chemins combinatoires entre macros** : avec un SDC générique, chaque macro est chronométrée isolément. Il faut donner des `set_input_delay`/`set_output_delay` réalistes aux ports concernés (requête et réponse du cache, ISSUE/COMPLETE, DECODE_TAKE), puis vérifier au niveau puce.
 - **Base des patchs** : le dépôt est à l'étape 22 ; le palier V1 doit partir de l'arbre avec l'étape 23 (`INO_DCACHE_CORE`).
+
+## 7. Timing du cœur entier avant placement (V5, 23 octobre)
+
+Méthode (`synth_InO/sta/`, voir son `LISEZMOI.md`) : netlist SG13 de `TAHX_1(IN_ORDER)` hiérarchique aux frontières des sept macros de `pnr_InO` (Yosys + ABC avec cible 20 ns et `-constr`, 306 k cellules, 3,9 mm² de cellules), SRAM par leurs .lib, OpenSTA sur le cœur entier : les chemins **entre macros** sont donc vus, ce que les runs LibreLane par macro (SDC par défaut, 100 ns) ne font pas. Ports de `TAHX_1` à 30 % de la période de chaque côté, incertitude 0,5 ns. Deux bornes de fils : `Zero` (optimiste) et le modèle statistique `30k` des .lib (pessimiste pour les nets locaux).
+
+Période atteignable par famille de chemins, `Zero` / `30k` :
+
+| famille | slow 1,08 V 125 °C | typ 1,2 V 25 °C |
+|---|---|---|
+| `ino_execute` interne, division flottante `u_float.div_win_s` | 46,5 / 84 ns | 30,4 / 53,5 ns |
+| `stack_unit` → `ino_execute` → `stack_unit` : chaînage V2/V3, `state_s` → `source_value_s` | 41,0 / 76,8 ns | 26,3 / 48,0 ns |
+| `ino_fetch` → `ino_decode_predict` → `ino_fetch` : `u_bytes.head` → `head_pc` / bancs / compte | 37,9 / 76,8 ns | 24,4 / 48,3 ns |
+| `ino_execute` interne, FEXP `u_fexp.x` → `p` | 36,6 ns | 23,5 ns |
+| `ino_execute` interne, MULDIV `ub_s` → `result_s` | 31,0 ns | 20,0 ns |
+| `ino_fetch` → `ino_decode_predict` (`work_q`) | 32,2 ns | 20,8 ns |
+
+Au coin fast, le pire chemin donne 20,5 ns. Les autres suites de macros (chaînage jusqu'à `ino_decode_queue`, `ino_system` → `decode_queue` → `stack_unit`, chemins du cache de données) sont nettement plus courtes. Les retards ne dépendent de la période que par la cible d'ABC : les marges à 15 ou 25 ns se déduisent de celles à 20 ns.
+
+Décomposition au coin typ (`Zero`) :
+
+- **Chaînage** (26,3 ns) : émission dans la `stack_unit` 1,4 ns (10 niveaux) ; `ino_execute` 11,1 ns (124 niveaux : ALU entière et complétion, l'additionneur est à retenue propagée) ; liaison 0,15 ns ; commit, prise enchaînée et contournement dans la `stack_unit` 13,0 ns (50 niveaux, nombreux `buf_1` à 0,44 ns sur de fortes sortances).
+- **Décodeur** (24,4 ns) : `ino_fetch` 2,3 ns, `ino_decode_predict` 17,6 ns (109 niveaux, décodage série des longueurs), retour dans `ino_fetch` 3,9 ns.
+
+Calibration : `ino_fetch` seul, registre à registre, typ : 7,1 ns (`Zero`), 10,1 ns (`30k`), 16,5 ns dans le run routé à 100 ns ; au coin slow : 11,6, 16,5 et 40,8 ns. Ce run n'était pas contraint (1 249 violations de slew au coin slow, rapport slow / typ de 2,5 au lieu de 1,5) : un run contraint à 20–40 ns devrait tomber entre les deux bornes.
+
+Part de la synthèse :
+
+- **Additionneurs** : Yosys 0.33 projette les additionneurs et comparateurs en retenue propagée. Un additionneur 64 bits isolé (typ) passe de 9,0 à 6,3 ns en Kogge-Stone (`synth_InO/sta/lcu_kogge_stone.v`, `KS=1`), pour +20 % de surface ; une cible ABC dix fois plus serrée ne gagne que 0,25 ns. La resynthèse du cœur entier en `KS=1` dépasse 2 h ici (à mesurer sur la machine de routage).
+- **Échelles de tampons** : avec `-constr`, ABC limite la sortance à 10 en chaînant des `buf_1` ; sur le chemin de chaînage, une échelle de 20 tampons faisait 8,7 ns. `arbres_tampons.py` les remplace par des arbres équilibrés (comme le ferait `repair_design`) : le chaînage passe de 26,3 à 24,6 ns (typ) et de 41,0 à 38,4 ns (slow), le décodeur de 24,4 à 23,8 ns. Le gain est faible parce que d'autres cônes, presque aussi longs, prennent le relais.
+- **COMPLETE en tête du décodage de la prise** : dans la `stack_unit` seule (typ), COMPLETE.valid et COMPLETE.fault.valid étaient à 13,3 ns des registres, contre 3,0 ns pour COMPLETE.result et 1,7 ns pour ISSUE_READY. Ce n'est pas ABC : avant toute projection, 71 niveaux de portes séparaient COMPLETE.valid d'un registre. Cause : la variable `lvl` du process, celle du décodage de la prise, était réaffectée par le commit de LINK/UNLINK (`lvl := slot_s.canon.lvl`, branche conditionnée par `cpl.valid`), et la prise, plus loin dans le même process, la relit. La synthèse place donc un multiplexeur commandé par COMPLETE.valid en tête de `DISPLAY(lvl) + val`, des comparaisons d'adresses et de `fast_ok`. Fonctionnellement sans effet (pas de prise au cycle d'un commit de LINK/UNLINK, qui ont `fast_s = '0'`), mais la synthèse ne peut pas le savoir. Corrigé ci-dessous.
+
+### Décodeur : prédécodage (réalisé le 23 octobre)
+
+`I3_DECODE_BLOC_in_order.vhd`, architecture IN_ORDER réécrite à sémantique identique : pour chacune des 32 positions de la fenêtre, nature de l'instruction qui y commencerait (attente, faute de lecture, illégale, une ou deux formes) et position suivante, calculées en parallèle ; la chaîne des quatre instructions ne fait plus que quatre sélections 33 vers 1 dans ce tableau ; l'extraction des champs de chaque forme se fait ensuite, en parallèle, à sa position.
+
+- Équivalence prouvée avec l'ancienne architecture (Yosys : `miter -equiv` des deux, puis SAT ; la même preuve trouve le contre-exemple d'une mutation du contrôle des codes TRAP).
+- Décodeur seul (typ, entrées à t = 0) : 17,4 → 9,4 ns jusqu'à CONSUMED_BYTES_o ; surface de `ino_decode_predict` 432 k → 483 k µm² (+12 %, 32 prédécodages).
+- Cœur entier (typ / slow, sans fil, arbres de tampons) : chemin `ino_fetch` → `ino_decode_predict` → `ino_fetch` 23,8 → 15,4 ns / 36,9 → 23,8 ns. Il n'est plus critique.
+
+### Chaînage : variable de commit distincte (réalisé le 24 octobre)
+
+`K1b_STACK_UNIT_rtl.vhd` : le commit de LINK/UNLINK utilise sa propre variable `clvl` ; `lvl` n'est plus écrite que par le décodage de la prise. Six lignes, comportement inchangé (équivalence prouvée, bancs inchangés au cycle près).
+
+- `stack_unit` seule (typ) : COMPLETE.valid / fault.valid → registres 13,3 → 2,0 ns ; DECODE_SLOT → registres 16,4 → 13,0 ns ; surface −2 %.
+- Cœur entier (sans fil, arbres de tampons) : chaînage 24,6 → 15,7 ns (typ), 38,4 → 24,4 ns (slow).
+
+### Bilan au 24 octobre
+
+| famille (sans fil, arbres de tampons) | slow | typ |
+|---|---|---|
+| division flottante `div_win_s` (puis FADD/FMUL `issue_q_s → result_s`, FEXP) | 47,1 ns | 30,8 ns |
+| MULDIV `ub_s → result_s` : MUL 64 × 64 en un cycle | 31,4 ns | 20,2 ns |
+| chaînage `stack_unit` → `ino_execute` → `stack_unit` | 24,4 ns | 15,7 ns |
+| décodeur | 23,8 ns | 15,4 ns |
+
+Pistes, à décider :
+
+1. **MUL** : le produit 64 × 64 (`prod <= ua_s * ub_s`) est calculé en un cycle, et Yosys 0.33 le projette en multiplieur à tableau (additions en série). Le couper en deux cycles (produits partiels de 32 × 32 enregistrés, puis somme) ; MUL fait déjà 8 cycles d'exécution.
+2. **Flottant** : multicycle ou radix plus faible pour FDIV, à traiter plus tard.
+3. Les runs LibreLane futurs doivent recevoir des `set_input_delay` / `set_output_delay` par port de macro (sortie `.budgets` de `sta_tahx.tcl`).
