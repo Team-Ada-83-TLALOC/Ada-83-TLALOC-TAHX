@@ -26,9 +26,9 @@
          read_rtlil ../synth_InO/par_module/brut.il
          blackbox  TAHX_1 branch_predict decode_bloc ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top fexp_unit
-         synth -top fexp_unit -noshare
+         synth -top fexp_unit -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
-         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
+         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib -script ../synth_InO/par_module/abc_direct.abc
          opt_clean
          tee -q -o ../synth_InO/par_module/fexp_unit.stat stat -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib' --
 
@@ -128,19 +128,19 @@ Removed 4 multiplexer ports.
 
 3.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \fexp_unit.
-    New ctrl vector for $pmux cell \123424: $auto$opt_reduce.cc:134:opt_pmux$76666
-    New ctrl vector for $pmux cell \123428: { $auto$ghdl.cc:806:import_module$73959 $auto$opt_reduce.cc:134:opt_pmux$76668 }
+    New ctrl vector for $pmux cell \123424: $auto$opt_reduce.cc:134:opt_pmux$93907
+    New ctrl vector for $pmux cell \123428: { $auto$ghdl.cc:806:import_module$73959 $auto$opt_reduce.cc:134:opt_pmux$93909 }
     New ctrl vector for $pmux cell \123432: $auto$ghdl.cc:806:import_module$73959
-    New ctrl vector for $pmux cell \123495: $auto$opt_reduce.cc:134:opt_pmux$76670
-    New ctrl vector for $pmux cell \123499: { $auto$ghdl.cc:806:import_module$73979 $auto$opt_reduce.cc:134:opt_pmux$76672 }
+    New ctrl vector for $pmux cell \123495: $auto$opt_reduce.cc:134:opt_pmux$93911
+    New ctrl vector for $pmux cell \123499: { $auto$ghdl.cc:806:import_module$73979 $auto$opt_reduce.cc:134:opt_pmux$93913 }
     New ctrl vector for $pmux cell \123503: $auto$ghdl.cc:806:import_module$73979
     New ctrl vector for $pmux cell \128343: { $auto$ghdl.cc:806:import_module$74618 $auto$ghdl.cc:806:import_module$74614 $auto$ghdl.cc:806:import_module$74610 }
     New ctrl vector for $pmux cell \128346: { $auto$ghdl.cc:806:import_module$74610 $auto$ghdl.cc:806:import_module$74607 }
-    New ctrl vector for $pmux cell \128447: { $auto$opt_reduce.cc:134:opt_pmux$76674 $auto$ghdl.cc:806:import_module$73809 }
-    New ctrl vector for $pmux cell \128449: { $auto$opt_reduce.cc:134:opt_pmux$76676 $auto$ghdl.cc:806:import_module$74579 $auto$ghdl.cc:806:import_module$73809 }
-    New ctrl vector for $pmux cell \128451: { $auto$opt_reduce.cc:134:opt_pmux$76678 $auto$ghdl.cc:806:import_module$74579 $auto$ghdl.cc:806:import_module$73809 }
-    New ctrl vector for $pmux cell \128453: { $auto$opt_reduce.cc:134:opt_pmux$76680 $auto$ghdl.cc:806:import_module$73809 }
-    New ctrl vector for $pmux cell \128455: { $auto$ghdl.cc:806:import_module$75560 $auto$opt_reduce.cc:134:opt_pmux$76682 }
+    New ctrl vector for $pmux cell \128447: { $auto$opt_reduce.cc:134:opt_pmux$93915 $auto$ghdl.cc:806:import_module$73809 }
+    New ctrl vector for $pmux cell \128449: { $auto$opt_reduce.cc:134:opt_pmux$93917 $auto$ghdl.cc:806:import_module$74579 $auto$ghdl.cc:806:import_module$73809 }
+    New ctrl vector for $pmux cell \128451: { $auto$opt_reduce.cc:134:opt_pmux$93919 $auto$ghdl.cc:806:import_module$74579 $auto$ghdl.cc:806:import_module$73809 }
+    New ctrl vector for $pmux cell \128453: { $auto$opt_reduce.cc:134:opt_pmux$93921 $auto$ghdl.cc:806:import_module$73809 }
+    New ctrl vector for $pmux cell \128455: { $auto$ghdl.cc:806:import_module$75560 $auto$opt_reduce.cc:134:opt_pmux$93923 }
   Optimizing cells in module \fexp_unit.
 Performed a total of 13 changes.
 
@@ -230,7 +230,7 @@ Extracting FSM `\state' from module `\fexp_unit'.
   transition:       2'11 4'---1 ->       2'00 6'000010
 
 3.7.3. Executing FSM_OPT pass (simple optimizations of FSMs).
-Optimizing FSM `$fsm$\state$76683' from module `\fexp_unit'.
+Optimizing FSM `$fsm$\state$93924' from module `\fexp_unit'.
   Merging pattern 4'---0 and 4'---1 from group (3 0 6'000010).
   Merging pattern 4'---1 and 4'---0 from group (3 0 6'000010).
 
@@ -240,12 +240,12 @@ Removed 10 unused cells and 10 unused wires.
 <suppressed ~11 debug messages>
 
 3.7.5. Executing FSM_OPT pass (simple optimizations of FSMs).
-Optimizing FSM `$fsm$\state$76683' from module `\fexp_unit'.
+Optimizing FSM `$fsm$\state$93924' from module `\fexp_unit'.
   Removing unused output signal $auto$ghdl.cc:806:import_module$75572 [0].
   Removing unused output signal $auto$ghdl.cc:806:import_module$75572 [1].
 
 3.7.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
-Recoding FSM `$fsm$\state$76683' from module `\fexp_unit' using `auto' encoding:
+Recoding FSM `$fsm$\state$93924' from module `\fexp_unit' using `auto' encoding:
   mapping auto encoding to `one-hot` for this FSM.
   00 -> ---1
   10 -> --1-
@@ -254,10 +254,10 @@ Recoding FSM `$fsm$\state$76683' from module `\fexp_unit' using `auto' encoding:
 
 3.7.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
 
-FSM `$fsm$\state$76683' from module `fexp_unit':
+FSM `$fsm$\state$93924' from module `fexp_unit':
 -------------------------------------
 
-  Information on FSM $fsm$\state$76683 (\state):
+  Information on FSM $fsm$\state$93924 (\state):
 
   Number of input signals:    4
   Number of output signals:   4
@@ -296,7 +296,7 @@ FSM `$fsm$\state$76683' from module `fexp_unit':
 -------------------------------------
 
 3.7.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
-Mapping FSM `$fsm$\state$76683' from module `\fexp_unit'.
+Mapping FSM `$fsm$\state$93924' from module `\fexp_unit'.
 
 3.8. Executing OPT pass (performing simple optimizations).
 
@@ -405,8 +405,8 @@ Optimizing module fexp_unit.
 3.8.23. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 1 bits (of 2) from port B of cell fexp_unit.$auto$opt_dff.cc:195:make_patterns_logic$76731 ($ne).
-Removed top 1 bits (of 4) from port B of cell fexp_unit.$auto$opt_dff.cc:195:make_patterns_logic$76764 ($ne).
+Removed top 1 bits (of 2) from port B of cell fexp_unit.$auto$opt_dff.cc:195:make_patterns_logic$93972 ($ne).
+Removed top 1 bits (of 4) from port B of cell fexp_unit.$auto$opt_dff.cc:195:make_patterns_logic$94005 ($ne).
 Removed top 63 bits (of 64) from port B of cell fexp_unit.\122597 ($lt).
 Removed top 1 bits (of 63) from port B of cell fexp_unit.\122642 ($eq).
 Removed top 3 bits (of 4) from mux cell fexp_unit.\122753 ($mux).
@@ -755,10 +755,10 @@ Extracting $alu and $macc cells in module fexp_unit:
   creating $alu model for $macc \123956.
   creating $alu model for $macc \123732.
   creating $alu model for $macc \122598.
-  creating $macc cell for \123974: $auto$alumacc.cc:365:replace_macc$76801
-  creating $macc cell for \124252: $auto$alumacc.cc:365:replace_macc$76802
-  creating $macc cell for \123971: $auto$alumacc.cc:365:replace_macc$76803
-  creating $macc cell for \124229: $auto$alumacc.cc:365:replace_macc$76804
+  creating $macc cell for \123974: $auto$alumacc.cc:365:replace_macc$94042
+  creating $macc cell for \124252: $auto$alumacc.cc:365:replace_macc$94043
+  creating $macc cell for \123971: $auto$alumacc.cc:365:replace_macc$94044
+  creating $macc cell for \124229: $auto$alumacc.cc:365:replace_macc$94045
   creating $alu model for \122597 ($lt): new $alu
   creating $alu model for \124237 ($le): new $alu
   creating $alu model for \124245 ($ge): new $alu
@@ -821,78 +821,78 @@ Extracting $alu and $macc cells in module fexp_unit:
   creating $alu model for \124627 ($lt): new $alu
   creating $alu model for \124633 ($lt): new $alu
   creating $alu model for \124639 ($lt): new $alu
-  creating $alu cell for \124639: $auto$alumacc.cc:485:replace_alu$76867
-  creating $alu cell for \124633: $auto$alumacc.cc:485:replace_alu$76872
-  creating $alu cell for \124627: $auto$alumacc.cc:485:replace_alu$76877
-  creating $alu cell for \124621: $auto$alumacc.cc:485:replace_alu$76882
-  creating $alu cell for \124615: $auto$alumacc.cc:485:replace_alu$76887
-  creating $alu cell for \124609: $auto$alumacc.cc:485:replace_alu$76892
-  creating $alu cell for \124603: $auto$alumacc.cc:485:replace_alu$76897
-  creating $alu cell for \124597: $auto$alumacc.cc:485:replace_alu$76902
-  creating $alu cell for \124591: $auto$alumacc.cc:485:replace_alu$76907
-  creating $alu cell for \124585: $auto$alumacc.cc:485:replace_alu$76912
-  creating $alu cell for \124579: $auto$alumacc.cc:485:replace_alu$76917
-  creating $alu cell for \124573: $auto$alumacc.cc:485:replace_alu$76922
-  creating $alu cell for \124567: $auto$alumacc.cc:485:replace_alu$76927
-  creating $alu cell for \124561: $auto$alumacc.cc:485:replace_alu$76932
-  creating $alu cell for \124555: $auto$alumacc.cc:485:replace_alu$76937
-  creating $alu cell for \124549: $auto$alumacc.cc:485:replace_alu$76942
-  creating $alu cell for \124543: $auto$alumacc.cc:485:replace_alu$76947
-  creating $alu cell for \124537: $auto$alumacc.cc:485:replace_alu$76952
-  creating $alu cell for \124531: $auto$alumacc.cc:485:replace_alu$76957
-  creating $alu cell for \124525: $auto$alumacc.cc:485:replace_alu$76962
-  creating $alu cell for \124519: $auto$alumacc.cc:485:replace_alu$76967
-  creating $alu cell for \124513: $auto$alumacc.cc:485:replace_alu$76972
-  creating $alu cell for \124507: $auto$alumacc.cc:485:replace_alu$76977
-  creating $alu cell for \124501: $auto$alumacc.cc:485:replace_alu$76982
-  creating $alu cell for \124495: $auto$alumacc.cc:485:replace_alu$76987
-  creating $alu cell for \124489: $auto$alumacc.cc:485:replace_alu$76992
-  creating $alu cell for \124483: $auto$alumacc.cc:485:replace_alu$76997
-  creating $alu cell for \124477: $auto$alumacc.cc:485:replace_alu$77002
-  creating $alu cell for \124471: $auto$alumacc.cc:485:replace_alu$77007
-  creating $alu cell for \124465: $auto$alumacc.cc:485:replace_alu$77012
-  creating $alu cell for \124459: $auto$alumacc.cc:485:replace_alu$77017
-  creating $alu cell for \124453: $auto$alumacc.cc:485:replace_alu$77022
-  creating $alu cell for \124447: $auto$alumacc.cc:485:replace_alu$77027
-  creating $alu cell for \124441: $auto$alumacc.cc:485:replace_alu$77032
-  creating $alu cell for \124435: $auto$alumacc.cc:485:replace_alu$77037
-  creating $alu cell for \124429: $auto$alumacc.cc:485:replace_alu$77042
-  creating $alu cell for \124423: $auto$alumacc.cc:485:replace_alu$77047
-  creating $alu cell for \124417: $auto$alumacc.cc:485:replace_alu$77052
-  creating $alu cell for \124411: $auto$alumacc.cc:485:replace_alu$77057
-  creating $alu cell for \124405: $auto$alumacc.cc:485:replace_alu$77062
-  creating $alu cell for \124399: $auto$alumacc.cc:485:replace_alu$77067
-  creating $alu cell for \124393: $auto$alumacc.cc:485:replace_alu$77072
-  creating $alu cell for \124387: $auto$alumacc.cc:485:replace_alu$77077
-  creating $alu cell for \124381: $auto$alumacc.cc:485:replace_alu$77082
-  creating $alu cell for \124375: $auto$alumacc.cc:485:replace_alu$77087
-  creating $alu cell for \124369: $auto$alumacc.cc:485:replace_alu$77092
-  creating $alu cell for \124363: $auto$alumacc.cc:485:replace_alu$77097
-  creating $alu cell for \124357: $auto$alumacc.cc:485:replace_alu$77102
-  creating $alu cell for \124351: $auto$alumacc.cc:485:replace_alu$77107
-  creating $alu cell for \124345: $auto$alumacc.cc:485:replace_alu$77112
-  creating $alu cell for \124339: $auto$alumacc.cc:485:replace_alu$77117
-  creating $alu cell for \124333: $auto$alumacc.cc:485:replace_alu$77122
-  creating $alu cell for \124327: $auto$alumacc.cc:485:replace_alu$77127
-  creating $alu cell for \124321: $auto$alumacc.cc:485:replace_alu$77132
-  creating $alu cell for \124315: $auto$alumacc.cc:485:replace_alu$77137
-  creating $alu cell for \124309: $auto$alumacc.cc:485:replace_alu$77142
-  creating $alu cell for \124303: $auto$alumacc.cc:485:replace_alu$77147
-  creating $alu cell for \124287: $auto$alumacc.cc:485:replace_alu$77152
-  creating $alu cell for \124261: $auto$alumacc.cc:485:replace_alu$77159
-  creating $alu cell for \124245: $auto$alumacc.cc:485:replace_alu$77166
-  creating $alu cell for \124237: $auto$alumacc.cc:485:replace_alu$77177
-  creating $alu cell for \122597: $auto$alumacc.cc:485:replace_alu$77192
-  creating $alu cell for \122598: $auto$alumacc.cc:485:replace_alu$77205
-  creating $alu cell for \123732: $auto$alumacc.cc:485:replace_alu$77208
-  creating $alu cell for \123956: $auto$alumacc.cc:485:replace_alu$77211
-  creating $alu cell for \124894: $auto$alumacc.cc:485:replace_alu$77214
-  creating $alu cell for \124678: $auto$alumacc.cc:485:replace_alu$77217
-  creating $alu cell for \124676: $auto$alumacc.cc:485:replace_alu$77220
-  creating $alu cell for \124232: $auto$alumacc.cc:485:replace_alu$77223
-  creating $alu cell for \124250: $auto$alumacc.cc:485:replace_alu$77226
-  creating $alu cell for \124282: $auto$alumacc.cc:485:replace_alu$77229
-  creating $alu cell for \124290: $auto$alumacc.cc:485:replace_alu$77232
+  creating $alu cell for \124639: $auto$alumacc.cc:485:replace_alu$94108
+  creating $alu cell for \124633: $auto$alumacc.cc:485:replace_alu$94113
+  creating $alu cell for \124627: $auto$alumacc.cc:485:replace_alu$94118
+  creating $alu cell for \124621: $auto$alumacc.cc:485:replace_alu$94123
+  creating $alu cell for \124615: $auto$alumacc.cc:485:replace_alu$94128
+  creating $alu cell for \124609: $auto$alumacc.cc:485:replace_alu$94133
+  creating $alu cell for \124603: $auto$alumacc.cc:485:replace_alu$94138
+  creating $alu cell for \124597: $auto$alumacc.cc:485:replace_alu$94143
+  creating $alu cell for \124591: $auto$alumacc.cc:485:replace_alu$94148
+  creating $alu cell for \124585: $auto$alumacc.cc:485:replace_alu$94153
+  creating $alu cell for \124579: $auto$alumacc.cc:485:replace_alu$94158
+  creating $alu cell for \124573: $auto$alumacc.cc:485:replace_alu$94163
+  creating $alu cell for \124567: $auto$alumacc.cc:485:replace_alu$94168
+  creating $alu cell for \124561: $auto$alumacc.cc:485:replace_alu$94173
+  creating $alu cell for \124555: $auto$alumacc.cc:485:replace_alu$94178
+  creating $alu cell for \124549: $auto$alumacc.cc:485:replace_alu$94183
+  creating $alu cell for \124543: $auto$alumacc.cc:485:replace_alu$94188
+  creating $alu cell for \124537: $auto$alumacc.cc:485:replace_alu$94193
+  creating $alu cell for \124531: $auto$alumacc.cc:485:replace_alu$94198
+  creating $alu cell for \124525: $auto$alumacc.cc:485:replace_alu$94203
+  creating $alu cell for \124519: $auto$alumacc.cc:485:replace_alu$94208
+  creating $alu cell for \124513: $auto$alumacc.cc:485:replace_alu$94213
+  creating $alu cell for \124507: $auto$alumacc.cc:485:replace_alu$94218
+  creating $alu cell for \124501: $auto$alumacc.cc:485:replace_alu$94223
+  creating $alu cell for \124495: $auto$alumacc.cc:485:replace_alu$94228
+  creating $alu cell for \124489: $auto$alumacc.cc:485:replace_alu$94233
+  creating $alu cell for \124483: $auto$alumacc.cc:485:replace_alu$94238
+  creating $alu cell for \124477: $auto$alumacc.cc:485:replace_alu$94243
+  creating $alu cell for \124471: $auto$alumacc.cc:485:replace_alu$94248
+  creating $alu cell for \124465: $auto$alumacc.cc:485:replace_alu$94253
+  creating $alu cell for \124459: $auto$alumacc.cc:485:replace_alu$94258
+  creating $alu cell for \124453: $auto$alumacc.cc:485:replace_alu$94263
+  creating $alu cell for \124447: $auto$alumacc.cc:485:replace_alu$94268
+  creating $alu cell for \124441: $auto$alumacc.cc:485:replace_alu$94273
+  creating $alu cell for \124435: $auto$alumacc.cc:485:replace_alu$94278
+  creating $alu cell for \124429: $auto$alumacc.cc:485:replace_alu$94283
+  creating $alu cell for \124423: $auto$alumacc.cc:485:replace_alu$94288
+  creating $alu cell for \124417: $auto$alumacc.cc:485:replace_alu$94293
+  creating $alu cell for \124411: $auto$alumacc.cc:485:replace_alu$94298
+  creating $alu cell for \124405: $auto$alumacc.cc:485:replace_alu$94303
+  creating $alu cell for \124399: $auto$alumacc.cc:485:replace_alu$94308
+  creating $alu cell for \124393: $auto$alumacc.cc:485:replace_alu$94313
+  creating $alu cell for \124387: $auto$alumacc.cc:485:replace_alu$94318
+  creating $alu cell for \124381: $auto$alumacc.cc:485:replace_alu$94323
+  creating $alu cell for \124375: $auto$alumacc.cc:485:replace_alu$94328
+  creating $alu cell for \124369: $auto$alumacc.cc:485:replace_alu$94333
+  creating $alu cell for \124363: $auto$alumacc.cc:485:replace_alu$94338
+  creating $alu cell for \124357: $auto$alumacc.cc:485:replace_alu$94343
+  creating $alu cell for \124351: $auto$alumacc.cc:485:replace_alu$94348
+  creating $alu cell for \124345: $auto$alumacc.cc:485:replace_alu$94353
+  creating $alu cell for \124339: $auto$alumacc.cc:485:replace_alu$94358
+  creating $alu cell for \124333: $auto$alumacc.cc:485:replace_alu$94363
+  creating $alu cell for \124327: $auto$alumacc.cc:485:replace_alu$94368
+  creating $alu cell for \124321: $auto$alumacc.cc:485:replace_alu$94373
+  creating $alu cell for \124315: $auto$alumacc.cc:485:replace_alu$94378
+  creating $alu cell for \124309: $auto$alumacc.cc:485:replace_alu$94383
+  creating $alu cell for \124303: $auto$alumacc.cc:485:replace_alu$94388
+  creating $alu cell for \124287: $auto$alumacc.cc:485:replace_alu$94393
+  creating $alu cell for \124261: $auto$alumacc.cc:485:replace_alu$94400
+  creating $alu cell for \124245: $auto$alumacc.cc:485:replace_alu$94407
+  creating $alu cell for \124237: $auto$alumacc.cc:485:replace_alu$94418
+  creating $alu cell for \122597: $auto$alumacc.cc:485:replace_alu$94433
+  creating $alu cell for \122598: $auto$alumacc.cc:485:replace_alu$94446
+  creating $alu cell for \123732: $auto$alumacc.cc:485:replace_alu$94449
+  creating $alu cell for \123956: $auto$alumacc.cc:485:replace_alu$94452
+  creating $alu cell for \124894: $auto$alumacc.cc:485:replace_alu$94455
+  creating $alu cell for \124678: $auto$alumacc.cc:485:replace_alu$94458
+  creating $alu cell for \124676: $auto$alumacc.cc:485:replace_alu$94461
+  creating $alu cell for \124232: $auto$alumacc.cc:485:replace_alu$94464
+  creating $alu cell for \124250: $auto$alumacc.cc:485:replace_alu$94467
+  creating $alu cell for \124282: $auto$alumacc.cc:485:replace_alu$94470
+  creating $alu cell for \124290: $auto$alumacc.cc:485:replace_alu$94473
   created 72 $alu and 4 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -1001,8 +1001,8 @@ Finding identical cells in module `\fexp_unit'.
 Removed a total of 48 cells.
 
 3.16.3. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on $auto$ff.cc:266:slice$76762 ($dffe) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$74575 [63], Q = \p [63], rval = 1'0).
-Adding SRST signal on $auto$ff.cc:266:slice$76749 ($dffe) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$74575 [62:0], Q = \p [62:0], rval = 63'011111111110000000000000000000000000000000000000000000000000000).
+Adding SRST signal on $auto$ff.cc:266:slice$94003 ($dffe) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$74575 [63], Q = \p [63], rval = 1'0).
+Adding SRST signal on $auto$ff.cc:266:slice$93990 ($dffe) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$74575 [62:0], Q = \p [62:0], rval = 63'011111111110000000000000000000000000000000000000000000000000000).
 
 3.16.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \fexp_unit..
@@ -1019,9 +1019,9 @@ Finding identical cells in module `\fexp_unit'.
 Removed a total of 0 cells.
 
 3.16.8. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on $auto$ff.cc:266:slice$77342 ($sdffce) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$74554 [61:52], Q = \p [61:52], rval = 10'1111111111).
-Adding SRST signal on $auto$ff.cc:266:slice$77342 ($sdffce) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$74546 [51:1], Q = \p [51:1], rval = 51'000000000000000000000000000000000000000000000000000).
-Adding SRST signal on $auto$ff.cc:266:slice$76722 ($dffe) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$75553, Q = \result, rval = 64'0111111111111000000000000000000000000000000000000000000000000000).
+Adding SRST signal on $auto$ff.cc:266:slice$94583 ($sdffce) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$74554 [61:52], Q = \p [61:52], rval = 10'1111111111).
+Adding SRST signal on $auto$ff.cc:266:slice$94583 ($sdffce) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$74546 [51:1], Q = \p [51:1], rval = 51'000000000000000000000000000000000000000000000000000).
+Adding SRST signal on $auto$ff.cc:266:slice$93963 ($dffe) from module fexp_unit (D = $auto$ghdl.cc:806:import_module$75553, Q = \result, rval = 64'0111111111111000000000000000000000000000000000000000000000000000).
 
 3.16.9. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \fexp_unit..
@@ -1732,98 +1732,40 @@ Removed 3347 unused cells and 9787 unused wires.
 
 3.20.5. Finished fast OPT passes.
 
-3.21. Executing ABC pass (technology mapping using ABC).
+3.21. Executing HIERARCHY pass (managing design hierarchy).
 
-3.21.1. Extracting gate netlist of module `\fexp_unit' to `<abc-temp-dir>/input.blif'..
-Extracted 24059 gates and 24325 wires to a netlist network with 264 inputs and 206 outputs.
-
-3.21.1.1. Executing ABC.
-Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
-ABC: ABC command line: "source <abc-temp-dir>/abc.script".
-ABC: 
-ABC: + read_blif <abc-temp-dir>/input.blif 
-ABC: + read_library <abc-temp-dir>/stdcells.genlib 
-ABC: Entered genlib library with 13 gates from file "<abc-temp-dir>/stdcells.genlib".
-ABC: + strash 
-ABC: + dretime 
-ABC: + map 
-ABC: + write_blif <abc-temp-dir>/output.blif 
-
-3.21.1.2. Re-integrating ABC results.
-ABC RESULTS:             ORNOT cells:     1258
-ABC RESULTS:               NOT cells:      488
-ABC RESULTS:               NOR cells:     3107
-ABC RESULTS:              NAND cells:      313
-ABC RESULTS:               XOR cells:     4354
-ABC RESULTS:              XNOR cells:     1796
-ABC RESULTS:               MUX cells:     1681
-ABC RESULTS:               AND cells:      216
-ABC RESULTS:                OR cells:     4277
-ABC RESULTS:            ANDNOT cells:     6191
-ABC RESULTS:        internal signals:    23855
-ABC RESULTS:           input signals:      264
-ABC RESULTS:          output signals:      206
-Removing temp directory.
-
-3.22. Executing OPT pass (performing simple optimizations).
-
-3.22.1. Executing OPT_EXPR pass (perform const folding).
-Optimizing module fexp_unit.
-<suppressed ~197 debug messages>
-
-3.22.2. Executing OPT_MERGE pass (detect identical cells).
-Finding identical cells in module `\fexp_unit'.
-<suppressed ~198 debug messages>
-Removed a total of 66 cells.
-
-3.22.3. Executing OPT_DFF pass (perform DFF optimizations).
-
-3.22.4. Executing OPT_CLEAN pass (remove unused cells and wires).
-Finding unused cells or wires in module \fexp_unit..
-Removed 2 unused cells and 2541 unused wires.
-<suppressed ~20 debug messages>
-
-3.22.5. Finished fast OPT passes.
-
-3.23. Executing HIERARCHY pass (managing design hierarchy).
-
-3.23.1. Analyzing design hierarchy..
+3.21.1. Analyzing design hierarchy..
 Top module:  \fexp_unit
 
-3.23.2. Analyzing design hierarchy..
+3.21.2. Analyzing design hierarchy..
 Top module:  \fexp_unit
 Removed 0 unused modules.
 Module fexp_unit directly or indirectly contains formal properties -> setting "keep" attribute.
 
-3.24. Printing statistics.
+3.22. Printing statistics.
 
 === fexp_unit ===
 
-   Number of wires:              23674
-   Number of wire bits:          32551
-   Number of public wires:          62
-   Number of public wire bits:    8939
+   Number of wires:               2270
+   Number of wire bits:          52114
+   Number of public wires:          79
+   Number of public wire bits:    9421
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:              23875
-     $_ANDNOT_                    6178
-     $_AND_                        214
+   Number of cells:              24321
+     $_AND_                      10076
      $_DFFE_PP_                    129
      $_DFF_P_                        4
-     $_MUX_                       1677
-     $_NAND_                       311
-     $_NOR_                       3070
-     $_NOT_                        485
-     $_ORNOT_                     1255
-     $_OR_                        4274
+     $_MUX_                       3583
+     $_NOT_                        367
+     $_OR_                        3779
      $_SDFFCE_PP0P_                106
      $_SDFFCE_PP1P_                 22
-     $_XNOR_                      1796
-     $_XOR_                       4353
+     $_XOR_                       6254
      $assert                         1
 
-3.25. Executing CHECK pass (checking for obvious problems).
+3.23. Executing CHECK pass (checking for obvious problems).
 Checking module fexp_unit...
 Found and reported 0 problems.
 
@@ -1892,7 +1834,7 @@ Mapping DFF cells in module `\fexp_unit':
 5. Executing ABC pass (technology mapping using ABC).
 
 5.1. Extracting gate netlist of module `\fexp_unit' to `<abc-temp-dir>/input.blif'..
-Extracted 23998 gates and 24392 wires to a netlist network with 392 inputs and 262 outputs.
+Extracted 24444 gates and 24838 wires to a netlist network with 392 inputs and 262 outputs.
 
 5.1.1. Executing ABC.
 Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
@@ -1931,59 +1873,47 @@ ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
 ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
-ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
-ABC: Memory =    2.86 MB. Time =     0.01 sec
-ABC: + strash 
-ABC: + &get -n 
-ABC: + &fraig -x 
-ABC: + &put 
-ABC: + scorr 
-ABC: Warning: The network is combinational (run "fraig" or "fraig_sweep").
-ABC: + dc2 
-ABC: + dretime 
-ABC: + strash 
-ABC: + &get -n 
-ABC: + &dch -f 
-ABC: + &nf 
-ABC: + &put 
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
+ABC: Memory =    2.86 MB. Time =     0.02 sec
+ABC: + source /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/par_module/abc_direct.abc 
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
 5.1.2. Re-integrating ABC results.
-ABC RESULTS:     sg13g2_and4_1 cells:      178
-ABC RESULTS:     sg13g2_and3_1 cells:       41
-ABC RESULTS:     sg13g2_mux4_1 cells:      136
-ABC RESULTS:      sg13g2_or3_1 cells:      272
-ABC RESULTS:      sg13g2_or4_1 cells:       15
-ABC RESULTS:      sg13g2_inv_1 cells:      451
-ABC RESULTS:   sg13g2_nand3b_1 cells:       15
-ABC RESULTS:    sg13g2_nand4_1 cells:      150
-ABC RESULTS:     sg13g2_a21o_1 cells:      550
-ABC RESULTS:     sg13g2_nor4_1 cells:      338
-ABC RESULTS:   sg13g2_a221oi_1 cells:       40
-ABC RESULTS:     sg13g2_and2_1 cells:      564
-ABC RESULTS:      sg13g2_or2_1 cells:      636
-ABC RESULTS:     sg13g2_xor2_1 cells:     1820
-ABC RESULTS:    sg13g2_xnor2_1 cells:     2508
-ABC RESULTS:   sg13g2_nand2b_1 cells:     1291
-ABC RESULTS:    sg13g2_nand3_1 cells:      679
-ABC RESULTS:     sg13g2_nor2_1 cells:     1769
-ABC RESULTS:    sg13g2_a22oi_1 cells:      564
-ABC RESULTS:    sg13g2_nor2b_1 cells:      876
-ABC RESULTS:    sg13g2_nand2_1 cells:     2983
-ABC RESULTS:     sg13g2_nor3_1 cells:      469
-ABC RESULTS:    sg13g2_a21oi_1 cells:     1239
-ABC RESULTS:    sg13g2_o21ai_1 cells:     1681
-ABC RESULTS:     sg13g2_mux2_1 cells:      462
-ABC RESULTS:        internal signals:    23738
+ABC RESULTS:      sg13g2_or4_1 cells:        8
+ABC RESULTS:     sg13g2_mux4_1 cells:       53
+ABC RESULTS:   sg13g2_nand3b_1 cells:       38
+ABC RESULTS:   sg13g2_a221oi_1 cells:       75
+ABC RESULTS:     sg13g2_and4_1 cells:       36
+ABC RESULTS:      sg13g2_or3_1 cells:      354
+ABC RESULTS:     sg13g2_and3_1 cells:       52
+ABC RESULTS:     sg13g2_nor3_1 cells:      414
+ABC RESULTS:    sg13g2_a22oi_1 cells:      704
+ABC RESULTS:      sg13g2_inv_1 cells:      508
+ABC RESULTS:    sg13g2_nor2b_1 cells:      845
+ABC RESULTS:      sg13g2_or2_1 cells:      388
+ABC RESULTS:     sg13g2_xor2_1 cells:     1729
+ABC RESULTS:    sg13g2_xnor2_1 cells:     2503
+ABC RESULTS:     sg13g2_nor2_1 cells:     2167
+ABC RESULTS:     sg13g2_nor4_1 cells:      600
+ABC RESULTS:    sg13g2_nand4_1 cells:      174
+ABC RESULTS:     sg13g2_mux2_1 cells:      475
+ABC RESULTS:   sg13g2_nand2b_1 cells:     1222
+ABC RESULTS:    sg13g2_nand2_1 cells:     2495
+ABC RESULTS:     sg13g2_a21o_1 cells:      472
+ABC RESULTS:    sg13g2_a21oi_1 cells:     1552
+ABC RESULTS:    sg13g2_nand3_1 cells:      666
+ABC RESULTS:    sg13g2_o21ai_1 cells:     1627
+ABC RESULTS:     sg13g2_and2_1 cells:      631
+ABC RESULTS:        internal signals:    24184
 ABC RESULTS:           input signals:      392
 ABC RESULTS:          output signals:      262
 Removing temp directory.
 
 6. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \fexp_unit..
-Removed 0 unused cells and 24390 unused wires.
-<suppressed ~1 debug messages>
+Removed 0 unused cells and 2986 unused wires.
+<suppressed ~18 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: cc412312bd, CPU: user 11.40s system 0.10s, MEM: 200.39 MB peak
+End of script. Logfile hash: 19dd1581c2, CPU: user 10.10s system 0.11s, MEM: 193.46 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 93% 2x abc (153 sec), 1% 51x opt_expr (3 sec), ...
+Time spent: 38% 1x abc (6 sec), 15% 50x opt_expr (2 sec), ...

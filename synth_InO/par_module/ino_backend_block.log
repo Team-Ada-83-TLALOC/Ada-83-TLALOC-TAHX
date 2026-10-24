@@ -26,9 +26,9 @@
          read_rtlil ../synth_InO/par_module/brut.il
          blackbox  TAHX_1 branch_predict decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_backend_block
-         synth -top ino_backend_block -noshare
+         synth -top ino_backend_block -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
-         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
+         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib -script ../synth_InO/par_module/abc_direct.abc
          opt_clean
          tee -q -o ../synth_InO/par_module/ino_backend_block.stat stat -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib' --
 
@@ -238,8 +238,8 @@ Finding unused cells or wires in module \ino_backend_block..
 Extracting $alu and $macc cells in module ino_backend_block:
   creating $alu model for \106866 ($ge): new $alu
   creating $alu model for \106868 ($le): new $alu
-  creating $alu cell for \106868: $auto$alumacc.cc:485:replace_alu$76667
-  creating $alu cell for \106866: $auto$alumacc.cc:485:replace_alu$76676
+  creating $alu cell for \106868: $auto$alumacc.cc:485:replace_alu$93908
+  creating $alu cell for \106866: $auto$alumacc.cc:485:replace_alu$93917
   created 2 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -461,86 +461,35 @@ Removed 15 unused cells and 116 unused wires.
 
 3.20.5. Finished fast OPT passes.
 
-3.21. Executing ABC pass (technology mapping using ABC).
+3.21. Executing HIERARCHY pass (managing design hierarchy).
 
-3.21.1. Extracting gate netlist of module `\ino_backend_block' to `<abc-temp-dir>/input.blif'..
-Extracted 352 gates and 914 wires to a netlist network with 560 inputs and 276 outputs.
-
-3.21.1.1. Executing ABC.
-Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
-ABC: ABC command line: "source <abc-temp-dir>/abc.script".
-ABC: 
-ABC: + read_blif <abc-temp-dir>/input.blif 
-ABC: + read_library <abc-temp-dir>/stdcells.genlib 
-ABC: Entered genlib library with 13 gates from file "<abc-temp-dir>/stdcells.genlib".
-ABC: + strash 
-ABC: + dretime 
-ABC: + map 
-ABC: + write_blif <abc-temp-dir>/output.blif 
-
-3.21.1.2. Re-integrating ABC results.
-ABC RESULTS:             ORNOT cells:        6
-ABC RESULTS:               NOR cells:        3
-ABC RESULTS:              NAND cells:        8
-ABC RESULTS:               AND cells:        3
-ABC RESULTS:                OR cells:       14
-ABC RESULTS:               MUX cells:      272
-ABC RESULTS:            ANDNOT cells:       23
-ABC RESULTS:        internal signals:       78
-ABC RESULTS:           input signals:      560
-ABC RESULTS:          output signals:      276
-Removing temp directory.
-
-3.22. Executing OPT pass (performing simple optimizations).
-
-3.22.1. Executing OPT_EXPR pass (perform const folding).
-Optimizing module ino_backend_block.
-
-3.22.2. Executing OPT_MERGE pass (detect identical cells).
-Finding identical cells in module `\ino_backend_block'.
-Removed a total of 0 cells.
-
-3.22.3. Executing OPT_DFF pass (perform DFF optimizations).
-
-3.22.4. Executing OPT_CLEAN pass (remove unused cells and wires).
-Finding unused cells or wires in module \ino_backend_block..
-Removed 0 unused cells and 897 unused wires.
-<suppressed ~1 debug messages>
-
-3.22.5. Finished fast OPT passes.
-
-3.23. Executing HIERARCHY pass (managing design hierarchy).
-
-3.23.1. Analyzing design hierarchy..
+3.21.1. Analyzing design hierarchy..
 Top module:  \ino_backend_block
 
-3.23.2. Analyzing design hierarchy..
+3.21.2. Analyzing design hierarchy..
 Top module:  \ino_backend_block
 Removed 0 unused modules.
 
-3.24. Printing statistics.
+3.22. Printing statistics.
 
 === ino_backend_block ===
 
-   Number of wires:                106
-   Number of wire bits:           2387
+   Number of wires:                114
+   Number of wire bits:           2464
    Number of public wires:          53
    Number of public wire bits:    2334
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:                331
-     $_ANDNOT_                      23
-     $_AND_                          3
-     $_MUX_                        272
-     $_NAND_                         8
-     $_NOR_                          3
-     $_ORNOT_                        6
-     $_OR_                          14
+   Number of cells:                354
+     $_AND_                         23
+     $_MUX_                        275
+     $_NOT_                         18
+     $_OR_                          36
      ino_backend_complex             1
      ino_block_unit                  1
 
-3.25. Executing CHECK pass (checking for obvious problems).
+3.23. Executing CHECK pass (checking for obvious problems).
 Checking module ino_backend_block...
 Found and reported 0 problems.
 
@@ -608,7 +557,7 @@ Mapping DFF cells in module `\ino_backend_block':
 5. Executing ABC pass (technology mapping using ABC).
 
 5.1. Extracting gate netlist of module `\ino_backend_block' to `<abc-temp-dir>/input.blif'..
-Extracted 329 gates and 889 wires to a netlist network with 560 inputs and 276 outputs.
+Extracted 352 gates and 914 wires to a netlist network with 560 inputs and 276 outputs.
 
 5.1.1. Executing ABC.
 Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
@@ -647,21 +596,9 @@ ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
 ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
-ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
-ABC: Memory =    2.86 MB. Time =     0.01 sec
-ABC: + strash 
-ABC: + &get -n 
-ABC: + &fraig -x 
-ABC: + &put 
-ABC: + scorr 
-ABC: Warning: The network is combinational (run "fraig" or "fraig_sweep").
-ABC: + dc2 
-ABC: + dretime 
-ABC: + strash 
-ABC: + &get -n 
-ABC: + &dch -f 
-ABC: + &nf 
-ABC: + &put 
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
+ABC: Memory =    2.86 MB. Time =     0.02 sec
+ABC: + source /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/par_module/abc_direct.abc 
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
 5.1.2. Re-integrating ABC results.
@@ -674,16 +611,16 @@ ABC RESULTS:    sg13g2_nor2b_1 cells:        2
 ABC RESULTS:      sg13g2_or2_1 cells:        2
 ABC RESULTS:     sg13g2_mux2_1 cells:      272
 ABC RESULTS:     sg13g2_and2_1 cells:        3
-ABC RESULTS:        internal signals:       53
+ABC RESULTS:        internal signals:       78
 ABC RESULTS:           input signals:      560
 ABC RESULTS:          output signals:      276
 Removing temp directory.
 
 6. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_backend_block..
-Removed 0 unused cells and 889 unused wires.
+Removed 0 unused cells and 897 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 18d8a5d8fb, CPU: user 0.86s system 0.05s, MEM: 120.35 MB peak
+End of script. Logfile hash: 463311a269, CPU: user 1.03s system 0.05s, MEM: 151.53 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 52% 2x read_rtlil (0 sec), 15% 2x abc (0 sec), ...
+Time spent: 60% 2x read_rtlil (0 sec), 8% 1x blackbox (0 sec), ...

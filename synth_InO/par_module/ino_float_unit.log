@@ -26,9 +26,9 @@
          read_rtlil ../synth_InO/par_module/brut.il
          blackbox  TAHX_1 branch_predict decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_float_unit
-         synth -top ino_float_unit -noshare
+         synth -top ino_float_unit -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
-         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
+         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib -script ../synth_InO/par_module/abc_direct.abc
          opt_clean
          tee -q -o ../synth_InO/par_module/ino_float_unit.stat stat -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib' --
 
@@ -195,51 +195,51 @@ Removed 65 multiplexer ports.
     New input vector for $reduce_or cell \113791: { \issue_q_s [456:405] $auto$ghdl.cc:806:import_module$70042 }
     New input vector for $reduce_or cell \111437: { \issue_q_s [392:341] $auto$ghdl.cc:806:import_module$69173 }
     New input vector for $reduce_or cell \110992: { \issue_q_s [456:405] $auto$ghdl.cc:806:import_module$69153 }
-    New ctrl vector for $pmux cell \110889: $auto$opt_reduce.cc:134:opt_pmux$76666
-    New ctrl vector for $pmux cell \110893: { $auto$ghdl.cc:806:import_module$69150 $auto$opt_reduce.cc:134:opt_pmux$76668 }
+    New ctrl vector for $pmux cell \110889: $auto$opt_reduce.cc:134:opt_pmux$93907
+    New ctrl vector for $pmux cell \110893: { $auto$ghdl.cc:806:import_module$69150 $auto$opt_reduce.cc:134:opt_pmux$93909 }
     New ctrl vector for $pmux cell \110897: $auto$ghdl.cc:806:import_module$69150
-    New ctrl vector for $pmux cell \110963: $auto$opt_reduce.cc:134:opt_pmux$76670
-    New ctrl vector for $pmux cell \110967: { $auto$ghdl.cc:806:import_module$69170 $auto$opt_reduce.cc:134:opt_pmux$76672 }
+    New ctrl vector for $pmux cell \110963: $auto$opt_reduce.cc:134:opt_pmux$93911
+    New ctrl vector for $pmux cell \110967: { $auto$ghdl.cc:806:import_module$69170 $auto$opt_reduce.cc:134:opt_pmux$93913 }
     New ctrl vector for $pmux cell \110971: $auto$ghdl.cc:806:import_module$69170
-    New ctrl vector for $pmux cell \113688: $auto$opt_reduce.cc:134:opt_pmux$76674
-    New ctrl vector for $pmux cell \113692: { $auto$ghdl.cc:806:import_module$70039 $auto$opt_reduce.cc:134:opt_pmux$76676 }
+    New ctrl vector for $pmux cell \113688: $auto$opt_reduce.cc:134:opt_pmux$93915
+    New ctrl vector for $pmux cell \113692: { $auto$ghdl.cc:806:import_module$70039 $auto$opt_reduce.cc:134:opt_pmux$93917 }
     New ctrl vector for $pmux cell \113696: $auto$ghdl.cc:806:import_module$70039
-    New ctrl vector for $pmux cell \113762: $auto$opt_reduce.cc:134:opt_pmux$76678
-    New ctrl vector for $pmux cell \113766: { $auto$ghdl.cc:806:import_module$70059 $auto$opt_reduce.cc:134:opt_pmux$76680 }
+    New ctrl vector for $pmux cell \113762: $auto$opt_reduce.cc:134:opt_pmux$93919
+    New ctrl vector for $pmux cell \113766: { $auto$ghdl.cc:806:import_module$70059 $auto$opt_reduce.cc:134:opt_pmux$93921 }
     New ctrl vector for $pmux cell \113770: $auto$ghdl.cc:806:import_module$70059
-    New ctrl vector for $pmux cell \116458: $auto$opt_reduce.cc:134:opt_pmux$76682
-    New ctrl vector for $pmux cell \116462: { $auto$ghdl.cc:806:import_module$70933 $auto$opt_reduce.cc:134:opt_pmux$76684 }
+    New ctrl vector for $pmux cell \116458: $auto$opt_reduce.cc:134:opt_pmux$93923
+    New ctrl vector for $pmux cell \116462: { $auto$ghdl.cc:806:import_module$70933 $auto$opt_reduce.cc:134:opt_pmux$93925 }
     New ctrl vector for $pmux cell \116466: $auto$ghdl.cc:806:import_module$70933
-    New ctrl vector for $pmux cell \116529: $auto$opt_reduce.cc:134:opt_pmux$76686
-    New ctrl vector for $pmux cell \116533: { $auto$ghdl.cc:806:import_module$70953 $auto$opt_reduce.cc:134:opt_pmux$76688 }
+    New ctrl vector for $pmux cell \116529: $auto$opt_reduce.cc:134:opt_pmux$93927
+    New ctrl vector for $pmux cell \116533: { $auto$ghdl.cc:806:import_module$70953 $auto$opt_reduce.cc:134:opt_pmux$93929 }
     New ctrl vector for $pmux cell \116537: $auto$ghdl.cc:806:import_module$70953
     New ctrl vector for $pmux cell \119703: $auto$ghdl.cc:806:import_module$72006
     New ctrl vector for $pmux cell \119706: $auto$ghdl.cc:806:import_module$71997
     New ctrl vector for $pmux cell \119790: $auto$ghdl.cc:806:import_module$72028
     New ctrl vector for $pmux cell \119793: $auto$ghdl.cc:806:import_module$72019
-    New ctrl vector for $pmux cell \120318: $auto$opt_reduce.cc:134:opt_pmux$76690
-    New ctrl vector for $pmux cell \120320: $auto$opt_reduce.cc:134:opt_pmux$76692
-    New ctrl vector for $pmux cell \120321: $auto$opt_reduce.cc:134:opt_pmux$76694
-    New ctrl vector for $pmux cell \120322: $auto$opt_reduce.cc:134:opt_pmux$76696
-    New ctrl vector for $pmux cell \120323: $auto$opt_reduce.cc:134:opt_pmux$76698
-    New ctrl vector for $pmux cell \120327: $auto$opt_reduce.cc:134:opt_pmux$76700
-    New ctrl vector for $pmux cell \120330: $auto$opt_reduce.cc:134:opt_pmux$76702
+    New ctrl vector for $pmux cell \120318: $auto$opt_reduce.cc:134:opt_pmux$93931
+    New ctrl vector for $pmux cell \120320: $auto$opt_reduce.cc:134:opt_pmux$93933
+    New ctrl vector for $pmux cell \120321: $auto$opt_reduce.cc:134:opt_pmux$93935
+    New ctrl vector for $pmux cell \120322: $auto$opt_reduce.cc:134:opt_pmux$93937
+    New ctrl vector for $pmux cell \120323: $auto$opt_reduce.cc:134:opt_pmux$93939
+    New ctrl vector for $pmux cell \120327: $auto$opt_reduce.cc:134:opt_pmux$93941
+    New ctrl vector for $pmux cell \120330: $auto$opt_reduce.cc:134:opt_pmux$93943
     New ctrl vector for $pmux cell \120335: { $auto$ghdl.cc:806:import_module$71906 $auto$ghdl.cc:806:import_module$71943 }
-    New ctrl vector for $pmux cell \120340: $auto$opt_reduce.cc:134:opt_pmux$76704
-    New ctrl vector for $pmux cell \120398: $auto$opt_reduce.cc:134:opt_pmux$76706
-    New ctrl vector for $pmux cell \120400: $auto$opt_reduce.cc:134:opt_pmux$76708
-    New ctrl vector for $pmux cell \120401: $auto$opt_reduce.cc:134:opt_pmux$76710
-    New ctrl vector for $pmux cell \120403: $auto$opt_reduce.cc:134:opt_pmux$76712
-    New ctrl vector for $pmux cell \121536: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$76714 }
-    New ctrl vector for $pmux cell \121539: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$76716 }
-    New ctrl vector for $pmux cell \121542: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$76718 }
-    New ctrl vector for $pmux cell \121546: { $auto$opt_reduce.cc:134:opt_pmux$76720 $auto$ghdl.cc:806:import_module$69001 }
-    New ctrl vector for $pmux cell \121552: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$76722 }
-    New ctrl vector for $pmux cell \121554: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$76724 }
-    New ctrl vector for $pmux cell \121556: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$76726 }
-    New ctrl vector for $pmux cell \121558: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$76728 }
-    New ctrl vector for $pmux cell \121560: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$76730 }
-    New ctrl vector for $pmux cell \121562: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$76732 }
+    New ctrl vector for $pmux cell \120340: $auto$opt_reduce.cc:134:opt_pmux$93945
+    New ctrl vector for $pmux cell \120398: $auto$opt_reduce.cc:134:opt_pmux$93947
+    New ctrl vector for $pmux cell \120400: $auto$opt_reduce.cc:134:opt_pmux$93949
+    New ctrl vector for $pmux cell \120401: $auto$opt_reduce.cc:134:opt_pmux$93951
+    New ctrl vector for $pmux cell \120403: $auto$opt_reduce.cc:134:opt_pmux$93953
+    New ctrl vector for $pmux cell \121536: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$93955 }
+    New ctrl vector for $pmux cell \121539: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$93957 }
+    New ctrl vector for $pmux cell \121542: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$93959 }
+    New ctrl vector for $pmux cell \121546: { $auto$opt_reduce.cc:134:opt_pmux$93961 $auto$ghdl.cc:806:import_module$69001 }
+    New ctrl vector for $pmux cell \121552: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$93963 }
+    New ctrl vector for $pmux cell \121554: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$93965 }
+    New ctrl vector for $pmux cell \121556: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$93967 }
+    New ctrl vector for $pmux cell \121558: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$93969 }
+    New ctrl vector for $pmux cell \121560: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$93971 }
+    New ctrl vector for $pmux cell \121562: { $auto$ghdl.cc:806:import_module$72742 $auto$opt_reduce.cc:134:opt_pmux$93973 }
   Optimizing cells in module \ino_float_unit.
 Performed a total of 52 changes.
 
@@ -336,7 +336,7 @@ Removed a total of 0 cells.
 
 3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
 Adding SRST signal on \121691 ($dff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72757, Q = \div_left_s, rval = 6'000000).
-Adding EN signal on $auto$ff.cc:266:slice$76733 ($sdff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72757, Q = \div_left_s).
+Adding EN signal on $auto$ff.cc:266:slice$93974 ($sdff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72757, Q = \div_left_s).
 Adding EN signal on \121690 ($dff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72756 [56], Q = \div_quo_s [56]).
 Adding EN signal on \121690 ($dff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72756 [55:0], Q = \div_quo_s [55:0]).
 Adding EN signal on \121689 ($dff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72755, Q = \div_den_s).
@@ -344,17 +344,17 @@ Adding EN signal on \121688 ($dff) from module ino_float_unit (D = $auto$ghdl.cc
 Adding EN signal on \121687 ($dff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72753, Q = \div_expon_s).
 Adding EN signal on \121686 ($dff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72752, Q = \div_sign_s).
 Adding SRST signal on \121685 ($dff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72751, Q = \div_busy_s, rval = 1'0).
-Adding EN signal on $auto$ff.cc:266:slice$76819 ($sdff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72751, Q = \div_busy_s).
+Adding EN signal on $auto$ff.cc:266:slice$94060 ($sdff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72751, Q = \div_busy_s).
 Adding SRST signal on \121684 ($dff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72750, Q = \first_s, rval = 1'0).
-Adding EN signal on $auto$ff.cc:266:slice$76833 ($sdff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72750, Q = \first_s).
+Adding EN signal on $auto$ff.cc:266:slice$94074 ($sdff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72750, Q = \first_s).
 Adding EN signal on \121683 ($dff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72749, Q = \issue_q_s).
 Adding SRST signal on \121682 ($dff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72748, Q = \countdown_s, rval = 5'00000).
-Adding EN signal on $auto$ff.cc:266:slice$76850 ($sdff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72748, Q = \countdown_s).
+Adding EN signal on $auto$ff.cc:266:slice$94091 ($sdff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72748, Q = \countdown_s).
 Adding SRST signal on \121681 ($dff) from module ino_float_unit (D = { $auto$ghdl.cc:806:import_module$72747 $auto$ghdl.cc:806:import_module$72746 $auto$ghdl.cc:806:import_module$72745 }, Q = \result_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$76860 ($sdff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72746, Q = \result_s [65:2]).
-Adding EN signal on $auto$ff.cc:266:slice$76860 ($sdff) from module ino_float_unit (D = { $auto$ghdl.cc:806:import_module$72747 $auto$ghdl.cc:806:import_module$72745 }, Q = { \result_s [139:66] \result_s [1:0] }).
+Adding EN signal on $auto$ff.cc:266:slice$94101 ($sdff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72746, Q = \result_s [65:2]).
+Adding EN signal on $auto$ff.cc:266:slice$94101 ($sdff) from module ino_float_unit (D = { $auto$ghdl.cc:806:import_module$72747 $auto$ghdl.cc:806:import_module$72745 }, Q = { \result_s [139:66] \result_s [1:0] }).
 Adding SRST signal on \121680 ($dff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72744, Q = \state_s, rval = 2'00).
-Adding EN signal on $auto$ff.cc:266:slice$76875 ($sdff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72744, Q = \state_s).
+Adding EN signal on $auto$ff.cc:266:slice$94116 ($sdff) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72744, Q = \state_s).
 
 3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_float_unit..
@@ -437,8 +437,8 @@ Optimizing module ino_float_unit.
 3.8.23. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 1 bits (of 3) from port B of cell ino_float_unit.$auto$opt_dff.cc:195:make_patterns_logic$76828 ($ne).
-Removed top 1 bits (of 2) from port B of cell ino_float_unit.$auto$opt_dff.cc:195:make_patterns_logic$76870 ($ne).
+Removed top 1 bits (of 3) from port B of cell ino_float_unit.$auto$opt_dff.cc:195:make_patterns_logic$94069 ($ne).
+Removed top 1 bits (of 2) from port B of cell ino_float_unit.$auto$opt_dff.cc:195:make_patterns_logic$94111 ($ne).
 Removed top 2 bits (of 8) from port B of cell ino_float_unit.\110044 ($eq).
 Removed top 2 bits (of 8) from port B of cell ino_float_unit.\110047 ($eq).
 Removed top 2 bits (of 8) from port B of cell ino_float_unit.\110050 ($eq).
@@ -2155,7 +2155,7 @@ Removed top 31 bits (of 32) from port B of cell ino_float_unit.\118568 ($sub).
 Removed top 26 bits (of 32) from port Y of cell ino_float_unit.\118568 ($sub).
 Removed top 25 bits (of 31) from port A of cell ino_float_unit.\118568 ($sub).
 Removed top 63 bits (of 64) from port B of cell ino_float_unit.\118574 ($add).
-Removed top 2 bits (of 3) from port B of cell ino_float_unit.$auto$opt_dff.cc:195:make_patterns_logic$76740 ($ne).
+Removed top 2 bits (of 3) from port B of cell ino_float_unit.$auto$opt_dff.cc:195:make_patterns_logic$93981 ($ne).
 Removed top 1 bits (of 11) from port B of cell ino_float_unit.\118587 ($eq).
 Removed top 63 bits (of 64) from mux cell ino_float_unit.\118593 ($mux).
 Removed top 63 bits (of 64) from port A of cell ino_float_unit.\118610 ($sub).
@@ -2176,7 +2176,7 @@ Removed top 1 bits (of 4) from port B of cell ino_float_unit.\119127 ($eq).
 Removed top 1 bits (of 4) from port B of cell ino_float_unit.\119129 ($eq).
 Removed top 1 bits (of 4) from port B of cell ino_float_unit.\119158 ($eq).
 Removed top 1 bits (of 4) from port B of cell ino_float_unit.\119160 ($eq).
-Removed top 1 bits (of 7) from port B of cell ino_float_unit.$auto$opt_dff.cc:195:make_patterns_logic$76751 ($ne).
+Removed top 1 bits (of 7) from port B of cell ino_float_unit.$auto$opt_dff.cc:195:make_patterns_logic$93992 ($ne).
 Removed top 2 bits (of 4) from mux cell ino_float_unit.\119402 ($mux).
 Removed top 2 bits (of 4) from mux cell ino_float_unit.\119407 ($mux).
 Removed top 2 bits (of 4) from mux cell ino_float_unit.\119408 ($mux).
@@ -2256,7 +2256,7 @@ Removed top 27 bits (of 32) from port A of cell ino_float_unit.\121521 ($sub).
 Removed top 31 bits (of 32) from port B of cell ino_float_unit.\121521 ($sub).
 Removed top 27 bits (of 32) from port Y of cell ino_float_unit.\121521 ($sub).
 Removed top 1 bits (of 2) from port B of cell ino_float_unit.\121527 ($eq).
-Removed top 65 bits (of 534) from FF cell ino_float_unit.$auto$ff.cc:266:slice$76841 ($dffe).
+Removed top 65 bits (of 534) from FF cell ino_float_unit.$auto$ff.cc:266:slice$94082 ($dffe).
 Removed top 56 bits (of 57) from mux cell ino_float_unit.\111884 ($mux).
 Removed top 2 bits (of 57) from port Y of cell ino_float_unit.\112234 ($shr).
 Removed top 2 bits (of 57) from port Y of cell ino_float_unit.\112236 ($shl).
@@ -2537,17 +2537,17 @@ Extracting $alu and $macc cells in module ino_float_unit:
   creating $alu model for $macc \110985.
   creating $alu model for $macc \110070.
   creating $alu model for $macc $auto$ghdl.cc:927:import_module$72982.
-  creating $macc cell for \112205: $auto$alumacc.cc:365:replace_macc$76965
-  creating $macc cell for \117263: $auto$alumacc.cc:365:replace_macc$76966
-  creating $macc cell for \120949: $auto$alumacc.cc:365:replace_macc$76967
-  creating $macc cell for \112181: $auto$alumacc.cc:365:replace_macc$76968
-  creating $macc cell for \119804: $auto$alumacc.cc:365:replace_macc$76969
-  creating $macc cell for \115004: $auto$alumacc.cc:365:replace_macc$76970
-  creating $macc cell for \117008: $auto$alumacc.cc:365:replace_macc$76971
-  creating $macc cell for \117005: $auto$alumacc.cc:365:replace_macc$76972
-  creating $macc cell for \114980: $auto$alumacc.cc:365:replace_macc$76973
-  creating $macc cell for \117286: $auto$alumacc.cc:365:replace_macc$76974
-  creating $macc cell for \120926: $auto$alumacc.cc:365:replace_macc$76975
+  creating $macc cell for \112205: $auto$alumacc.cc:365:replace_macc$94206
+  creating $macc cell for \117263: $auto$alumacc.cc:365:replace_macc$94207
+  creating $macc cell for \120949: $auto$alumacc.cc:365:replace_macc$94208
+  creating $macc cell for \112181: $auto$alumacc.cc:365:replace_macc$94209
+  creating $macc cell for \119804: $auto$alumacc.cc:365:replace_macc$94210
+  creating $macc cell for \115004: $auto$alumacc.cc:365:replace_macc$94211
+  creating $macc cell for \117008: $auto$alumacc.cc:365:replace_macc$94212
+  creating $macc cell for \117005: $auto$alumacc.cc:365:replace_macc$94213
+  creating $macc cell for \114980: $auto$alumacc.cc:365:replace_macc$94214
+  creating $macc cell for \117286: $auto$alumacc.cc:365:replace_macc$94215
+  creating $macc cell for \120926: $auto$alumacc.cc:365:replace_macc$94216
   creating $alu model for \110987 ($lt): new $alu
   creating $alu model for \110994 ($lt): new $alu
   creating $alu model for \111025 ($lt): new $alu
@@ -2968,479 +2968,479 @@ Extracting $alu and $macc cells in module ino_float_unit:
   creating $alu model for \120934 ($le): new $alu
   creating $alu model for \120942 ($ge): new $alu
   creating $alu model for \120958 ($gt): new $alu
-  creating $alu cell for \120958: $auto$alumacc.cc:485:replace_alu$77390
-  creating $alu cell for \120942: $auto$alumacc.cc:485:replace_alu$77397
-  creating $alu cell for \120934: $auto$alumacc.cc:485:replace_alu$77408
-  creating $alu cell for \120634: $auto$alumacc.cc:485:replace_alu$77423
-  creating $alu cell for \120601: $auto$alumacc.cc:485:replace_alu$77428
-  creating $alu cell for \120568: $auto$alumacc.cc:485:replace_alu$77433
-  creating $alu cell for \120535: $auto$alumacc.cc:485:replace_alu$77438
-  creating $alu cell for \118540: $auto$alumacc.cc:485:replace_alu$77443
-  creating $alu cell for \118522: $auto$alumacc.cc:485:replace_alu$77452
-  creating $alu cell for \118387: $auto$alumacc.cc:485:replace_alu$77465
-  creating $alu cell for \118066, \118070, \118085, \118090: $auto$alumacc.cc:485:replace_alu$77470
-  creating $alu cell for \117673: $auto$alumacc.cc:485:replace_alu$77487
-  creating $alu cell for \117667: $auto$alumacc.cc:485:replace_alu$77492
-  creating $alu cell for \117661: $auto$alumacc.cc:485:replace_alu$77497
-  creating $alu cell for \117655: $auto$alumacc.cc:485:replace_alu$77502
-  creating $alu cell for \117649: $auto$alumacc.cc:485:replace_alu$77507
-  creating $alu cell for \117643: $auto$alumacc.cc:485:replace_alu$77512
-  creating $alu cell for \117637: $auto$alumacc.cc:485:replace_alu$77517
-  creating $alu cell for \117631: $auto$alumacc.cc:485:replace_alu$77522
-  creating $alu cell for \117625: $auto$alumacc.cc:485:replace_alu$77527
-  creating $alu cell for \117619: $auto$alumacc.cc:485:replace_alu$77532
-  creating $alu cell for \117613: $auto$alumacc.cc:485:replace_alu$77537
-  creating $alu cell for \117607: $auto$alumacc.cc:485:replace_alu$77542
-  creating $alu cell for \117601: $auto$alumacc.cc:485:replace_alu$77547
-  creating $alu cell for \117595: $auto$alumacc.cc:485:replace_alu$77552
-  creating $alu cell for \117589: $auto$alumacc.cc:485:replace_alu$77557
-  creating $alu cell for \117583: $auto$alumacc.cc:485:replace_alu$77562
-  creating $alu cell for \117577: $auto$alumacc.cc:485:replace_alu$77567
-  creating $alu cell for \117571: $auto$alumacc.cc:485:replace_alu$77572
-  creating $alu cell for \117565: $auto$alumacc.cc:485:replace_alu$77577
-  creating $alu cell for \117559: $auto$alumacc.cc:485:replace_alu$77582
-  creating $alu cell for \117553: $auto$alumacc.cc:485:replace_alu$77587
-  creating $alu cell for \117547: $auto$alumacc.cc:485:replace_alu$77592
-  creating $alu cell for \117541: $auto$alumacc.cc:485:replace_alu$77597
-  creating $alu cell for \117535: $auto$alumacc.cc:485:replace_alu$77602
-  creating $alu cell for \117529: $auto$alumacc.cc:485:replace_alu$77607
-  creating $alu cell for \117523: $auto$alumacc.cc:485:replace_alu$77612
-  creating $alu cell for \117517: $auto$alumacc.cc:485:replace_alu$77617
-  creating $alu cell for \117511: $auto$alumacc.cc:485:replace_alu$77622
-  creating $alu cell for \117505: $auto$alumacc.cc:485:replace_alu$77627
-  creating $alu cell for \117499: $auto$alumacc.cc:485:replace_alu$77632
-  creating $alu cell for \117493: $auto$alumacc.cc:485:replace_alu$77637
-  creating $alu cell for \117487: $auto$alumacc.cc:485:replace_alu$77642
-  creating $alu cell for \117481: $auto$alumacc.cc:485:replace_alu$77647
-  creating $alu cell for \117475: $auto$alumacc.cc:485:replace_alu$77652
-  creating $alu cell for \117469: $auto$alumacc.cc:485:replace_alu$77657
-  creating $alu cell for \117463: $auto$alumacc.cc:485:replace_alu$77662
-  creating $alu cell for \117457: $auto$alumacc.cc:485:replace_alu$77667
-  creating $alu cell for \117451: $auto$alumacc.cc:485:replace_alu$77672
-  creating $alu cell for \117445: $auto$alumacc.cc:485:replace_alu$77677
-  creating $alu cell for \117439: $auto$alumacc.cc:485:replace_alu$77682
-  creating $alu cell for \117433: $auto$alumacc.cc:485:replace_alu$77687
-  creating $alu cell for \117427: $auto$alumacc.cc:485:replace_alu$77692
-  creating $alu cell for \117421: $auto$alumacc.cc:485:replace_alu$77697
-  creating $alu cell for \117415: $auto$alumacc.cc:485:replace_alu$77702
-  creating $alu cell for \117409: $auto$alumacc.cc:485:replace_alu$77707
-  creating $alu cell for \117403: $auto$alumacc.cc:485:replace_alu$77712
-  creating $alu cell for \117397: $auto$alumacc.cc:485:replace_alu$77717
-  creating $alu cell for \117391: $auto$alumacc.cc:485:replace_alu$77722
-  creating $alu cell for \117385: $auto$alumacc.cc:485:replace_alu$77727
-  creating $alu cell for \117379: $auto$alumacc.cc:485:replace_alu$77732
-  creating $alu cell for \117373: $auto$alumacc.cc:485:replace_alu$77737
-  creating $alu cell for \117367: $auto$alumacc.cc:485:replace_alu$77742
-  creating $alu cell for \117361: $auto$alumacc.cc:485:replace_alu$77747
-  creating $alu cell for \117355: $auto$alumacc.cc:485:replace_alu$77752
-  creating $alu cell for \117349: $auto$alumacc.cc:485:replace_alu$77757
-  creating $alu cell for \117343: $auto$alumacc.cc:485:replace_alu$77762
-  creating $alu cell for \117337: $auto$alumacc.cc:485:replace_alu$77767
-  creating $alu cell for \117321: $auto$alumacc.cc:485:replace_alu$77772
-  creating $alu cell for \117295: $auto$alumacc.cc:485:replace_alu$77779
-  creating $alu cell for \117279: $auto$alumacc.cc:485:replace_alu$77786
-  creating $alu cell for \117271: $auto$alumacc.cc:485:replace_alu$77797
-  creating $alu cell for \115391: $auto$alumacc.cc:485:replace_alu$77812
-  creating $alu cell for \115385: $auto$alumacc.cc:485:replace_alu$77817
-  creating $alu cell for \115379: $auto$alumacc.cc:485:replace_alu$77822
-  creating $alu cell for \115373: $auto$alumacc.cc:485:replace_alu$77827
-  creating $alu cell for \115367: $auto$alumacc.cc:485:replace_alu$77832
-  creating $alu cell for \115361: $auto$alumacc.cc:485:replace_alu$77837
-  creating $alu cell for \115355: $auto$alumacc.cc:485:replace_alu$77842
-  creating $alu cell for \115349: $auto$alumacc.cc:485:replace_alu$77847
-  creating $alu cell for \115343: $auto$alumacc.cc:485:replace_alu$77852
-  creating $alu cell for \115337: $auto$alumacc.cc:485:replace_alu$77857
-  creating $alu cell for \115331: $auto$alumacc.cc:485:replace_alu$77862
-  creating $alu cell for \115325: $auto$alumacc.cc:485:replace_alu$77867
-  creating $alu cell for \115319: $auto$alumacc.cc:485:replace_alu$77872
-  creating $alu cell for \115313: $auto$alumacc.cc:485:replace_alu$77877
-  creating $alu cell for \115307: $auto$alumacc.cc:485:replace_alu$77882
-  creating $alu cell for \115301: $auto$alumacc.cc:485:replace_alu$77887
-  creating $alu cell for \115295: $auto$alumacc.cc:485:replace_alu$77892
-  creating $alu cell for \115289: $auto$alumacc.cc:485:replace_alu$77897
-  creating $alu cell for \115283: $auto$alumacc.cc:485:replace_alu$77902
-  creating $alu cell for \115277: $auto$alumacc.cc:485:replace_alu$77907
-  creating $alu cell for \115271: $auto$alumacc.cc:485:replace_alu$77912
-  creating $alu cell for \115265: $auto$alumacc.cc:485:replace_alu$77917
-  creating $alu cell for \115259: $auto$alumacc.cc:485:replace_alu$77922
-  creating $alu cell for \115253: $auto$alumacc.cc:485:replace_alu$77927
-  creating $alu cell for \115247: $auto$alumacc.cc:485:replace_alu$77932
-  creating $alu cell for \115241: $auto$alumacc.cc:485:replace_alu$77937
-  creating $alu cell for \115235: $auto$alumacc.cc:485:replace_alu$77942
-  creating $alu cell for \115229: $auto$alumacc.cc:485:replace_alu$77947
-  creating $alu cell for \115223: $auto$alumacc.cc:485:replace_alu$77952
-  creating $alu cell for \115217: $auto$alumacc.cc:485:replace_alu$77957
-  creating $alu cell for \115211: $auto$alumacc.cc:485:replace_alu$77962
-  creating $alu cell for \115205: $auto$alumacc.cc:485:replace_alu$77967
-  creating $alu cell for \115199: $auto$alumacc.cc:485:replace_alu$77972
-  creating $alu cell for \115193: $auto$alumacc.cc:485:replace_alu$77977
-  creating $alu cell for \115187: $auto$alumacc.cc:485:replace_alu$77982
-  creating $alu cell for \115181: $auto$alumacc.cc:485:replace_alu$77987
-  creating $alu cell for \115175: $auto$alumacc.cc:485:replace_alu$77992
-  creating $alu cell for \115169: $auto$alumacc.cc:485:replace_alu$77997
-  creating $alu cell for \115163: $auto$alumacc.cc:485:replace_alu$78002
-  creating $alu cell for \115157: $auto$alumacc.cc:485:replace_alu$78007
-  creating $alu cell for \115151: $auto$alumacc.cc:485:replace_alu$78012
-  creating $alu cell for \115145: $auto$alumacc.cc:485:replace_alu$78017
-  creating $alu cell for \115139: $auto$alumacc.cc:485:replace_alu$78022
-  creating $alu cell for \115133: $auto$alumacc.cc:485:replace_alu$78027
-  creating $alu cell for \115127: $auto$alumacc.cc:485:replace_alu$78032
-  creating $alu cell for \115121: $auto$alumacc.cc:485:replace_alu$78037
-  creating $alu cell for \115115: $auto$alumacc.cc:485:replace_alu$78042
-  creating $alu cell for \115109: $auto$alumacc.cc:485:replace_alu$78047
-  creating $alu cell for \115103: $auto$alumacc.cc:485:replace_alu$78052
-  creating $alu cell for \115097: $auto$alumacc.cc:485:replace_alu$78057
-  creating $alu cell for \115091: $auto$alumacc.cc:485:replace_alu$78062
-  creating $alu cell for \115085: $auto$alumacc.cc:485:replace_alu$78067
-  creating $alu cell for \115079: $auto$alumacc.cc:485:replace_alu$78072
-  creating $alu cell for \115073: $auto$alumacc.cc:485:replace_alu$78077
-  creating $alu cell for \115067: $auto$alumacc.cc:485:replace_alu$78082
-  creating $alu cell for \115061: $auto$alumacc.cc:485:replace_alu$78087
-  creating $alu cell for \115055: $auto$alumacc.cc:485:replace_alu$78092
-  creating $alu cell for \115039: $auto$alumacc.cc:485:replace_alu$78097
-  creating $alu cell for \115013: $auto$alumacc.cc:485:replace_alu$78104
-  creating $alu cell for \114997: $auto$alumacc.cc:485:replace_alu$78111
-  creating $alu cell for \114989: $auto$alumacc.cc:485:replace_alu$78122
-  creating $alu cell for \114632: $auto$alumacc.cc:485:replace_alu$78137
-  creating $alu cell for \114625: $auto$alumacc.cc:485:replace_alu$78142
-  creating $alu cell for \114618: $auto$alumacc.cc:485:replace_alu$78147
-  creating $alu cell for \114611: $auto$alumacc.cc:485:replace_alu$78152
-  creating $alu cell for \114604: $auto$alumacc.cc:485:replace_alu$78157
-  creating $alu cell for \114597: $auto$alumacc.cc:485:replace_alu$78162
-  creating $alu cell for \114590: $auto$alumacc.cc:485:replace_alu$78167
-  creating $alu cell for \114583: $auto$alumacc.cc:485:replace_alu$78172
-  creating $alu cell for \114576: $auto$alumacc.cc:485:replace_alu$78177
-  creating $alu cell for \114569: $auto$alumacc.cc:485:replace_alu$78182
-  creating $alu cell for \114562: $auto$alumacc.cc:485:replace_alu$78187
-  creating $alu cell for \114555: $auto$alumacc.cc:485:replace_alu$78192
-  creating $alu cell for \114548: $auto$alumacc.cc:485:replace_alu$78197
-  creating $alu cell for \114541: $auto$alumacc.cc:485:replace_alu$78202
-  creating $alu cell for \114534: $auto$alumacc.cc:485:replace_alu$78207
-  creating $alu cell for \114527: $auto$alumacc.cc:485:replace_alu$78212
-  creating $alu cell for \114520: $auto$alumacc.cc:485:replace_alu$78217
-  creating $alu cell for \114513: $auto$alumacc.cc:485:replace_alu$78222
-  creating $alu cell for \114506: $auto$alumacc.cc:485:replace_alu$78227
-  creating $alu cell for \114499: $auto$alumacc.cc:485:replace_alu$78232
-  creating $alu cell for \114492: $auto$alumacc.cc:485:replace_alu$78237
-  creating $alu cell for \114485: $auto$alumacc.cc:485:replace_alu$78242
-  creating $alu cell for \114478: $auto$alumacc.cc:485:replace_alu$78247
-  creating $alu cell for \114471: $auto$alumacc.cc:485:replace_alu$78252
-  creating $alu cell for \114464: $auto$alumacc.cc:485:replace_alu$78257
-  creating $alu cell for \114457: $auto$alumacc.cc:485:replace_alu$78262
-  creating $alu cell for \114450: $auto$alumacc.cc:485:replace_alu$78267
-  creating $alu cell for \114443: $auto$alumacc.cc:485:replace_alu$78272
-  creating $alu cell for \114436: $auto$alumacc.cc:485:replace_alu$78277
-  creating $alu cell for \114429: $auto$alumacc.cc:485:replace_alu$78282
-  creating $alu cell for \114422: $auto$alumacc.cc:485:replace_alu$78287
-  creating $alu cell for \114415: $auto$alumacc.cc:485:replace_alu$78292
-  creating $alu cell for \114408: $auto$alumacc.cc:485:replace_alu$78297
-  creating $alu cell for \114401: $auto$alumacc.cc:485:replace_alu$78302
-  creating $alu cell for \114394: $auto$alumacc.cc:485:replace_alu$78307
-  creating $alu cell for \114387: $auto$alumacc.cc:485:replace_alu$78312
-  creating $alu cell for \114380: $auto$alumacc.cc:485:replace_alu$78317
-  creating $alu cell for \114373: $auto$alumacc.cc:485:replace_alu$78322
-  creating $alu cell for \114366: $auto$alumacc.cc:485:replace_alu$78327
-  creating $alu cell for \114359: $auto$alumacc.cc:485:replace_alu$78332
-  creating $alu cell for \114352: $auto$alumacc.cc:485:replace_alu$78337
-  creating $alu cell for \114345: $auto$alumacc.cc:485:replace_alu$78342
-  creating $alu cell for \114338: $auto$alumacc.cc:485:replace_alu$78347
-  creating $alu cell for \114331: $auto$alumacc.cc:485:replace_alu$78352
-  creating $alu cell for \114324: $auto$alumacc.cc:485:replace_alu$78357
-  creating $alu cell for \114317: $auto$alumacc.cc:485:replace_alu$78362
-  creating $alu cell for \114310: $auto$alumacc.cc:485:replace_alu$78367
-  creating $alu cell for \114303: $auto$alumacc.cc:485:replace_alu$78372
-  creating $alu cell for \114296: $auto$alumacc.cc:485:replace_alu$78377
-  creating $alu cell for \114289: $auto$alumacc.cc:485:replace_alu$78382
-  creating $alu cell for \114282: $auto$alumacc.cc:485:replace_alu$78387
-  creating $alu cell for \114275: $auto$alumacc.cc:485:replace_alu$78392
-  creating $alu cell for \114268: $auto$alumacc.cc:485:replace_alu$78397
-  creating $alu cell for \114231: $auto$alumacc.cc:485:replace_alu$78402
-  creating $alu cell for \114220: $auto$alumacc.cc:485:replace_alu$78409
-  creating $alu cell for \114188: $auto$alumacc.cc:485:replace_alu$78420
-  creating $alu cell for \114181: $auto$alumacc.cc:485:replace_alu$78425
-  creating $alu cell for \114174: $auto$alumacc.cc:485:replace_alu$78430
-  creating $alu cell for \114167: $auto$alumacc.cc:485:replace_alu$78435
-  creating $alu cell for \114160: $auto$alumacc.cc:485:replace_alu$78440
-  creating $alu cell for \114153: $auto$alumacc.cc:485:replace_alu$78445
-  creating $alu cell for \114146: $auto$alumacc.cc:485:replace_alu$78450
-  creating $alu cell for \114139: $auto$alumacc.cc:485:replace_alu$78455
-  creating $alu cell for \114132: $auto$alumacc.cc:485:replace_alu$78460
-  creating $alu cell for \114125: $auto$alumacc.cc:485:replace_alu$78465
-  creating $alu cell for \114118: $auto$alumacc.cc:485:replace_alu$78470
-  creating $alu cell for \114111: $auto$alumacc.cc:485:replace_alu$78475
-  creating $alu cell for \114104: $auto$alumacc.cc:485:replace_alu$78480
-  creating $alu cell for \114097: $auto$alumacc.cc:485:replace_alu$78485
-  creating $alu cell for \114090: $auto$alumacc.cc:485:replace_alu$78490
-  creating $alu cell for \114083: $auto$alumacc.cc:485:replace_alu$78495
-  creating $alu cell for \114076: $auto$alumacc.cc:485:replace_alu$78500
-  creating $alu cell for \114069: $auto$alumacc.cc:485:replace_alu$78505
-  creating $alu cell for \114062: $auto$alumacc.cc:485:replace_alu$78510
-  creating $alu cell for \114055: $auto$alumacc.cc:485:replace_alu$78515
-  creating $alu cell for \114048: $auto$alumacc.cc:485:replace_alu$78520
-  creating $alu cell for \114041: $auto$alumacc.cc:485:replace_alu$78525
-  creating $alu cell for \114034: $auto$alumacc.cc:485:replace_alu$78530
-  creating $alu cell for \114027: $auto$alumacc.cc:485:replace_alu$78535
-  creating $alu cell for \114020: $auto$alumacc.cc:485:replace_alu$78540
-  creating $alu cell for \114013: $auto$alumacc.cc:485:replace_alu$78545
-  creating $alu cell for \114006: $auto$alumacc.cc:485:replace_alu$78550
-  creating $alu cell for \113999: $auto$alumacc.cc:485:replace_alu$78555
-  creating $alu cell for \113992: $auto$alumacc.cc:485:replace_alu$78560
-  creating $alu cell for \113985: $auto$alumacc.cc:485:replace_alu$78565
-  creating $alu cell for \113978: $auto$alumacc.cc:485:replace_alu$78570
-  creating $alu cell for \113971: $auto$alumacc.cc:485:replace_alu$78575
-  creating $alu cell for \113964: $auto$alumacc.cc:485:replace_alu$78580
-  creating $alu cell for \113957: $auto$alumacc.cc:485:replace_alu$78585
-  creating $alu cell for \113950: $auto$alumacc.cc:485:replace_alu$78590
-  creating $alu cell for \113943: $auto$alumacc.cc:485:replace_alu$78595
-  creating $alu cell for \113936: $auto$alumacc.cc:485:replace_alu$78600
-  creating $alu cell for \113929: $auto$alumacc.cc:485:replace_alu$78605
-  creating $alu cell for \113922: $auto$alumacc.cc:485:replace_alu$78610
-  creating $alu cell for \113915: $auto$alumacc.cc:485:replace_alu$78615
-  creating $alu cell for \113908: $auto$alumacc.cc:485:replace_alu$78620
-  creating $alu cell for \113901: $auto$alumacc.cc:485:replace_alu$78625
-  creating $alu cell for \113894: $auto$alumacc.cc:485:replace_alu$78630
-  creating $alu cell for \113887: $auto$alumacc.cc:485:replace_alu$78635
-  creating $alu cell for \113880: $auto$alumacc.cc:485:replace_alu$78640
-  creating $alu cell for \113873: $auto$alumacc.cc:485:replace_alu$78645
-  creating $alu cell for \113866: $auto$alumacc.cc:485:replace_alu$78650
-  creating $alu cell for \113859: $auto$alumacc.cc:485:replace_alu$78655
-  creating $alu cell for \113852: $auto$alumacc.cc:485:replace_alu$78660
-  creating $alu cell for \113845: $auto$alumacc.cc:485:replace_alu$78665
-  creating $alu cell for \113838: $auto$alumacc.cc:485:replace_alu$78670
-  creating $alu cell for \113831: $auto$alumacc.cc:485:replace_alu$78675
-  creating $alu cell for \113824: $auto$alumacc.cc:485:replace_alu$78680
-  creating $alu cell for \113793, \114238: $auto$alumacc.cc:485:replace_alu$78685
-  creating $alu cell for \113786: $auto$alumacc.cc:485:replace_alu$78698
-  creating $alu cell for \112592: $auto$alumacc.cc:485:replace_alu$78711
-  creating $alu cell for \112586: $auto$alumacc.cc:485:replace_alu$78716
-  creating $alu cell for \112580: $auto$alumacc.cc:485:replace_alu$78721
-  creating $alu cell for \112574: $auto$alumacc.cc:485:replace_alu$78726
-  creating $alu cell for \112568: $auto$alumacc.cc:485:replace_alu$78731
-  creating $alu cell for \112562: $auto$alumacc.cc:485:replace_alu$78736
-  creating $alu cell for \112556: $auto$alumacc.cc:485:replace_alu$78741
-  creating $alu cell for \112550: $auto$alumacc.cc:485:replace_alu$78746
-  creating $alu cell for \112544: $auto$alumacc.cc:485:replace_alu$78751
-  creating $alu cell for \112538: $auto$alumacc.cc:485:replace_alu$78756
-  creating $alu cell for \112532: $auto$alumacc.cc:485:replace_alu$78761
-  creating $alu cell for \112526: $auto$alumacc.cc:485:replace_alu$78766
-  creating $alu cell for \112520: $auto$alumacc.cc:485:replace_alu$78771
-  creating $alu cell for \112514: $auto$alumacc.cc:485:replace_alu$78776
-  creating $alu cell for \112508: $auto$alumacc.cc:485:replace_alu$78781
-  creating $alu cell for \112502: $auto$alumacc.cc:485:replace_alu$78786
-  creating $alu cell for \112496: $auto$alumacc.cc:485:replace_alu$78791
-  creating $alu cell for \112490: $auto$alumacc.cc:485:replace_alu$78796
-  creating $alu cell for \112484: $auto$alumacc.cc:485:replace_alu$78801
-  creating $alu cell for \112478: $auto$alumacc.cc:485:replace_alu$78806
-  creating $alu cell for \112472: $auto$alumacc.cc:485:replace_alu$78811
-  creating $alu cell for \112466: $auto$alumacc.cc:485:replace_alu$78816
-  creating $alu cell for \112460: $auto$alumacc.cc:485:replace_alu$78821
-  creating $alu cell for \112454: $auto$alumacc.cc:485:replace_alu$78826
-  creating $alu cell for \112448: $auto$alumacc.cc:485:replace_alu$78831
-  creating $alu cell for \112442: $auto$alumacc.cc:485:replace_alu$78836
-  creating $alu cell for \112436: $auto$alumacc.cc:485:replace_alu$78841
-  creating $alu cell for \112430: $auto$alumacc.cc:485:replace_alu$78846
-  creating $alu cell for \112424: $auto$alumacc.cc:485:replace_alu$78851
-  creating $alu cell for \112418: $auto$alumacc.cc:485:replace_alu$78856
-  creating $alu cell for \112412: $auto$alumacc.cc:485:replace_alu$78861
-  creating $alu cell for \112406: $auto$alumacc.cc:485:replace_alu$78866
-  creating $alu cell for \112400: $auto$alumacc.cc:485:replace_alu$78871
-  creating $alu cell for \112394: $auto$alumacc.cc:485:replace_alu$78876
-  creating $alu cell for \112388: $auto$alumacc.cc:485:replace_alu$78881
-  creating $alu cell for \112382: $auto$alumacc.cc:485:replace_alu$78886
-  creating $alu cell for \112376: $auto$alumacc.cc:485:replace_alu$78891
-  creating $alu cell for \112370: $auto$alumacc.cc:485:replace_alu$78896
-  creating $alu cell for \112364: $auto$alumacc.cc:485:replace_alu$78901
-  creating $alu cell for \112358: $auto$alumacc.cc:485:replace_alu$78906
-  creating $alu cell for \112352: $auto$alumacc.cc:485:replace_alu$78911
-  creating $alu cell for \112346: $auto$alumacc.cc:485:replace_alu$78916
-  creating $alu cell for \112340: $auto$alumacc.cc:485:replace_alu$78921
-  creating $alu cell for \112334: $auto$alumacc.cc:485:replace_alu$78926
-  creating $alu cell for \112328: $auto$alumacc.cc:485:replace_alu$78931
-  creating $alu cell for \112322: $auto$alumacc.cc:485:replace_alu$78936
-  creating $alu cell for \112316: $auto$alumacc.cc:485:replace_alu$78941
-  creating $alu cell for \112310: $auto$alumacc.cc:485:replace_alu$78946
-  creating $alu cell for \112304: $auto$alumacc.cc:485:replace_alu$78951
-  creating $alu cell for \112298: $auto$alumacc.cc:485:replace_alu$78956
-  creating $alu cell for \112292: $auto$alumacc.cc:485:replace_alu$78961
-  creating $alu cell for \112286: $auto$alumacc.cc:485:replace_alu$78966
-  creating $alu cell for \112280: $auto$alumacc.cc:485:replace_alu$78971
-  creating $alu cell for \112274: $auto$alumacc.cc:485:replace_alu$78976
-  creating $alu cell for \112268: $auto$alumacc.cc:485:replace_alu$78981
-  creating $alu cell for \112262: $auto$alumacc.cc:485:replace_alu$78986
-  creating $alu cell for \112256: $auto$alumacc.cc:485:replace_alu$78991
-  creating $alu cell for \112240: $auto$alumacc.cc:485:replace_alu$78996
-  creating $alu cell for \112214: $auto$alumacc.cc:485:replace_alu$79003
-  creating $alu cell for \112198: $auto$alumacc.cc:485:replace_alu$79010
-  creating $alu cell for \112190: $auto$alumacc.cc:485:replace_alu$79021
-  creating $alu cell for \111833: $auto$alumacc.cc:485:replace_alu$79036
-  creating $alu cell for \111826: $auto$alumacc.cc:485:replace_alu$79041
-  creating $alu cell for \111819: $auto$alumacc.cc:485:replace_alu$79046
-  creating $alu cell for \111812: $auto$alumacc.cc:485:replace_alu$79051
-  creating $alu cell for \111805: $auto$alumacc.cc:485:replace_alu$79056
-  creating $alu cell for \111798: $auto$alumacc.cc:485:replace_alu$79061
-  creating $alu cell for \111791: $auto$alumacc.cc:485:replace_alu$79066
-  creating $alu cell for \111784: $auto$alumacc.cc:485:replace_alu$79071
-  creating $alu cell for \111777: $auto$alumacc.cc:485:replace_alu$79076
-  creating $alu cell for \111770: $auto$alumacc.cc:485:replace_alu$79081
-  creating $alu cell for \111763: $auto$alumacc.cc:485:replace_alu$79086
-  creating $alu cell for \111756: $auto$alumacc.cc:485:replace_alu$79091
-  creating $alu cell for \111749: $auto$alumacc.cc:485:replace_alu$79096
-  creating $alu cell for \111742: $auto$alumacc.cc:485:replace_alu$79101
-  creating $alu cell for \111735: $auto$alumacc.cc:485:replace_alu$79106
-  creating $alu cell for \111728: $auto$alumacc.cc:485:replace_alu$79111
-  creating $alu cell for \111721: $auto$alumacc.cc:485:replace_alu$79116
-  creating $alu cell for \111714: $auto$alumacc.cc:485:replace_alu$79121
-  creating $alu cell for \111707: $auto$alumacc.cc:485:replace_alu$79126
-  creating $alu cell for \111700: $auto$alumacc.cc:485:replace_alu$79131
-  creating $alu cell for \111693: $auto$alumacc.cc:485:replace_alu$79136
-  creating $alu cell for \111686: $auto$alumacc.cc:485:replace_alu$79141
-  creating $alu cell for \111679: $auto$alumacc.cc:485:replace_alu$79146
-  creating $alu cell for \111672: $auto$alumacc.cc:485:replace_alu$79151
-  creating $alu cell for \111665: $auto$alumacc.cc:485:replace_alu$79156
-  creating $alu cell for \111658: $auto$alumacc.cc:485:replace_alu$79161
-  creating $alu cell for \111651: $auto$alumacc.cc:485:replace_alu$79166
-  creating $alu cell for \111644: $auto$alumacc.cc:485:replace_alu$79171
-  creating $alu cell for \111637: $auto$alumacc.cc:485:replace_alu$79176
-  creating $alu cell for \111630: $auto$alumacc.cc:485:replace_alu$79181
-  creating $alu cell for \111623: $auto$alumacc.cc:485:replace_alu$79186
-  creating $alu cell for \111616: $auto$alumacc.cc:485:replace_alu$79191
-  creating $alu cell for \111609: $auto$alumacc.cc:485:replace_alu$79196
-  creating $alu cell for \111602: $auto$alumacc.cc:485:replace_alu$79201
-  creating $alu cell for \111595: $auto$alumacc.cc:485:replace_alu$79206
-  creating $alu cell for \111588: $auto$alumacc.cc:485:replace_alu$79211
-  creating $alu cell for \111581: $auto$alumacc.cc:485:replace_alu$79216
-  creating $alu cell for \111574: $auto$alumacc.cc:485:replace_alu$79221
-  creating $alu cell for \111567: $auto$alumacc.cc:485:replace_alu$79226
-  creating $alu cell for \111560: $auto$alumacc.cc:485:replace_alu$79231
-  creating $alu cell for \111553: $auto$alumacc.cc:485:replace_alu$79236
-  creating $alu cell for \111546: $auto$alumacc.cc:485:replace_alu$79241
-  creating $alu cell for \111539: $auto$alumacc.cc:485:replace_alu$79246
-  creating $alu cell for \111532: $auto$alumacc.cc:485:replace_alu$79251
-  creating $alu cell for \111525: $auto$alumacc.cc:485:replace_alu$79256
-  creating $alu cell for \111518: $auto$alumacc.cc:485:replace_alu$79261
-  creating $alu cell for \111511: $auto$alumacc.cc:485:replace_alu$79266
-  creating $alu cell for \111504: $auto$alumacc.cc:485:replace_alu$79271
-  creating $alu cell for \111497: $auto$alumacc.cc:485:replace_alu$79276
-  creating $alu cell for \111490: $auto$alumacc.cc:485:replace_alu$79281
-  creating $alu cell for \111483: $auto$alumacc.cc:485:replace_alu$79286
-  creating $alu cell for \111476: $auto$alumacc.cc:485:replace_alu$79291
-  creating $alu cell for \111469: $auto$alumacc.cc:485:replace_alu$79296
-  creating $alu cell for \111432: $auto$alumacc.cc:485:replace_alu$79301
-  creating $alu cell for \111421: $auto$alumacc.cc:485:replace_alu$79308
-  creating $alu cell for \111389: $auto$alumacc.cc:485:replace_alu$79319
-  creating $alu cell for \111382: $auto$alumacc.cc:485:replace_alu$79324
-  creating $alu cell for \111375: $auto$alumacc.cc:485:replace_alu$79329
-  creating $alu cell for \111368: $auto$alumacc.cc:485:replace_alu$79334
-  creating $alu cell for \111361: $auto$alumacc.cc:485:replace_alu$79339
-  creating $alu cell for \111354: $auto$alumacc.cc:485:replace_alu$79344
-  creating $alu cell for \111347: $auto$alumacc.cc:485:replace_alu$79349
-  creating $alu cell for \111340: $auto$alumacc.cc:485:replace_alu$79354
-  creating $alu cell for \111333: $auto$alumacc.cc:485:replace_alu$79359
-  creating $alu cell for \111326: $auto$alumacc.cc:485:replace_alu$79364
-  creating $alu cell for \111319: $auto$alumacc.cc:485:replace_alu$79369
-  creating $alu cell for \111312: $auto$alumacc.cc:485:replace_alu$79374
-  creating $alu cell for \111305: $auto$alumacc.cc:485:replace_alu$79379
-  creating $alu cell for \111298: $auto$alumacc.cc:485:replace_alu$79384
-  creating $alu cell for \111291: $auto$alumacc.cc:485:replace_alu$79389
-  creating $alu cell for \111284: $auto$alumacc.cc:485:replace_alu$79394
-  creating $alu cell for \111277: $auto$alumacc.cc:485:replace_alu$79399
-  creating $alu cell for \111270: $auto$alumacc.cc:485:replace_alu$79404
-  creating $alu cell for \111263: $auto$alumacc.cc:485:replace_alu$79409
-  creating $alu cell for \111256: $auto$alumacc.cc:485:replace_alu$79414
-  creating $alu cell for \111249: $auto$alumacc.cc:485:replace_alu$79419
-  creating $alu cell for \111242: $auto$alumacc.cc:485:replace_alu$79424
-  creating $alu cell for \111235: $auto$alumacc.cc:485:replace_alu$79429
-  creating $alu cell for \111228: $auto$alumacc.cc:485:replace_alu$79434
-  creating $alu cell for \111221: $auto$alumacc.cc:485:replace_alu$79439
-  creating $alu cell for \111214: $auto$alumacc.cc:485:replace_alu$79444
-  creating $alu cell for \111207: $auto$alumacc.cc:485:replace_alu$79449
-  creating $alu cell for \111200: $auto$alumacc.cc:485:replace_alu$79454
-  creating $alu cell for \111193: $auto$alumacc.cc:485:replace_alu$79459
-  creating $alu cell for \111186: $auto$alumacc.cc:485:replace_alu$79464
-  creating $alu cell for \111179: $auto$alumacc.cc:485:replace_alu$79469
-  creating $alu cell for \111172: $auto$alumacc.cc:485:replace_alu$79474
-  creating $alu cell for \111165: $auto$alumacc.cc:485:replace_alu$79479
-  creating $alu cell for \111158: $auto$alumacc.cc:485:replace_alu$79484
-  creating $alu cell for \111151: $auto$alumacc.cc:485:replace_alu$79489
-  creating $alu cell for \111144: $auto$alumacc.cc:485:replace_alu$79494
-  creating $alu cell for \111137: $auto$alumacc.cc:485:replace_alu$79499
-  creating $alu cell for \111130: $auto$alumacc.cc:485:replace_alu$79504
-  creating $alu cell for \111123: $auto$alumacc.cc:485:replace_alu$79509
-  creating $alu cell for \111116: $auto$alumacc.cc:485:replace_alu$79514
-  creating $alu cell for \111109: $auto$alumacc.cc:485:replace_alu$79519
-  creating $alu cell for \111102: $auto$alumacc.cc:485:replace_alu$79524
-  creating $alu cell for \111095: $auto$alumacc.cc:485:replace_alu$79529
-  creating $alu cell for \111088: $auto$alumacc.cc:485:replace_alu$79534
-  creating $alu cell for \111081: $auto$alumacc.cc:485:replace_alu$79539
-  creating $alu cell for \111074: $auto$alumacc.cc:485:replace_alu$79544
-  creating $alu cell for \111067: $auto$alumacc.cc:485:replace_alu$79549
-  creating $alu cell for \111060: $auto$alumacc.cc:485:replace_alu$79554
-  creating $alu cell for \111053: $auto$alumacc.cc:485:replace_alu$79559
-  creating $alu cell for \111046: $auto$alumacc.cc:485:replace_alu$79564
-  creating $alu cell for \111039: $auto$alumacc.cc:485:replace_alu$79569
-  creating $alu cell for \111032: $auto$alumacc.cc:485:replace_alu$79574
-  creating $alu cell for \111025: $auto$alumacc.cc:485:replace_alu$79579
-  creating $alu cell for \110994, \111439: $auto$alumacc.cc:485:replace_alu$79584
-  creating $alu cell for \110987: $auto$alumacc.cc:485:replace_alu$79597
-  creating $alu cell for $auto$ghdl.cc:927:import_module$72982: $auto$alumacc.cc:485:replace_alu$79610
-  creating $alu cell for \110070: $auto$alumacc.cc:485:replace_alu$79613
-  creating $alu cell for \110985: $auto$alumacc.cc:485:replace_alu$79616
-  creating $alu cell for \110995: $auto$alumacc.cc:485:replace_alu$79619
-  creating $alu cell for \111917: $auto$alumacc.cc:485:replace_alu$79622
-  creating $alu cell for \111920: $auto$alumacc.cc:485:replace_alu$79625
-  creating $alu cell for \121521: $auto$alumacc.cc:485:replace_alu$79628
-  creating $alu cell for \112185: $auto$alumacc.cc:485:replace_alu$79631
-  creating $alu cell for \112203: $auto$alumacc.cc:485:replace_alu$79634
-  creating $alu cell for \112235: $auto$alumacc.cc:485:replace_alu$79637
-  creating $alu cell for \112243: $auto$alumacc.cc:485:replace_alu$79640
-  creating $alu cell for \112629: $auto$alumacc.cc:485:replace_alu$79643
-  creating $alu cell for \112631: $auto$alumacc.cc:485:replace_alu$79646
-  creating $alu cell for \113784: $auto$alumacc.cc:485:replace_alu$79649
-  creating $alu cell for \113794: $auto$alumacc.cc:485:replace_alu$79652
-  creating $alu cell for \114716: $auto$alumacc.cc:485:replace_alu$79655
-  creating $alu cell for \114719: $auto$alumacc.cc:485:replace_alu$79658
-  creating $alu cell for \121377: $auto$alumacc.cc:485:replace_alu$79661
-  creating $alu cell for \114984: $auto$alumacc.cc:485:replace_alu$79664
-  creating $alu cell for \115002: $auto$alumacc.cc:485:replace_alu$79667
-  creating $alu cell for \115034: $auto$alumacc.cc:485:replace_alu$79670
-  creating $alu cell for \115042: $auto$alumacc.cc:485:replace_alu$79673
-  creating $alu cell for \115428: $auto$alumacc.cc:485:replace_alu$79676
-  creating $alu cell for \115430: $auto$alumacc.cc:485:replace_alu$79679
-  creating $alu cell for \116766: $auto$alumacc.cc:485:replace_alu$79682
-  creating $alu cell for \116990: $auto$alumacc.cc:485:replace_alu$79685
-  creating $alu cell for \121375: $auto$alumacc.cc:485:replace_alu$79688
-  creating $alu cell for \120979: $auto$alumacc.cc:485:replace_alu$79691
-  creating $alu cell for \117266: $auto$alumacc.cc:485:replace_alu$79694
-  creating $alu cell for \117284: $auto$alumacc.cc:485:replace_alu$79697
-  creating $alu cell for \117316: $auto$alumacc.cc:485:replace_alu$79700
-  creating $alu cell for \117324: $auto$alumacc.cc:485:replace_alu$79703
-  creating $alu cell for \117710: $auto$alumacc.cc:485:replace_alu$79706
-  creating $alu cell for \117712: $auto$alumacc.cc:485:replace_alu$79709
-  creating $alu cell for \118049: $auto$alumacc.cc:485:replace_alu$79712
-  creating $alu cell for \118062: $auto$alumacc.cc:485:replace_alu$79715
-  creating $alu cell for \118394: $auto$alumacc.cc:485:replace_alu$79718
-  creating $alu cell for \118430: $auto$alumacc.cc:485:replace_alu$79721
-  creating $alu cell for \118432: $auto$alumacc.cc:485:replace_alu$79724
-  creating $alu cell for \118439: $auto$alumacc.cc:485:replace_alu$79727
-  creating $alu cell for \118552, \118549: $auto$alumacc.cc:485:replace_alu$79730
-  creating $alu cell for \118559: $auto$alumacc.cc:485:replace_alu$79743
-  creating $alu cell for \118568: $auto$alumacc.cc:485:replace_alu$79746
-  creating $alu cell for \118574: $auto$alumacc.cc:485:replace_alu$79749
-  creating $alu cell for \118610: $auto$alumacc.cc:485:replace_alu$79752
-  creating $alu cell for \120947: $auto$alumacc.cc:485:replace_alu$79755
-  creating $alu cell for \120028: $auto$alumacc.cc:485:replace_alu$79758
-  creating $alu cell for \120035: $auto$alumacc.cc:485:replace_alu$79761
-  creating $alu cell for \120276: $auto$alumacc.cc:485:replace_alu$79764
-  creating $alu cell for \120283: $auto$alumacc.cc:485:replace_alu$79767
-  creating $alu cell for \120543: $auto$alumacc.cc:485:replace_alu$79770
-  creating $alu cell for \120561: $auto$alumacc.cc:485:replace_alu$79773
-  creating $alu cell for \120576: $auto$alumacc.cc:485:replace_alu$79776
-  creating $alu cell for \120594: $auto$alumacc.cc:485:replace_alu$79779
-  creating $alu cell for \120609: $auto$alumacc.cc:485:replace_alu$79782
-  creating $alu cell for \120627: $auto$alumacc.cc:485:replace_alu$79785
-  creating $alu cell for \120642: $auto$alumacc.cc:485:replace_alu$79788
-  creating $alu cell for \120660: $auto$alumacc.cc:485:replace_alu$79791
-  creating $alu cell for \120929: $auto$alumacc.cc:485:replace_alu$79794
+  creating $alu cell for \120958: $auto$alumacc.cc:485:replace_alu$94631
+  creating $alu cell for \120942: $auto$alumacc.cc:485:replace_alu$94638
+  creating $alu cell for \120934: $auto$alumacc.cc:485:replace_alu$94649
+  creating $alu cell for \120634: $auto$alumacc.cc:485:replace_alu$94664
+  creating $alu cell for \120601: $auto$alumacc.cc:485:replace_alu$94669
+  creating $alu cell for \120568: $auto$alumacc.cc:485:replace_alu$94674
+  creating $alu cell for \120535: $auto$alumacc.cc:485:replace_alu$94679
+  creating $alu cell for \118540: $auto$alumacc.cc:485:replace_alu$94684
+  creating $alu cell for \118522: $auto$alumacc.cc:485:replace_alu$94693
+  creating $alu cell for \118387: $auto$alumacc.cc:485:replace_alu$94706
+  creating $alu cell for \118066, \118070, \118085, \118090: $auto$alumacc.cc:485:replace_alu$94711
+  creating $alu cell for \117673: $auto$alumacc.cc:485:replace_alu$94728
+  creating $alu cell for \117667: $auto$alumacc.cc:485:replace_alu$94733
+  creating $alu cell for \117661: $auto$alumacc.cc:485:replace_alu$94738
+  creating $alu cell for \117655: $auto$alumacc.cc:485:replace_alu$94743
+  creating $alu cell for \117649: $auto$alumacc.cc:485:replace_alu$94748
+  creating $alu cell for \117643: $auto$alumacc.cc:485:replace_alu$94753
+  creating $alu cell for \117637: $auto$alumacc.cc:485:replace_alu$94758
+  creating $alu cell for \117631: $auto$alumacc.cc:485:replace_alu$94763
+  creating $alu cell for \117625: $auto$alumacc.cc:485:replace_alu$94768
+  creating $alu cell for \117619: $auto$alumacc.cc:485:replace_alu$94773
+  creating $alu cell for \117613: $auto$alumacc.cc:485:replace_alu$94778
+  creating $alu cell for \117607: $auto$alumacc.cc:485:replace_alu$94783
+  creating $alu cell for \117601: $auto$alumacc.cc:485:replace_alu$94788
+  creating $alu cell for \117595: $auto$alumacc.cc:485:replace_alu$94793
+  creating $alu cell for \117589: $auto$alumacc.cc:485:replace_alu$94798
+  creating $alu cell for \117583: $auto$alumacc.cc:485:replace_alu$94803
+  creating $alu cell for \117577: $auto$alumacc.cc:485:replace_alu$94808
+  creating $alu cell for \117571: $auto$alumacc.cc:485:replace_alu$94813
+  creating $alu cell for \117565: $auto$alumacc.cc:485:replace_alu$94818
+  creating $alu cell for \117559: $auto$alumacc.cc:485:replace_alu$94823
+  creating $alu cell for \117553: $auto$alumacc.cc:485:replace_alu$94828
+  creating $alu cell for \117547: $auto$alumacc.cc:485:replace_alu$94833
+  creating $alu cell for \117541: $auto$alumacc.cc:485:replace_alu$94838
+  creating $alu cell for \117535: $auto$alumacc.cc:485:replace_alu$94843
+  creating $alu cell for \117529: $auto$alumacc.cc:485:replace_alu$94848
+  creating $alu cell for \117523: $auto$alumacc.cc:485:replace_alu$94853
+  creating $alu cell for \117517: $auto$alumacc.cc:485:replace_alu$94858
+  creating $alu cell for \117511: $auto$alumacc.cc:485:replace_alu$94863
+  creating $alu cell for \117505: $auto$alumacc.cc:485:replace_alu$94868
+  creating $alu cell for \117499: $auto$alumacc.cc:485:replace_alu$94873
+  creating $alu cell for \117493: $auto$alumacc.cc:485:replace_alu$94878
+  creating $alu cell for \117487: $auto$alumacc.cc:485:replace_alu$94883
+  creating $alu cell for \117481: $auto$alumacc.cc:485:replace_alu$94888
+  creating $alu cell for \117475: $auto$alumacc.cc:485:replace_alu$94893
+  creating $alu cell for \117469: $auto$alumacc.cc:485:replace_alu$94898
+  creating $alu cell for \117463: $auto$alumacc.cc:485:replace_alu$94903
+  creating $alu cell for \117457: $auto$alumacc.cc:485:replace_alu$94908
+  creating $alu cell for \117451: $auto$alumacc.cc:485:replace_alu$94913
+  creating $alu cell for \117445: $auto$alumacc.cc:485:replace_alu$94918
+  creating $alu cell for \117439: $auto$alumacc.cc:485:replace_alu$94923
+  creating $alu cell for \117433: $auto$alumacc.cc:485:replace_alu$94928
+  creating $alu cell for \117427: $auto$alumacc.cc:485:replace_alu$94933
+  creating $alu cell for \117421: $auto$alumacc.cc:485:replace_alu$94938
+  creating $alu cell for \117415: $auto$alumacc.cc:485:replace_alu$94943
+  creating $alu cell for \117409: $auto$alumacc.cc:485:replace_alu$94948
+  creating $alu cell for \117403: $auto$alumacc.cc:485:replace_alu$94953
+  creating $alu cell for \117397: $auto$alumacc.cc:485:replace_alu$94958
+  creating $alu cell for \117391: $auto$alumacc.cc:485:replace_alu$94963
+  creating $alu cell for \117385: $auto$alumacc.cc:485:replace_alu$94968
+  creating $alu cell for \117379: $auto$alumacc.cc:485:replace_alu$94973
+  creating $alu cell for \117373: $auto$alumacc.cc:485:replace_alu$94978
+  creating $alu cell for \117367: $auto$alumacc.cc:485:replace_alu$94983
+  creating $alu cell for \117361: $auto$alumacc.cc:485:replace_alu$94988
+  creating $alu cell for \117355: $auto$alumacc.cc:485:replace_alu$94993
+  creating $alu cell for \117349: $auto$alumacc.cc:485:replace_alu$94998
+  creating $alu cell for \117343: $auto$alumacc.cc:485:replace_alu$95003
+  creating $alu cell for \117337: $auto$alumacc.cc:485:replace_alu$95008
+  creating $alu cell for \117321: $auto$alumacc.cc:485:replace_alu$95013
+  creating $alu cell for \117295: $auto$alumacc.cc:485:replace_alu$95020
+  creating $alu cell for \117279: $auto$alumacc.cc:485:replace_alu$95027
+  creating $alu cell for \117271: $auto$alumacc.cc:485:replace_alu$95038
+  creating $alu cell for \115391: $auto$alumacc.cc:485:replace_alu$95053
+  creating $alu cell for \115385: $auto$alumacc.cc:485:replace_alu$95058
+  creating $alu cell for \115379: $auto$alumacc.cc:485:replace_alu$95063
+  creating $alu cell for \115373: $auto$alumacc.cc:485:replace_alu$95068
+  creating $alu cell for \115367: $auto$alumacc.cc:485:replace_alu$95073
+  creating $alu cell for \115361: $auto$alumacc.cc:485:replace_alu$95078
+  creating $alu cell for \115355: $auto$alumacc.cc:485:replace_alu$95083
+  creating $alu cell for \115349: $auto$alumacc.cc:485:replace_alu$95088
+  creating $alu cell for \115343: $auto$alumacc.cc:485:replace_alu$95093
+  creating $alu cell for \115337: $auto$alumacc.cc:485:replace_alu$95098
+  creating $alu cell for \115331: $auto$alumacc.cc:485:replace_alu$95103
+  creating $alu cell for \115325: $auto$alumacc.cc:485:replace_alu$95108
+  creating $alu cell for \115319: $auto$alumacc.cc:485:replace_alu$95113
+  creating $alu cell for \115313: $auto$alumacc.cc:485:replace_alu$95118
+  creating $alu cell for \115307: $auto$alumacc.cc:485:replace_alu$95123
+  creating $alu cell for \115301: $auto$alumacc.cc:485:replace_alu$95128
+  creating $alu cell for \115295: $auto$alumacc.cc:485:replace_alu$95133
+  creating $alu cell for \115289: $auto$alumacc.cc:485:replace_alu$95138
+  creating $alu cell for \115283: $auto$alumacc.cc:485:replace_alu$95143
+  creating $alu cell for \115277: $auto$alumacc.cc:485:replace_alu$95148
+  creating $alu cell for \115271: $auto$alumacc.cc:485:replace_alu$95153
+  creating $alu cell for \115265: $auto$alumacc.cc:485:replace_alu$95158
+  creating $alu cell for \115259: $auto$alumacc.cc:485:replace_alu$95163
+  creating $alu cell for \115253: $auto$alumacc.cc:485:replace_alu$95168
+  creating $alu cell for \115247: $auto$alumacc.cc:485:replace_alu$95173
+  creating $alu cell for \115241: $auto$alumacc.cc:485:replace_alu$95178
+  creating $alu cell for \115235: $auto$alumacc.cc:485:replace_alu$95183
+  creating $alu cell for \115229: $auto$alumacc.cc:485:replace_alu$95188
+  creating $alu cell for \115223: $auto$alumacc.cc:485:replace_alu$95193
+  creating $alu cell for \115217: $auto$alumacc.cc:485:replace_alu$95198
+  creating $alu cell for \115211: $auto$alumacc.cc:485:replace_alu$95203
+  creating $alu cell for \115205: $auto$alumacc.cc:485:replace_alu$95208
+  creating $alu cell for \115199: $auto$alumacc.cc:485:replace_alu$95213
+  creating $alu cell for \115193: $auto$alumacc.cc:485:replace_alu$95218
+  creating $alu cell for \115187: $auto$alumacc.cc:485:replace_alu$95223
+  creating $alu cell for \115181: $auto$alumacc.cc:485:replace_alu$95228
+  creating $alu cell for \115175: $auto$alumacc.cc:485:replace_alu$95233
+  creating $alu cell for \115169: $auto$alumacc.cc:485:replace_alu$95238
+  creating $alu cell for \115163: $auto$alumacc.cc:485:replace_alu$95243
+  creating $alu cell for \115157: $auto$alumacc.cc:485:replace_alu$95248
+  creating $alu cell for \115151: $auto$alumacc.cc:485:replace_alu$95253
+  creating $alu cell for \115145: $auto$alumacc.cc:485:replace_alu$95258
+  creating $alu cell for \115139: $auto$alumacc.cc:485:replace_alu$95263
+  creating $alu cell for \115133: $auto$alumacc.cc:485:replace_alu$95268
+  creating $alu cell for \115127: $auto$alumacc.cc:485:replace_alu$95273
+  creating $alu cell for \115121: $auto$alumacc.cc:485:replace_alu$95278
+  creating $alu cell for \115115: $auto$alumacc.cc:485:replace_alu$95283
+  creating $alu cell for \115109: $auto$alumacc.cc:485:replace_alu$95288
+  creating $alu cell for \115103: $auto$alumacc.cc:485:replace_alu$95293
+  creating $alu cell for \115097: $auto$alumacc.cc:485:replace_alu$95298
+  creating $alu cell for \115091: $auto$alumacc.cc:485:replace_alu$95303
+  creating $alu cell for \115085: $auto$alumacc.cc:485:replace_alu$95308
+  creating $alu cell for \115079: $auto$alumacc.cc:485:replace_alu$95313
+  creating $alu cell for \115073: $auto$alumacc.cc:485:replace_alu$95318
+  creating $alu cell for \115067: $auto$alumacc.cc:485:replace_alu$95323
+  creating $alu cell for \115061: $auto$alumacc.cc:485:replace_alu$95328
+  creating $alu cell for \115055: $auto$alumacc.cc:485:replace_alu$95333
+  creating $alu cell for \115039: $auto$alumacc.cc:485:replace_alu$95338
+  creating $alu cell for \115013: $auto$alumacc.cc:485:replace_alu$95345
+  creating $alu cell for \114997: $auto$alumacc.cc:485:replace_alu$95352
+  creating $alu cell for \114989: $auto$alumacc.cc:485:replace_alu$95363
+  creating $alu cell for \114632: $auto$alumacc.cc:485:replace_alu$95378
+  creating $alu cell for \114625: $auto$alumacc.cc:485:replace_alu$95383
+  creating $alu cell for \114618: $auto$alumacc.cc:485:replace_alu$95388
+  creating $alu cell for \114611: $auto$alumacc.cc:485:replace_alu$95393
+  creating $alu cell for \114604: $auto$alumacc.cc:485:replace_alu$95398
+  creating $alu cell for \114597: $auto$alumacc.cc:485:replace_alu$95403
+  creating $alu cell for \114590: $auto$alumacc.cc:485:replace_alu$95408
+  creating $alu cell for \114583: $auto$alumacc.cc:485:replace_alu$95413
+  creating $alu cell for \114576: $auto$alumacc.cc:485:replace_alu$95418
+  creating $alu cell for \114569: $auto$alumacc.cc:485:replace_alu$95423
+  creating $alu cell for \114562: $auto$alumacc.cc:485:replace_alu$95428
+  creating $alu cell for \114555: $auto$alumacc.cc:485:replace_alu$95433
+  creating $alu cell for \114548: $auto$alumacc.cc:485:replace_alu$95438
+  creating $alu cell for \114541: $auto$alumacc.cc:485:replace_alu$95443
+  creating $alu cell for \114534: $auto$alumacc.cc:485:replace_alu$95448
+  creating $alu cell for \114527: $auto$alumacc.cc:485:replace_alu$95453
+  creating $alu cell for \114520: $auto$alumacc.cc:485:replace_alu$95458
+  creating $alu cell for \114513: $auto$alumacc.cc:485:replace_alu$95463
+  creating $alu cell for \114506: $auto$alumacc.cc:485:replace_alu$95468
+  creating $alu cell for \114499: $auto$alumacc.cc:485:replace_alu$95473
+  creating $alu cell for \114492: $auto$alumacc.cc:485:replace_alu$95478
+  creating $alu cell for \114485: $auto$alumacc.cc:485:replace_alu$95483
+  creating $alu cell for \114478: $auto$alumacc.cc:485:replace_alu$95488
+  creating $alu cell for \114471: $auto$alumacc.cc:485:replace_alu$95493
+  creating $alu cell for \114464: $auto$alumacc.cc:485:replace_alu$95498
+  creating $alu cell for \114457: $auto$alumacc.cc:485:replace_alu$95503
+  creating $alu cell for \114450: $auto$alumacc.cc:485:replace_alu$95508
+  creating $alu cell for \114443: $auto$alumacc.cc:485:replace_alu$95513
+  creating $alu cell for \114436: $auto$alumacc.cc:485:replace_alu$95518
+  creating $alu cell for \114429: $auto$alumacc.cc:485:replace_alu$95523
+  creating $alu cell for \114422: $auto$alumacc.cc:485:replace_alu$95528
+  creating $alu cell for \114415: $auto$alumacc.cc:485:replace_alu$95533
+  creating $alu cell for \114408: $auto$alumacc.cc:485:replace_alu$95538
+  creating $alu cell for \114401: $auto$alumacc.cc:485:replace_alu$95543
+  creating $alu cell for \114394: $auto$alumacc.cc:485:replace_alu$95548
+  creating $alu cell for \114387: $auto$alumacc.cc:485:replace_alu$95553
+  creating $alu cell for \114380: $auto$alumacc.cc:485:replace_alu$95558
+  creating $alu cell for \114373: $auto$alumacc.cc:485:replace_alu$95563
+  creating $alu cell for \114366: $auto$alumacc.cc:485:replace_alu$95568
+  creating $alu cell for \114359: $auto$alumacc.cc:485:replace_alu$95573
+  creating $alu cell for \114352: $auto$alumacc.cc:485:replace_alu$95578
+  creating $alu cell for \114345: $auto$alumacc.cc:485:replace_alu$95583
+  creating $alu cell for \114338: $auto$alumacc.cc:485:replace_alu$95588
+  creating $alu cell for \114331: $auto$alumacc.cc:485:replace_alu$95593
+  creating $alu cell for \114324: $auto$alumacc.cc:485:replace_alu$95598
+  creating $alu cell for \114317: $auto$alumacc.cc:485:replace_alu$95603
+  creating $alu cell for \114310: $auto$alumacc.cc:485:replace_alu$95608
+  creating $alu cell for \114303: $auto$alumacc.cc:485:replace_alu$95613
+  creating $alu cell for \114296: $auto$alumacc.cc:485:replace_alu$95618
+  creating $alu cell for \114289: $auto$alumacc.cc:485:replace_alu$95623
+  creating $alu cell for \114282: $auto$alumacc.cc:485:replace_alu$95628
+  creating $alu cell for \114275: $auto$alumacc.cc:485:replace_alu$95633
+  creating $alu cell for \114268: $auto$alumacc.cc:485:replace_alu$95638
+  creating $alu cell for \114231: $auto$alumacc.cc:485:replace_alu$95643
+  creating $alu cell for \114220: $auto$alumacc.cc:485:replace_alu$95650
+  creating $alu cell for \114188: $auto$alumacc.cc:485:replace_alu$95661
+  creating $alu cell for \114181: $auto$alumacc.cc:485:replace_alu$95666
+  creating $alu cell for \114174: $auto$alumacc.cc:485:replace_alu$95671
+  creating $alu cell for \114167: $auto$alumacc.cc:485:replace_alu$95676
+  creating $alu cell for \114160: $auto$alumacc.cc:485:replace_alu$95681
+  creating $alu cell for \114153: $auto$alumacc.cc:485:replace_alu$95686
+  creating $alu cell for \114146: $auto$alumacc.cc:485:replace_alu$95691
+  creating $alu cell for \114139: $auto$alumacc.cc:485:replace_alu$95696
+  creating $alu cell for \114132: $auto$alumacc.cc:485:replace_alu$95701
+  creating $alu cell for \114125: $auto$alumacc.cc:485:replace_alu$95706
+  creating $alu cell for \114118: $auto$alumacc.cc:485:replace_alu$95711
+  creating $alu cell for \114111: $auto$alumacc.cc:485:replace_alu$95716
+  creating $alu cell for \114104: $auto$alumacc.cc:485:replace_alu$95721
+  creating $alu cell for \114097: $auto$alumacc.cc:485:replace_alu$95726
+  creating $alu cell for \114090: $auto$alumacc.cc:485:replace_alu$95731
+  creating $alu cell for \114083: $auto$alumacc.cc:485:replace_alu$95736
+  creating $alu cell for \114076: $auto$alumacc.cc:485:replace_alu$95741
+  creating $alu cell for \114069: $auto$alumacc.cc:485:replace_alu$95746
+  creating $alu cell for \114062: $auto$alumacc.cc:485:replace_alu$95751
+  creating $alu cell for \114055: $auto$alumacc.cc:485:replace_alu$95756
+  creating $alu cell for \114048: $auto$alumacc.cc:485:replace_alu$95761
+  creating $alu cell for \114041: $auto$alumacc.cc:485:replace_alu$95766
+  creating $alu cell for \114034: $auto$alumacc.cc:485:replace_alu$95771
+  creating $alu cell for \114027: $auto$alumacc.cc:485:replace_alu$95776
+  creating $alu cell for \114020: $auto$alumacc.cc:485:replace_alu$95781
+  creating $alu cell for \114013: $auto$alumacc.cc:485:replace_alu$95786
+  creating $alu cell for \114006: $auto$alumacc.cc:485:replace_alu$95791
+  creating $alu cell for \113999: $auto$alumacc.cc:485:replace_alu$95796
+  creating $alu cell for \113992: $auto$alumacc.cc:485:replace_alu$95801
+  creating $alu cell for \113985: $auto$alumacc.cc:485:replace_alu$95806
+  creating $alu cell for \113978: $auto$alumacc.cc:485:replace_alu$95811
+  creating $alu cell for \113971: $auto$alumacc.cc:485:replace_alu$95816
+  creating $alu cell for \113964: $auto$alumacc.cc:485:replace_alu$95821
+  creating $alu cell for \113957: $auto$alumacc.cc:485:replace_alu$95826
+  creating $alu cell for \113950: $auto$alumacc.cc:485:replace_alu$95831
+  creating $alu cell for \113943: $auto$alumacc.cc:485:replace_alu$95836
+  creating $alu cell for \113936: $auto$alumacc.cc:485:replace_alu$95841
+  creating $alu cell for \113929: $auto$alumacc.cc:485:replace_alu$95846
+  creating $alu cell for \113922: $auto$alumacc.cc:485:replace_alu$95851
+  creating $alu cell for \113915: $auto$alumacc.cc:485:replace_alu$95856
+  creating $alu cell for \113908: $auto$alumacc.cc:485:replace_alu$95861
+  creating $alu cell for \113901: $auto$alumacc.cc:485:replace_alu$95866
+  creating $alu cell for \113894: $auto$alumacc.cc:485:replace_alu$95871
+  creating $alu cell for \113887: $auto$alumacc.cc:485:replace_alu$95876
+  creating $alu cell for \113880: $auto$alumacc.cc:485:replace_alu$95881
+  creating $alu cell for \113873: $auto$alumacc.cc:485:replace_alu$95886
+  creating $alu cell for \113866: $auto$alumacc.cc:485:replace_alu$95891
+  creating $alu cell for \113859: $auto$alumacc.cc:485:replace_alu$95896
+  creating $alu cell for \113852: $auto$alumacc.cc:485:replace_alu$95901
+  creating $alu cell for \113845: $auto$alumacc.cc:485:replace_alu$95906
+  creating $alu cell for \113838: $auto$alumacc.cc:485:replace_alu$95911
+  creating $alu cell for \113831: $auto$alumacc.cc:485:replace_alu$95916
+  creating $alu cell for \113824: $auto$alumacc.cc:485:replace_alu$95921
+  creating $alu cell for \113793, \114238: $auto$alumacc.cc:485:replace_alu$95926
+  creating $alu cell for \113786: $auto$alumacc.cc:485:replace_alu$95939
+  creating $alu cell for \112592: $auto$alumacc.cc:485:replace_alu$95952
+  creating $alu cell for \112586: $auto$alumacc.cc:485:replace_alu$95957
+  creating $alu cell for \112580: $auto$alumacc.cc:485:replace_alu$95962
+  creating $alu cell for \112574: $auto$alumacc.cc:485:replace_alu$95967
+  creating $alu cell for \112568: $auto$alumacc.cc:485:replace_alu$95972
+  creating $alu cell for \112562: $auto$alumacc.cc:485:replace_alu$95977
+  creating $alu cell for \112556: $auto$alumacc.cc:485:replace_alu$95982
+  creating $alu cell for \112550: $auto$alumacc.cc:485:replace_alu$95987
+  creating $alu cell for \112544: $auto$alumacc.cc:485:replace_alu$95992
+  creating $alu cell for \112538: $auto$alumacc.cc:485:replace_alu$95997
+  creating $alu cell for \112532: $auto$alumacc.cc:485:replace_alu$96002
+  creating $alu cell for \112526: $auto$alumacc.cc:485:replace_alu$96007
+  creating $alu cell for \112520: $auto$alumacc.cc:485:replace_alu$96012
+  creating $alu cell for \112514: $auto$alumacc.cc:485:replace_alu$96017
+  creating $alu cell for \112508: $auto$alumacc.cc:485:replace_alu$96022
+  creating $alu cell for \112502: $auto$alumacc.cc:485:replace_alu$96027
+  creating $alu cell for \112496: $auto$alumacc.cc:485:replace_alu$96032
+  creating $alu cell for \112490: $auto$alumacc.cc:485:replace_alu$96037
+  creating $alu cell for \112484: $auto$alumacc.cc:485:replace_alu$96042
+  creating $alu cell for \112478: $auto$alumacc.cc:485:replace_alu$96047
+  creating $alu cell for \112472: $auto$alumacc.cc:485:replace_alu$96052
+  creating $alu cell for \112466: $auto$alumacc.cc:485:replace_alu$96057
+  creating $alu cell for \112460: $auto$alumacc.cc:485:replace_alu$96062
+  creating $alu cell for \112454: $auto$alumacc.cc:485:replace_alu$96067
+  creating $alu cell for \112448: $auto$alumacc.cc:485:replace_alu$96072
+  creating $alu cell for \112442: $auto$alumacc.cc:485:replace_alu$96077
+  creating $alu cell for \112436: $auto$alumacc.cc:485:replace_alu$96082
+  creating $alu cell for \112430: $auto$alumacc.cc:485:replace_alu$96087
+  creating $alu cell for \112424: $auto$alumacc.cc:485:replace_alu$96092
+  creating $alu cell for \112418: $auto$alumacc.cc:485:replace_alu$96097
+  creating $alu cell for \112412: $auto$alumacc.cc:485:replace_alu$96102
+  creating $alu cell for \112406: $auto$alumacc.cc:485:replace_alu$96107
+  creating $alu cell for \112400: $auto$alumacc.cc:485:replace_alu$96112
+  creating $alu cell for \112394: $auto$alumacc.cc:485:replace_alu$96117
+  creating $alu cell for \112388: $auto$alumacc.cc:485:replace_alu$96122
+  creating $alu cell for \112382: $auto$alumacc.cc:485:replace_alu$96127
+  creating $alu cell for \112376: $auto$alumacc.cc:485:replace_alu$96132
+  creating $alu cell for \112370: $auto$alumacc.cc:485:replace_alu$96137
+  creating $alu cell for \112364: $auto$alumacc.cc:485:replace_alu$96142
+  creating $alu cell for \112358: $auto$alumacc.cc:485:replace_alu$96147
+  creating $alu cell for \112352: $auto$alumacc.cc:485:replace_alu$96152
+  creating $alu cell for \112346: $auto$alumacc.cc:485:replace_alu$96157
+  creating $alu cell for \112340: $auto$alumacc.cc:485:replace_alu$96162
+  creating $alu cell for \112334: $auto$alumacc.cc:485:replace_alu$96167
+  creating $alu cell for \112328: $auto$alumacc.cc:485:replace_alu$96172
+  creating $alu cell for \112322: $auto$alumacc.cc:485:replace_alu$96177
+  creating $alu cell for \112316: $auto$alumacc.cc:485:replace_alu$96182
+  creating $alu cell for \112310: $auto$alumacc.cc:485:replace_alu$96187
+  creating $alu cell for \112304: $auto$alumacc.cc:485:replace_alu$96192
+  creating $alu cell for \112298: $auto$alumacc.cc:485:replace_alu$96197
+  creating $alu cell for \112292: $auto$alumacc.cc:485:replace_alu$96202
+  creating $alu cell for \112286: $auto$alumacc.cc:485:replace_alu$96207
+  creating $alu cell for \112280: $auto$alumacc.cc:485:replace_alu$96212
+  creating $alu cell for \112274: $auto$alumacc.cc:485:replace_alu$96217
+  creating $alu cell for \112268: $auto$alumacc.cc:485:replace_alu$96222
+  creating $alu cell for \112262: $auto$alumacc.cc:485:replace_alu$96227
+  creating $alu cell for \112256: $auto$alumacc.cc:485:replace_alu$96232
+  creating $alu cell for \112240: $auto$alumacc.cc:485:replace_alu$96237
+  creating $alu cell for \112214: $auto$alumacc.cc:485:replace_alu$96244
+  creating $alu cell for \112198: $auto$alumacc.cc:485:replace_alu$96251
+  creating $alu cell for \112190: $auto$alumacc.cc:485:replace_alu$96262
+  creating $alu cell for \111833: $auto$alumacc.cc:485:replace_alu$96277
+  creating $alu cell for \111826: $auto$alumacc.cc:485:replace_alu$96282
+  creating $alu cell for \111819: $auto$alumacc.cc:485:replace_alu$96287
+  creating $alu cell for \111812: $auto$alumacc.cc:485:replace_alu$96292
+  creating $alu cell for \111805: $auto$alumacc.cc:485:replace_alu$96297
+  creating $alu cell for \111798: $auto$alumacc.cc:485:replace_alu$96302
+  creating $alu cell for \111791: $auto$alumacc.cc:485:replace_alu$96307
+  creating $alu cell for \111784: $auto$alumacc.cc:485:replace_alu$96312
+  creating $alu cell for \111777: $auto$alumacc.cc:485:replace_alu$96317
+  creating $alu cell for \111770: $auto$alumacc.cc:485:replace_alu$96322
+  creating $alu cell for \111763: $auto$alumacc.cc:485:replace_alu$96327
+  creating $alu cell for \111756: $auto$alumacc.cc:485:replace_alu$96332
+  creating $alu cell for \111749: $auto$alumacc.cc:485:replace_alu$96337
+  creating $alu cell for \111742: $auto$alumacc.cc:485:replace_alu$96342
+  creating $alu cell for \111735: $auto$alumacc.cc:485:replace_alu$96347
+  creating $alu cell for \111728: $auto$alumacc.cc:485:replace_alu$96352
+  creating $alu cell for \111721: $auto$alumacc.cc:485:replace_alu$96357
+  creating $alu cell for \111714: $auto$alumacc.cc:485:replace_alu$96362
+  creating $alu cell for \111707: $auto$alumacc.cc:485:replace_alu$96367
+  creating $alu cell for \111700: $auto$alumacc.cc:485:replace_alu$96372
+  creating $alu cell for \111693: $auto$alumacc.cc:485:replace_alu$96377
+  creating $alu cell for \111686: $auto$alumacc.cc:485:replace_alu$96382
+  creating $alu cell for \111679: $auto$alumacc.cc:485:replace_alu$96387
+  creating $alu cell for \111672: $auto$alumacc.cc:485:replace_alu$96392
+  creating $alu cell for \111665: $auto$alumacc.cc:485:replace_alu$96397
+  creating $alu cell for \111658: $auto$alumacc.cc:485:replace_alu$96402
+  creating $alu cell for \111651: $auto$alumacc.cc:485:replace_alu$96407
+  creating $alu cell for \111644: $auto$alumacc.cc:485:replace_alu$96412
+  creating $alu cell for \111637: $auto$alumacc.cc:485:replace_alu$96417
+  creating $alu cell for \111630: $auto$alumacc.cc:485:replace_alu$96422
+  creating $alu cell for \111623: $auto$alumacc.cc:485:replace_alu$96427
+  creating $alu cell for \111616: $auto$alumacc.cc:485:replace_alu$96432
+  creating $alu cell for \111609: $auto$alumacc.cc:485:replace_alu$96437
+  creating $alu cell for \111602: $auto$alumacc.cc:485:replace_alu$96442
+  creating $alu cell for \111595: $auto$alumacc.cc:485:replace_alu$96447
+  creating $alu cell for \111588: $auto$alumacc.cc:485:replace_alu$96452
+  creating $alu cell for \111581: $auto$alumacc.cc:485:replace_alu$96457
+  creating $alu cell for \111574: $auto$alumacc.cc:485:replace_alu$96462
+  creating $alu cell for \111567: $auto$alumacc.cc:485:replace_alu$96467
+  creating $alu cell for \111560: $auto$alumacc.cc:485:replace_alu$96472
+  creating $alu cell for \111553: $auto$alumacc.cc:485:replace_alu$96477
+  creating $alu cell for \111546: $auto$alumacc.cc:485:replace_alu$96482
+  creating $alu cell for \111539: $auto$alumacc.cc:485:replace_alu$96487
+  creating $alu cell for \111532: $auto$alumacc.cc:485:replace_alu$96492
+  creating $alu cell for \111525: $auto$alumacc.cc:485:replace_alu$96497
+  creating $alu cell for \111518: $auto$alumacc.cc:485:replace_alu$96502
+  creating $alu cell for \111511: $auto$alumacc.cc:485:replace_alu$96507
+  creating $alu cell for \111504: $auto$alumacc.cc:485:replace_alu$96512
+  creating $alu cell for \111497: $auto$alumacc.cc:485:replace_alu$96517
+  creating $alu cell for \111490: $auto$alumacc.cc:485:replace_alu$96522
+  creating $alu cell for \111483: $auto$alumacc.cc:485:replace_alu$96527
+  creating $alu cell for \111476: $auto$alumacc.cc:485:replace_alu$96532
+  creating $alu cell for \111469: $auto$alumacc.cc:485:replace_alu$96537
+  creating $alu cell for \111432: $auto$alumacc.cc:485:replace_alu$96542
+  creating $alu cell for \111421: $auto$alumacc.cc:485:replace_alu$96549
+  creating $alu cell for \111389: $auto$alumacc.cc:485:replace_alu$96560
+  creating $alu cell for \111382: $auto$alumacc.cc:485:replace_alu$96565
+  creating $alu cell for \111375: $auto$alumacc.cc:485:replace_alu$96570
+  creating $alu cell for \111368: $auto$alumacc.cc:485:replace_alu$96575
+  creating $alu cell for \111361: $auto$alumacc.cc:485:replace_alu$96580
+  creating $alu cell for \111354: $auto$alumacc.cc:485:replace_alu$96585
+  creating $alu cell for \111347: $auto$alumacc.cc:485:replace_alu$96590
+  creating $alu cell for \111340: $auto$alumacc.cc:485:replace_alu$96595
+  creating $alu cell for \111333: $auto$alumacc.cc:485:replace_alu$96600
+  creating $alu cell for \111326: $auto$alumacc.cc:485:replace_alu$96605
+  creating $alu cell for \111319: $auto$alumacc.cc:485:replace_alu$96610
+  creating $alu cell for \111312: $auto$alumacc.cc:485:replace_alu$96615
+  creating $alu cell for \111305: $auto$alumacc.cc:485:replace_alu$96620
+  creating $alu cell for \111298: $auto$alumacc.cc:485:replace_alu$96625
+  creating $alu cell for \111291: $auto$alumacc.cc:485:replace_alu$96630
+  creating $alu cell for \111284: $auto$alumacc.cc:485:replace_alu$96635
+  creating $alu cell for \111277: $auto$alumacc.cc:485:replace_alu$96640
+  creating $alu cell for \111270: $auto$alumacc.cc:485:replace_alu$96645
+  creating $alu cell for \111263: $auto$alumacc.cc:485:replace_alu$96650
+  creating $alu cell for \111256: $auto$alumacc.cc:485:replace_alu$96655
+  creating $alu cell for \111249: $auto$alumacc.cc:485:replace_alu$96660
+  creating $alu cell for \111242: $auto$alumacc.cc:485:replace_alu$96665
+  creating $alu cell for \111235: $auto$alumacc.cc:485:replace_alu$96670
+  creating $alu cell for \111228: $auto$alumacc.cc:485:replace_alu$96675
+  creating $alu cell for \111221: $auto$alumacc.cc:485:replace_alu$96680
+  creating $alu cell for \111214: $auto$alumacc.cc:485:replace_alu$96685
+  creating $alu cell for \111207: $auto$alumacc.cc:485:replace_alu$96690
+  creating $alu cell for \111200: $auto$alumacc.cc:485:replace_alu$96695
+  creating $alu cell for \111193: $auto$alumacc.cc:485:replace_alu$96700
+  creating $alu cell for \111186: $auto$alumacc.cc:485:replace_alu$96705
+  creating $alu cell for \111179: $auto$alumacc.cc:485:replace_alu$96710
+  creating $alu cell for \111172: $auto$alumacc.cc:485:replace_alu$96715
+  creating $alu cell for \111165: $auto$alumacc.cc:485:replace_alu$96720
+  creating $alu cell for \111158: $auto$alumacc.cc:485:replace_alu$96725
+  creating $alu cell for \111151: $auto$alumacc.cc:485:replace_alu$96730
+  creating $alu cell for \111144: $auto$alumacc.cc:485:replace_alu$96735
+  creating $alu cell for \111137: $auto$alumacc.cc:485:replace_alu$96740
+  creating $alu cell for \111130: $auto$alumacc.cc:485:replace_alu$96745
+  creating $alu cell for \111123: $auto$alumacc.cc:485:replace_alu$96750
+  creating $alu cell for \111116: $auto$alumacc.cc:485:replace_alu$96755
+  creating $alu cell for \111109: $auto$alumacc.cc:485:replace_alu$96760
+  creating $alu cell for \111102: $auto$alumacc.cc:485:replace_alu$96765
+  creating $alu cell for \111095: $auto$alumacc.cc:485:replace_alu$96770
+  creating $alu cell for \111088: $auto$alumacc.cc:485:replace_alu$96775
+  creating $alu cell for \111081: $auto$alumacc.cc:485:replace_alu$96780
+  creating $alu cell for \111074: $auto$alumacc.cc:485:replace_alu$96785
+  creating $alu cell for \111067: $auto$alumacc.cc:485:replace_alu$96790
+  creating $alu cell for \111060: $auto$alumacc.cc:485:replace_alu$96795
+  creating $alu cell for \111053: $auto$alumacc.cc:485:replace_alu$96800
+  creating $alu cell for \111046: $auto$alumacc.cc:485:replace_alu$96805
+  creating $alu cell for \111039: $auto$alumacc.cc:485:replace_alu$96810
+  creating $alu cell for \111032: $auto$alumacc.cc:485:replace_alu$96815
+  creating $alu cell for \111025: $auto$alumacc.cc:485:replace_alu$96820
+  creating $alu cell for \110994, \111439: $auto$alumacc.cc:485:replace_alu$96825
+  creating $alu cell for \110987: $auto$alumacc.cc:485:replace_alu$96838
+  creating $alu cell for $auto$ghdl.cc:927:import_module$72982: $auto$alumacc.cc:485:replace_alu$96851
+  creating $alu cell for \110070: $auto$alumacc.cc:485:replace_alu$96854
+  creating $alu cell for \110985: $auto$alumacc.cc:485:replace_alu$96857
+  creating $alu cell for \110995: $auto$alumacc.cc:485:replace_alu$96860
+  creating $alu cell for \111917: $auto$alumacc.cc:485:replace_alu$96863
+  creating $alu cell for \111920: $auto$alumacc.cc:485:replace_alu$96866
+  creating $alu cell for \121521: $auto$alumacc.cc:485:replace_alu$96869
+  creating $alu cell for \112185: $auto$alumacc.cc:485:replace_alu$96872
+  creating $alu cell for \112203: $auto$alumacc.cc:485:replace_alu$96875
+  creating $alu cell for \112235: $auto$alumacc.cc:485:replace_alu$96878
+  creating $alu cell for \112243: $auto$alumacc.cc:485:replace_alu$96881
+  creating $alu cell for \112629: $auto$alumacc.cc:485:replace_alu$96884
+  creating $alu cell for \112631: $auto$alumacc.cc:485:replace_alu$96887
+  creating $alu cell for \113784: $auto$alumacc.cc:485:replace_alu$96890
+  creating $alu cell for \113794: $auto$alumacc.cc:485:replace_alu$96893
+  creating $alu cell for \114716: $auto$alumacc.cc:485:replace_alu$96896
+  creating $alu cell for \114719: $auto$alumacc.cc:485:replace_alu$96899
+  creating $alu cell for \121377: $auto$alumacc.cc:485:replace_alu$96902
+  creating $alu cell for \114984: $auto$alumacc.cc:485:replace_alu$96905
+  creating $alu cell for \115002: $auto$alumacc.cc:485:replace_alu$96908
+  creating $alu cell for \115034: $auto$alumacc.cc:485:replace_alu$96911
+  creating $alu cell for \115042: $auto$alumacc.cc:485:replace_alu$96914
+  creating $alu cell for \115428: $auto$alumacc.cc:485:replace_alu$96917
+  creating $alu cell for \115430: $auto$alumacc.cc:485:replace_alu$96920
+  creating $alu cell for \116766: $auto$alumacc.cc:485:replace_alu$96923
+  creating $alu cell for \116990: $auto$alumacc.cc:485:replace_alu$96926
+  creating $alu cell for \121375: $auto$alumacc.cc:485:replace_alu$96929
+  creating $alu cell for \120979: $auto$alumacc.cc:485:replace_alu$96932
+  creating $alu cell for \117266: $auto$alumacc.cc:485:replace_alu$96935
+  creating $alu cell for \117284: $auto$alumacc.cc:485:replace_alu$96938
+  creating $alu cell for \117316: $auto$alumacc.cc:485:replace_alu$96941
+  creating $alu cell for \117324: $auto$alumacc.cc:485:replace_alu$96944
+  creating $alu cell for \117710: $auto$alumacc.cc:485:replace_alu$96947
+  creating $alu cell for \117712: $auto$alumacc.cc:485:replace_alu$96950
+  creating $alu cell for \118049: $auto$alumacc.cc:485:replace_alu$96953
+  creating $alu cell for \118062: $auto$alumacc.cc:485:replace_alu$96956
+  creating $alu cell for \118394: $auto$alumacc.cc:485:replace_alu$96959
+  creating $alu cell for \118430: $auto$alumacc.cc:485:replace_alu$96962
+  creating $alu cell for \118432: $auto$alumacc.cc:485:replace_alu$96965
+  creating $alu cell for \118439: $auto$alumacc.cc:485:replace_alu$96968
+  creating $alu cell for \118552, \118549: $auto$alumacc.cc:485:replace_alu$96971
+  creating $alu cell for \118559: $auto$alumacc.cc:485:replace_alu$96984
+  creating $alu cell for \118568: $auto$alumacc.cc:485:replace_alu$96987
+  creating $alu cell for \118574: $auto$alumacc.cc:485:replace_alu$96990
+  creating $alu cell for \118610: $auto$alumacc.cc:485:replace_alu$96993
+  creating $alu cell for \120947: $auto$alumacc.cc:485:replace_alu$96996
+  creating $alu cell for \120028: $auto$alumacc.cc:485:replace_alu$96999
+  creating $alu cell for \120035: $auto$alumacc.cc:485:replace_alu$97002
+  creating $alu cell for \120276: $auto$alumacc.cc:485:replace_alu$97005
+  creating $alu cell for \120283: $auto$alumacc.cc:485:replace_alu$97008
+  creating $alu cell for \120543: $auto$alumacc.cc:485:replace_alu$97011
+  creating $alu cell for \120561: $auto$alumacc.cc:485:replace_alu$97014
+  creating $alu cell for \120576: $auto$alumacc.cc:485:replace_alu$97017
+  creating $alu cell for \120594: $auto$alumacc.cc:485:replace_alu$97020
+  creating $alu cell for \120609: $auto$alumacc.cc:485:replace_alu$97023
+  creating $alu cell for \120627: $auto$alumacc.cc:485:replace_alu$97026
+  creating $alu cell for \120642: $auto$alumacc.cc:485:replace_alu$97029
+  creating $alu cell for \120660: $auto$alumacc.cc:485:replace_alu$97032
+  creating $alu cell for \120929: $auto$alumacc.cc:485:replace_alu$97035
   created 473 $alu and 11 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -3680,8 +3680,8 @@ Removed 0 multiplexer ports.
       New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$71619 [0]
       New connections: $auto$ghdl.cc:806:import_module$71619 [6:1] = { $auto$ghdl.cc:806:import_module$71619 [0] $auto$ghdl.cc:806:import_module$71619 [0] $auto$ghdl.cc:806:import_module$71619 [0] $auto$ghdl.cc:806:import_module$71619 [0] $auto$ghdl.cc:806:import_module$71619 [0] $auto$ghdl.cc:806:import_module$71619 [0] }
     Consolidated identical input bits for $mux cell \118562:
-      Old ports: A={ $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [10:2] $auto$alumacc.cc:426:extract_cmp_alu$77382 [1:0] }, B=31'0000000000000000000000000000000, Y=$auto$ghdl.cc:806:import_module$71781
-      New ports: A={ $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [10:2] $auto$alumacc.cc:426:extract_cmp_alu$77382 [1:0] }, B=12'000000000000, Y=$auto$ghdl.cc:806:import_module$71781 [11:0]
+      Old ports: A={ $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [10:2] $auto$alumacc.cc:426:extract_cmp_alu$94623 [1:0] }, B=31'0000000000000000000000000000000, Y=$auto$ghdl.cc:806:import_module$71781
+      New ports: A={ $auto$ghdl.cc:806:import_module$71780 [30] $auto$ghdl.cc:806:import_module$71780 [10:2] $auto$alumacc.cc:426:extract_cmp_alu$94623 [1:0] }, B=12'000000000000, Y=$auto$ghdl.cc:806:import_module$71781 [11:0]
       New connections: $auto$ghdl.cc:806:import_module$71781 [30:12] = { $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] $auto$ghdl.cc:806:import_module$71781 [11] }
     Consolidated identical input bits for $mux cell \118621:
       Old ports: A=8'00000000, B=8'10000010, Y=$auto$ghdl.cc:806:import_module$71803
@@ -4772,85 +4772,85 @@ Removed a total of 5 cells.
 
 3.18.6. Executing OPT_SHARE pass.
     Found cells that share an operand and can be merged by moving the $mux \111924 in front of them:
-        $auto$alumacc.cc:485:replace_alu$79622
-        $auto$alumacc.cc:485:replace_alu$79625
+        $auto$alumacc.cc:485:replace_alu$96863
+        $auto$alumacc.cc:485:replace_alu$96866
 
     Found cells that share an operand and can be merged by moving the $mux \114723 in front of them:
-        $auto$alumacc.cc:485:replace_alu$79655
-        $auto$alumacc.cc:485:replace_alu$79658
+        $auto$alumacc.cc:485:replace_alu$96896
+        $auto$alumacc.cc:485:replace_alu$96899
 
     Found cells that share an operand and can be merged by moving the $mux \121544 in front of them:
-        $auto$alumacc.cc:485:replace_alu$79613
-        $auto$alumacc.cc:485:replace_alu$79628
+        $auto$alumacc.cc:485:replace_alu$96854
+        $auto$alumacc.cc:485:replace_alu$96869
 
 3.18.7. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on $auto$ff.cc:266:slice$76760 ($dffe) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72370 [55:0], Q = \div_quo_s [55:0], rval = 56'00000000000000000000000000000000000000000000000000000000).
-Adding SRST signal on $auto$ff.cc:266:slice$76745 ($dffe) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72370 [56], Q = \div_quo_s [56], rval = 1'0).
-Setting constant 0-bit at position 11 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 12 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 13 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 14 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 15 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 16 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 17 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 18 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 19 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 20 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 21 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 22 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 23 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 24 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 25 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 26 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 27 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 28 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 29 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 30 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 31 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 32 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 33 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 34 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 35 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 36 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 37 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 38 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 39 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 40 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 41 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 42 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 43 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 44 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 45 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 46 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 47 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 48 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 49 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 50 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 51 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 52 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 53 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 54 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 55 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 56 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 57 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 58 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 59 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 60 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 61 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 62 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 63 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 64 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 65 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 66 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 67 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 68 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 69 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 70 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 74 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$76868 ($sdffe) from module ino_float_unit.
+Adding SRST signal on $auto$ff.cc:266:slice$94001 ($dffe) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72370 [55:0], Q = \div_quo_s [55:0], rval = 56'00000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on $auto$ff.cc:266:slice$93986 ($dffe) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72370 [56], Q = \div_quo_s [56], rval = 1'0).
+Setting constant 0-bit at position 11 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 12 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 13 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 14 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 15 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 16 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 17 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 18 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 19 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 20 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 21 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 22 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 23 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 24 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 25 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 26 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 27 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 28 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 29 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 30 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 31 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 32 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 33 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 34 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 35 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 36 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 37 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 38 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 39 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 40 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 41 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 42 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 43 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 44 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 45 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 46 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 47 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 48 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 49 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 50 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 51 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 52 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 53 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 54 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 55 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 56 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 57 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 58 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 59 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 60 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 61 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 62 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 63 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 64 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 65 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 66 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 67 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 68 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 69 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 70 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 74 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$94109 ($sdffe) from module ino_float_unit.
 
 3.18.8. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_float_unit..
@@ -4899,15 +4899,15 @@ Removed a total of 2 cells.
 3.18.14. Executing OPT_SHARE pass.
 
 3.18.15. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on $auto$ff.cc:266:slice$76784 ($dffe) from module ino_float_unit (D = { $auto$ghdl.cc:806:import_module$72369 [56] $auto$ghdl.cc:806:import_module$72369 [2:1] }, Q = { \div_win_s [56] \div_win_s [2:1] }, rval = 3'000).
-Adding SRST signal on $auto$ff.cc:266:slice$76784 ($dffe) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72361 [0], Q = \div_win_s [0], rval = 1'0).
-Setting constant 0-bit at position 0 on $auto$ff.cc:266:slice$76773 ($dffe) from module ino_float_unit.
-Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$76773 ($dffe) from module ino_float_unit.
-Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$76773 ($dffe) from module ino_float_unit.
-Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$80622 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 7 on $auto$ff.cc:266:slice$80622 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 8 on $auto$ff.cc:266:slice$80622 ($sdffe) from module ino_float_unit.
-Setting constant 0-bit at position 9 on $auto$ff.cc:266:slice$80622 ($sdffe) from module ino_float_unit.
+Adding SRST signal on $auto$ff.cc:266:slice$94025 ($dffe) from module ino_float_unit (D = { $auto$ghdl.cc:806:import_module$72369 [56] $auto$ghdl.cc:806:import_module$72369 [2:1] }, Q = { \div_win_s [56] \div_win_s [2:1] }, rval = 3'000).
+Adding SRST signal on $auto$ff.cc:266:slice$94025 ($dffe) from module ino_float_unit (D = $auto$ghdl.cc:806:import_module$72361 [0], Q = \div_win_s [0], rval = 1'0).
+Setting constant 0-bit at position 0 on $auto$ff.cc:266:slice$94014 ($dffe) from module ino_float_unit.
+Setting constant 0-bit at position 1 on $auto$ff.cc:266:slice$94014 ($dffe) from module ino_float_unit.
+Setting constant 0-bit at position 2 on $auto$ff.cc:266:slice$94014 ($dffe) from module ino_float_unit.
+Setting constant 0-bit at position 5 on $auto$ff.cc:266:slice$97863 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 7 on $auto$ff.cc:266:slice$97863 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 8 on $auto$ff.cc:266:slice$97863 ($sdffe) from module ino_float_unit.
+Setting constant 0-bit at position 9 on $auto$ff.cc:266:slice$97863 ($sdffe) from module ino_float_unit.
 
 3.18.16. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_float_unit..
@@ -5176,102 +5176,44 @@ Removed a total of 26561 cells.
 
 3.20.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_float_unit..
-Removed 20427 unused cells and 56896 unused wires.
+Removed 20427 unused cells and 56904 unused wires.
 <suppressed ~20428 debug messages>
 
 3.20.5. Finished fast OPT passes.
 
-3.21. Executing ABC pass (technology mapping using ABC).
+3.21. Executing HIERARCHY pass (managing design hierarchy).
 
-3.21.1. Extracting gate netlist of module `\ino_float_unit' to `<abc-temp-dir>/input.blif'..
-Extracted 50479 gates and 50825 wires to a netlist network with 343 inputs and 278 outputs.
-
-3.21.1.1. Executing ABC.
-Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
-ABC: ABC command line: "source <abc-temp-dir>/abc.script".
-ABC: 
-ABC: + read_blif <abc-temp-dir>/input.blif 
-ABC: + read_library <abc-temp-dir>/stdcells.genlib 
-ABC: Entered genlib library with 13 gates from file "<abc-temp-dir>/stdcells.genlib".
-ABC: + strash 
-ABC: + dretime 
-ABC: + map 
-ABC: + write_blif <abc-temp-dir>/output.blif 
-
-3.21.1.2. Re-integrating ABC results.
-ABC RESULTS:              NAND cells:      446
-ABC RESULTS:               AND cells:      630
-ABC RESULTS:              XNOR cells:     2458
-ABC RESULTS:               NOT cells:     1370
-ABC RESULTS:                OR cells:    11997
-ABC RESULTS:               MUX cells:     9450
-ABC RESULTS:             ORNOT cells:     2224
-ABC RESULTS:            ANDNOT cells:     9725
-ABC RESULTS:               XOR cells:     5528
-ABC RESULTS:               NOR cells:     4931
-ABC RESULTS:        internal signals:    50204
-ABC RESULTS:           input signals:      343
-ABC RESULTS:          output signals:      278
-Removing temp directory.
-
-3.22. Executing OPT pass (performing simple optimizations).
-
-3.22.1. Executing OPT_EXPR pass (perform const folding).
-Optimizing module ino_float_unit.
-<suppressed ~1476 debug messages>
-
-3.22.2. Executing OPT_MERGE pass (detect identical cells).
-Finding identical cells in module `\ino_float_unit'.
-<suppressed ~729 debug messages>
-Removed a total of 243 cells.
-
-3.22.3. Executing OPT_DFF pass (perform DFF optimizations).
-
-3.22.4. Executing OPT_CLEAN pass (remove unused cells and wires).
-Finding unused cells or wires in module \ino_float_unit..
-Removed 6 unused cells and 8501 unused wires.
-<suppressed ~68 debug messages>
-
-3.22.5. Finished fast OPT passes.
-
-3.23. Executing HIERARCHY pass (managing design hierarchy).
-
-3.23.1. Analyzing design hierarchy..
+3.21.1. Analyzing design hierarchy..
 Top module:  \ino_float_unit
 
-3.23.2. Analyzing design hierarchy..
+3.21.2. Analyzing design hierarchy..
 Top module:  \ino_float_unit
 Removed 0 unused modules.
 Module ino_float_unit directly or indirectly contains formal properties -> setting "keep" attribute.
 
-3.24. Printing statistics.
+3.22. Printing statistics.
 
 === ino_float_unit ===
 
-   Number of wires:              48690
-   Number of wire bits:          90604
-   Number of public wires:         186
-   Number of public wire bits:   42096
+   Number of wires:               8081
+   Number of wire bits:         124182
+   Number of public wires:         247
+   Number of public wire bits:   43708
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:              48913
-     $_ANDNOT_                    9674
-     $_AND_                        610
+   Number of cells:              50882
+     $_AND_                      16027
      $_DFFE_PP_                    256
-     $_MUX_                       9430
-     $_NAND_                       437
-     $_NOR_                       4903
-     $_NOT_                       1359
-     $_ORNOT_                     2209
-     $_OR_                       11952
+     $_MUX_                      18519
+     $_NOT_                       1209
+     $_OR_                        6400
      $_SDFFCE_PP0P_                 61
-     $_SDFFE_PP0P_                  84
-     $_XNOR_                      2458
-     $_XOR_                       5479
+     $_SDFFE_PP0P_                  85
+     $_XOR_                       8324
      $assert                         1
 
-3.25. Executing CHECK pass (checking for obvious problems).
+3.23. Executing CHECK pass (checking for obvious problems).
 Checking module ino_float_unit...
 Found and reported 0 problems.
 
@@ -5335,12 +5277,12 @@ Warning: Found unsupported expression 'SCE*SCD+!SCE*D' in pin attribute of cell 
 
 4.1. Executing DFFLEGALIZE pass (convert FFs to types supported by the target).
 Mapping DFF cells in module `\ino_float_unit':
-  mapped 401 $_DFF_PN0_ cells to \sg13g2_dfrbpq_1 cells.
+  mapped 402 $_DFF_PN0_ cells to \sg13g2_dfrbpq_1 cells.
 
 5. Executing ABC pass (technology mapping using ABC).
 
 5.1. Extracting gate netlist of module `\ino_float_unit' to `<abc-temp-dir>/input.blif'..
-Extracted 49057 gates and 49598 wires to a netlist network with 539 inputs and 403 outputs.
+Extracted 51027 gates and 51570 wires to a netlist network with 540 inputs and 404 outputs.
 
 5.1.1. Executing ABC.
 Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
@@ -5379,59 +5321,47 @@ ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
 ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
-ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
-ABC: Memory =    2.86 MB. Time =     0.01 sec
-ABC: + strash 
-ABC: + &get -n 
-ABC: + &fraig -x 
-ABC: + &put 
-ABC: + scorr 
-ABC: Warning: The network is combinational (run "fraig" or "fraig_sweep").
-ABC: + dc2 
-ABC: + dretime 
-ABC: + strash 
-ABC: + &get -n 
-ABC: + &dch -f 
-ABC: + &nf 
-ABC: + &put 
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
+ABC: Memory =    2.86 MB. Time =     0.02 sec
+ABC: + source /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/par_module/abc_direct.abc 
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
 5.1.2. Re-integrating ABC results.
-ABC RESULTS:      sg13g2_or4_1 cells:        9
-ABC RESULTS:     sg13g2_and4_1 cells:       39
-ABC RESULTS:     sg13g2_and3_1 cells:      114
-ABC RESULTS:    sg13g2_nand4_1 cells:      186
-ABC RESULTS:   sg13g2_nand3b_1 cells:       55
-ABC RESULTS:      sg13g2_or3_1 cells:      280
-ABC RESULTS:     sg13g2_nor3_1 cells:      716
-ABC RESULTS:      sg13g2_or2_1 cells:      864
-ABC RESULTS:     sg13g2_mux2_1 cells:     1500
-ABC RESULTS:     sg13g2_mux4_1 cells:      115
-ABC RESULTS:    sg13g2_nor2b_1 cells:     1204
-ABC RESULTS:   sg13g2_a221oi_1 cells:      197
-ABC RESULTS:   sg13g2_nand2b_1 cells:     1810
-ABC RESULTS:     sg13g2_and2_1 cells:      909
-ABC RESULTS:     sg13g2_nor2_1 cells:     3801
-ABC RESULTS:    sg13g2_xnor2_1 cells:     3186
-ABC RESULTS:     sg13g2_nor4_1 cells:      666
-ABC RESULTS:     sg13g2_a21o_1 cells:      673
-ABC RESULTS:    sg13g2_nand3_1 cells:      901
-ABC RESULTS:    sg13g2_nand2_1 cells:     4623
-ABC RESULTS:     sg13g2_xor2_1 cells:     2064
-ABC RESULTS:    sg13g2_a21oi_1 cells:     3586
-ABC RESULTS:    sg13g2_o21ai_1 cells:     4014
-ABC RESULTS:    sg13g2_a22oi_1 cells:      898
-ABC RESULTS:      sg13g2_inv_1 cells:      822
-ABC RESULTS:        internal signals:    48656
-ABC RESULTS:           input signals:      539
-ABC RESULTS:          output signals:      403
+ABC RESULTS:     sg13g2_mux4_1 cells:      106
+ABC RESULTS:   sg13g2_nand3b_1 cells:       92
+ABC RESULTS:    sg13g2_nand4_1 cells:      229
+ABC RESULTS:      sg13g2_or3_1 cells:      341
+ABC RESULTS:     sg13g2_xor2_1 cells:     2185
+ABC RESULTS:      sg13g2_or4_1 cells:       30
+ABC RESULTS:     sg13g2_and4_1 cells:       98
+ABC RESULTS:    sg13g2_nand3_1 cells:      975
+ABC RESULTS:    sg13g2_nor2b_1 cells:     1261
+ABC RESULTS:      sg13g2_inv_1 cells:      840
+ABC RESULTS:   sg13g2_a221oi_1 cells:      300
+ABC RESULTS:     sg13g2_a21o_1 cells:      608
+ABC RESULTS:    sg13g2_a22oi_1 cells:     1117
+ABC RESULTS:     sg13g2_nor4_1 cells:      665
+ABC RESULTS:     sg13g2_and3_1 cells:      102
+ABC RESULTS:    sg13g2_xnor2_1 cells:     3120
+ABC RESULTS:      sg13g2_or2_1 cells:      737
+ABC RESULTS:   sg13g2_nand2b_1 cells:     1890
+ABC RESULTS:     sg13g2_and2_1 cells:     1063
+ABC RESULTS:     sg13g2_mux2_1 cells:     1821
+ABC RESULTS:    sg13g2_nand2_1 cells:     4596
+ABC RESULTS:     sg13g2_nor2_1 cells:     3769
+ABC RESULTS:    sg13g2_a21oi_1 cells:     3570
+ABC RESULTS:    sg13g2_o21ai_1 cells:     3834
+ABC RESULTS:     sg13g2_nor3_1 cells:      739
+ABC RESULTS:        internal signals:    50626
+ABC RESULTS:           input signals:      540
+ABC RESULTS:          output signals:      404
 Removing temp directory.
 
 6. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_float_unit..
-Removed 0 unused cells and 49591 unused wires.
-<suppressed ~1 debug messages>
+Removed 0 unused cells and 8986 unused wires.
+<suppressed ~63 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 245308dfc7, CPU: user 36.95s system 0.33s, MEM: 623.82 MB peak
+End of script. Logfile hash: 2669d2aa4a, CPU: user 33.46s system 0.36s, MEM: 625.78 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 86% 2x abc (225 sec), 4% 82x opt_expr (10 sec), ...
+Time spent: 34% 1x abc (17 sec), 18% 81x opt_expr (9 sec), ...

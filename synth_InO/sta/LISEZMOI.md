@@ -2,7 +2,7 @@
 
 But : savoir, sans run LibreLane, quels chemins limitent la fréquence du cœur entier, en
 particulier ceux qui **traversent plusieurs macros** de `pnr_InO` (invisibles aux runs
-macro par macro, qui utilisent le SDC par défaut). Une synthèse (30 min ; plus de 2 h avec `KS=1`) puis quelques
+macro par macro, qui utilisent le SDC par défaut). Une synthèse (20 à 30 min) puis quelques
 minutes d'OpenSTA par coin.
 
 ## 1. Netlist hiérarchique
@@ -22,6 +22,13 @@ KS=1 LIB=… BRUT=… ./synth_hier.sh 20       # additionneurs Kogge-Stone -> ta
 - ABC reçoit une cible `-D` (la période) et `-constr` (tampons, redimensionnement), comme
   la synthèse de LibreLane. Ce n'est pas un `repair_timing` : la cible est par module et
   ignore les budgets entre macros.
+- Flot ABC (`ABC=direct`, défaut) : `synth -noabc`, puis une seule projection ABC sans
+  `&fraig` ni `scorr`. Le `abc -fast` de `synth` projette pour la surface et défait les
+  arbres ; `&fraig -x` (script par défaut de Yosys, `ABC=yosys`) ne termine pas en
+  plusieurs heures sur un multiplieur de Wallace ou des additionneurs Kogge-Stone.
+- `SOUS="ino_float_unit fexp_unit"` synthétise ces unités à part (`keep_hierarchy`) : sinon
+  la division flottante, hors d'atteinte de la cible, fixe le temps requis de tout
+  `ino_execute` et ABC y relâche les autres chemins jusqu'à son retard.
 - Yosys 0.33 projette les `$alu` en retenue propagée ; `KS=1` applique
   `lcu_kogge_stone.v` (préfixe parallèle). Sur un additionneur 64 bits isolé (typ) :
   9,0 → 6,3 ns pour +20 % de surface.

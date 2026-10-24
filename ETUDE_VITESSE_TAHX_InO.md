@@ -365,17 +365,54 @@ Part de la synthèse :
 - `stack_unit` seule (typ) : COMPLETE.valid / fault.valid → registres 13,3 → 2,0 ns ; DECODE_SLOT → registres 16,4 → 13,0 ns ; surface −2 %.
 - Cœur entier (sans fil, arbres de tampons) : chaînage 24,6 → 15,7 ns (typ), 38,4 → 24,4 ns (slow).
 
+### MUL / DIV : arithmétique explicite et produit enregistré (réalisé le 24 octobre)
+
+`L2_INO_MULDIV_UNIT_rtl.vhd` :
+
+1. `MUL_CSA` : produit 64 × 64 par produits partiels, arbre de compresseurs 3:2 (Wallace, 10 niveaux, calendrier statique) et additionneur final `ADD_PFX` (préfixe parallèle de Kogge-Stone), au lieu de `ua_s * ub_s` (multiplieur à tableau de Yosys).
+2. `NEG_IF` (valeurs absolues d'ABSOLU, signes de FINAL et du produit), l'arrondi de CVTXI (`rem_s >= uc_s - rem_s`, puis `q ± 1`) et la correction de MODI (`v + b_s`) passent par `ADD_PFX`.
+3. MUL enregistre son produit dans `dq_s` (pas CHARGE) ; contrôle de débordement, signe et résultat au nouveau pas PRODUIT. MUL : 3 → 4 cycles dans l'unité.
+
+Vérification : fonctions comparées à `numeric_std` (8 × 8 et 10 × 10 exhaustifs, 200 000 tirages 64 × 64) ; unité comparée à la version précédente sur 200 000 opérations tirées au hasard (MUL, DIV, REMI, MODI, CVTIX, CVTXI, opérandes aux bornes, RESET en cours d'opération), sans écart ; bancs L2 (latence MUL portée à 4), K2b, K8b, N3 et B_*.
+
+| banc | cycles avant | cycles après | écart |
+|---|---|---|---|
+| B_APPELS | 160 979 | 161 056 | +0,05 % |
+| B_ARBRE | 297 662 | 298 337 | +0,2 % |
+| B_CHAINES | 308 740 | 313 817 | +1,6 % |
+| B_CRIBLE | 230 156 | 232 828 | +1,2 % |
+| B_EXPR | 224 945 | 226 092 | +0,5 % |
+| B_FLOTTANT | 284 178 | 285 766 | +0,6 % |
+| B_MATRICE | 324 536 | 333 772 | +2,8 % |
+| B_TRI | 252 184 | 256 966 | +1,9 % |
+| **total** | **2 083 380** | **2 108 634** | **+1,2 %** |
+
+Unité seule (coin slow, sans fil) : chemin critique 26,2 → 14,4 ns ; surface 371 k → 388 k µm² (+5 %).
+
+### Deux effets de la synthèse à connaître pour LibreLane
+
+- **`abc -fast` de `synth` et `&fraig -x`** : le `abc -fast` que `synth` lance avant la projection finale projette pour la surface et défait les arbres (multiplieur de Wallace seul : 13,3 ns au coin slow sans lui, 18,3 ns avec) ; le script ABC par défaut de Yosys commence par `&fraig -x`, qui ne termine pas en plusieurs heures sur un multiplieur de Wallace ou des additionneurs Kogge-Stone (c'est ce qui a bloqué la synthèse `KS=1`). `synth_hier.sh` utilise désormais `synth -noabc` et un script ABC sans `&fraig` ni `scorr` (`ABC=yosys` rend le flot d'origine). À vérifier dans le journal de synthèse de LibreLane : présence de `abc -fast` et script ABC utilisé.
+- **Le pire chemin d'une macro fixe le temps requis de toute la macro** : quand la cible `-D` est hors d'atteinte, ABC relâche tous les autres chemins jusqu'au retard du pire. Dans `ino_execute`, la division flottante (31 ns au coin typ) laissait le MUL à 29,5 ns au coin slow, contre 14 ns pour l'unité seule. Synthétisées à part (`SOUS="ino_float_unit fexp_unit"`, attribut `keep_hierarchy`), les unités flottantes ne pèsent plus sur le reste : MUL 15,8 ns, chaînage 22,9 ns au coin slow. Pour LibreLane : le même `keep_hierarchy` sur ces deux unités dans la synthèse de `ino_execute`, ou un flottant qui tienne la cible.
+
 ### Bilan au 24 octobre
 
-| famille (sans fil, arbres de tampons) | slow | typ |
+Cœur entier, netlist `tahx_1_sg13_mul_sous` (RTL du jour, `ABC=direct`, `SOUS="ino_float_unit fexp_unit"`), sans fil, arbres de tampons :
+
+| famille | slow | typ |
 |---|---|---|
-| division flottante `div_win_s` (puis FADD/FMUL `issue_q_s → result_s`, FEXP) | 47,1 ns | 30,8 ns |
-| MULDIV `ub_s → result_s` : MUL 64 × 64 en un cycle | 31,4 ns | 20,2 ns |
-| chaînage `stack_unit` → `ino_execute` → `stack_unit` | 24,4 ns | 15,7 ns |
-| décodeur | 23,8 ns | 15,4 ns |
+| division flottante `div_den_s → div_win_s` | 47,9 ns | 31,4 ns |
+| FADD/FMUL `issue_q_s → result_s` | 44,0 ns | 28,3 ns |
+| FEXP `p → p` | 38,2 ns | 24,6 ns |
+| décodeur `ino_fetch` → `ino_decode_predict` → `ino_fetch` | 23,9 ns | 15,5 ns |
+| chaînage jusqu'à `ino_decode_queue` | 23,1 ns | 15,1 ns |
+| `stack_unit` → `ino_decode_queue` → `stack_unit` | 22,9 ns | 14,8 ns |
+| chaînage `stack_unit` → `ino_execute` → `stack_unit` | 22,9 ns | 14,8 ns |
+| MUL `ub_s → dq_s` | 15,8 ns | |
 
-Pistes, à décider :
+Hors flottant, le cœur est vers 24 ns au coin slow (≈ 42 MHz) et 15,5 ns au coin typ, sans fil ; plusieurs familles sont désormais à moins de 1 ns l'une de l'autre. Le flottant reste à traiter (multicycle, ou FDIV et FADD/FMUL à découper), ce qui demande l'accord sur son coût en cycles.
 
-1. **MUL** : le produit 64 × 64 (`prod <= ua_s * ub_s`) est calculé en un cycle, et Yosys 0.33 le projette en multiplieur à tableau (additions en série). Le couper en deux cycles (produits partiels de 32 × 32 enregistrés, puis somme) ; MUL fait déjà 8 cycles d'exécution.
-2. **Flottant** : multicycle ou radix plus faible pour FDIV, à traiter plus tard.
-3. Les runs LibreLane futurs doivent recevoir des `set_input_delay` / `set_output_delay` par port de macro (sortie `.budgets` de `sta_tahx.tcl`).
+Pistes suivantes :
+
+1. Mesurer l'effet des fils : run LibreLane contraint (période 25 ns, `set_input_delay` / `set_output_delay` issus de `.budgets`) sur une macro, pour caler les bornes `Zero` / `30k`.
+2. Décodeur et `ino_decode_queue` : les trois familles suivantes passent toutes par `ino_decode_queue` ou `ino_decode_predict` ; à examiner une fois le flottant décidé.
+3. Flottant : multicycle ou découpage.

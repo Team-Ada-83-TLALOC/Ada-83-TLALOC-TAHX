@@ -26,9 +26,9 @@
          read_rtlil ../synth_InO/par_module/brut.il
          blackbox  TAHX_1 branch_predict decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_decode_queue_ram207_2_143
-         synth -top ino_decode_queue_ram207_2_143 -noshare
+         synth -top ino_decode_queue_ram207_2_143 -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
-         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
+         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib -script ../synth_InO/par_module/abc_direct.abc
          opt_clean
          tee -q -o ../synth_InO/par_module/ino_decode_queue_ram207_2_143.stat stat -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib' --
 
@@ -343,8 +343,8 @@ Removed a total of 0 cells.
 3.18.14. Executing OPT_SHARE pass.
 
 3.18.15. Executing OPT_DFF pass (perform DFF optimizations).
-Adding EN signal on $memory\ram[1]$76669 ($dff) from module ino_decode_queue_ram207_2_143 (D = \wdata_i, Q = \ram[1]).
-Adding EN signal on $memory\ram[0]$76667 ($dff) from module ino_decode_queue_ram207_2_143 (D = \wdata_i, Q = \ram[0]).
+Adding EN signal on $memory\ram[1]$93910 ($dff) from module ino_decode_queue_ram207_2_143 (D = \wdata_i, Q = \ram[1]).
+Adding EN signal on $memory\ram[0]$93908 ($dff) from module ino_decode_queue_ram207_2_143 (D = \wdata_i, Q = \ram[0]).
 
 3.18.16. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_decode_queue_ram207_2_143..
@@ -438,77 +438,33 @@ Finding unused cells or wires in module \ino_decode_queue_ram207_2_143..
 
 3.20.5. Finished fast OPT passes.
 
-3.21. Executing ABC pass (technology mapping using ABC).
+3.21. Executing HIERARCHY pass (managing design hierarchy).
 
-3.21.1. Extracting gate netlist of module `\ino_decode_queue_ram207_2_143' to `<abc-temp-dir>/input.blif'..
-Extracted 146 gates and 435 wires to a netlist network with 289 inputs and 145 outputs.
-
-3.21.1.1. Executing ABC.
-Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
-ABC: ABC command line: "source <abc-temp-dir>/abc.script".
-ABC: 
-ABC: + read_blif <abc-temp-dir>/input.blif 
-ABC: + read_library <abc-temp-dir>/stdcells.genlib 
-ABC: Entered genlib library with 13 gates from file "<abc-temp-dir>/stdcells.genlib".
-ABC: + strash 
-ABC: + dretime 
-ABC: + map 
-ABC: + write_blif <abc-temp-dir>/output.blif 
-
-3.21.1.2. Re-integrating ABC results.
-ABC RESULTS:               MUX cells:      143
-ABC RESULTS:               AND cells:        1
-ABC RESULTS:            ANDNOT cells:        1
-ABC RESULTS:        internal signals:        1
-ABC RESULTS:           input signals:      289
-ABC RESULTS:          output signals:      145
-Removing temp directory.
-
-3.22. Executing OPT pass (performing simple optimizations).
-
-3.22.1. Executing OPT_EXPR pass (perform const folding).
-Optimizing module ino_decode_queue_ram207_2_143.
-
-3.22.2. Executing OPT_MERGE pass (detect identical cells).
-Finding identical cells in module `\ino_decode_queue_ram207_2_143'.
-Removed a total of 0 cells.
-
-3.22.3. Executing OPT_DFF pass (perform DFF optimizations).
-
-3.22.4. Executing OPT_CLEAN pass (remove unused cells and wires).
-Finding unused cells or wires in module \ino_decode_queue_ram207_2_143..
-Removed 0 unused cells and 435 unused wires.
-<suppressed ~1 debug messages>
-
-3.22.5. Finished fast OPT passes.
-
-3.23. Executing HIERARCHY pass (managing design hierarchy).
-
-3.23.1. Analyzing design hierarchy..
+3.21.1. Analyzing design hierarchy..
 Top module:  \ino_decode_queue_ram207_2_143
 
-3.23.2. Analyzing design hierarchy..
+3.21.2. Analyzing design hierarchy..
 Top module:  \ino_decode_queue_ram207_2_143
 Removed 0 unused modules.
 
-3.24. Printing statistics.
+3.22. Printing statistics.
 
 === ino_decode_queue_ram207_2_143 ===
 
-   Number of wires:                 10
-   Number of wire bits:            578
+   Number of wires:                 11
+   Number of wire bits:            579
    Number of public wires:           8
    Number of public wire bits:     576
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:                431
-     $_ANDNOT_                       1
-     $_AND_                          1
+   Number of cells:                432
+     $_AND_                          2
      $_DFFE_PP_                    286
      $_MUX_                        143
+     $_NOT_                          1
 
-3.25. Executing CHECK pass (checking for obvious problems).
+3.23. Executing CHECK pass (checking for obvious problems).
 Checking module ino_decode_queue_ram207_2_143...
 Found and reported 0 problems.
 
@@ -577,7 +533,7 @@ Mapping DFF cells in module `\ino_decode_queue_ram207_2_143':
 5. Executing ABC pass (technology mapping using ABC).
 
 5.1. Extracting gate netlist of module `\ino_decode_queue_ram207_2_143' to `<abc-temp-dir>/input.blif'..
-Extracted 431 gates and 863 wires to a netlist network with 432 inputs and 429 outputs.
+Extracted 432 gates and 864 wires to a netlist network with 432 inputs and 429 outputs.
 
 5.1.1. Executing ABC.
 Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
@@ -616,37 +572,25 @@ ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
 ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
-ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
-ABC: Memory =    2.86 MB. Time =     0.01 sec
-ABC: + strash 
-ABC: + &get -n 
-ABC: + &fraig -x 
-ABC: + &put 
-ABC: + scorr 
-ABC: Warning: The network is combinational (run "fraig" or "fraig_sweep").
-ABC: + dc2 
-ABC: + dretime 
-ABC: + strash 
-ABC: + &get -n 
-ABC: + &dch -f 
-ABC: + &nf 
-ABC: + &put 
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
+ABC: Memory =    2.86 MB. Time =     0.02 sec
+ABC: + source /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/par_module/abc_direct.abc 
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
 5.1.2. Re-integrating ABC results.
 ABC RESULTS:    sg13g2_nand2_1 cells:        1
-ABC RESULTS:    sg13g2_nor2b_1 cells:        1
+ABC RESULTS:   sg13g2_nand2b_1 cells:        1
 ABC RESULTS:     sg13g2_mux2_1 cells:      429
-ABC RESULTS:        internal signals:        2
+ABC RESULTS:        internal signals:        3
 ABC RESULTS:           input signals:      432
 ABC RESULTS:          output signals:      429
 Removing temp directory.
 
 6. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_decode_queue_ram207_2_143..
-Removed 0 unused cells and 863 unused wires.
+Removed 0 unused cells and 864 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: f0f127ca21, CPU: user 0.78s system 0.03s, MEM: 120.44 MB peak
+End of script. Logfile hash: 05ea5d80b9, CPU: user 0.95s system 0.07s, MEM: 151.28 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 59% 2x read_rtlil (0 sec), 17% 2x abc (0 sec), ...
+Time spent: 66% 2x read_rtlil (0 sec), 11% 1x abc (0 sec), ...

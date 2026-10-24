@@ -26,9 +26,9 @@
          read_rtlil ../synth_InO/par_module/brut.il
          blackbox  TAHX_1 branch_predict decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_integer_unit
-         synth -top ino_integer_unit -noshare
+         synth -top ino_integer_unit -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
-         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
+         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib -script ../synth_InO/par_module/abc_direct.abc
          opt_clean
          tee -q -o ../synth_InO/par_module/ino_integer_unit.stat stat -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib' --
 
@@ -124,7 +124,7 @@ Removed 0 multiplexer ports.
 3.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_integer_unit.
     New ctrl vector for $pmux cell \130303: { $auto$ghdl.cc:806:import_module$76085 $auto$ghdl.cc:806:import_module$76080 $auto$ghdl.cc:806:import_module$76075 $auto$ghdl.cc:806:import_module$76068 $auto$ghdl.cc:806:import_module$76061 $auto$ghdl.cc:806:import_module$76055 }
-    New ctrl vector for $pmux cell \130306: { $auto$ghdl.cc:806:import_module$76299 $auto$ghdl.cc:806:import_module$76085 $auto$ghdl.cc:806:import_module$76080 $auto$ghdl.cc:806:import_module$76075 $auto$ghdl.cc:806:import_module$76068 $auto$ghdl.cc:806:import_module$76061 $auto$ghdl.cc:806:import_module$76055 $auto$ghdl.cc:806:import_module$76048 $auto$opt_reduce.cc:134:opt_pmux$76666 }
+    New ctrl vector for $pmux cell \130306: { $auto$ghdl.cc:806:import_module$76299 $auto$ghdl.cc:806:import_module$76085 $auto$ghdl.cc:806:import_module$76080 $auto$ghdl.cc:806:import_module$76075 $auto$ghdl.cc:806:import_module$76068 $auto$ghdl.cc:806:import_module$76061 $auto$ghdl.cc:806:import_module$76055 $auto$ghdl.cc:806:import_module$76048 $auto$opt_reduce.cc:134:opt_pmux$93907 }
   Optimizing cells in module \ino_integer_unit.
 Performed a total of 2 changes.
 
@@ -155,8 +155,8 @@ Removed 0 multiplexer ports.
 
 3.6.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_integer_unit.
-    New ctrl vector for $pmux cell \130303: { $auto$ghdl.cc:806:import_module$76080 $auto$ghdl.cc:806:import_module$76075 $auto$ghdl.cc:806:import_module$76068 $auto$opt_reduce.cc:134:opt_pmux$76668 }
-    New ctrl vector for $pmux cell \130306: { $auto$ghdl.cc:806:import_module$76299 $auto$ghdl.cc:806:import_module$76080 $auto$ghdl.cc:806:import_module$76075 $auto$ghdl.cc:806:import_module$76068 $auto$opt_reduce.cc:134:opt_pmux$76670 $auto$ghdl.cc:806:import_module$76048 $auto$opt_reduce.cc:134:opt_pmux$76666 }
+    New ctrl vector for $pmux cell \130303: { $auto$ghdl.cc:806:import_module$76080 $auto$ghdl.cc:806:import_module$76075 $auto$ghdl.cc:806:import_module$76068 $auto$opt_reduce.cc:134:opt_pmux$93909 }
+    New ctrl vector for $pmux cell \130306: { $auto$ghdl.cc:806:import_module$76299 $auto$ghdl.cc:806:import_module$76080 $auto$ghdl.cc:806:import_module$76075 $auto$ghdl.cc:806:import_module$76068 $auto$opt_reduce.cc:134:opt_pmux$93911 $auto$ghdl.cc:806:import_module$76048 $auto$opt_reduce.cc:134:opt_pmux$93907 }
   Optimizing cells in module \ino_integer_unit.
 Performed a total of 2 changes.
 
@@ -733,81 +733,81 @@ Extracting $alu and $macc cells in module ino_integer_unit:
   creating $alu model for \130157 ($lt): new $alu
   creating $alu model for \130164 ($lt): new $alu
   creating $alu model for \130185 ($lt): merged with \129707.
-  creating $alu cell for \130164: $auto$alumacc.cc:485:replace_alu$76747
-  creating $alu cell for \130157: $auto$alumacc.cc:485:replace_alu$76752
-  creating $alu cell for \130150: $auto$alumacc.cc:485:replace_alu$76757
-  creating $alu cell for \130143: $auto$alumacc.cc:485:replace_alu$76762
-  creating $alu cell for \130136: $auto$alumacc.cc:485:replace_alu$76767
-  creating $alu cell for \130129: $auto$alumacc.cc:485:replace_alu$76772
-  creating $alu cell for \130122: $auto$alumacc.cc:485:replace_alu$76777
-  creating $alu cell for \130115: $auto$alumacc.cc:485:replace_alu$76782
-  creating $alu cell for \130108: $auto$alumacc.cc:485:replace_alu$76787
-  creating $alu cell for \130101: $auto$alumacc.cc:485:replace_alu$76792
-  creating $alu cell for \130094: $auto$alumacc.cc:485:replace_alu$76797
-  creating $alu cell for \130087: $auto$alumacc.cc:485:replace_alu$76802
-  creating $alu cell for \130080: $auto$alumacc.cc:485:replace_alu$76807
-  creating $alu cell for \130073: $auto$alumacc.cc:485:replace_alu$76812
-  creating $alu cell for \130066: $auto$alumacc.cc:485:replace_alu$76817
-  creating $alu cell for \130059: $auto$alumacc.cc:485:replace_alu$76822
-  creating $alu cell for \130052: $auto$alumacc.cc:485:replace_alu$76827
-  creating $alu cell for \130045: $auto$alumacc.cc:485:replace_alu$76832
-  creating $alu cell for \130038: $auto$alumacc.cc:485:replace_alu$76837
-  creating $alu cell for \130031: $auto$alumacc.cc:485:replace_alu$76842
-  creating $alu cell for \130024: $auto$alumacc.cc:485:replace_alu$76847
-  creating $alu cell for \130017: $auto$alumacc.cc:485:replace_alu$76852
-  creating $alu cell for \130010: $auto$alumacc.cc:485:replace_alu$76857
-  creating $alu cell for \130003: $auto$alumacc.cc:485:replace_alu$76862
-  creating $alu cell for \129996: $auto$alumacc.cc:485:replace_alu$76867
-  creating $alu cell for \129989: $auto$alumacc.cc:485:replace_alu$76872
-  creating $alu cell for \129982: $auto$alumacc.cc:485:replace_alu$76877
-  creating $alu cell for \129975: $auto$alumacc.cc:485:replace_alu$76882
-  creating $alu cell for \129968: $auto$alumacc.cc:485:replace_alu$76887
-  creating $alu cell for \129961: $auto$alumacc.cc:485:replace_alu$76892
-  creating $alu cell for \129954: $auto$alumacc.cc:485:replace_alu$76897
-  creating $alu cell for \129947: $auto$alumacc.cc:485:replace_alu$76902
-  creating $alu cell for \129940: $auto$alumacc.cc:485:replace_alu$76907
-  creating $alu cell for \129933: $auto$alumacc.cc:485:replace_alu$76912
-  creating $alu cell for \129926: $auto$alumacc.cc:485:replace_alu$76917
-  creating $alu cell for \129919: $auto$alumacc.cc:485:replace_alu$76922
-  creating $alu cell for \129912: $auto$alumacc.cc:485:replace_alu$76927
-  creating $alu cell for \129905: $auto$alumacc.cc:485:replace_alu$76932
-  creating $alu cell for \129898: $auto$alumacc.cc:485:replace_alu$76937
-  creating $alu cell for \129891: $auto$alumacc.cc:485:replace_alu$76942
-  creating $alu cell for \129884: $auto$alumacc.cc:485:replace_alu$76947
-  creating $alu cell for \129877: $auto$alumacc.cc:485:replace_alu$76952
-  creating $alu cell for \129870: $auto$alumacc.cc:485:replace_alu$76957
-  creating $alu cell for \129863: $auto$alumacc.cc:485:replace_alu$76962
-  creating $alu cell for \129856: $auto$alumacc.cc:485:replace_alu$76967
-  creating $alu cell for \129849: $auto$alumacc.cc:485:replace_alu$76972
-  creating $alu cell for \129842: $auto$alumacc.cc:485:replace_alu$76977
-  creating $alu cell for \129835: $auto$alumacc.cc:485:replace_alu$76982
-  creating $alu cell for \129828: $auto$alumacc.cc:485:replace_alu$76987
-  creating $alu cell for \129821: $auto$alumacc.cc:485:replace_alu$76992
-  creating $alu cell for \129814: $auto$alumacc.cc:485:replace_alu$76997
-  creating $alu cell for \129807: $auto$alumacc.cc:485:replace_alu$77002
-  creating $alu cell for \129800: $auto$alumacc.cc:485:replace_alu$77007
-  creating $alu cell for \129793: $auto$alumacc.cc:485:replace_alu$77012
-  creating $alu cell for \129786: $auto$alumacc.cc:485:replace_alu$77017
-  creating $alu cell for \129779: $auto$alumacc.cc:485:replace_alu$77022
-  creating $alu cell for \129772: $auto$alumacc.cc:485:replace_alu$77027
-  creating $alu cell for \129765: $auto$alumacc.cc:485:replace_alu$77032
-  creating $alu cell for \129758: $auto$alumacc.cc:485:replace_alu$77037
-  creating $alu cell for \129751: $auto$alumacc.cc:485:replace_alu$77042
-  creating $alu cell for \129744: $auto$alumacc.cc:485:replace_alu$77047
-  creating $alu cell for \129737: $auto$alumacc.cc:485:replace_alu$77052
-  creating $alu cell for \129730: $auto$alumacc.cc:485:replace_alu$77057
-  creating $alu cell for \129722: $auto$alumacc.cc:485:replace_alu$77062
-  creating $alu cell for \129708: $auto$alumacc.cc:485:replace_alu$77067
-  creating $alu cell for \129507: $auto$alumacc.cc:485:replace_alu$77078
-  creating $alu cell for \129551: $auto$alumacc.cc:485:replace_alu$77087
-  creating $alu cell for \129626, \129630, \129645, \129650: $auto$alumacc.cc:485:replace_alu$77090
-  creating $alu cell for \129568: $auto$alumacc.cc:485:replace_alu$77107
-  creating $alu cell for \129584: $auto$alumacc.cc:485:replace_alu$77110
-  creating $alu cell for \129609: $auto$alumacc.cc:485:replace_alu$77113
-  creating $alu cell for \129621: $auto$alumacc.cc:485:replace_alu$77116
-  creating $alu cell for \129707, \129704, \130185: $auto$alumacc.cc:485:replace_alu$77119
-  creating $alu cell for \130190: $auto$alumacc.cc:485:replace_alu$77130
-  creating $alu cell for \130246: $auto$alumacc.cc:485:replace_alu$77133
+  creating $alu cell for \130164: $auto$alumacc.cc:485:replace_alu$93988
+  creating $alu cell for \130157: $auto$alumacc.cc:485:replace_alu$93993
+  creating $alu cell for \130150: $auto$alumacc.cc:485:replace_alu$93998
+  creating $alu cell for \130143: $auto$alumacc.cc:485:replace_alu$94003
+  creating $alu cell for \130136: $auto$alumacc.cc:485:replace_alu$94008
+  creating $alu cell for \130129: $auto$alumacc.cc:485:replace_alu$94013
+  creating $alu cell for \130122: $auto$alumacc.cc:485:replace_alu$94018
+  creating $alu cell for \130115: $auto$alumacc.cc:485:replace_alu$94023
+  creating $alu cell for \130108: $auto$alumacc.cc:485:replace_alu$94028
+  creating $alu cell for \130101: $auto$alumacc.cc:485:replace_alu$94033
+  creating $alu cell for \130094: $auto$alumacc.cc:485:replace_alu$94038
+  creating $alu cell for \130087: $auto$alumacc.cc:485:replace_alu$94043
+  creating $alu cell for \130080: $auto$alumacc.cc:485:replace_alu$94048
+  creating $alu cell for \130073: $auto$alumacc.cc:485:replace_alu$94053
+  creating $alu cell for \130066: $auto$alumacc.cc:485:replace_alu$94058
+  creating $alu cell for \130059: $auto$alumacc.cc:485:replace_alu$94063
+  creating $alu cell for \130052: $auto$alumacc.cc:485:replace_alu$94068
+  creating $alu cell for \130045: $auto$alumacc.cc:485:replace_alu$94073
+  creating $alu cell for \130038: $auto$alumacc.cc:485:replace_alu$94078
+  creating $alu cell for \130031: $auto$alumacc.cc:485:replace_alu$94083
+  creating $alu cell for \130024: $auto$alumacc.cc:485:replace_alu$94088
+  creating $alu cell for \130017: $auto$alumacc.cc:485:replace_alu$94093
+  creating $alu cell for \130010: $auto$alumacc.cc:485:replace_alu$94098
+  creating $alu cell for \130003: $auto$alumacc.cc:485:replace_alu$94103
+  creating $alu cell for \129996: $auto$alumacc.cc:485:replace_alu$94108
+  creating $alu cell for \129989: $auto$alumacc.cc:485:replace_alu$94113
+  creating $alu cell for \129982: $auto$alumacc.cc:485:replace_alu$94118
+  creating $alu cell for \129975: $auto$alumacc.cc:485:replace_alu$94123
+  creating $alu cell for \129968: $auto$alumacc.cc:485:replace_alu$94128
+  creating $alu cell for \129961: $auto$alumacc.cc:485:replace_alu$94133
+  creating $alu cell for \129954: $auto$alumacc.cc:485:replace_alu$94138
+  creating $alu cell for \129947: $auto$alumacc.cc:485:replace_alu$94143
+  creating $alu cell for \129940: $auto$alumacc.cc:485:replace_alu$94148
+  creating $alu cell for \129933: $auto$alumacc.cc:485:replace_alu$94153
+  creating $alu cell for \129926: $auto$alumacc.cc:485:replace_alu$94158
+  creating $alu cell for \129919: $auto$alumacc.cc:485:replace_alu$94163
+  creating $alu cell for \129912: $auto$alumacc.cc:485:replace_alu$94168
+  creating $alu cell for \129905: $auto$alumacc.cc:485:replace_alu$94173
+  creating $alu cell for \129898: $auto$alumacc.cc:485:replace_alu$94178
+  creating $alu cell for \129891: $auto$alumacc.cc:485:replace_alu$94183
+  creating $alu cell for \129884: $auto$alumacc.cc:485:replace_alu$94188
+  creating $alu cell for \129877: $auto$alumacc.cc:485:replace_alu$94193
+  creating $alu cell for \129870: $auto$alumacc.cc:485:replace_alu$94198
+  creating $alu cell for \129863: $auto$alumacc.cc:485:replace_alu$94203
+  creating $alu cell for \129856: $auto$alumacc.cc:485:replace_alu$94208
+  creating $alu cell for \129849: $auto$alumacc.cc:485:replace_alu$94213
+  creating $alu cell for \129842: $auto$alumacc.cc:485:replace_alu$94218
+  creating $alu cell for \129835: $auto$alumacc.cc:485:replace_alu$94223
+  creating $alu cell for \129828: $auto$alumacc.cc:485:replace_alu$94228
+  creating $alu cell for \129821: $auto$alumacc.cc:485:replace_alu$94233
+  creating $alu cell for \129814: $auto$alumacc.cc:485:replace_alu$94238
+  creating $alu cell for \129807: $auto$alumacc.cc:485:replace_alu$94243
+  creating $alu cell for \129800: $auto$alumacc.cc:485:replace_alu$94248
+  creating $alu cell for \129793: $auto$alumacc.cc:485:replace_alu$94253
+  creating $alu cell for \129786: $auto$alumacc.cc:485:replace_alu$94258
+  creating $alu cell for \129779: $auto$alumacc.cc:485:replace_alu$94263
+  creating $alu cell for \129772: $auto$alumacc.cc:485:replace_alu$94268
+  creating $alu cell for \129765: $auto$alumacc.cc:485:replace_alu$94273
+  creating $alu cell for \129758: $auto$alumacc.cc:485:replace_alu$94278
+  creating $alu cell for \129751: $auto$alumacc.cc:485:replace_alu$94283
+  creating $alu cell for \129744: $auto$alumacc.cc:485:replace_alu$94288
+  creating $alu cell for \129737: $auto$alumacc.cc:485:replace_alu$94293
+  creating $alu cell for \129730: $auto$alumacc.cc:485:replace_alu$94298
+  creating $alu cell for \129722: $auto$alumacc.cc:485:replace_alu$94303
+  creating $alu cell for \129708: $auto$alumacc.cc:485:replace_alu$94308
+  creating $alu cell for \129507: $auto$alumacc.cc:485:replace_alu$94319
+  creating $alu cell for \129551: $auto$alumacc.cc:485:replace_alu$94328
+  creating $alu cell for \129626, \129630, \129645, \129650: $auto$alumacc.cc:485:replace_alu$94331
+  creating $alu cell for \129568: $auto$alumacc.cc:485:replace_alu$94348
+  creating $alu cell for \129584: $auto$alumacc.cc:485:replace_alu$94351
+  creating $alu cell for \129609: $auto$alumacc.cc:485:replace_alu$94354
+  creating $alu cell for \129621: $auto$alumacc.cc:485:replace_alu$94357
+  creating $alu cell for \129707, \129704, \130185: $auto$alumacc.cc:485:replace_alu$94360
+  creating $alu cell for \130190: $auto$alumacc.cc:485:replace_alu$94371
+  creating $alu cell for \130246: $auto$alumacc.cc:485:replace_alu$94374
   created 75 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -997,8 +997,8 @@ Removed a total of 0 cells.
 
 3.18.6. Executing OPT_SHARE pass.
     Found cells that share an operand and can be merged by moving the $pmux \130285 in front of them:
-        $auto$alumacc.cc:485:replace_alu$77113
-        $auto$alumacc.cc:485:replace_alu$77116
+        $auto$alumacc.cc:485:replace_alu$94354
+        $auto$alumacc.cc:485:replace_alu$94357
 
 3.18.7. Executing OPT_DFF pass (perform DFF optimizations).
 
@@ -1023,11 +1023,11 @@ Removed 0 multiplexer ports.
 
 3.18.12. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_integer_unit.
-    Consolidated identical input bits for $mux cell $auto$opt_share.cc:246:merge_operators$77265:
-      Old ports: A=64'1111111111111111111111111111111111111111111111111111111111111111, B=64'0000000000000000000000000000000000000000000000000000000000000001, Y=$auto$rtlil.cc:2500:Pmux$77266
-      New ports: A=1'1, B=1'0, Y=$auto$rtlil.cc:2500:Pmux$77266 [1]
-      New connections: { $auto$rtlil.cc:2500:Pmux$77266 [63:2] $auto$rtlil.cc:2500:Pmux$77266 [0] } = { $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] $auto$rtlil.cc:2500:Pmux$77266 [1] 1'1 }
-    New ctrl vector for $pmux cell \130285: { $auto$ghdl.cc:806:import_module$76310 $auto$ghdl.cc:806:import_module$76309 $auto$ghdl.cc:806:import_module$76304 $auto$ghdl.cc:806:import_module$76299 $auto$ghdl.cc:806:import_module$76120 $auto$opt_reduce.cc:134:opt_pmux$77270 $auto$ghdl.cc:806:import_module$76075 $auto$ghdl.cc:806:import_module$76068 $auto$ghdl.cc:806:import_module$76061 $auto$ghdl.cc:806:import_module$76055 $auto$ghdl.cc:806:import_module$76050 $auto$ghdl.cc:806:import_module$76048 $auto$ghdl.cc:806:import_module$76033 $auto$ghdl.cc:806:import_module$76031 $auto$ghdl.cc:806:import_module$76029 $auto$ghdl.cc:806:import_module$76027 }
+    Consolidated identical input bits for $mux cell $auto$opt_share.cc:246:merge_operators$94506:
+      Old ports: A=64'1111111111111111111111111111111111111111111111111111111111111111, B=64'0000000000000000000000000000000000000000000000000000000000000001, Y=$auto$rtlil.cc:2500:Pmux$94507
+      New ports: A=1'1, B=1'0, Y=$auto$rtlil.cc:2500:Pmux$94507 [1]
+      New connections: { $auto$rtlil.cc:2500:Pmux$94507 [63:2] $auto$rtlil.cc:2500:Pmux$94507 [0] } = { $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] $auto$rtlil.cc:2500:Pmux$94507 [1] 1'1 }
+    New ctrl vector for $pmux cell \130285: { $auto$ghdl.cc:806:import_module$76310 $auto$ghdl.cc:806:import_module$76309 $auto$ghdl.cc:806:import_module$76304 $auto$ghdl.cc:806:import_module$76299 $auto$ghdl.cc:806:import_module$76120 $auto$opt_reduce.cc:134:opt_pmux$94511 $auto$ghdl.cc:806:import_module$76075 $auto$ghdl.cc:806:import_module$76068 $auto$ghdl.cc:806:import_module$76061 $auto$ghdl.cc:806:import_module$76055 $auto$ghdl.cc:806:import_module$76050 $auto$ghdl.cc:806:import_module$76048 $auto$ghdl.cc:806:import_module$76033 $auto$ghdl.cc:806:import_module$76031 $auto$ghdl.cc:806:import_module$76029 $auto$ghdl.cc:806:import_module$76027 }
   Optimizing cells in module \ino_integer_unit.
 Performed a total of 2 changes.
 
@@ -1179,97 +1179,39 @@ Removed a total of 2466 cells.
 
 3.20.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_integer_unit..
-Removed 821 unused cells and 4339 unused wires.
+Removed 821 unused cells and 4340 unused wires.
 <suppressed ~822 debug messages>
 
 3.20.5. Finished fast OPT passes.
 
-3.21. Executing ABC pass (technology mapping using ABC).
+3.21. Executing HIERARCHY pass (managing design hierarchy).
 
-3.21.1. Extracting gate netlist of module `\ino_integer_unit' to `<abc-temp-dir>/input.blif'..
-Extracted 9437 gates and 9810 wires to a netlist network with 371 inputs and 68 outputs.
-
-3.21.1.1. Executing ABC.
-Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
-ABC: ABC command line: "source <abc-temp-dir>/abc.script".
-ABC: 
-ABC: + read_blif <abc-temp-dir>/input.blif 
-ABC: + read_library <abc-temp-dir>/stdcells.genlib 
-ABC: Entered genlib library with 13 gates from file "<abc-temp-dir>/stdcells.genlib".
-ABC: + strash 
-ABC: + dretime 
-ABC: + map 
-ABC: + write_blif <abc-temp-dir>/output.blif 
-
-3.21.1.2. Re-integrating ABC results.
-ABC RESULTS:               NOR cells:      490
-ABC RESULTS:               NOT cells:      368
-ABC RESULTS:               XOR cells:      476
-ABC RESULTS:              NAND cells:      276
-ABC RESULTS:              XNOR cells:      103
-ABC RESULTS:               MUX cells:     2492
-ABC RESULTS:               AND cells:      243
-ABC RESULTS:                OR cells:     1592
-ABC RESULTS:             ORNOT cells:      317
-ABC RESULTS:            ANDNOT cells:     2699
-ABC RESULTS:        internal signals:     9371
-ABC RESULTS:           input signals:      371
-ABC RESULTS:          output signals:       68
-Removing temp directory.
-
-3.22. Executing OPT pass (performing simple optimizations).
-
-3.22.1. Executing OPT_EXPR pass (perform const folding).
-Optimizing module ino_integer_unit.
-<suppressed ~728 debug messages>
-
-3.22.2. Executing OPT_MERGE pass (detect identical cells).
-Finding identical cells in module `\ino_integer_unit'.
-<suppressed ~9 debug messages>
-Removed a total of 3 cells.
-
-3.22.3. Executing OPT_DFF pass (perform DFF optimizations).
-
-3.22.4. Executing OPT_CLEAN pass (remove unused cells and wires).
-Finding unused cells or wires in module \ino_integer_unit..
-Removed 2 unused cells and 2302 unused wires.
-<suppressed ~26 debug messages>
-
-3.22.5. Finished fast OPT passes.
-
-3.23. Executing HIERARCHY pass (managing design hierarchy).
-
-3.23.1. Analyzing design hierarchy..
+3.21.1. Analyzing design hierarchy..
 Top module:  \ino_integer_unit
 
-3.23.2. Analyzing design hierarchy..
+3.21.2. Analyzing design hierarchy..
 Top module:  \ino_integer_unit
 Removed 0 unused modules.
 
-3.24. Printing statistics.
+3.22. Printing statistics.
 
 === ino_integer_unit ===
 
-   Number of wires:               9091
-   Number of wire bits:          25520
-   Number of public wires:         108
-   Number of public wire bits:   16537
+   Number of wires:               1965
+   Number of wire bits:          25458
+   Number of public wires:         131
+   Number of public wire bits:   17175
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:               9051
-     $_ANDNOT_                    2696
-     $_AND_                        243
-     $_MUX_                       2492
-     $_NAND_                       276
-     $_NOR_                        490
-     $_NOT_                        366
-     $_ORNOT_                      317
-     $_OR_                        1592
-     $_XNOR_                       103
-     $_XOR_                        476
+   Number of cells:               9437
+     $_AND_                       2881
+     $_MUX_                       3221
+     $_NOT_                        437
+     $_OR_                        2127
+     $_XOR_                        771
 
-3.25. Executing CHECK pass (checking for obvious problems).
+3.23. Executing CHECK pass (checking for obvious problems).
 Checking module ino_integer_unit...
 Found and reported 0 problems.
 
@@ -1337,7 +1279,7 @@ Mapping DFF cells in module `\ino_integer_unit':
 5. Executing ABC pass (technology mapping using ABC).
 
 5.1. Extracting gate netlist of module `\ino_integer_unit' to `<abc-temp-dir>/input.blif'..
-Extracted 9051 gates and 9422 wires to a netlist network with 371 inputs and 68 outputs.
+Extracted 9437 gates and 9810 wires to a netlist network with 371 inputs and 68 outputs.
 
 5.1.1. Executing ABC.
 Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
@@ -1376,59 +1318,47 @@ ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
 ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
-ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
-ABC: Memory =    2.86 MB. Time =     0.01 sec
-ABC: + strash 
-ABC: + &get -n 
-ABC: + &fraig -x 
-ABC: + &put 
-ABC: + scorr 
-ABC: Warning: The network is combinational (run "fraig" or "fraig_sweep").
-ABC: + dc2 
-ABC: + dretime 
-ABC: + strash 
-ABC: + &get -n 
-ABC: + &dch -f 
-ABC: + &nf 
-ABC: + &put 
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
+ABC: Memory =    2.86 MB. Time =     0.02 sec
+ABC: + source /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/par_module/abc_direct.abc 
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
 5.1.2. Re-integrating ABC results.
-ABC RESULTS:     sg13g2_and3_1 cells:       29
-ABC RESULTS:     sg13g2_mux4_1 cells:      118
-ABC RESULTS:      sg13g2_inv_1 cells:      162
+ABC RESULTS:      sg13g2_or4_1 cells:       10
+ABC RESULTS:   sg13g2_nand3b_1 cells:       13
 ABC RESULTS:      sg13g2_or3_1 cells:       22
-ABC RESULTS:     sg13g2_and4_1 cells:       11
-ABC RESULTS:     sg13g2_mux2_1 cells:      411
-ABC RESULTS:      sg13g2_or4_1 cells:        6
-ABC RESULTS:   sg13g2_nand3b_1 cells:       26
-ABC RESULTS:     sg13g2_and2_1 cells:      244
-ABC RESULTS:    sg13g2_nand3_1 cells:      250
-ABC RESULTS:   sg13g2_a221oi_1 cells:      209
-ABC RESULTS:      sg13g2_or2_1 cells:      123
-ABC RESULTS:     sg13g2_a21o_1 cells:      109
-ABC RESULTS:    sg13g2_xnor2_1 cells:      222
-ABC RESULTS:     sg13g2_xor2_1 cells:      105
-ABC RESULTS:   sg13g2_nand2b_1 cells:      215
-ABC RESULTS:    sg13g2_nor2b_1 cells:      119
-ABC RESULTS:    sg13g2_a22oi_1 cells:      207
-ABC RESULTS:    sg13g2_nand4_1 cells:      119
-ABC RESULTS:     sg13g2_nor2_1 cells:      806
-ABC RESULTS:    sg13g2_nand2_1 cells:      942
-ABC RESULTS:     sg13g2_nor4_1 cells:       74
-ABC RESULTS:    sg13g2_o21ai_1 cells:     1239
-ABC RESULTS:    sg13g2_a21oi_1 cells:     1083
-ABC RESULTS:     sg13g2_nor3_1 cells:      189
-ABC RESULTS:        internal signals:     8983
+ABC RESULTS:     sg13g2_and4_1 cells:       15
+ABC RESULTS:    sg13g2_nor2b_1 cells:      161
+ABC RESULTS:   sg13g2_nand2b_1 cells:      198
+ABC RESULTS:     sg13g2_and3_1 cells:       64
+ABC RESULTS:     sg13g2_and2_1 cells:      239
+ABC RESULTS:     sg13g2_mux4_1 cells:      135
+ABC RESULTS:    sg13g2_xnor2_1 cells:      268
+ABC RESULTS:    sg13g2_a21oi_1 cells:     1038
+ABC RESULTS:    sg13g2_nand2_1 cells:     1000
+ABC RESULTS:     sg13g2_a21o_1 cells:      140
+ABC RESULTS:    sg13g2_nand3_1 cells:      209
+ABC RESULTS:      sg13g2_or2_1 cells:      149
+ABC RESULTS:    sg13g2_a22oi_1 cells:      160
+ABC RESULTS:    sg13g2_nand4_1 cells:       84
+ABC RESULTS:     sg13g2_mux2_1 cells:      422
+ABC RESULTS:     sg13g2_xor2_1 cells:      110
+ABC RESULTS:     sg13g2_nor4_1 cells:      102
+ABC RESULTS:     sg13g2_nor2_1 cells:      819
+ABC RESULTS:      sg13g2_inv_1 cells:      145
+ABC RESULTS:    sg13g2_o21ai_1 cells:     1120
+ABC RESULTS:   sg13g2_a221oi_1 cells:      196
+ABC RESULTS:     sg13g2_nor3_1 cells:      129
+ABC RESULTS:        internal signals:     9371
 ABC RESULTS:           input signals:      371
 ABC RESULTS:          output signals:       68
 Removing temp directory.
 
 6. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_integer_unit..
-Removed 0 unused cells and 9422 unused wires.
-<suppressed ~1 debug messages>
+Removed 0 unused cells and 2296 unused wires.
+<suppressed ~24 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: e28783dded, CPU: user 4.56s system 0.04s, MEM: 120.15 MB peak
+End of script. Logfile hash: 6a916f9fbf, CPU: user 4.05s system 0.06s, MEM: 151.56 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 38% 2x abc (2 sec), 15% 40x opt_expr (1 sec), ...
+Time spent: 36% 1x abc (2 sec), 13% 39x opt_expr (0 sec), ...

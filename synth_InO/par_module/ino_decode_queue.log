@@ -26,9 +26,9 @@
          read_rtlil ../synth_InO/par_module/brut.il
          blackbox  TAHX_1 branch_predict decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_decode_queue
-         synth -top ino_decode_queue -noshare
+         synth -top ino_decode_queue -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
-         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
+         abc -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib -script ../synth_InO/par_module/abc_direct.abc
          opt_clean
          tee -q -o ../synth_InO/par_module/ino_decode_queue.stat stat -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib' --
 
@@ -350,30 +350,30 @@ Extracting $alu and $macc cells in module ino_decode_queue:
   creating $alu model for $macc \559.
   creating $alu model for $macc \918.
   creating $alu model for $macc \1013.
-  creating $macc cell for \1020: $auto$alumacc.cc:365:replace_macc$76724
+  creating $macc cell for \1020: $auto$alumacc.cc:365:replace_macc$93965
   creating $alu model for \1007 ($gt): new $alu
   creating $alu model for \561 ($ge): new $alu
   creating $alu model for \695 ($lt): new $alu
   creating $alu model for \770 ($lt): new $alu
   creating $alu model for \839 ($lt): new $alu
   creating $alu model for \908 ($lt): new $alu
-  creating $alu cell for \908: $auto$alumacc.cc:485:replace_alu$76731
-  creating $alu cell for \839: $auto$alumacc.cc:485:replace_alu$76736
-  creating $alu cell for \770: $auto$alumacc.cc:485:replace_alu$76741
-  creating $alu cell for \695: $auto$alumacc.cc:485:replace_alu$76746
-  creating $alu cell for \561: $auto$alumacc.cc:485:replace_alu$76751
-  creating $alu cell for \1007: $auto$alumacc.cc:485:replace_alu$76762
-  creating $alu cell for \1013: $auto$alumacc.cc:485:replace_alu$76773
-  creating $alu cell for \918: $auto$alumacc.cc:485:replace_alu$76776
-  creating $alu cell for \559: $auto$alumacc.cc:485:replace_alu$76779
-  creating $alu cell for \623: $auto$alumacc.cc:485:replace_alu$76782
-  creating $alu cell for \690: $auto$alumacc.cc:485:replace_alu$76785
-  creating $alu cell for \705: $auto$alumacc.cc:485:replace_alu$76788
-  creating $alu cell for \773: $auto$alumacc.cc:485:replace_alu$76791
-  creating $alu cell for \780: $auto$alumacc.cc:485:replace_alu$76794
-  creating $alu cell for \842: $auto$alumacc.cc:485:replace_alu$76797
-  creating $alu cell for \849: $auto$alumacc.cc:485:replace_alu$76800
-  creating $alu cell for \911: $auto$alumacc.cc:485:replace_alu$76803
+  creating $alu cell for \908: $auto$alumacc.cc:485:replace_alu$93972
+  creating $alu cell for \839: $auto$alumacc.cc:485:replace_alu$93977
+  creating $alu cell for \770: $auto$alumacc.cc:485:replace_alu$93982
+  creating $alu cell for \695: $auto$alumacc.cc:485:replace_alu$93987
+  creating $alu cell for \561: $auto$alumacc.cc:485:replace_alu$93992
+  creating $alu cell for \1007: $auto$alumacc.cc:485:replace_alu$94003
+  creating $alu cell for \1013: $auto$alumacc.cc:485:replace_alu$94014
+  creating $alu cell for \918: $auto$alumacc.cc:485:replace_alu$94017
+  creating $alu cell for \559: $auto$alumacc.cc:485:replace_alu$94020
+  creating $alu cell for \623: $auto$alumacc.cc:485:replace_alu$94023
+  creating $alu cell for \690: $auto$alumacc.cc:485:replace_alu$94026
+  creating $alu cell for \705: $auto$alumacc.cc:485:replace_alu$94029
+  creating $alu cell for \773: $auto$alumacc.cc:485:replace_alu$94032
+  creating $alu cell for \780: $auto$alumacc.cc:485:replace_alu$94035
+  creating $alu cell for \842: $auto$alumacc.cc:485:replace_alu$94038
+  creating $alu cell for \849: $auto$alumacc.cc:485:replace_alu$94041
+  creating $alu cell for \911: $auto$alumacc.cc:485:replace_alu$94044
   created 17 $alu and 1 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -615,94 +615,36 @@ Removed 43 unused cells and 437 unused wires.
 
 3.20.5. Finished fast OPT passes.
 
-3.21. Executing ABC pass (technology mapping using ABC).
+3.21. Executing HIERARCHY pass (managing design hierarchy).
 
-3.21.1. Extracting gate netlist of module `\ino_decode_queue' to `<abc-temp-dir>/input.blif'..
-Extracted 5922 gates and 7078 wires to a netlist network with 1155 inputs and 732 outputs.
-
-3.21.1.1. Executing ABC.
-Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
-ABC: ABC command line: "source <abc-temp-dir>/abc.script".
-ABC: 
-ABC: + read_blif <abc-temp-dir>/input.blif 
-ABC: + read_library <abc-temp-dir>/stdcells.genlib 
-ABC: Entered genlib library with 13 gates from file "<abc-temp-dir>/stdcells.genlib".
-ABC: + strash 
-ABC: + dretime 
-ABC: + map 
-ABC: + write_blif <abc-temp-dir>/output.blif 
-
-3.21.1.2. Re-integrating ABC results.
-ABC RESULTS:               AND cells:        7
-ABC RESULTS:             ORNOT cells:        6
-ABC RESULTS:              NAND cells:      574
-ABC RESULTS:               MUX cells:     4038
-ABC RESULTS:               NOT cells:      441
-ABC RESULTS:              XNOR cells:        7
-ABC RESULTS:                OR cells:      597
-ABC RESULTS:               NOR cells:       16
-ABC RESULTS:            ANDNOT cells:      620
-ABC RESULTS:               XOR cells:       18
-ABC RESULTS:        internal signals:     5191
-ABC RESULTS:           input signals:     1155
-ABC RESULTS:          output signals:      732
-Removing temp directory.
-
-3.22. Executing OPT pass (performing simple optimizations).
-
-3.22.1. Executing OPT_EXPR pass (perform const folding).
-Optimizing module ino_decode_queue.
-<suppressed ~143 debug messages>
-
-3.22.2. Executing OPT_MERGE pass (detect identical cells).
-Finding identical cells in module `\ino_decode_queue'.
-<suppressed ~27 debug messages>
-Removed a total of 9 cells.
-
-3.22.3. Executing OPT_DFF pass (perform DFF optimizations).
-
-3.22.4. Executing OPT_CLEAN pass (remove unused cells and wires).
-Finding unused cells or wires in module \ino_decode_queue..
-Removed 0 unused cells and 2035 unused wires.
-<suppressed ~1 debug messages>
-
-3.22.5. Finished fast OPT passes.
-
-3.23. Executing HIERARCHY pass (managing design hierarchy).
-
-3.23.1. Analyzing design hierarchy..
+3.21.1. Analyzing design hierarchy..
 Top module:  \ino_decode_queue
 
-3.23.2. Analyzing design hierarchy..
+3.21.2. Analyzing design hierarchy..
 Top module:  \ino_decode_queue
 Removed 0 unused modules.
 
-3.24. Printing statistics.
+3.22. Printing statistics.
 
 === ino_decode_queue ===
 
-   Number of wires:               5608
-   Number of wire bits:           7487
+   Number of wires:                164
+   Number of wire bits:           7144
    Number of public wires:          20
    Number of public wire bits:    1889
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:               6326
-     $_ANDNOT_                     616
-     $_AND_                          5
-     $_MUX_                       4038
-     $_NAND_                       574
-     $_NOR_                         13
-     $_NOT_                        441
-     $_ORNOT_                        6
-     $_OR_                         597
+   Number of cells:               5933
+     $_AND_                         60
+     $_MUX_                       5774
+     $_NOT_                         25
+     $_OR_                          32
      $_SDFF_PP0_                     7
-     $_XNOR_                         7
-     $_XOR_                         18
+     $_XOR_                         31
      ino_decode_queue_ram207_2_143      4
 
-3.25. Executing CHECK pass (checking for obvious problems).
+3.23. Executing CHECK pass (checking for obvious problems).
 Checking module ino_decode_queue...
 Found and reported 0 problems.
 
@@ -771,7 +713,7 @@ Mapping DFF cells in module `\ino_decode_queue':
 5. Executing ABC pass (technology mapping using ABC).
 
 5.1. Extracting gate netlist of module `\ino_decode_queue' to `<abc-temp-dir>/input.blif'..
-Extracted 6322 gates and 7478 wires to a netlist network with 1155 inputs and 731 outputs.
+Extracted 5929 gates and 7085 wires to a netlist network with 1155 inputs and 731 outputs.
 
 5.1.1. Executing ABC.
 Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
@@ -812,55 +754,42 @@ ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attri
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
 ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
 ABC: Memory =    2.86 MB. Time =     0.02 sec
-ABC: + strash 
-ABC: + &get -n 
-ABC: + &fraig -x 
-ABC: + &put 
-ABC: + scorr 
-ABC: Warning: The network is combinational (run "fraig" or "fraig_sweep").
-ABC: + dc2 
-ABC: + dretime 
-ABC: + strash 
-ABC: + &get -n 
-ABC: + &dch -f 
-ABC: + &nf 
-ABC: + &put 
+ABC: + source /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/par_module/abc_direct.abc 
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
 5.1.2. Re-integrating ABC results.
-ABC RESULTS:     sg13g2_nor4_1 cells:        1
-ABC RESULTS:      sg13g2_or4_1 cells:        1
+ABC RESULTS:      sg13g2_inv_1 cells:        4
+ABC RESULTS:    sg13g2_nand4_1 cells:        4
+ABC RESULTS:     sg13g2_nor3_1 cells:        1
+ABC RESULTS:      sg13g2_or3_1 cells:        1
+ABC RESULTS:     sg13g2_and3_1 cells:        2
+ABC RESULTS:      sg13g2_or2_1 cells:        3
+ABC RESULTS:   sg13g2_nand2b_1 cells:        4
+ABC RESULTS:     sg13g2_a21o_1 cells:        4
 ABC RESULTS:     sg13g2_mux4_1 cells:      142
 ABC RESULTS:     sg13g2_mux2_1 cells:      142
-ABC RESULTS:     sg13g2_nor3_1 cells:        2
-ABC RESULTS:     sg13g2_a21o_1 cells:        7
-ABC RESULTS:    sg13g2_a22oi_1 cells:        9
-ABC RESULTS:   sg13g2_a221oi_1 cells:      562
-ABC RESULTS:      sg13g2_or3_1 cells:        1
-ABC RESULTS:     sg13g2_and3_1 cells:        4
-ABC RESULTS:    sg13g2_nand4_1 cells:        3
-ABC RESULTS:      sg13g2_inv_1 cells:        3
-ABC RESULTS:    sg13g2_nand3_1 cells:      477
-ABC RESULTS:      sg13g2_or2_1 cells:        3
-ABC RESULTS:   sg13g2_nand2b_1 cells:        5
-ABC RESULTS:    sg13g2_a21oi_1 cells:      584
-ABC RESULTS:    sg13g2_xnor2_1 cells:        7
-ABC RESULTS:     sg13g2_and2_1 cells:        6
-ABC RESULTS:    sg13g2_nand2_1 cells:      236
-ABC RESULTS:    sg13g2_o21ai_1 cells:       63
-ABC RESULTS:    sg13g2_nor2b_1 cells:        2
-ABC RESULTS:     sg13g2_xor2_1 cells:        7
-ABC RESULTS:     sg13g2_nor2_1 cells:      601
-ABC RESULTS:        internal signals:     5592
+ABC RESULTS:     sg13g2_nor4_1 cells:        3
+ABC RESULTS:     sg13g2_xor2_1 cells:        9
+ABC RESULTS:    sg13g2_xnor2_1 cells:        8
+ABC RESULTS:     sg13g2_and2_1 cells:      153
+ABC RESULTS:     sg13g2_nor2_1 cells:      174
+ABC RESULTS:    sg13g2_nor2b_1 cells:       14
+ABC RESULTS:    sg13g2_nand3_1 cells:       10
+ABC RESULTS:   sg13g2_a221oi_1 cells:      499
+ABC RESULTS:    sg13g2_a22oi_1 cells:      562
+ABC RESULTS:    sg13g2_nand2_1 cells:       96
+ABC RESULTS:    sg13g2_o21ai_1 cells:      181
+ABC RESULTS:    sg13g2_a21oi_1 cells:      575
+ABC RESULTS:        internal signals:     5199
 ABC RESULTS:           input signals:     1155
 ABC RESULTS:          output signals:      731
 Removing temp directory.
 
 6. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_decode_queue..
-Removed 0 unused cells and 7474 unused wires.
+Removed 0 unused cells and 2030 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: acc69eaa10, CPU: user 2.36s system 0.05s, MEM: 120.34 MB peak
+End of script. Logfile hash: 5b1c65f3b9, CPU: user 2.16s system 0.06s, MEM: 151.42 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 36% 2x abc (1 sec), 16% 2x read_rtlil (0 sec), ...
+Time spent: 25% 2x read_rtlil (0 sec), 25% 1x abc (0 sec), ...

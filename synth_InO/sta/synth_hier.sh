@@ -14,7 +14,19 @@
 #   KS=1 : additionneurs et comparateurs en Kogge-Stone (lcu_kogge_stone.v) au lieu
 #          de la retenue propagee de Yosys 0.33 ; netlist tahx_1_sg13_ks.v.
 #   SORTIE : nom de la netlist (defaut tahx_1_sg13.v, ou tahx_1_sg13_ks.v si KS=1).
-# Ecrit la netlist et <netlist>.log / <netlist>.stat. Environ 30 min (KS=1 : plus de 2 h).
+#   ABC=yosys : flot d'origine (abc -fast dans synth, puis le script ABC par defaut de
+#          Yosys, qui commence par &fraig -x). Par defaut (ABC=direct) : synth -noabc,
+#          puis une seule projection ABC sans &fraig ni scorr. Le abc -fast de synth
+#          projette pour la surface et detruit les arbres (multiplieur de Wallace :
+#          13,3 -> 18,3 ns au coin slow) ; &fraig -x ne termine pas en plusieurs heures
+#          sur un multiplieur ou des additionneurs Kogge-Stone.
+#   SOUS="ino_float_unit fexp_unit" : modules synthetises a part a l'interieur de leur
+#          macro (keep_hierarchy). ABC prend pour temps requis le pire chemin du
+#          module quand la cible -D est hors d'atteinte : dans ino_execute, la division
+#          flottante (31 ns au coin typ) fait relacher tout le reste jusqu'a ce retard
+#          (MUL : 14 ns seul, 29,5 ns dans ino_execute). Defaut : vide, comme LibreLane
+#          qui synthetise chaque macro d'un bloc.
+# Ecrit la netlist et <netlist>.log / <netlist>.stat. Duree : voir LISEZMOI.md.
 set -euo pipefail
 : "${LIB:?Definir LIB, la .lib typique des cellules sg13cmos5l}"
 P=${1:-20}
@@ -26,14 +38,25 @@ printf 'set_driving_cell sg13cmos5l_buf_4\nset_load 0.005\n' > abc.constr
 KS=${KS:-0}
 if [ "$KS" = 1 ]; then SORTIE=${SORTIE:-tahx_1_sg13_ks.v}; else SORTIE=${SORTIE:-tahx_1_sg13.v}; fi
 B=${SORTIE%.v}
+ABC=${ABC:-direct}
+D=$(( P * 1000 ))
+if [ "$ABC" = yosys ]; then
+   NOABC=""
+   ABCCMD="abc -liberty $LIB -constr abc.constr -D $D"
+else
+   NOABC="-noabc"
+   printf '%s\n' strash dc2 '&get -n' '&dch -f' "&nf -D $D" '&put' buffer \
+      "upsize -D $D" "dnsize -D $D" > abc_direct.abc
+   ABCCMD="abc -liberty $LIB -constr abc.constr -script abc_direct.abc"
+fi
 if [ "$KS" = 1 ]; then
    # Le $lcu (chaine de retenue des $alu) est projete avant la passe fine de synth.
    SYNTH="synth -top TAHX_1 -flatten -noshare -run :fine
    opt -fast -full ; memory_map ; opt -full
    techmap -autoproc -map lcu_kogge_stone.v -map +/techmap.v
-   synth -top TAHX_1 -run fine:"
+   synth -top TAHX_1 -run fine: $NOABC"
 else
-   SYNTH="synth -top TAHX_1 -flatten -noshare"
+   SYNTH="synth -top TAHX_1 -flatten -noshare $NOABC"
 fi
 MACROS="stack_unit_16_8 ino_decode_queue ino_decode_predict ino_execute ino_system ino_data_cache ino_fetch"
 
@@ -49,11 +72,11 @@ yosys -l $B.log -p "
    read_verilog -overwrite $T/ino_fetch_ram32_2r_512_ihp.v
    hierarchy -check -top TAHX_1
    chformal -remove
-   setattr -mod -set keep_hierarchy 1 $MACROS
+   setattr -mod -set keep_hierarchy 1 $MACROS ${SOUS:-}
    $SYNTH
    setundef -zero
    dfflibmap -liberty $LIB
-   abc -liberty $LIB -constr abc.constr -D $(( P * 1000 ))
+   $ABCCMD
    opt_clean
    hilomap -hicell sg13cmos5l_tiehi L_HI -locell sg13cmos5l_tielo L_LO
    splitnets -ports

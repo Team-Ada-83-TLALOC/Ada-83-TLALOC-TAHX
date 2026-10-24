@@ -160,8 +160,8 @@ begin
       wait for 1 ns;
       CHECK( c, issue_ready = '1', "ready apres reset" );
 
-      EXEC( OP_MUL_T, WS( 6 ), WS( 7 ), latency => 3, expected => WS( 42 ), name => "MUL" );
-      EXEC( OP_MUL_T, MAX_I64, WS( 2 ), latency => 3, expected_fault => F_OVERFLOW, name => "MUL overflow" );
+      EXEC( OP_MUL_T, WS( 6 ), WS( 7 ), latency => 4, expected => WS( 42 ), name => "MUL" );
+      EXEC( OP_MUL_T, MAX_I64, WS( 2 ), latency => 4, expected_fault => F_OVERFLOW, name => "MUL overflow" );
 
       EXEC( OP_DIV_T, WS( 17 ), WS( 5 ), latency => 20, expected => WS( 3 ), name => "DIV positif" );
       EXEC( OP_DIV_T, WS( -17 ), WS( 5 ), latency => 20, expected => WS( -3 ), name => "DIV vers zero" );

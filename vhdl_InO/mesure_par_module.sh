@@ -4,6 +4,8 @@
 #
 # Usage (depuis vhdl_InO/, apres ./Z_analyze.sh 08) :
 #   LIB=/chemin/vers/<stdcell>_typ_1p20V_25C.lib  ./mesure_par_module.sh  [JOBS]  [module ...]
+#   ABC=yosys : projection d'origine (abc -fast de synth, puis script ABC par defaut de
+#               Yosys) ; defaut : synth -noabc et une passe ABC sans &fraig (voir plus bas).
 #
 # Pour chaque module : les autres modules (dont les primitives RAM, comme dans
 # prepare_IHP.sh) sont des boites noires ; synth, dfflibmap et abc avec la
@@ -56,9 +58,9 @@ un_module()
          read_rtlil $BRUT
          blackbox $autres
          hierarchy -top $m
-         synth -top $m -noshare
+         synth -top $m -noshare $NOABC
          dfflibmap -liberty $LIB
-         abc -liberty $LIB
+         $ABCCMD
          opt_clean
          tee -q -o $OUT/$m.stat stat -liberty $LIB" > "$OUT/$m.log" 2>&1
    then
@@ -68,8 +70,19 @@ un_module()
       grep -E '^[0-9]+(\.[0-9]+)* Executing' "$OUT/$m.log" | tail -3 | sed 's/^/      /'
    fi
 }
+# Projection ABC : par defaut une seule passe, sans &fraig ni scorr (ABC=yosys : abc -fast
+# dans synth puis script par defaut de Yosys). &fraig -x ne termine pas en plusieurs
+# heures sur le multiplieur de Wallace d'ino_muldiv_unit (etude de vitesse, 24 octobre).
+if [ "${ABC:-direct}" = yosys ]; then
+   NOABC=""
+   ABCCMD="abc -liberty $LIB"
+else
+   NOABC="-noabc"
+   printf '%s\n' strash dc2 '&get -n' '&dch -f' '&nf' '&put' > "$OUT/abc_direct.abc"
+   ABCCMD="abc -liberty $LIB -script $OUT/abc_direct.abc"
+fi
 export -f un_module
-export OUT BRUT LIB
+export OUT BRUT LIB NOABC ABCCMD
 export TOUS_STR="${TOUS[*]}"
 
 echo "== Synthese IHP de ${#CIBLES[@]} modules, $JOBS en parallele"
