@@ -67,10 +67,15 @@ $A ../vhdl/L0__exec_types.vhd
 # Espace d'adressage physique de l'implantation InO.
 $A A0_INO_PADDR.vhd
 
+# Arithmetique a faible profondeur (prefixe parallele, Wallace).
+$A A1_INO_ARITH.vhd
+
 # Flottant et exponentiation : blocs communs OoO / InO.
 $A ../vhdl/L4__float64_pkg.vhd
+$A A2_INO_FLOAT_STAGES.vhd
 $A ../vhdl/L5a_FEXP_UNIT.vhd
 $A ../vhdl/L5a_FEXP_UNIT_rtl.vhd
+$A L5c_INO_FEXP_UNIT_rtl.vhd
 
 # -----------------------------------------------------------------------------
 # Frontal commun OoO / InO.

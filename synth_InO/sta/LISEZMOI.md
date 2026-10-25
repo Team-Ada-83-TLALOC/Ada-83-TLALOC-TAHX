@@ -75,9 +75,42 @@ lire la fréquence ; 15 ou 25 ns changent les marges, pas les chemins.
 ## 3. Lecture des bornes
 
 - `WLM=Zero` : fils de capacité nulle, borne **optimiste**.
-- `WLM=30k` : modèle statistique d'un bloc de 30 000 µm² appliqué à chaque net, borne
-  **pessimiste** pour les nets locaux, mais pas pour les liaisons longues entre macros.
+- `WLM=30k` : modèle statistique d'un bloc de 30 000 µm² appliqué à chaque net, sur des
+  cellules dimensionnées sans fil (aucun `repair_timing`). Les chemins critiques routés
+  tombent entre les deux bornes (voir ci-dessous).
 - Point de calibration : `ino_fetch` seul, registre à registre, typ : 7,1 ns (Zero),
   10,1 ns (30k), 16,5 ns dans un run routé à `CLOCK_PERIOD: 100` (non contraint, 1 249
-  violations de slew au coin slow). Un run contraint à 20–40 ns se situera entre les deux
-  bornes.
+  violations de slew au coin slow).
+- Points de calibration contraints : `ino_decode_queue` et `ino_decode_predict` routées
+  à 25 ns avec le SDC de la section 4, `DELAY 1` et placement guidé par le timing.
+  Résultats dans `ETUDE_VITESSE_TAHX_InO.md`, section 7.
+  - Pire marge, avec un flot qui vise le coin lu (`SYNTH_CORNER`, `PNR_CORNERS`) : le
+    routé se place à ~25 % de l'écart `Zero` → `30k` au coin slow, ~20 % au coin typ.
+    Si le flot vise un autre coin (défaut de la PDK : typ), on monte à 40–47 %.
+  - Les chemins non critiques suivent le coin de synthèse : synthétisés en typ, ils
+    finissent au-delà de `30k` au coin slow ; synthétisés en slow, ils battent `Zero`.
+  - Un chemin court derrière un port dépasse `30k` (le fil d'accès domine).
+
+## 4. SDC d'une macro et run LibreLane contraint
+
+```
+NETLIST=tahx_1_sg13_arbres.v INSTANCE=u_decode_queue PERIODE=25 COIN=slow \
+STDLIB=… SRAMLIB=… sta -no_splash -exit sdc_macro.tcl      # -> ino_decode_queue_25ns.sdc
+```
+
+Pour chaque port de la macro (par bus, le pire bit), le pire chemin du cœur entier qui
+le traverse donne `set_input_delay` (arrivée du pilote extérieur) ou `set_output_delay`
+(période − temps requis au port). Une dizaine de minutes pour `ino_decode_queue`.
+Instances : `u_decode_queue`, `u_data_cache`, `u_core.u_stack`, `u_core.u_backend`,
+`u_core.u_system`, `u_instruction.u_fetch`, `u_instruction.u_decode_predict`.
+
+Prévision pour la macro seule avec ce SDC, à comparer au run LibreLane coin par coin :
+
+```
+NETLIST=tahx_1_sg13_arbres.v MODULE=ino_decode_queue SDC=ino_decode_queue_25ns.sdc \
+COIN=slow WLM=Zero STDLIB=… SRAMLIB=… sta -no_splash -exit sta_macro.tcl
+```
+
+Dans `config.yaml` de la macro : `CLOCK_PERIOD` (cible de la synthèse) et
+`PNR_SDC_FILE` / `SIGNOFF_SDC_FILE` vers ce SDC (exemple :
+`pnr_InO/macros/decode_queue/config_25ns.yaml`).

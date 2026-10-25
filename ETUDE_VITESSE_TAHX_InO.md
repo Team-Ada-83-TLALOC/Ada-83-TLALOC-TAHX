@@ -394,25 +394,99 @@ Unité seule (coin slow, sans fil) : chemin critique 26,2 → 14,4 ns ; surface 
 - **`abc -fast` de `synth` et `&fraig -x`** : le `abc -fast` que `synth` lance avant la projection finale projette pour la surface et défait les arbres (multiplieur de Wallace seul : 13,3 ns au coin slow sans lui, 18,3 ns avec) ; le script ABC par défaut de Yosys commence par `&fraig -x`, qui ne termine pas en plusieurs heures sur un multiplieur de Wallace ou des additionneurs Kogge-Stone (c'est ce qui a bloqué la synthèse `KS=1`). `synth_hier.sh` utilise désormais `synth -noabc` et un script ABC sans `&fraig` ni `scorr` (`ABC=yosys` rend le flot d'origine). À vérifier dans le journal de synthèse de LibreLane : présence de `abc -fast` et script ABC utilisé.
 - **Le pire chemin d'une macro fixe le temps requis de toute la macro** : quand la cible `-D` est hors d'atteinte, ABC relâche tous les autres chemins jusqu'au retard du pire. Dans `ino_execute`, la division flottante (31 ns au coin typ) laissait le MUL à 29,5 ns au coin slow, contre 14 ns pour l'unité seule. Synthétisées à part (`SOUS="ino_float_unit fexp_unit"`, attribut `keep_hierarchy`), les unités flottantes ne pèsent plus sur le reste : MUL 15,8 ns, chaînage 22,9 ns au coin slow. Pour LibreLane : le même `keep_hierarchy` sur ces deux unités dans la synthèse de `ino_execute`, ou un flottant qui tienne la cible.
 
-### Bilan au 24 octobre
+### Flottant : étages et FEXP juste (réalisé le 24 octobre)
 
-Cœur entier, netlist `tahx_1_sg13_mul_sous` (RTL du jour, `ABC=direct`, `SOUS="ino_float_unit fexp_unit"`), sans fil, arbres de tampons :
+**Défaut de synthèse découvert** : la synthèse GHDL de `divide` (float_pkg) est fausse. `divide( 1.0, p )` se réduit à 38 cellules et à des 'X' (puis 0 après `setundef`), et un dividende quelconque donne aussi un résultat faux (1/1,5 → `3FECB972E5CB972E` au lieu de `3FE5555555555555`). `FEXP_UNIT` (`../vhdl/L5a_FEXP_UNIT_rtl.vhd`, partagé avec le OoO) l'appelle pour n < 0 : sa netlist rend ±inf pour tout n < 0. Constaté par simulation iverilog de la netlist Yosys contre le RTL (3 000 cas de FEXP : 1 264 écarts, tous avec n < 0). Les macros `ino_execute` routées jusqu'ici portent ce défaut ; les bancs ne pouvaient pas le voir (ils simulent le RTL). L'unité flottante elle-même était juste au niveau portes (9 366 opérations sans écart) : FDIV y est déjà séquentielle.
+
+Nouveaux fichiers (`vhdl_InO`) :
+
+- `A1_INO_ARITH.vhd` : paquet `INO_ARITH` (`ADD_PFX`, `MUL_CSA`), sorti de l'unité MUL/DIV.
+- `A2_INO_FLOAT_STAGES.vhd` : paquet `INO_FLOAT_STAGES`, `add` et `multiply` de float_pkg découpés en trois étages chacun (cas particuliers et alignement / décomposition ; addition des fractions par `ADD_PFX` / produit par `MUL_CSA` ; `normalize` de float_pkg), et les pas de FDIV sortis de l'unité flottante, la soustraction de chaque pas par `ADD_PFX`.
+- `L5c_INO_FEXP_UNIT_rtl.vhd` : architecture `INO` de `FEXP_UNIT`, instanciée par `INO_COMPLEX_UNIT` : chaque multiplication en trois cycles (étages FMUL), division finale 1 / p séquentielle (`DIV_PREP`, 4 pas par cycle, `DIV_FINAL`). FEXP n'apparaît dans aucun des B_*.
+
+`L4_INO_FLOAT_UNIT_rtl.vhd` : FADD/FSUB et FMUL passent par les étages aux cycles 1, 2, 3 d'ATTENTE ; latences inchangées (4, 5, 20).
+
+Vérification :
+
+- unité flottante comparée au cycle près à la version précédente : 2 × 1 000 000 opérations tirées au hasard (surtout FADD/FSUB/FMUL/FDIV ; spéciaux, sous-normaux, annulations, exposants voisins, RESET en cours d'opération), sans écart ;
+- netlist Yosys de la nouvelle unité simulée au niveau portes : 5 000 opérations, identiques au RTL ;
+- FEXP(INO) : mêmes résultats que l'architecture RTL sur 3 000 cas ; au niveau portes, 1 435 cas (dont 696 avec n < 0) identiques au RTL ;
+- bancs (voir patch) ; les cycles des B_* ne changent pas.
+
+Unité flottante seule (coin slow, sans fil) : 47,3 → 19,5 ns ; surface +3,4 %. `ino_execute` : 1,35 → 1,46 mm² de cellules (+8 %).
+
+### Bilan au 24 octobre (soir)
+
+Cœur entier, netlist `tahx_1_sg13_fl` (RTL du jour, `ABC=direct`, chaque macro synthétisée d'un bloc comme dans LibreLane), sans fil, arbres de tampons :
 
 | famille | slow | typ |
 |---|---|---|
-| division flottante `div_den_s → div_win_s` | 47,9 ns | 31,4 ns |
-| FADD/FMUL `issue_q_s → result_s` | 44,0 ns | 28,3 ns |
-| FEXP `p → p` | 38,2 ns | 24,6 ns |
-| décodeur `ino_fetch` → `ino_decode_predict` → `ino_fetch` | 23,9 ns | 15,5 ns |
-| chaînage jusqu'à `ino_decode_queue` | 23,1 ns | 15,1 ns |
-| `stack_unit` → `ino_decode_queue` → `stack_unit` | 22,9 ns | 14,8 ns |
-| chaînage `stack_unit` → `ino_execute` → `stack_unit` | 22,9 ns | 14,8 ns |
-| MUL `ub_s → dq_s` | 15,8 ns | |
+| décodeur `ino_fetch` → `ino_decode_predict` → `ino_fetch` | 24,4 ns | 15,8 ns |
+| chaînage `stack_unit` → `ino_execute` → `stack_unit` | 23,3 ns | 15,0 ns |
+| chaînage jusqu'à `ino_decode_queue` | 22,9 ns | 14,8 ns |
+| `stack_unit` → `ino_decode_queue` → `stack_unit` | 22,8 ns | 14,7 ns |
 
-Hors flottant, le cœur est vers 24 ns au coin slow (≈ 42 MHz) et 15,5 ns au coin typ, sans fil ; plusieurs familles sont désormais à moins de 1 ns l'une de l'autre. Le flottant reste à traiter (multicycle, ou FDIV et FADD/FMUL à découper), ce qui demande l'accord sur son coût en cycles.
+Le flottant n'est plus dans les 3 000 pires chemins. Période atteignable, sans fil : 24,4 ns au coin slow (≈ 41 MHz), 15,8 ns au coin typ (≈ 63 MHz). Surface de cellules du cœur : 4,15 mm².
+
+### Calibration : macros routées à 25 ns (24–25 octobre)
+
+Runs LibreLane de chaque macro seule, avec un SDC tiré du cœur entier par `synth_InO/sta/sdc_macro.tcl` : budgets d'entrée et de sortie du pire chemin traversant chaque port. On compare la marge de setup au signoff à la prévision de `sta_macro.tcl`, faite avec le même SDC sur la netlist d'estimation `tahx_1_sg13_fl_arbres` (synthétisée avec la bibliothèque typ, sans fil). Trois runs, tous sans erreur de DRC ni tampon de hold :
+
+- **A** : `ino_decode_queue`, `config_25ns.yaml` ;
+- **B** : `ino_decode_predict`, `config_25ns.yaml` ;
+- **C** : `ino_decode_predict`, `config_25ns_slow.yaml`, soit B avec `SYNTH_CORNER` et `PNR_CORNERS` au coin slow.
+
+Tous utilisent `DELAY 1` et le placement guidé par le timing. Le coin par défaut de la PDK (`DEFAULT_CORNER`) est `nom_typ_1p20V_25C` : dans A et B, la synthèse, le placement et l'arbre d'horloge visent le coin typ, et seul le resizer voit les trois coins.
+
+On mesure la position du routé dans l'écart entre les deux bornes : 0 % = `Zero`, 100 % = `30k`.
+
+**Pire marge de la macro** (période atteignable à budgets extérieurs fixés) :
+
+| run | coin | routé | prévu `Zero` | prévu `30k` | position |
+|---|---|---|---|---|---|
+| A | slow / typ / fast | −0,41 / +0,81 / +1,54 | +1,41 / +1,95 / +2,25 | −0,11 / +1,02 / +1,66 | 120 % |
+| B | slow | −5,87 (60 extrémités) | −0,15 | −14,01 | 41 % |
+| B | typ / fast | +2,15 / +3,46 | +4,41 / +4,58 | −3,83 / +2,19 | 27 % / 47 % |
+| C | slow | **−3,76** (54 extrémités) | −0,15 | −14,01 | **26 %** |
+| C | typ / fast | +2,88 / +3,74 | +4,41 / +4,58 | −3,83 / +2,19 | 19 % / 35 % |
+
+**Registre à registre**, chemins non critiques, que l'outil n'optimise pas au-delà de la contrainte :
+
+| run | coin | routé | prévu `Zero` | prévu `30k` | position |
+|---|---|---|---|---|---|
+| A | slow | +14,48 | +20,43 | +17,15 | 181 % |
+| B | slow / typ | +6,66 / +13,27 | +15,06 / +18,48 | +7,58 / +13,88 | 112 % / 113 % |
+| C | slow / typ | +16,30 / +19,34 | +15,06 / +18,48 | +7,58 / +13,88 | −17 % / −19 % |
+
+**Pire chemin de B au coin slow** (`max.rpt`, `window_count_i[5]` → `consumed_bytes_o[3]`). Ce n'est pas le pire chemin prévu. Pour ce même chemin, la part interne à la macro vaut 13,8 ns en `Zero`, 28,4 ns en `30k` et 22,1 ns routé (56 %). Le chemin compte 45 étages : 21,7 ns de cellules, 0,3 ns de résistance de fil. **14 étages font 13,0 ns à eux seuls.** Ce sont tous des cellules de force 1 qui chargent 50 à 165 fF : `nor4_1` 2,86 ns (slew 3,1 ns, au-delà du `max_transition` de 2,5 ns), `nand2_1` 1,52 ns, `o21ai_1` 1,24 ns, et des tampons `buf_1` de placement et de sortance à 0,5–0,8 ns. Les 31 autres étages font en moyenne 0,28 ns. Le retard ne vient pas de la résistance des fils mais de cellules faibles laissées sur des nets chargés, car le flot visait le coin typ.
+
+Lecture :
+
+- **Le flot doit viser le coin lu.** De B à C, la marge slow passe de −5,87 à −3,76 ns, celle du typ de +2,15 à +2,88 ns, et le registre à registre slow de +6,66 à +16,30 ns. Les violations de slew au coin slow tombent de 139 à 6. Le coût est faible : +1,7 % de surface de cellules (531 077 → 540 034 µm²) et une occupation de 67 %.
+- **Chemins critiques, flot au bon coin : le routé se place à ~25 % de l'écart** au coin slow, ~20 % au coin typ.
+- **Chemins non critiques** : leur retard dépend surtout du coin de synthèse. Synthétisés en typ (A, B), ils finissent au-delà de `30k` ; synthétisés en slow (C), ils battent la borne `Zero` de la netlist d'estimation, qui est elle-même synthétisée en typ.
+- **Chemins courts derrière un port** (A) : le fil d'accès domine, et le routé dépasse `30k` (120 %). Il y a peu de levier, mais peu d'enjeu aussi.
+
+Règle d'estimation pour les chemins critiques, avec un flot qui vise le coin : **`Zero` + 25 % de l'écart `Zero` → `30k` au coin slow, + 20 % au coin typ**. Elle ne compte pas les liaisons entre macros au niveau du cœur, absentes d'un run macro par macro.
+
+| famille (cœur entier) | `Zero` slow | `30k` slow | **routé estimé slow** | `Zero` typ | `30k` typ | **routé estimé typ** |
+|---|---|---|---|---|---|---|
+| décodeur `ino_fetch` → `ino_decode_predict` → `ino_fetch` | 24,4 | 49,0 | **≈ 31 ns** | 15,8 | 30,9 | **≈ 19 ns** |
+| chaînage `stack_unit` → `ino_execute` → `stack_unit` | 23,3 | 44,1 | ≈ 28,5 ns | 15,0 | 27,8 | ≈ 17,6 ns |
+| `ino_system` → `ino_decode_queue` → `stack_unit` | 22,9 | 42,9 | ≈ 28 ns | 14,8 | 27,0 | ≈ 17,2 ns |
+
+Le cœur routé ferait donc ≈ 31 ns au coin slow (≈ 32 MHz) et ≈ 19 ns au coin typ (≈ 53 MHz), hors liaisons entre macros. L'objectif de 50 MHz est tenu au coin typ avec environ 1 ns de marge, mais pas au coin slow.
+
+Réglages appris en route (macros contraintes) :
+
+- `SYNTH_CORNER: nom_slow_1p08V_125C` et `PNR_CORNERS: [nom_slow_1p08V_125C]` pour optimiser au coin slow. Le coin par défaut est typ ; le resizer garde les trois coins, donc le hold reste vérifié au coin fast.
+- `SYNTH_STRATEGY: "DELAY 1"` et `PL_TIMING_DRIVEN: true` (les défauts LibreLane sont `AREA 0` et `false`). Sur `ino_decode_queue`, la marge slow passe de −0,89 à −0,41 ns et les tampons de réparation de 5 311 à 1 981.
+- Le SDC doit tenir compte de l'horloge propagée du run, alors que l'estimation est à horloges idéales : entrées + 0,8 ns, sorties − 0,8 ns (insertion mesurée dans la macro routée).
+- Incertitude d'horloge de 0,5 ns au setup seulement, 0,1 ns au hold. Avec 0,5 ns au hold, on obtenait ~2 300 tampons de hold et un échec du placement détaillé.
+- La synthèse `DELAY` grossit les cellules : `ino_decode_predict` occupe 66–67 % de la surface pour une densité cible de 60 % (avertissement GPL-0302), et le routage global dépassait d'une piste en Metal3 (GRT-0116). Avec `GRT_ALLOW_CONGESTION: true`, le routage détaillé résorbe ce dépassement (0 erreur de DRC).
 
 Pistes suivantes :
 
-1. Mesurer l'effet des fils : run LibreLane contraint (période 25 ns, `set_input_delay` / `set_output_delay` issus de `.budgets`) sur une macro, pour caler les bornes `Zero` / `30k`.
-2. Décodeur et `ino_decode_queue` : les trois familles suivantes passent toutes par `ino_decode_queue` ou `ino_decode_predict` ; à examiner une fois le flottant décidé.
-3. Flottant : multicycle ou découpage.
+1. Les trois familles critiques traversent deux ou trois macros dans le cycle. Pour gagner de la marge au coin typ, ou viser le coin slow, il faut couper ces chemins plutôt que grappiller des portes. Par exemple, un registre à la frontière `ino_fetch` / `ino_decode_predict`, au prix d'un cycle de prédécodage.
+2. Netlist d'estimation synthétisée avec la bibliothèque slow (`LIB=…slow_1p08V_125C.lib ./synth_hier.sh`), pour une borne `Zero` slow cohérente avec un flot qui vise ce coin.
+3. Le `FEXP_UNIT` partagé de `../vhdl` garde le défaut de `divide` pour le OoO.

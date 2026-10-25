@@ -1,0 +1,32 @@
+# ino_decode_predict (instance u_instruction.u_decode_predict de TAHX_1) : budgets d'entree / sortie a 25 ns,
+# coin slow, modele de fil 'Zero', tires du coeur entier par synth_InO/sta/sdc_macro.tcl.
+# Par bus : le pire bit. Retards exterieurs estimes, pas une signature.
+# Insertion d'horloge exterieure supposee : 0.8 ns (entrees + 0.8, sorties - 0.8).
+set clk_port [get_ports clk_i]
+create_clock -name clk -period 25 $clk_port
+set_clock_uncertainty -setup 0.5 [get_clocks clk]
+set_clock_uncertainty -hold  0.1 [get_clocks clk]
+set_driving_cell -lib_cell sg13cmos5l_buf_4 -pin X [all_inputs -no_clocks]
+set_load 0.02 [all_outputs]
+set_input_delay   1.700 -clock clk [get_ports {out_ready_i}]
+set_input_delay   2.603 -clock clk [get_ports {recovery_i.ghist[*]}]
+set_input_delay   2.602 -clock clk [get_ports {recovery_i.ras_ptr[*]}]
+set_input_delay   2.909 -clock clk [get_ports {recovery_i.valid}]
+set_input_delay   1.914 -clock clk [get_ports {retire_i.conditional}]
+set_input_delay   1.949 -clock clk [get_ports {retire_i.ghist_low[*]}]
+set_input_delay   2.062 -clock clk [get_ports {retire_i.is_control}]
+set_input_delay   1.917 -clock clk [get_ports {retire_i.pc_low[*]}]
+set_input_delay   1.462 -clock clk [get_ports {retire_i.taken}]
+set_input_delay   1.737 -clock clk [get_ports {retire_i.valid}]
+set_input_delay   1.948 -clock clk [get_ports {window_count_i[*]}]
+set_input_delay   4.659 -clock clk [get_ports {window_fault_i[*]}]
+set_input_delay   4.686 -clock clk [get_ports {window_i[*]}]
+set_input_delay   1.247 -clock clk [get_ports {window_pc_i[*]}]
+set_output_delay  6.432 -clock clk [get_ports {consume_o}]
+set_output_delay  6.363 -clock clk [get_ports {consumed_bytes_o[*]}]
+set_output_delay 18.949 -clock clk [get_ports {out_block_o[*]}]
+set_output_delay  5.445 -clock clk [get_ports {out_count_o[*]}]
+set_output_delay 19.584 -clock clk [get_ports {out_valid_o}]
+set_output_delay  0.297 -clock clk [get_ports {predict_pc_o[*]}]
+set_output_delay  2.625 -clock clk [get_ports {predict_valid_o}]
+set_output_delay  2.743 -clock clk [get_ports {stop_o}]

@@ -131,7 +131,7 @@ begin
                    else '0';
    fexp_abort_s <= SYNC_VALID_i;
 
-   U_FEXP : entity work.FEXP_UNIT
+   U_FEXP : entity work.FEXP_UNIT( INO )
       port map (
          CLK_i   => CLK_i,
          RESET_i => RESET_i,

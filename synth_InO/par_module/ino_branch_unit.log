@@ -220,8 +220,8 @@ Optimizing module ino_branch_unit.
 3.8.9. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 60 bits (of 64) from port B of cell ino_branch_unit.\207203 ($add).
-Removed top 2 bits (of 8) from port B of cell ino_branch_unit.\207228 ($eq).
+Removed top 60 bits (of 64) from port B of cell ino_branch_unit.\273546 ($add).
+Removed top 2 bits (of 8) from port B of cell ino_branch_unit.\273571 ($eq).
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
 
@@ -230,20 +230,20 @@ Finding unused cells or wires in module \ino_branch_unit..
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_branch_unit:
-  creating $macc model for \207203 ($add).
-  creating $macc model for \207209 ($add).
-  creating $alu model for $macc \207209.
-  creating $alu model for $macc \207203.
-  creating $alu model for \207212 ($ge): new $alu
-  creating $alu model for \207214 ($le): new $alu
-  creating $alu model for \207220 ($ge): new $alu
-  creating $alu model for \207222 ($le): new $alu
-  creating $alu cell for \207222: $auto$alumacc.cc:485:replace_alu$93910
-  creating $alu cell for \207220: $auto$alumacc.cc:485:replace_alu$93919
-  creating $alu cell for \207214: $auto$alumacc.cc:485:replace_alu$93932
-  creating $alu cell for \207212: $auto$alumacc.cc:485:replace_alu$93941
-  creating $alu cell for \207203: $auto$alumacc.cc:485:replace_alu$93954
-  creating $alu cell for \207209: $auto$alumacc.cc:485:replace_alu$93957
+  creating $macc model for \273546 ($add).
+  creating $macc model for \273552 ($add).
+  creating $alu model for $macc \273552.
+  creating $alu model for $macc \273546.
+  creating $alu model for \273555 ($ge): new $alu
+  creating $alu model for \273557 ($le): new $alu
+  creating $alu model for \273563 ($ge): new $alu
+  creating $alu model for \273565 ($le): new $alu
+  creating $alu cell for \273565: $auto$alumacc.cc:485:replace_alu$108963
+  creating $alu cell for \273563: $auto$alumacc.cc:485:replace_alu$108972
+  creating $alu cell for \273557: $auto$alumacc.cc:485:replace_alu$108985
+  creating $alu cell for \273555: $auto$alumacc.cc:485:replace_alu$108994
+  creating $alu cell for \273546: $auto$alumacc.cc:485:replace_alu$109007
+  creating $alu cell for \273552: $auto$alumacc.cc:485:replace_alu$109010
   created 6 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -380,16 +380,16 @@ Removed 0 multiplexer ports.
 
 3.18.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_branch_unit.
-    Consolidated identical input bits for $mux cell \207290:
-      Old ports: A={ $auto$ghdl.cc:806:import_module$93892 9'000000000 }, B=74'00000000000000000000000000000000000000000000000000000000000000000100001001, Y=\computed_s [139:66]
-      New ports: A={ $auto$ghdl.cc:806:import_module$93892 1'0 }, B=66'000000000000000000000000000000000000000000000000000000000000000001, Y={ \computed_s [139:75] \computed_s [66] }
+    Consolidated identical input bits for $mux cell \273633:
+      Old ports: A={ $auto$ghdl.cc:806:import_module$108945 9'000000000 }, B=74'00000000000000000000000000000000000000000000000000000000000000000100001001, Y=\computed_s [139:66]
+      New ports: A={ $auto$ghdl.cc:806:import_module$108945 1'0 }, B=66'000000000000000000000000000000000000000000000000000000000000000001, Y={ \computed_s [139:75] \computed_s [66] }
       New connections: \computed_s [74:67] = { \computed_s [66] 4'0000 \computed_s [66] 2'00 }
-    Consolidated identical input bits for $mux cell \207294:
+    Consolidated identical input bits for $mux cell \273637:
       Old ports: A=140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, B={ \computed_s [139:66] 66'000000000000000000000000000000000000000000000000000000000000000001 }, Y={ \complete_o.target \complete_o.taken \complete_o.fault \complete_o.result \complete_o.result_valid \complete_o.valid }
       New ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B={ \computed_s [139:66] 1'1 }, Y={ \complete_o.target \complete_o.taken \complete_o.fault \complete_o.valid }
       New connections: { \complete_o.result \complete_o.result_valid } = 65'00000000000000000000000000000000000000000000000000000000000000000
   Optimizing cells in module \ino_branch_unit.
-    Consolidated identical input bits for $mux cell \207294:
+    Consolidated identical input bits for $mux cell \273637:
       Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B={ \computed_s [139:66] 1'1 }, Y={ \complete_o.target \complete_o.taken \complete_o.fault \complete_o.valid }
       New ports: A=67'0000000000000000000000000000000000000000000000000000000000000000000, B={ \computed_s [139:75] \computed_s [66] 1'1 }, Y={ \complete_o.target \complete_o.taken \complete_o.fault [0] \complete_o.valid }
       New connections: \complete_o.fault [8:1] = { \complete_o.fault [0] 4'0000 \complete_o.fault [0] 2'00 }
@@ -689,6 +689,6 @@ Finding unused cells or wires in module \ino_branch_unit..
 Removed 0 unused cells and 674 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 1746bcd7a3, CPU: user 1.18s system 0.06s, MEM: 151.54 MB peak
+End of script. Logfile hash: fd470153dd, CPU: user 1.44s system 0.07s, MEM: 178.75 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 49% 2x read_rtlil (0 sec), 15% 1x abc (0 sec), ...
+Time spent: 50% 2x read_rtlil (0 sec), 14% 1x abc (0 sec), ...
