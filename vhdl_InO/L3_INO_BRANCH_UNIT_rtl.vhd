@@ -12,6 +12,7 @@ use work.ARCH_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.IN_ORDER_TYPES.all;
 use work.INO_PADDR.all;
+use work.INO_ARITH.all;
 
         --------------------------------------------------------------------------------
         -- INO_BRANCH_UNIT, architecture RTL.
@@ -58,16 +59,37 @@ of INO_BRANCH_UNIT is           ---
           or op = OP_CALL or op = OP_CALLI or op = OP_RTD_0 or op = OP_RTD_N;
    end function;
 
+   -- Le pc d'une instruction emise est realisable (< 2**32, TO_VA de INO_EXECUTE) :
+   -- fall = pc + len et la cible pc + len + val se calculent sur 34 bits (un etage
+   -- de compression 3:2, puis ADD_PFX). La cible est realisable si les deux bits
+   -- hauts de la somme sur 34 bits sont nuls ; sinon la cible sur 64 bits ne l'est
+   -- pas non plus (somme negative, ou >= 2**32).
    function EXECUTE( ins : ino_issue_t ) return ino_complete_t is
       constant op       : opcode_t := ins.slot.canon.op;
-      constant pc       : address_t := ins.slot.pc;
+      variable pc34     : unsigned( 33 downto 0 );
+      variable ln34     : unsigned( 33 downto 0 );
+      variable vl34     : unsigned( 33 downto 0 );
+      variable xs, xc   : unsigned( 33 downto 0 );
+      variable fall34   : unsigned( 33 downto 0 );
+      variable tgt34    : unsigned( 33 downto 0 );
       variable fall     : address_t;
       variable tgt      : address_t;
+      variable tgt_ok   : boolean;
+      variable fall_ok  : boolean;
       variable taken_v  : boolean := true;
       variable r        : ino_complete_t := NO_COMPLETE;
    begin
-      fall := pc + resize( ins.slot.canon.len, 64 );
-      tgt  := fall + unsigned( resize( ins.slot.canon.val, 64 ) );
+      pc34 := "00" & ins.slot.pc( 31 downto 0 );
+      ln34 := resize( ins.slot.canon.len, 34 );
+      vl34 := unsigned( resize( ins.slot.canon.val, 34 ) );
+      xs := pc34 xor ln34 xor vl34;
+      xc := ( ( pc34 and ln34 ) or ( pc34 and vl34 ) or ( ln34 and vl34 ) ) sll 1;
+      tgt34  := ADD_PFX( xs, xc, '0' );
+      fall34 := ADD_PFX( pc34, ln34, '0' );
+      fall    := resize( fall34( 32 downto 0 ), 64 );
+      fall_ok := fall34( 32 ) = '0';
+      tgt     := resize( tgt34( 31 downto 0 ), 64 );
+      tgt_ok  := tgt34( 33 downto 32 ) = "00";
 
       if unsigned( op ) >= 16#E4# and unsigned( op ) <= 16#E7# then
          taken_v := unsigned( ins.operand( 0 ) ) /= 0;       -- BT
@@ -75,8 +97,10 @@ of INO_BRANCH_UNIT is           ---
          taken_v := unsigned( ins.operand( 0 ) ) = 0;        -- BF
       elsif op = OP_CALLI then
          tgt := unsigned( ins.operand( 0 ) );
+         tgt_ok := PA_OK( tgt );
       elsif op = OP_RTD_0 or op = OP_RTD_N then
          tgt := ins.address;
+         tgt_ok := PA_OK( tgt );
       end if;
 
       r.valid        := '1';
@@ -90,8 +114,8 @@ of INO_BRANCH_UNIT is           ---
          r.taken  := '0';
          r.target := fall;
       end if;
-      if not PA_OK( r.target )
-         or ( ( op = OP_CALL or op = OP_CALLI ) and not PA_OK( fall ) ) then
+      if ( taken_v and not tgt_ok ) or ( not taken_v and not fall_ok )
+         or ( ( op = OP_CALL or op = OP_CALLI ) and not fall_ok ) then
          r.fault  := ( valid => '1', code => FAULT_ACCESS );
          r.taken  := '0';
          r.target := ( others => '0' );

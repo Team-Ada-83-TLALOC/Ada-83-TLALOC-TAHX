@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict decode_bloc fexp_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict fexp_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_pipe ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_512 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_address_unit
          synth -top ino_address_unit -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -210,8 +210,8 @@ Finding identical cells in module `\ino_address_unit'.
 Removed a total of 0 cells.
 
 3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on \195228 ($dff) from module ino_address_unit (D = $auto$ghdl.cc:806:import_module$90916 [0], Q = \result_s [0], rval = 1'0).
-Adding SRST signal on \195228 ($dff) from module ino_address_unit (D = { $auto$ghdl.cc:806:import_module$90915 $auto$ghdl.cc:806:import_module$90899 \issue_i.slot }, Q = \result_s [335:1], rval = 335'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on \202623 ($dff) from module ino_address_unit (D = $auto$ghdl.cc:806:import_module$91338 [0], Q = \result_s [0], rval = 1'0).
+Adding SRST signal on \202623 ($dff) from module ino_address_unit (D = { $auto$ghdl.cc:806:import_module$91337 $auto$ghdl.cc:806:import_module$91321 \issue_i.slot }, Q = \result_s [335:1], rval = 335'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
 
 3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_address_unit..
@@ -250,14 +250,14 @@ Optimizing module ino_address_unit.
 3.8.16. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 29 bits (of 32) from port A of cell ino_address_unit.\195186 ($sub).
-Removed top 31 bits (of 32) from port B of cell ino_address_unit.\195186 ($sub).
-Removed top 28 bits (of 32) from port Y of cell ino_address_unit.\195186 ($sub).
-Removed top 31 bits (of 32) from port A of cell ino_address_unit.\195196 ($eq).
-Removed top 30 bits (of 32) from port A of cell ino_address_unit.\195204 ($eq).
-Removed top 30 bits (of 32) from port A of cell ino_address_unit.\195212 ($eq).
-Removed top 335 bits (of 336) from mux cell ino_address_unit.\195222 ($mux).
-Removed top 335 bits (of 336) from wire ino_address_unit.$auto$ghdl.cc:806:import_module$90916.
+Removed top 29 bits (of 32) from port A of cell ino_address_unit.\202581 ($sub).
+Removed top 31 bits (of 32) from port B of cell ino_address_unit.\202581 ($sub).
+Removed top 28 bits (of 32) from port Y of cell ino_address_unit.\202581 ($sub).
+Removed top 31 bits (of 32) from port A of cell ino_address_unit.\202591 ($eq).
+Removed top 30 bits (of 32) from port A of cell ino_address_unit.\202599 ($eq).
+Removed top 30 bits (of 32) from port A of cell ino_address_unit.\202607 ($eq).
+Removed top 335 bits (of 336) from mux cell ino_address_unit.\202617 ($mux).
+Removed top 335 bits (of 336) from wire ino_address_unit.$auto$ghdl.cc:806:import_module$91338.
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
 
@@ -268,12 +268,12 @@ Removed 0 unused cells and 1 unused wires.
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_address_unit:
-  creating $macc model for \195177 ($add).
-  creating $macc model for \195186 ($sub).
-  creating $alu model for $macc \195186.
-  creating $alu model for $macc \195177.
-  creating $alu cell for \195177: $auto$alumacc.cc:485:replace_alu$108966
-  creating $alu cell for \195186: $auto$alumacc.cc:485:replace_alu$108969
+  creating $macc model for \202572 ($add).
+  creating $macc model for \202581 ($sub).
+  creating $alu model for $macc \202581.
+  creating $alu model for $macc \202572.
+  creating $alu cell for \202572: $auto$alumacc.cc:485:replace_alu$114626
+  creating $alu cell for \202581: $auto$alumacc.cc:485:replace_alu$114629
   created 2 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -439,10 +439,10 @@ Using extmapper simplemap for cells of type $eq.
 Using extmapper simplemap for cells of type $logic_not.
 Using extmapper simplemap for cells of type $reduce_or.
 Using extmapper simplemap for cells of type $pos.
-Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000100 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000001000000 for cells of type $lcu.
 Using extmapper simplemap for cells of type $and.
 Using extmapper simplemap for cells of type $xor.
-Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000001000000 for cells of type $lcu.
+Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000100 for cells of type $lcu.
 Using extmapper simplemap for cells of type $or.
 No more expansions possible.
 <suppressed ~734 debug messages>
@@ -640,6 +640,6 @@ Finding unused cells or wires in module \ino_address_unit..
 Removed 0 unused cells and 1122 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: bf821a3d7d, CPU: user 1.36s system 0.08s, MEM: 179.15 MB peak
+End of script. Logfile hash: 1ab83620b3, CPU: user 1.32s system 0.06s, MEM: 190.24 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 54% 2x read_rtlil (0 sec), 12% 1x abc (0 sec), ...
+Time spent: 55% 2x read_rtlil (0 sec), 12% 1x abc (0 sec), ...

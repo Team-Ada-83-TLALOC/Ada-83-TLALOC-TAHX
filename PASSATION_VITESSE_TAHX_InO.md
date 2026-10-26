@@ -97,20 +97,42 @@ Réglages LibreLane validés pour une macro contrainte :
 
 Exemples : `pnr_InO/macros/ino_decode_predict/config_25ns_slow.yaml`, `pnr_InO/macros/decode_queue/config_25ns.yaml`.
 
-## 5. Prochaine tâche : augmenter le produit IPC × fréquence
+## 5. Étude IPC × fréquence (25 octobre) et suite
 
-Demandée par l'utilisateur le 25 octobre. Pistes et ordres de grandeur :
+Étude : `ETUDE_VITESSE_TAHX_InO.md`, § 8. Cinq patchs, à appliquer dans l'ordre (chacun testé sur l'arbre précédent) :
 
-1. **Les trois familles sont proches** (31 / 28,5 / 28 ns au coin slow ; 19 / 17,6 / 17,2 ns au coin typ). Couper seulement le décodeur rapporte au plus ~8 % de fréquence : on bute alors sur le chaînage. Pour un gain net, il faut couper ou raccourcir au moins deux familles, ou accepter que la deuxième fixe la période.
-2. **Décodeur** : la boucle `window_i` → décodage série de 4 instructions → `consumed_bytes_o` → avancée de la tête de la file d'octets (`INO_BYTE_QUEUE`, dans `ino_fetch`). Le cœur ne prend qu'environ 0,41 instruction par cycle, alors que le frontal peut en décoder 4 : un registre dans la boucle (décodage sur 2 cycles, ou 2 instructions par cycle) devrait surtout coûter après les reprises (redirections, mauvaises prédictions), via FRONTEND_STARVE. À mesurer par une variante (`tests_InO/VARIANTES`, mode `VARIANTE` de `lancer_tests.sh`).
-3. **Chaînage** : c'est la complétion dans le cycle d'émission (palier V3). Le couper rallonge d'un cycle chaque instruction qui passe par l'exécution : perte d'IPC importante, à chiffrer avec la section 2 de l'étude. Il vaut mieux raccourcir le chemin (logique entre `stack_unit` et `ino_execute`, liaison au niveau du cœur) que l'enregistrer. Compter le produit IPC × f pour chaque choix.
-4. **`ino_system` → `ino_decode_queue` → `stack_unit`** : le pire chemin entre par `pop_take_i` (arrivée à 21,6 ns sur 25), puis la sortie de la file (`pop_slot_o`) part vers la prise de la `stack_unit`. Voir si une prise de file anticipée (sortie enregistrée, case suivante préchargée) évite le cycle combinatoire.
-5. Méthode suggérée :
-   - estimer d'abord le coût en cycles de chaque coupe : variantes RTL simulées sur les B_*, à lancer par l'utilisateur (environ 20 min les 8 bancs en `-j 4`) ;
-   - estimer le gain de fréquence par `sta_tahx.tcl` sur une netlist resynthétisée (20–30 min de synthèse, puis OpenSTA ; lire `.paires`), avec la règle 25 % / 20 % ;
-   - présenter le produit IPC × f par variante avant d'écrire le patch définitif.
-6. Possible aussi : resynthétiser la netlist d'estimation avec la bibliothèque slow, pour une borne `Zero` slow cohérente avec `SYNTH_CORNER` slow.
+| patch | contenu | effet |
+|---|---|---|
+| P1 `frontal_groupes` | prédicteur : une case gshare par cycle, mais toutes les cases sans conditionnel dans le même cycle ; `PERF FRONT` dans N3 | cycles −3,4 % (B_APPELS −13,9 %) |
+| P2 `consommation_differee` | prise du bloc appliquée à la file d'octets au cycle suivant ; contournement de la file de décodage sans `FLUSH_i` | cycles identiques ; boucle du décodeur et famille FLUSH supprimées |
+| P3 `arith_chainage` | ALU entière à un additionneur `ADD_PFX`, cibles de branchement sur 34 bits, `TO_VA( issue_pa_t )` sur 34 bits ; `A1_INO_ARITH` ajouté aux `sources` de 13 bancs | cycles identiques |
+| P4 `muldiv_rapide` | MUL 5 → 3 cycles, division sans les quartets de tête nuls | cycles −5,6 % |
+| P5 `flottant_rapide` | ISSUE_FLOAT au chemin rapide de la `stack_unit` | B_FLOTTANT −16,9 % |
+| P7 `ino_execute_25ns` | `pnr_InO/macros/ino_execute/config_25ns.yaml` et `ino_execute_25ns.sdc` (netlist `v2s`, `SYNTH_KEEP_HIERARCHY_MODULES`) | run contraint à comparer à la prévision : marge slow `Zero` +4,4 ns, `30k` −12,8 ns |
+| P8 `gshare_512` | table gshare de 512 compteurs (`GSHARE_BITS` = `RETIRE_PC_BITS` = 9) : `ino_decode_predict` ne se routait plus après P1 | surface de la macro −23 %, cycles +0,11 % |
+| P9 `decode_predict_antennes` | réglages d'antennes d'`ino_execute` dans `config_25ns_slow.yaml` d'`ino_decode_predict` | évite la reprise du routage détaillé après `repair_antennas` |
+| P11 `decodeur_deux_etages` | prédécodage enregistré (`I3a_INO_DECODE_PKG`, `I3b_INO_DECODE_PIPE`), banc I5 au contrat de la file d'octets | cycles +1,3 % ; chemin fenêtre → `work_q` coupé (étude § 8.8) |
+| P12, P13, P14 | `ino_decode_predict` : sans diodes heuristiques (DPL-0036), tampons sur les fils de plus de 400 µm ; `LAYERS_RC` de sg13g2 pour Metal1 à Metal4 dans `config_25ns_slow.yaml` (decode_predict) et `config_25ns.yaml` (ino_execute) | run F : slow −0,72 ns, typ +3,60 ns (étude § 8.9) |
+
+Après P1 à P5 : 1 873 910 cycles (−11,1 %), **IPC 0,464**, famine 2,2 % ; `LISTE` : 50 tests OK. Période routée estimée, unités d'exécution projetées à part (`SOUS`, voir ci-dessous) : **≈ 16,2 ns typ (62 MHz), ≈ 26,4 ns slow (38 MHz)** ; **28,7 MIPS typ (+31 %), 17,6 MIPS slow (+30 %)**.
+
+Constat principal côté fréquence : ABC (Yosys comme LibreLane, `abc -D CLOCK_PERIOD`) relâche les portions de chemins qui traversent les macros ; l'ALU d'`ino_execute` redevient une retenue propagée dans la macro synthétisée d'un bloc. Projetées à part (`keep_hierarchy`), les unités gardent leur structure.
+
+**Run D (26 octobre, étude § 8.7)** : `ino_decode_predict` routée après P8, 54,6 % d'occupation, 0 DRC ; marge slow −4,40 ns, typ +2,34 ns. Toutes les violations sont des chemins `window_i` → `work_q`, routés à 74 % (slow) et ~100 % (typ) de l'écart `Zero` → `30k`. Le décodeur reste la famille limitante du cœur (≈ 21–22 ns typ, ≈ 30 ns slow) : le gain de P1 à P8 est pour l'instant celui de l'IPC (+12 %).
+
+Suite proposée :
+
+0. Décodeur coupé (P11) ; run F d'`ino_decode_predict` : −0,72 ns au coin slow (20 extrémités), +3,60 ns au typ (étude § 8.9). **`LAYERS_RC` (P14) est à reporter dans toutes les configurations sg13cmos5l**, y compris celles des autres sessions. Prochain run : `ino_execute` (`config_25ns.yaml`, P7 et P14).
+
+1. Run LibreLane contraint d'`ino_execute` avec `SYNTH_KEEP_HIERARCHY_MODULES: [ino_integer_unit, ino_branch_unit, ino_muldiv_unit, ino_float_unit, fexp_unit]` (et le SDC de `sdc_macro.tcl` tiré de la netlist `v2s`), à comparer à la prévision.
+2. Prise de la `stack_unit` (nouveau chemin limitant, 13,4 ns typ `Zero` depuis la file de décodage) : arithmétique de la prise en préfixe parallèle, contrôles de limites hors du cône de `fast_ok`, attributs ISA précalculés en amont.
+3. Partie `stack_unit` du chaînage : prise décidée sans COMPLETE.fault ni MISPREDICTED pour l'entier et les branchements, annulée au cycle suivant en cas de faute ou de mauvaise prédiction.
+4. IPC restant : adresse de la SRAM d'instructions présentée dès la redirection ; cycle ST_IDLE après LINK/RTD/UNLINKR/CALL (≈ 1,7 %).
+
+Netlists d'estimation de l'étude (dans le conteneur, non versionnées) : `ref` (commit `5b32c67`), `v2` (P1 à P4), `v2s` (`v2` avec `SOUS="ino_integer_unit ino_branch_unit ino_muldiv_unit ino_float_unit fexp_unit"`).
 
 ## 6. Historique des patchs de cette phase (tous commités)
 
 `decodeur_predecodage`, `chainage_clvl`, `mul_csa`, `mesure_sans_fraig`, `flottant_etages`, `calibration_25ns`, `calibration_latence`, `calibration_hold`, `calibration_bilan`, `calibration_decode_predict`, `calibration_coin_slow`, `calibration_bilan_slow`.
+
+Étude IPC × f (25 octobre, livrés, à appliquer dans l'ordre) : `P1_frontal_groupes`, `P2_consommation_differee`, `P3_arith_chainage`, `P4_muldiv_rapide`, `P5_flottant_rapide`, `P6_doc_ipc_f`, `P7_ino_execute_25ns`, `P8_gshare_512`, `P9_decode_predict_antennes`, `P10_doc_run_D`, `P11_decodeur_deux_etages`, `P12` à `P14` (configurations), `P15_doc_runs_E_F`.

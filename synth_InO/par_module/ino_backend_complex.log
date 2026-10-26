@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_pipe ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_512 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_backend_complex
          synth -top ino_backend_complex -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -114,8 +114,8 @@ Removed a total of 1 cells.
 Running muxtree optimizer on module \ino_backend_complex..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
-      Replacing known input bits on port B of cell \107472: \complex_mem_req_s -> { \complex_mem_req_s [132:1] 1'1 }
-      Replacing known input bits on port B of cell \107474: \complex_complete_s -> { \complex_complete_s [139:1] 1'1 }
+      Replacing known input bits on port B of cell \114867: \complex_mem_req_s -> { \complex_mem_req_s [132:1] 1'1 }
+      Replacing known input bits on port B of cell \114869: \complex_complete_s -> { \complex_complete_s [139:1] 1'1 }
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
 <suppressed ~5 debug messages>
@@ -545,8 +545,8 @@ ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
 ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
-ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
-ABC: Memory =    2.86 MB. Time =     0.02 sec
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
+ABC: Memory =    2.86 MB. Time =     0.01 sec
 ABC: + source /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/par_module/abc_direct.abc 
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
@@ -567,6 +567,6 @@ Finding unused cells or wires in module \ino_backend_complex..
 Removed 0 unused cells and 833 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 008f711854, CPU: user 1.14s system 0.07s, MEM: 178.87 MB peak
+End of script. Logfile hash: 967cb76ecb, CPU: user 1.12s system 0.06s, MEM: 190.19 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 66% 2x read_rtlil (0 sec), 10% 1x blackbox (0 sec), ...
+Time spent: 68% 2x read_rtlil (0 sec), 10% 1x blackbox (0 sec), ...

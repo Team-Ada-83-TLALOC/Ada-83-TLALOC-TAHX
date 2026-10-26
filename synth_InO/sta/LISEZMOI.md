@@ -29,6 +29,14 @@ KS=1 LIB=… BRUT=… ./synth_hier.sh 20       # additionneurs Kogge-Stone -> ta
 - `SOUS="ino_float_unit fexp_unit"` synthétise ces unités à part (`keep_hierarchy`) : sinon
   la division flottante, hors d'atteinte de la cible, fixe le temps requis de tout
   `ino_execute` et ABC y relâche les autres chemins jusqu'à son retard.
+- Même effet pour les chemins **entre** macros (étude de vitesse, § 8) : la partie interne
+  d'un chemin qui traverse une macro paraît avoir toute la période devant elle, et la
+  récupération de surface d'ABC transforme un additionneur en préfixe parallèle en retenue
+  propagée (ALU entière d'`ino_execute` sur le chaînage : 6 ns possibles, ~10 ns obtenus).
+  Projetées à part, les unités gardent leur structure. Netlist de référence de l'étude :
+  `SOUS="ino_integer_unit ino_branch_unit ino_muldiv_unit ino_float_unit fexp_unit"` ;
+  équivalent LibreLane : `SYNTH_KEEP_HIERARCHY_MODULES` dans la configuration
+  d'`ino_execute`.
 - Yosys 0.33 projette les `$alu` en retenue propagée ; `KS=1` applique
   `lcu_kogge_stone.v` (préfixe parallèle). Sur un additionneur 64 bits isolé (typ) :
   9,0 → 6,3 ns pour +20 % de surface.

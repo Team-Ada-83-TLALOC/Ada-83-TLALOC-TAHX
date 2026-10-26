@@ -29,6 +29,7 @@ use work.MEMORY_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.IN_ORDER_TYPES.all;
 use work.INO_PADDR.all;
+use work.INO_ARITH.all;
 
 package INO_PORTS_PA is
 
@@ -209,7 +210,10 @@ package body INO_PORTS_PA is
       r.address_known := i.address_known;
       r.address       := TO_VA( i.address );
       if i.address_ofs = '1' then
-         r.address := r.address + unsigned( std_logic_vector( resize( i.slot.canon.val, 64 ) ) );
+         -- base realisable (< 2**32) + val (32 bits signe) : la somme exacte tient sur
+         -- 34 bits signes ; prefixe parallele sur 34 bits, puis extension de signe.
+         r.address := unsigned( resize( signed( ADD_PFX( "00" & unsigned( i.address ),
+                         unsigned( resize( i.slot.canon.val, 34 ) ), '0' ) ), 64 ) );
       end if;
       return r;
    end function;

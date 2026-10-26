@@ -1834,11 +1834,12 @@ begin
                      and not e.memory and not e.frame
                      and not e.serializing and not e.control then
                      fast_ok := true;
-                  elsif e.issue_class = ISSUE_MUL_DIV
+                  elsif ( e.issue_class = ISSUE_MUL_DIV or e.issue_class = ISSUE_FLOAT )
                      and e.lvl_use = LVL_NONE
                      and not e.memory and not e.frame
                      and not e.serializing and not e.control then
-                     -- MUL/DIV (V2) : STACK_LINEAR, un résultat, comme l'entier.
+                     -- MUL/DIV (V2), flottant (étude IPC x f) : STACK_LINEAR, un
+                     -- résultat, comme l'entier.
                      fast_ok := true;
                   elsif e.issue_class = ISSUE_BRANCH
                      and IS_FAST_BRANCH_OP( s.canon.op ) then
@@ -2067,7 +2068,7 @@ begin
                      -- en évitant ST_PREPARE et toute émission backend.
                      state_s <= ST_FAST_COMMIT;
                   else
-                     -- INTEGER, MUL/DIV, BRA/BT/BF et accès directs : l'émission
+                     -- INTEGER, MUL/DIV, FLOAT, BRA/BT/BF et accès : l'émission
                      -- devient visible dès le cycle suivant la prise.
                      state_s <= ST_ISSUE;
                   end if;

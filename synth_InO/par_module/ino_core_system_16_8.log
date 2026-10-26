@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_pipe ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_512 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_core_system_16_8
          synth -top ino_core_system_16_8 -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -87,15 +87,15 @@ Cleaned up 0 empty switches.
 
 3.2.12. Executing OPT_EXPR pass (perform const folding).
 Optimizing module ino_core_system_16_8.
-<suppressed ~3 debug messages>
+<suppressed ~6 debug messages>
 
 3.3. Executing OPT_EXPR pass (perform const folding).
 Optimizing module ino_core_system_16_8.
 
 3.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_core_system_16_8..
-Removed 3 unused cells and 106 unused wires.
-<suppressed ~4 debug messages>
+Removed 459 unused cells and 565 unused wires.
+<suppressed ~460 debug messages>
 
 3.5. Executing CHECK pass (checking for obvious problems).
 Checking module ino_core_system_16_8...
@@ -115,9 +115,9 @@ Removed a total of 10 cells.
 Running muxtree optimizer on module \ino_core_system_16_8..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
-      Replacing known input bits on port B of cell \1370: { 32'00000000000000000000000000000000 \system_complete_s [107:0] } -> { 32'00000000000000000000000000000000 \system_complete_s [107:1] 1'1 }
-      Replacing known input bits on port B of cell \1372: \system_maint_s -> { \system_maint_s [130:1] 1'1 }
-      Replacing known input bits on port B of cell \1374: \system_mem_req_s -> { \system_mem_req_s [132:1] 1'1 }
+      Replacing known input bits on port B of cell \1366: { 32'00000000000000000000000000000000 \system_complete_s [107:0] } -> { 32'00000000000000000000000000000000 \system_complete_s [107:1] 1'1 }
+      Replacing known input bits on port B of cell \1368: \system_maint_s -> { \system_maint_s [130:1] 1'1 }
+      Replacing known input bits on port B of cell \1370: \system_mem_req_s -> { \system_mem_req_s [132:1] 1'1 }
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
 <suppressed ~8 debug messages>
@@ -223,18 +223,18 @@ Optimizing module ino_core_system_16_8.
 3.8.9. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 3 bits (of 4) from mux cell ino_core_system_16_8.\1313 ($mux).
-Removed top 32 bits (of 140) from mux cell ino_core_system_16_8.\1370 ($mux).
-Removed top 32 bits (of 64) from port A of cell ino_core_system_16_8.\1691 ($add).
-Removed top 31 bits (of 64) from port B of cell ino_core_system_16_8.\1691 ($add).
-Removed top 30 bits (of 64) from port Y of cell ino_core_system_16_8.\1691 ($add).
-Removed top 30 bits (of 64) from mux cell ino_core_system_16_8.\1692 ($mux).
-Removed top 32 bits (of 64) from port A of cell ino_core_system_16_8.\1810 ($add).
-Removed top 31 bits (of 64) from port B of cell ino_core_system_16_8.\1810 ($add).
-Removed top 30 bits (of 64) from port Y of cell ino_core_system_16_8.\1810 ($add).
-Removed top 30 bits (of 64) from mux cell ino_core_system_16_8.\1811 ($mux).
-Removed top 30 bits (of 64) from wire ino_core_system_16_8.$auto$ghdl.cc:806:import_module$385.
-Removed top 30 bits (of 64) from wire ino_core_system_16_8.$auto$ghdl.cc:806:import_module$432.
+Removed top 3 bits (of 4) from mux cell ino_core_system_16_8.\1309 ($mux).
+Removed top 32 bits (of 140) from mux cell ino_core_system_16_8.\1366 ($mux).
+Removed top 32 bits (of 64) from port A of cell ino_core_system_16_8.\3774 ($add).
+Removed top 31 bits (of 64) from port B of cell ino_core_system_16_8.\3774 ($add).
+Removed top 30 bits (of 64) from port Y of cell ino_core_system_16_8.\3774 ($add).
+Removed top 30 bits (of 64) from mux cell ino_core_system_16_8.\3775 ($mux).
+Removed top 32 bits (of 64) from port A of cell ino_core_system_16_8.\3893 ($add).
+Removed top 31 bits (of 64) from port B of cell ino_core_system_16_8.\3893 ($add).
+Removed top 30 bits (of 64) from port Y of cell ino_core_system_16_8.\3893 ($add).
+Removed top 30 bits (of 64) from mux cell ino_core_system_16_8.\3894 ($mux).
+Removed top 30 bits (of 64) from wire ino_core_system_16_8.$auto$ghdl.cc:806:import_module$840.
+Removed top 30 bits (of 64) from wire ino_core_system_16_8.$auto$ghdl.cc:806:import_module$887.
 Removed top 32 bits (of 282) from wire ino_core_system_16_8.commit_s.
 Removed top 64 bits (of 534) from wire ino_core_system_16_8.issue_s.
 
@@ -247,12 +247,12 @@ Removed 0 unused cells and 4 unused wires.
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_core_system_16_8:
-  creating $macc model for \1691 ($add).
-  creating $macc model for \1810 ($add).
-  creating $alu model for $macc \1810.
-  creating $alu model for $macc \1691.
-  creating $alu cell for \1691: $auto$alumacc.cc:485:replace_alu$108963
-  creating $alu cell for \1810: $auto$alumacc.cc:485:replace_alu$108966
+  creating $macc model for \3774 ($add).
+  creating $macc model for \3893 ($add).
+  creating $alu model for $macc \3893.
+  creating $alu model for $macc \3774.
+  creating $alu cell for \3774: $auto$alumacc.cc:485:replace_alu$114623
+  creating $alu cell for \3893: $auto$alumacc.cc:485:replace_alu$114626
   created 2 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -360,20 +360,20 @@ Removed 0 multiplexer ports.
 
 3.18.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_core_system_16_8.
-    Consolidated identical input bits for $mux cell \1374:
+    Consolidated identical input bits for $mux cell \1370:
       Old ports: A={ \backend_mem_req_s [132:67] 30'000000000000000000000000000000 \backend_mem_req_s [36:0] }, B={ \system_mem_req_s [132:67] 30'000000000000000000000000000000 \system_mem_req_s [36:1] 1'1 }, Y={ \exec_mem_req_o.wdata \exec_mem_req_o.size \exec_mem_req_o.address \exec_mem_req_o.probe \exec_mem_req_o.write \exec_mem_req_o.valid }
       New ports: A={ \backend_mem_req_s [132:67] \backend_mem_req_s [36:0] }, B={ \system_mem_req_s [132:67] \system_mem_req_s [36:1] 1'1 }, Y={ \exec_mem_req_o.wdata \exec_mem_req_o.size \exec_mem_req_o.address [33:0] \exec_mem_req_o.probe \exec_mem_req_o.write \exec_mem_req_o.valid }
       New connections: \exec_mem_req_o.address [63:34] = 30'000000000000000000000000000000
-    Consolidated identical input bits for $mux cell \1692:
+    Consolidated identical input bits for $mux cell \3775:
       Old ports: A={ 2'00 \backend_mem_req_pa_s [35:4] }, B={ 2'01 \backend_mem_req_pa_s [35:4] }, Y=\backend_mem_req_s [36:3]
       New ports: A=1'0, B=1'1, Y=\backend_mem_req_s [35]
       New connections: { \backend_mem_req_s [36] \backend_mem_req_s [34:3] } = { 1'0 \backend_mem_req_pa_s [35:4] }
-    Consolidated identical input bits for $mux cell \1811:
+    Consolidated identical input bits for $mux cell \3894:
       Old ports: A={ 2'00 \system_mem_req_pa_s [35:4] }, B={ 2'01 \system_mem_req_pa_s [35:4] }, Y=\system_mem_req_s [36:3]
       New ports: A=1'0, B=1'1, Y=\system_mem_req_s [35]
       New connections: { \system_mem_req_s [36] \system_mem_req_s [34:3] } = { 1'0 \system_mem_req_pa_s [35:4] }
   Optimizing cells in module \ino_core_system_16_8.
-    Consolidated identical input bits for $mux cell \1374:
+    Consolidated identical input bits for $mux cell \1370:
       Old ports: A={ \backend_mem_req_s [132:67] \backend_mem_req_s [36:0] }, B={ \system_mem_req_s [132:67] \system_mem_req_s [36:1] 1'1 }, Y={ \exec_mem_req_o.wdata \exec_mem_req_o.size \exec_mem_req_o.address [33:0] \exec_mem_req_o.probe \exec_mem_req_o.write \exec_mem_req_o.valid }
       New ports: A={ \backend_mem_req_s [132:67] \backend_mem_req_s [35] \backend_mem_req_pa_s [35:4] \backend_mem_req_s [2:0] }, B={ \system_mem_req_s [132:67] \system_mem_req_s [35] \system_mem_req_pa_s [35:4] \system_mem_req_s [2:1] 1'1 }, Y={ \exec_mem_req_o.wdata \exec_mem_req_o.size \exec_mem_req_o.address [32:0] \exec_mem_req_o.probe \exec_mem_req_o.write \exec_mem_req_o.valid }
       New connections: \exec_mem_req_o.address [33] = 1'0
@@ -649,6 +649,6 @@ Finding unused cells or wires in module \ino_core_system_16_8..
 Removed 0 unused cells and 1126 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 0dae1461fe, CPU: user 1.38s system 0.07s, MEM: 178.89 MB peak
+End of script. Logfile hash: b9a33eb96b, CPU: user 1.36s system 0.07s, MEM: 190.25 MB peak
 Yosys 0.33 (git sha1 2584903a060)
 Time spent: 56% 2x read_rtlil (0 sec), 11% 15x opt_clean (0 sec), ...

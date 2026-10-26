@@ -490,3 +490,192 @@ Pistes suivantes :
 1. Les trois familles critiques traversent deux ou trois macros dans le cycle. Pour gagner de la marge au coin typ, ou viser le coin slow, il faut couper ces chemins plutôt que grappiller des portes. Par exemple, un registre à la frontière `ino_fetch` / `ino_decode_predict`, au prix d'un cycle de prédécodage.
 2. Netlist d'estimation synthétisée avec la bibliothèque slow (`LIB=…slow_1p08V_125C.lib ./synth_hier.sh`), pour une borne `Zero` slow cohérente avec un flot qui vise ce coin.
 3. Le `FEXP_UNIT` partagé de `../vhdl` garde le défaut de `divide` pour le OoO.
+
+## 8. Produit IPC × fréquence (25 octobre)
+
+Point de départ (commit `5b32c67`) : IPC 0,413 (2 108 634 cycles sur les 8 bancs) ; période routée estimée par la règle du § 7 (`Zero` + 25 % de l'écart `Zero` → `30k` au coin slow, + 20 % au coin typ) : **18,9 ns typ, 30,6 ns slow**, soit **21,9 MIPS typ** et 13,5 MIPS slow.
+
+La netlist d'estimation a été refaite dans le conteneur (`synth_hier.sh`, `ABC=direct`, cible 20 ns, bibliothèque typ ; `arbres_tampons.py` ; `sta_tahx.tcl`) : elle redonne exactement les valeurs du § 7 (15,83 / 24,44 ns `Zero`, typ / slow). Toutes les comparaisons ci-dessous sont faites avec ce même flot.
+
+### 8.1 Constat
+
+**Famine du frontal.** Un compteur ajouté à `N3_INO_PLATEFORME` (`PERF FRONT`) donne l'état du prédicteur pendant les cycles de famine (`FRONTEND_STARVE`). Sur B_APPELS (13,5 % de famine) : EVAL 87 %, attente d'octets 6 %, prise d'un bloc 6 %, OUTPUT 0 %. La famine ne vient donc ni du cache d'instructions ni de la file d'octets, mais de l'automate de `BRANCH_PREDICT(IN_ORDER)` : IDLE (prise du bloc), puis **une case par cycle** en EVAL, puis OUTPUT, soit 2 + n cycles pour un bloc de n instructions (2,7 instructions et 2,9 cycles EVAL par bloc en moyenne sur B_APPELS). Le frontal peut décoder 4 instructions par cycle, mais n'en livre qu'environ 0,6.
+
+**Chemins critiques de la référence** (typ, `Zero`, répartition par macro) :
+
+| famille | total | détail |
+|---|---|---|
+| décodeur `ino_fetch` → `ino_decode_predict` → `ino_fetch` | 15,83 ns | fetch 2,4 ; décodage 8,7 ; retour 4,1 (avance de `head_pc`, additionneur en retenue propagée) |
+| chaînage `stack_unit` → `ino_execute` → `stack_unit` | 15,04 ns | émission 1,5 ; **ino_execute 9,7** (ALU entière : une chaîne de retenue de 64 étages) ; commit et prise 3,1 |
+| `stack_unit` → liaison → `ino_decode_queue` → `stack_unit` | 14,73 ns | `commit_s` → reprise (K9) → `FLUSH_i` de la file → contournement de la file vide → prise |
+
+Trois constats :
+
+1. **Le décodeur n'a pas besoin d'être dans une boucle d'un cycle** : après une prise, le prédicteur reste au moins deux cycles hors d'IDLE.
+2. **La file de décodage contient une dépendance inutile** : son contournement (file vide) teste `FLUSH_i`, qui vient du commit. Pendant une reprise, la `stack_unit` ne prend rien ; la case présentée est sans effet (comme celle d'une file non vide, que `FLUSH_i` ne masquait pas).
+3. **ABC relâche les portions de chemins qui traversent les macros.** Chaque macro est projetée avec la cible `-D` = période, entrées à t = 0, sorties requises à la période : la partie interne d'un chemin entre macros (ALU entière : ~6 ns possibles) paraît avoir toute la période devant elle, et la récupération de surface en fait une retenue propagée (~10 ns). LibreLane fait de même (`construct_abc_script.py` : `abc -D CLOCK_PERIOD`, SDC réduit à la cellule d'attaque et à la charge ; les budgets d'entrée/sortie ne servent qu'au placement-routage, qui redimensionne mais ne restructure pas). Le même effet explique la partie « commit, prise » de la `stack_unit` (§ 8.5).
+
+### 8.2 Modifications mesurées (patchs P1 à P5)
+
+| patch | contenu | cycles | timing |
+|---|---|---|---|
+| **P1** `frontal_groupes` | `I4_BRANCH_PREDICT_in_order` : en EVAL, la case lue puis, dans le même cycle, les suivantes tant qu'elles n'ont pas besoin d'un compteur gshare (tout sauf un branchement conditionnel) ; arrêt sur un transfert pris ou avant le conditionnel suivant, dont le compteur est lu pour le cycle suivant. Un bloc sans conditionnel passe en 3 cycles au lieu de 2 + n. `PERF FRONT` dans N3 | −3,4 % | `ino_decode_predict` : registre à registre 5,9 → 5,8 ns ; surface +6,7 % |
+| **P2** `consommation_differee` | `INO_DECODE_PREDICT` : CONSUME, CONSUMED_BYTES et STOP enregistrés (prise appliquée à la file d'octets au cycle suivant). `INO_DECODE_QUEUE` : contournement sans `FLUSH_i` ni `RESET_i` | identiques (B_ARBRE −5 cycles) | boucle du décodeur supprimée |
+| **P3** `arith_chainage` | `INO_INTEGER_UNIT` : un additionneur `ADD_PFX` pour ADD, SUB, INC, DEC, NEG, ABS, LVA et les comparaisons (signe, débordement, égalité), résultat indépendant de la faute ; `INO_BRANCH_UNIT` : cible et repli sur 34 bits (compression 3:2 puis `ADD_PFX`) ; `TO_VA( issue_pa_t )` : base + val sur 34 bits | identiques | unité entière seule (cible serrée) 9,4 → 6,3 ns, −12 % de surface ; unité de branchement 7,3 → 3,2 ns, −33 % |
+| **P4** `muldiv_rapide` | `INO_MULDIV_UNIT` : valeurs absolues à l'émission (plus de pas ABSOLU) ; MUL rendu combinatoirement au pas PRODUIT ; division sans les pas des quartets de tête nuls du dividende. MUL 5 → 3 cycles, DIV/REMI/MODI 21 → 4 + quartets significatifs | −5,6 % | MUL : `dq_s` → `NEG_IF` → COMPLETE, plus court que l'ALU |
+| **P5** `flottant_rapide` | `STACK_UNIT` : la classe ISSUE_FLOAT prend le chemin rapide, comme MUL/DIV (V2) : plus de ST_PREPARE ni de cycle ST_IDLE. FADD 8,8 → 5,0, FMUL 9,6 → 6,0, FDIV 24,5 → 21, CVTIF 7 → 5 | B_FLOTTANT −16,9 % (seul) | une classe de plus dans `fast_ok` |
+
+Vérifications : P1 à P4 par les bancs unitaires concernés (I4, I5, I6, J1b, L1, L2, L3, K1b à K1e, K2b, K2c, K8b, L7, M3, M3b, S1, S1b, N3 ; I5, J1b et L2 adaptés) ; P3 et P4 aussi par comparaison aléatoire avec les anciennes unités (400 000 opérations entières et de branchement, 60 000 MUL/DIV/CVT, sans écart) ; la série complète par `LISTE` (50 tests).
+
+Par banc (cycles) :
+
+| banc | départ | P1 + P2 (+ P3) | P1 à P4 | P1 à P5 |
+|---|---|---|---|---|
+| B_APPELS | 161 056 | 138 589 (−13,9 %) | 137 992 | 137 987 |
+| B_ARBRE | 298 337 | 285 710 (−4,2 %) | 272 766 | 272 766 |
+| B_CHAINES | 313 817 | 310 980 (−0,9 %) | 271 452 | 271 456 |
+| B_CRIBLE | 232 828 | 229 177 (−1,6 %) | 219 539 | 219 536 |
+| B_EXPR | 226 092 | 211 519 (−6,4 %) | 206 851 | 206 850 |
+| B_FLOTTANT | 285 766 | 275 874 (−3,5 %) | 272 144 | 223 914 (−21,6 %) |
+| B_MATRICE | 333 772 | 332 375 (−0,4 %) | 307 649 | 307 647 |
+| B_TRI | 256 966 | 251 672 (−2,1 %) | 233 756 | 233 754 |
+| **total** | **2 108 634** | **2 035 896 (−3,4 %)** | **1 922 149 (−8,8 %)** | **1 873 910 (−11,1 %)** |
+| **IPC** | **0,413** | **0,427** | **0,453** | **0,464** |
+
+Avec P1 à P5, la famine du frontal passe de 95 840 à 40 895 cycles (4,5 % → 2,2 %) ; B_APPELS 13,5 % → 2,3 %, B_ARBRE 9,6 % → 6,2 % (surtout après les reprises). Partition : INSTRUCTION_BUSY 93,2 %, IDLE_AVEC_TRAVAIL 3,8 %, FRONTEND_STARVE 2,2 %, SYSTEM_HOLD 0,8 %. `LISTE` complète : 50 tests passent.
+
+### 8.3 Fréquence
+
+Netlists d'estimation, même flot qu'au § 7 :
+
+- `ref` : commit `5b32c67` ;
+- `v2` : P1 à P4 (P5 ne touche qu'une condition de `fast_ok`) ;
+- `v2s` : `v2` avec `SOUS="ino_integer_unit ino_branch_unit ino_muldiv_unit ino_float_unit fexp_unit"` (ces unités projetées à part, attribut `keep_hierarchy`).
+
+| netlist | typ `Zero` | typ `30k` | **typ routé estimé** | slow `Zero` | slow `30k` | **slow routé estimé** | surface |
+|---|---|---|---|---|---|---|---|
+| ref | 15,83 | 30,93 | **18,9 ns** | 24,44 | 48,97 | **30,6 ns** | 4,151 mm² |
+| v2 | 14,50 | 27,38 | **17,1 ns** | 22,40 | 43,51 | **27,7 ns** | 4,204 mm² |
+| v2s | 13,43 | 27,14 | **≈ 16,2 ns** | 20,81 | 43,18 | **≈ 26,4 ns** | 4,213 mm² |
+
+Familles, typ `Zero` :
+
+| famille | ref | v2 | v2s |
+|---|---|---|---|
+| décodeur `ino_fetch` → `ino_decode_predict` → `ino_fetch` | **15,83** | hors des 3 000 pires | hors des 3 000 pires |
+| chaînage jusqu'à `ino_decode_queue` (DECODE_TAKE) | 14,82 | **14,50** | 12,96 |
+| chaînage `stack_unit` → `ino_execute` → `stack_unit` | 15,04 | 14,16 | 12,33 |
+| `stack_unit` → liaison (FLUSH) → `ino_decode_queue` → `stack_unit` | 14,73 | supprimé | supprimé |
+| `ino_decode_predict` → `ino_decode_queue` (contournement) → `stack_unit` | 13,04 | 13,51 | **13,43** |
+
+Lecture :
+
+- P2 supprime les deux familles de boucle (décodeur, FLUSH). Dans `v2`, le chaînage reste à 14,2–14,5 ns malgré P3 : la partie `ino_execute` (9,8 ns) est toujours une chaîne de retenue, recréée par ABC (§ 8.1, constat 3). La cible plus serrée (`-D 10`) ne change rien : le pire chemin interne d'`ino_execute` (flottant) est au-delà, et ABC relâche tout le reste jusqu'à lui (§ 7).
+- Projetées à part (`v2s`), les unités gardent leur structure : la partie `ino_execute` du chaînage passe à ≈ 6 ns. Pour LibreLane, l'équivalent est `SYNTH_KEEP_HIERARCHY_MODULES: [ino_integer_unit, ino_branch_unit, ino_muldiv_unit, ino_float_unit, fexp_unit]` dans la configuration d'`ino_execute` (`SYNTH_HIERARCHY_MODE` reste `flatten`). À confirmer par un run contraint d'`ino_execute`, comme ceux du § 7.
+- Le chemin limitant devient la **prise de la `stack_unit`** depuis la file de décodage : 12 ns dans la `stack_unit` (§ 8.5).
+
+### 8.4 Bilan IPC × fréquence
+
+| version | IPC | période typ | MIPS typ | période slow | MIPS slow |
+|---|---|---|---|---|---|
+| départ | 0,413 | 18,9 ns (53 MHz) | 21,9 | 30,6 ns (33 MHz) | 13,5 |
+| P1 à P4, synthèse d'un bloc (`v2`) | 0,453 | 17,1 ns (58 MHz) | 26,5 (**+21 %**) | 27,7 ns (36 MHz) | 16,4 (+21 %) |
+| P1 à P5, unités d'exécution à part (`v2s`) | 0,464 | ≈ 16,2 ns (62 MHz) | 28,7 (**+31 %**) | ≈ 26,4 ns (38 MHz) | 17,6 (+30 %) |
+
+Pour comparaison, **enregistrer le chaînage** (COMPLETE au cycle suivant l'émission) coûterait un cycle à chaque instruction qui commite dans le cycle de son émission : au moins 370 000 instructions entières, de branchement et LI sur les 870 000 retraites, soit ≈ +17 % de cycles au départ (+20 % après P1 à P5), pour au mieux le gain de fréquence du seul chaînage. À écarter.
+
+### 8.5 Suite proposée
+
+Fréquence (par gain attendu) :
+
+1. **`SYNTH_KEEP_HIERARCHY_MODULES` pour `ino_execute`** (configuration seule) : run contraint d'`ino_execute` à faire, à comparer au § 8.3.
+2. **Prise de la `stack_unit`** (≈ 12 ns typ `Zero` de DECODE_SLOT aux registres de la prise, 13,4 ns avec la file) : décodage ISA (≈ 5 ns, table de 256 entrées projetée en chaîne), DISPLAY(lvl) + val puis comparaisons d'adresses aux cellules lues, contrôles de limites (LINK : val + 7, + DSP, + 8, puis comparaison à LIM_DSP), tous dans le cône de `fast_ok`. Pistes : arithmétique en préfixe parallèle et comparaisons par retenue (comme P3) ; contrôles de limites précalculés ou retirés du cône de la prise (une faute de limite peut être levée un cycle plus tard, au commit) ; attributs ISA précalculés en amont (file de décodage ou décodeur, environ 16 bits par case). Même difficulté que pour `ino_execute` : il faudra que la structure survive à ABC (sous-module gardé, ou cible serrée).
+3. **Chaînage, partie `stack_unit`** (commit, `chain_s`, contournement : ≈ 3 ns) : la décision de prise ne dépendrait plus de COMPLETE.fault ni de MISPREDICTED pour l'entier et les branchements (terminaison connue d'avance) ; une faute ou une mauvaise prédiction annulerait la prise au cycle suivant (l'état passe en ST_FAULT_HOLD ou ST_MISPRED_HOLD, DECODE_TAKE reste exact). Seule la donnée (résultat → contournement) resterait sur le chemin.
+
+IPC :
+
+- Famine résiduelle (2,2 %, dont la moitié après les reprises) : attente des octets après une redirection (présentation de l'adresse de la SRAM d'instructions dès la redirection : −1 cycle par redirection) ; EVAL des blocs à plusieurs conditionnels.
+- Cycle ST_IDLE après le commit (lent) de LINK, RTD, UNLINKR, CALL : ≈ 33 000 cycles (1,7 %).
+- LID [C24] (4 cycles, 12,7 % des cycles) : la cellule pointeur n'est presque jamais dans le cache de pile (mesuré : seulement sur B_ARBRE, ≈ 3 000 accès, dont 2 650 sales) ; le gain resterait sous 1 % au total.
+- BLKMOV : ≈ 3 000 cycles par banc au démarrage (deux copies), constant.
+
+### 8.6 Routage d'`ino_decode_predict` et table gshare (26 octobre)
+
+Le run `config_25ns_slow.yaml` d'`ino_decode_predict` après P1 à P7 ne converge pas au routage détaillé (2 000 à 7 000 violations, courts-circuits et espacements en Metal2 à Metal4, encore 5 200 à la 43e itération). La macro était déjà à 66–67 % d'occupation pour 60 % visés (§ 7), et P1 ajoute 6,7 % de cellules.
+
+La table gshare (bascules, deux ports de lecture) est le plus gros poste de la macro. Surface de synthèse d'`ino_decode_predict` (typ, même flot que § 8.2, P1 et P2 compris) et cycles des 8 bancs (P1 à P5) :
+
+| table | surface | cycles | écart |
+|---|---|---|---|
+| G10 (1 K) | 526 k µm² | 1 873 910 | — |
+| **G9 (512)** | **404 k µm² (−23 %)** | **1 876 033** | **+0,11 %** (B_EXPR +0,7 %) |
+| G8 (256) | 341 k µm² (−35 %) | 1 878 284 | +0,23 % (B_EXPR +1,7 %) |
+
+Patch P8 `gshare_512` : `GSHARE_BITS` et `RETIRE_PC_BITS` à 9 (variante `VARIANTES/G9.txt` ajoutée). Occupation estimée de la macro dans la boîte actuelle (800 × 1050 µm) : ≈ 54 %, sous la densité cible. Le décodage (entrée → registre) ne change presque pas : 14,6 → 14,8 ns au coin slow.
+
+### 8.7 Run D : `ino_decode_predict` routée après P1 à P8 (26 octobre)
+
+Run **D** : `config_25ns_slow.yaml` (comme C), RTL P1 à P8 (table gshare de 512), même SDC qu'en C. Routage détaillé en 55 itérations (4 h 30), puis une reprise pour les antennes (116 diodes) ; 0 erreur de DRC, 0 antenne, aucun tampon de hold.
+
+| | C (0f0d708) | **D (P1 à P8)** |
+|---|---|---|
+| surface de cellules | 540 k µm² | **438 k µm²** |
+| occupation | 67 % | **54,6 %** |
+| marge slow | −3,76 ns (54 extrémités) | **−4,40 ns (144 extrémités)** |
+| marge typ / fast | +2,88 / +3,74 | +2,34 / +3,22 |
+| registre à registre, slow | +16,30 | +8,47 (prédicteur par groupes, P1) |
+| violations de slew, slow | 6 | 130 |
+
+Les 144 extrémités en violation sont toutes des chemins `window_i` → décodage → `u_predict.work_q`, c'est-à-dire la prise du bloc décodé en IDLE. Le pire part de `window_i[252]` (4,69 ns de budget d'entrée) et arrive à 29,6 ns : 24,9 ns dans la macro, dont de nombreux étages de force 1 sur des nets chargés (slews de 0,9 à 1,4 ns), comme en C.
+
+**Calibration.** Prévision de la même famille (`sta_macro.tcl`, netlist `v2s`, même SDC) : `Zero` +5,68 / `30k` −7,92 ns au coin slow, +10,83 / +2,46 ns au coin typ. Le routé se place à **74 % de l'écart au coin slow, ~100 % au coin typ**, et non à 25 / 20 %. La règle du § 7 vient du pire chemin de C (`window_count_i` → `consumed_bytes_o`, la chaîne des débuts seule). Elle ne vaut pas pour le chemin complet du décodeur jusqu'au bloc décodé : extraction des champs de 4 instructions, octets de la fenêtre à forte sortance répartis sur toute la macro.
+
+**Conséquence pour le § 8.3.** P2 coupe bien la boucle à travers `ino_fetch`, mais le chemin restant (registres de la file d'octets → décodage → `work_q`) est, une fois routé, presque aussi long que l'ancienne boucle. Au coin typ, avec un budget d'entrée typ (~3,5 ns au lieu de 4,69), il fait ≈ 21–22 ns ; au coin slow, ≈ 30 ns. **C'est la famille limitante du cœur**, devant le chaînage (≈ 16 ns typ estimés). Corrigé de la même façon, le départ (C) faisait ≈ 21 ns typ et ≈ 29 ns slow. Le gain de P1 à P8 est donc pour l'instant celui de l'IPC (+12 %), la fréquence restant à peu près celle du départ :
+
+| version | IPC | période typ (routé, décodeur) | MIPS typ | période slow | MIPS slow |
+|---|---|---|---|---|---|
+| départ (C) | 0,413 | ≈ 21 ns | ≈ 19,5 | ≈ 29 ns | ≈ 14,3 |
+| P1 à P8 (D) | 0,464 | ≈ 21,7 ns | ≈ 21,4 (+10 %) | ≈ 29,6 ns | ≈ 15,7 (+10 %) |
+
+Les gains de fréquence du § 8.3 (chaînage, unités d'exécution à part) ne compteront qu'une fois le décodeur coupé.
+
+**Piste : prédécodage enregistré.** Enregistrer les 33 prédécodages de position (nature, position suivante) : prédécodage au cycle 1, chaîne des débuts et champs au cycle 2. Le registre reste valide tant que la tête de la file d'octets ne bouge pas et qu'il n'y a pas de vidage, car une fenêtre qui ne fait que s'allonger ne rend pas un prédécodage faux, seulement plus prudent (K_NEED). Après une prise, le prédicteur reste au moins deux cycles hors d'IDLE (EVAL, OUTPUT), et le nouveau prédécodage est prêt à temps. Le coût en cycles se limite au premier bloc après chaque redirection (transfert pris, reprise) : +1 cycle quand le cœur attend le frontal. À mesurer avant de l'adopter.
+
+### 8.8 Décodeur en deux étages (patch P11, 26 octobre)
+
+Le décodeur est coupé après le prédécodage : `INO_DECODE_PIPE` (`I3b`) enregistre, pour les 32 positions de la fenêtre, la nature et la position suivante (`pre_q`), avec le nombre d'octets présents. L'étage suivant fait la chaîne des débuts et l'extraction des champs dans la fenêtre courante. Les fonctions du décodeur passent dans `INO_DECODE_PKG` (`I3a`), partagé avec `DECODE_BLOC(IN_ORDER)`, qui reste le modèle de référence (banc I3).
+
+**Validité du prédécodage enregistré** : la tête de la file d'octets n'a pas bougé au front précédent (elle bouge au front où `CONSUME_o` vaut '1'), et le nombre d'octets n'a pas baissé (un vidage le ramène à 0). Les octets présents sont alors inchangés, et un prédécodage fait avec moins d'octets n'est que plus prudent (K_NEED plus tôt). Sinon le bloc présenté est vide pendant un cycle. Le banc I5 suit désormais ce contrat de la file d'octets (fenêtre quelconque après un mouvement de tête ou un vidage, octets présents inchangés sinon) ; il échoue si l'une des deux conditions manque.
+
+**Timing d'`ino_decode_predict` seule** (synthèse typ, entrées à t = 0, coin slow, `Zero` / `30k`) :
+
+| chemin | P8 | P11 |
+|---|---|---|
+| entrée → registre (fenêtre → décodage) | 15,0 / 33,7 ns | 6,2 / 12,9 ns |
+| registre → registre | 9,2 / 18,6 ns | 11,6 / 25,7 ns (`pre_q` → chaîne → `work_q`) |
+
+Avec la position mesurée en D (74 % de l'écart au coin slow, ~100 % au typ), l'étage 2 ferait ≈ 22 ns au coin slow et ≈ 16 ns au coin typ routés, contre ≈ 29,6 / 21,7 ns pour le chemin coupé. Surface de la macro : 404 k → 420 k µm² (+4 %).
+
+**Coût en cycles** : un cycle de plus sur le premier bloc après chaque redirection, quand le cœur attend le frontal. Sur les 8 bancs : 1 876 033 → **1 900 559 cycles (+1,3 %)**, IPC 0,464 → **0,458** ; famine du frontal 2,2 % → 3,3 % (B_APPELS +4,7 %, B_ARBRE +3,0 %, les autres de +0,1 à +1,8 %).
+
+**Bilan attendu** : la famille limitante du cœur passe du décodeur (≈ 21,7 ns typ, ≈ 29,6 ns slow) aux familles du § 8.3 (chaînage, contournement de la file de décodage : ≈ 16–17 ns typ estimés, à confirmer). À ≈ 17 ns typ, on aurait ≈ 27 MIPS au coin typ, contre ≈ 21,4 avant P11. À confirmer par un run `config_25ns_slow.yaml` d'`ino_decode_predict` (run E), avec le SDC actuel : les budgets des ports ne changent pas.
+
+### 8.9 Runs E et F : décodeur en deux étages et parasites estimés (26 octobre)
+
+Mêmes réglages que D (`config_25ns_slow.yaml`, même SDC), RTL P1 à P11.
+
+| | D (P8) | E (P11) | **F (P11, P13, P14)** |
+|---|---|---|---|
+| occupation | 54,6 % | 58,4 % | 60,6 % |
+| tampons de réparation | 6 391 | 6 590 | 7 803 |
+| marge slow | −4,40 ns (144, entrée → `work_q`) | −7,94 ns (98, registre → registre) | **−0,72 ns (20, registre → registre)** |
+| marge typ / fast | +2,34 / +3,22 | +3,19 / +3,75 | **+3,60 / +4,01** |
+| registre à registre typ | — | +4,50 | +8,69 |
+| violations de slew / capacité, slow | 130 / 7 | 244 / 27 | **30 / 0** |
+| DRC, antennes | 0, 0 | 0, 0 | 0, 0 |
+
+- **E** : la coupure du décodeur supprime les 144 violations entrée → `work_q`. Le deuxième étage échoue pourtant au coin slow, car quatre portes de force 1 y chargent environ 0,28 pF (slews de 4 à 5 ns). La réparation après routage global ne voyait que 4 violations de slew, contre 244 au signoff.
+- **Cause** : la configuration LibreLane de `ihp-sg13cmos5l` laisse `LAYERS_RC` vide. L'estimation des parasites prend alors les valeurs du LEF (Metal2 : 0,09 fF/µm, 0,5 Ω/µm). Celle de `ihp-sg13g2`, dont les couches Metal1 à Metal4 ont les mêmes valeurs dans le LEF, fournit un ajustement d'OpenROAD-flow-scripts (Metal2 : 0,17 fF/µm, 2,5 Ω/µm). Toutes les réparations du flot voyaient donc des fils deux fois trop légers. C'est probablement aussi la raison de la position de D à 74–100 % de l'écart `Zero` → `30k`.
+- **F** : `LAYERS_RC` de sg13g2 pour Metal1 à Metal4 (P14), et tampons sur les fils de plus de 400 µm (P13). Les violations de capacité disparaissent, celles de slew passent de 244 à 30, et la marge slow de −7,94 à −0,72 ns. La macro tient 25 ns au coin typ avec 3,6 ns de marge (budgets d'entrée et de sortie du coin slow), et ≈ 25,7 ns au coin slow.
+
+**À reporter sur les autres macros** : `LAYERS_RC` (P14) vaut pour tous les runs sur sg13cmos5l. Les règles de calibration du § 7 (25 % / 20 %) ont été mesurées sans lui et sont à refaire avec.

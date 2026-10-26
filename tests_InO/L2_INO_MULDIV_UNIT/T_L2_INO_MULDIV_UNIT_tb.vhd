@@ -160,25 +160,33 @@ begin
       wait for 1 ns;
       CHECK( c, issue_ready = '1', "ready apres reset" );
 
-      EXEC( OP_MUL_T, WS( 6 ), WS( 7 ), latency => 4, expected => WS( 42 ), name => "MUL" );
-      EXEC( OP_MUL_T, MAX_I64, WS( 2 ), latency => 4, expected_fault => F_OVERFLOW, name => "MUL overflow" );
+      EXEC( OP_MUL_T, WS( 6 ), WS( 7 ), latency => 2, expected => WS( 42 ), name => "MUL" );
+      EXEC( OP_MUL_T, MAX_I64, WS( 2 ), latency => 2, expected_fault => F_OVERFLOW, name => "MUL overflow" );
 
-      EXEC( OP_DIV_T, WS( 17 ), WS( 5 ), latency => 20, expected => WS( 3 ), name => "DIV positif" );
-      EXEC( OP_DIV_T, WS( -17 ), WS( 5 ), latency => 20, expected => WS( -3 ), name => "DIV vers zero" );
-      EXEC( OP_DIV_T, WS( 1 ), WS( 0 ), latency => 20, expected_fault => F_DIV_ZERO, name => "DIV zero" );
-      EXEC( OP_DIV_T, MIN_I64, WS( -1 ), latency => 20, expected_fault => F_OVERFLOW, name => "DIV min/-1" );
+      -- Latences (étude IPC x f) : valeurs absolues à l'émission ; MUL rendu au pas
+      -- PRODUIT (2) ; DIV/REMI/MODI : 3 + un pas par quartet significatif de |a|
+      -- (17 : 2 pas ; 1 : 1 pas ; 0 : aucun ; MIN_64 : 16) ; CVTIX/CVTXI : 3 + 32.
+      EXEC( OP_DIV_T, WS( 17 ), WS( 5 ), latency => 5, expected => WS( 3 ), name => "DIV positif" );
+      EXEC( OP_DIV_T, WS( -17 ), WS( 5 ), latency => 5, expected => WS( -3 ), name => "DIV vers zero" );
+      EXEC( OP_DIV_T, WS( 1 ), WS( 0 ), latency => 4, expected_fault => F_DIV_ZERO, name => "DIV zero" );
+      EXEC( OP_DIV_T, MIN_I64, WS( -1 ), latency => 19, expected_fault => F_OVERFLOW, name => "DIV min/-1" );
 
-      EXEC( OP_REMI_T, WS( -17 ), WS( 5 ), latency => 20, expected => WS( -2 ), name => "REMI" );
-      EXEC( OP_MODI_T, WS( -17 ), WS( 5 ), latency => 20, expected => WS( 3 ), name => "MODI" );
-      EXEC( OP_REMI_T, MIN_I64, WS( -1 ), latency => 20, expected => WS( 0 ), name => "REMI min/-1" );
-      EXEC( OP_MODI_T, MIN_I64, WS( -1 ), latency => 20, expected => WS( 0 ), name => "MODI min/-1" );
+      EXEC( OP_REMI_T, WS( -17 ), WS( 5 ), latency => 5, expected => WS( -2 ), name => "REMI" );
+      EXEC( OP_MODI_T, WS( -17 ), WS( 5 ), latency => 5, expected => WS( 3 ), name => "MODI" );
+      EXEC( OP_REMI_T, MIN_I64, WS( -1 ), latency => 19, expected => WS( 0 ), name => "REMI min/-1" );
+      EXEC( OP_MODI_T, MIN_I64, WS( -1 ), latency => 19, expected => WS( 0 ), name => "MODI min/-1" );
+      EXEC( OP_DIV_T, WS( 0 ), WS( 5 ), latency => 3, expected => WS( 0 ), name => "DIV dividende nul" );
+      EXEC( OP_MODI_T, WS( 0 ), WS( -5 ), latency => 3, expected => WS( 0 ), name => "MODI dividende nul" );
+      EXEC( OP_DIV_T, MAX_I64, WS( 3 ), latency => 19, expected => x"2AAAAAAAAAAAAAAA", name => "DIV 16 pas" );
+      EXEC( OP_MODI_T, WS( -1000 ), WS( 7 ), latency => 6, expected => WS( 1 ), name => "MODI 3 pas" );
+      EXEC( OP_DIV_T, WS( 16#10000# ), WS( 16#100# ), latency => 8, expected => WS( 16#100# ), name => "DIV 5 pas" );
 
-      EXEC( OP_CVTIX_T, WS( 7 ), WS( 3 ), WS( 2 ), latency => 36, expected => WS( 10 ), name => "CVTIX tronque" );
-      EXEC( OP_CVTIX_T, WS( -7 ), WS( 3 ), WS( 2 ), latency => 36, expected => WS( -10 ), name => "CVTIX negatif" );
-      EXEC( OP_CVTXI_T, WS( 7 ), WS( 3 ), WS( 2 ), latency => 36, expected => WS( 11 ), name => "CVTXI + demi" );
-      EXEC( OP_CVTXI_T, WS( -7 ), WS( 3 ), WS( 2 ), latency => 36, expected => WS( -11 ), name => "CVTXI - demi" );
-      EXEC( OP_CVTIX_T, WS( 1 ), WS( 1 ), WS( 0 ), latency => 36, expected_fault => F_DIV_ZERO, name => "CVTIX div zero" );
-      EXEC( OP_CVTIX_T, MAX_I64, WS( 2 ), WS( 1 ), latency => 36, expected_fault => F_OVERFLOW, name => "CVTIX overflow" );
+      EXEC( OP_CVTIX_T, WS( 7 ), WS( 3 ), WS( 2 ), latency => 35, expected => WS( 10 ), name => "CVTIX tronque" );
+      EXEC( OP_CVTIX_T, WS( -7 ), WS( 3 ), WS( 2 ), latency => 35, expected => WS( -10 ), name => "CVTIX negatif" );
+      EXEC( OP_CVTXI_T, WS( 7 ), WS( 3 ), WS( 2 ), latency => 35, expected => WS( 11 ), name => "CVTXI + demi" );
+      EXEC( OP_CVTXI_T, WS( -7 ), WS( 3 ), WS( 2 ), latency => 35, expected => WS( -11 ), name => "CVTXI - demi" );
+      EXEC( OP_CVTIX_T, WS( 1 ), WS( 1 ), WS( 0 ), latency => 35, expected_fault => F_DIV_ZERO, name => "CVTIX div zero" );
+      EXEC( OP_CVTIX_T, MAX_I64, WS( 2 ), WS( 1 ), latency => 35, expected_fault => F_OVERFLOW, name => "CVTIX overflow" );
 
       running <= false;
       FINISH( c, "T_L2_INO_MULDIV_UNIT_tb" );

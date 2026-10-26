@@ -24,7 +24,7 @@ package INO_FRONT_PA is
 
    -- Bits du pc retire utiles au predicteur : l'indice gshare. Doit valoir
    -- GSHARE_BITS de I4_BRANCH_PREDICT_in_order.vhd (verifie par le banc I5).
-   constant RETIRE_PC_BITS : positive := 10;
+   constant RETIRE_PC_BITS : positive := 9;
 
    -- Bits du sommet de pile des retours lus a la reprise : la pile de
    -- BRANCH_PREDICT(IN_ORDER) a RAS_N = 8 entrees (pointeur reduit modulo 8).

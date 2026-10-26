@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_pipe ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_muldiv_unit ino_pred_table2_2r_512 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_memory_unit
          synth -top ino_memory_unit -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -121,29 +121,29 @@ Removed 0 multiplexer ports.
 
 3.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_memory_unit.
-    New ctrl vector for $pmux cell \195489: $auto$ghdl.cc:806:import_module$90978
-    New ctrl vector for $pmux cell \195494: { $auto$ghdl.cc:806:import_module$90981 $auto$ghdl.cc:806:import_module$90978 }
-    New ctrl vector for $pmux cell \195292: $auto$opt_reduce.cc:134:opt_pmux$108960
-    New ctrl vector for $pmux cell \195294: $auto$ghdl.cc:806:import_module$90923
-    New ctrl vector for $pmux cell \195576: $auto$ghdl.cc:806:import_module$90978
-    New ctrl vector for $pmux cell \195581: { $auto$ghdl.cc:806:import_module$90981 $auto$ghdl.cc:806:import_module$90978 }
-    New ctrl vector for $pmux cell \195296: { $auto$ghdl.cc:806:import_module$90927 $auto$opt_reduce.cc:134:opt_pmux$108962 $auto$ghdl.cc:806:import_module$90921 }
-    New ctrl vector for $pmux cell \195298: { $auto$opt_reduce.cc:134:opt_pmux$108964 $auto$ghdl.cc:806:import_module$90921 }
-    New ctrl vector for $pmux cell \195300: $auto$ghdl.cc:806:import_module$90923
-    New ctrl vector for $pmux cell \195657: $auto$ghdl.cc:806:import_module$90978
-    New ctrl vector for $pmux cell \195662: { $auto$ghdl.cc:806:import_module$90981 $auto$ghdl.cc:806:import_module$90978 }
-    New ctrl vector for $pmux cell \195696: { $auto$opt_reduce.cc:134:opt_pmux$108966 $auto$ghdl.cc:806:import_module$90919 }
-    New ctrl vector for $pmux cell \195698: { $auto$opt_reduce.cc:134:opt_pmux$108968 $auto$ghdl.cc:806:import_module$90919 }
-    New ctrl vector for $pmux cell \195700: { $auto$ghdl.cc:806:import_module$90972 $auto$ghdl.cc:806:import_module$90959 $auto$opt_reduce.cc:134:opt_pmux$108970 }
-    New ctrl vector for $pmux cell \195702: { $auto$opt_reduce.cc:134:opt_pmux$108972 $auto$ghdl.cc:806:import_module$90919 }
-    New ctrl vector for $pmux cell \195704: { $auto$ghdl.cc:806:import_module$91016 $auto$opt_reduce.cc:134:opt_pmux$108974 }
-    New ctrl vector for $pmux cell \195706: { $auto$opt_reduce.cc:134:opt_pmux$108976 $auto$ghdl.cc:806:import_module$90919 }
-    New ctrl vector for $pmux cell \195708: { $auto$opt_reduce.cc:134:opt_pmux$108978 $auto$ghdl.cc:806:import_module$90919 }
-    New ctrl vector for $pmux cell \195710: { $auto$opt_reduce.cc:134:opt_pmux$108980 $auto$ghdl.cc:806:import_module$90919 }
-    New ctrl vector for $pmux cell \195712: { $auto$opt_reduce.cc:134:opt_pmux$108982 $auto$ghdl.cc:806:import_module$90919 }
-    New ctrl vector for $pmux cell \195714: { $auto$opt_reduce.cc:134:opt_pmux$108984 $auto$ghdl.cc:806:import_module$90919 }
-    New ctrl vector for $pmux cell \195716: { $auto$opt_reduce.cc:134:opt_pmux$108986 $auto$ghdl.cc:806:import_module$90919 }
-    New ctrl vector for $pmux cell \195719: { $auto$ghdl.cc:806:import_module$91039 $auto$ghdl.cc:806:import_module$91016 $auto$ghdl.cc:806:import_module$90994 $auto$ghdl.cc:806:import_module$90972 $auto$ghdl.cc:806:import_module$90959 $auto$opt_reduce.cc:134:opt_pmux$108988 }
+    New ctrl vector for $pmux cell \202884: $auto$ghdl.cc:806:import_module$91400
+    New ctrl vector for $pmux cell \202889: { $auto$ghdl.cc:806:import_module$91403 $auto$ghdl.cc:806:import_module$91400 }
+    New ctrl vector for $pmux cell \202687: $auto$opt_reduce.cc:134:opt_pmux$114620
+    New ctrl vector for $pmux cell \202689: $auto$ghdl.cc:806:import_module$91345
+    New ctrl vector for $pmux cell \202971: $auto$ghdl.cc:806:import_module$91400
+    New ctrl vector for $pmux cell \202976: { $auto$ghdl.cc:806:import_module$91403 $auto$ghdl.cc:806:import_module$91400 }
+    New ctrl vector for $pmux cell \202691: { $auto$ghdl.cc:806:import_module$91349 $auto$opt_reduce.cc:134:opt_pmux$114622 $auto$ghdl.cc:806:import_module$91343 }
+    New ctrl vector for $pmux cell \202693: { $auto$opt_reduce.cc:134:opt_pmux$114624 $auto$ghdl.cc:806:import_module$91343 }
+    New ctrl vector for $pmux cell \202695: $auto$ghdl.cc:806:import_module$91345
+    New ctrl vector for $pmux cell \203052: $auto$ghdl.cc:806:import_module$91400
+    New ctrl vector for $pmux cell \203057: { $auto$ghdl.cc:806:import_module$91403 $auto$ghdl.cc:806:import_module$91400 }
+    New ctrl vector for $pmux cell \203091: { $auto$opt_reduce.cc:134:opt_pmux$114626 $auto$ghdl.cc:806:import_module$91341 }
+    New ctrl vector for $pmux cell \203093: { $auto$opt_reduce.cc:134:opt_pmux$114628 $auto$ghdl.cc:806:import_module$91341 }
+    New ctrl vector for $pmux cell \203095: { $auto$ghdl.cc:806:import_module$91394 $auto$ghdl.cc:806:import_module$91381 $auto$opt_reduce.cc:134:opt_pmux$114630 }
+    New ctrl vector for $pmux cell \203097: { $auto$opt_reduce.cc:134:opt_pmux$114632 $auto$ghdl.cc:806:import_module$91341 }
+    New ctrl vector for $pmux cell \203099: { $auto$ghdl.cc:806:import_module$91438 $auto$opt_reduce.cc:134:opt_pmux$114634 }
+    New ctrl vector for $pmux cell \203101: { $auto$opt_reduce.cc:134:opt_pmux$114636 $auto$ghdl.cc:806:import_module$91341 }
+    New ctrl vector for $pmux cell \203103: { $auto$opt_reduce.cc:134:opt_pmux$114638 $auto$ghdl.cc:806:import_module$91341 }
+    New ctrl vector for $pmux cell \203105: { $auto$opt_reduce.cc:134:opt_pmux$114640 $auto$ghdl.cc:806:import_module$91341 }
+    New ctrl vector for $pmux cell \203107: { $auto$opt_reduce.cc:134:opt_pmux$114642 $auto$ghdl.cc:806:import_module$91341 }
+    New ctrl vector for $pmux cell \203109: { $auto$opt_reduce.cc:134:opt_pmux$114644 $auto$ghdl.cc:806:import_module$91341 }
+    New ctrl vector for $pmux cell \203111: { $auto$opt_reduce.cc:134:opt_pmux$114646 $auto$ghdl.cc:806:import_module$91341 }
+    New ctrl vector for $pmux cell \203114: { $auto$ghdl.cc:806:import_module$91461 $auto$ghdl.cc:806:import_module$91438 $auto$ghdl.cc:806:import_module$91416 $auto$ghdl.cc:806:import_module$91394 $auto$ghdl.cc:806:import_module$91381 $auto$opt_reduce.cc:134:opt_pmux$114648 }
   Optimizing cells in module \ino_memory_unit.
 Performed a total of 26 changes.
 
@@ -174,7 +174,7 @@ Removed 0 multiplexer ports.
 
 3.6.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_memory_unit.
-    New ctrl vector for $pmux cell \195694: { $auto$ghdl.cc:806:import_module$90927 $auto$ghdl.cc:806:import_module$91016 $auto$ghdl.cc:806:import_module$90924 $auto$opt_reduce.cc:134:opt_pmux$108990 $auto$ghdl.cc:806:import_module$90923 $auto$ghdl.cc:806:import_module$90972 $auto$ghdl.cc:806:import_module$90921 $auto$ghdl.cc:806:import_module$90959 $auto$ghdl.cc:806:import_module$90919 }
+    New ctrl vector for $pmux cell \203089: { $auto$ghdl.cc:806:import_module$91349 $auto$ghdl.cc:806:import_module$91438 $auto$ghdl.cc:806:import_module$91346 $auto$opt_reduce.cc:134:opt_pmux$114650 $auto$ghdl.cc:806:import_module$91345 $auto$ghdl.cc:806:import_module$91394 $auto$ghdl.cc:806:import_module$91343 $auto$ghdl.cc:806:import_module$91381 $auto$ghdl.cc:806:import_module$91341 }
   Optimizing cells in module \ino_memory_unit.
 Performed a total of 1 changes.
 
@@ -265,30 +265,30 @@ Finding identical cells in module `\ino_memory_unit'.
 Removed a total of 0 cells.
 
 3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on \195802 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91052, Q = \complete_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
-Adding SRST signal on \195801 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91051, Q = \special_s, rval = 1'0).
-Adding EN signal on $auto$ff.cc:266:slice$108992 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91051, Q = \special_s).
-Adding SRST signal on \195800 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91050, Q = \signed_s, rval = 1'0).
-Adding EN signal on $auto$ff.cc:266:slice$109000 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91050, Q = \signed_s).
-Adding SRST signal on \195799 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91049, Q = \chk_s, rval = 1'0).
-Adding EN signal on $auto$ff.cc:266:slice$109008 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91049, Q = \chk_s).
-Adding SRST signal on \195798 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91048, Q = \store_s, rval = 1'0).
-Adding EN signal on $auto$ff.cc:266:slice$109016 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91048, Q = \store_s).
-Adding SRST signal on \195797 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91047, Q = \family_c_s, rval = 1'0).
-Adding EN signal on $auto$ff.cc:266:slice$109024 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91047, Q = \family_c_s).
-Adding SRST signal on \195796 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91046, Q = \size_s, rval = 2'00).
-Adding EN signal on $auto$ff.cc:266:slice$109032 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91046, Q = \size_s).
-Adding SRST signal on \195795 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91045, Q = \fst_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$109040 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91045, Q = \fst_s).
-Adding SRST signal on \195794 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91044, Q = \data_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$109050 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91044, Q = \data_s).
-Adding SRST signal on \195793 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91043, Q = \ea_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$109058 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91043, Q = \ea_s).
-Adding SRST signal on \195792 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91042, Q = \cell_address_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
-Adding EN signal on $auto$ff.cc:266:slice$109070 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91042, Q = \cell_address_s).
-Adding EN signal on \195791 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91041, Q = \slot_s).
-Adding SRST signal on \195790 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91040, Q = \state_s, rval = 4'0000).
-Adding EN signal on $auto$ff.cc:266:slice$109087 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91040, Q = \state_s).
+Adding SRST signal on \203197 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91474, Q = \complete_s, rval = 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on \203196 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91473, Q = \special_s, rval = 1'0).
+Adding EN signal on $auto$ff.cc:266:slice$114652 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91473, Q = \special_s).
+Adding SRST signal on \203195 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91472, Q = \signed_s, rval = 1'0).
+Adding EN signal on $auto$ff.cc:266:slice$114660 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91472, Q = \signed_s).
+Adding SRST signal on \203194 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91471, Q = \chk_s, rval = 1'0).
+Adding EN signal on $auto$ff.cc:266:slice$114668 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91471, Q = \chk_s).
+Adding SRST signal on \203193 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91470, Q = \store_s, rval = 1'0).
+Adding EN signal on $auto$ff.cc:266:slice$114676 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91470, Q = \store_s).
+Adding SRST signal on \203192 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91469, Q = \family_c_s, rval = 1'0).
+Adding EN signal on $auto$ff.cc:266:slice$114684 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91469, Q = \family_c_s).
+Adding SRST signal on \203191 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91468, Q = \size_s, rval = 2'00).
+Adding EN signal on $auto$ff.cc:266:slice$114692 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91468, Q = \size_s).
+Adding SRST signal on \203190 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91467, Q = \fst_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$114700 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91467, Q = \fst_s).
+Adding SRST signal on \203189 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91466, Q = \data_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$114710 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91466, Q = \data_s).
+Adding SRST signal on \203188 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91465, Q = \ea_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$114718 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91465, Q = \ea_s).
+Adding SRST signal on \203187 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91464, Q = \cell_address_s, rval = 64'0000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$114730 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91464, Q = \cell_address_s).
+Adding EN signal on \203186 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91463, Q = \slot_s).
+Adding SRST signal on \203185 ($dff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91462, Q = \state_s, rval = 4'0000).
+Adding EN signal on $auto$ff.cc:266:slice$114747 ($sdff) from module ino_memory_unit (D = $auto$ghdl.cc:806:import_module$91462, Q = \state_s).
 
 3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_memory_unit..
@@ -311,17 +311,17 @@ Removed 0 multiplexer ports.
 
 3.8.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_memory_unit.
-    New ctrl vector for $pmux cell \195696: $auto$ghdl.cc:806:import_module$90919
-    New ctrl vector for $pmux cell \195698: $auto$ghdl.cc:806:import_module$90919
-    New ctrl vector for $pmux cell \195700: { $auto$ghdl.cc:806:import_module$90972 $auto$ghdl.cc:806:import_module$90959 }
-    New ctrl vector for $pmux cell \195702: $auto$ghdl.cc:806:import_module$90919
-    New ctrl vector for $pmux cell \195704: $auto$ghdl.cc:806:import_module$91016
-    New ctrl vector for $pmux cell \195706: $auto$ghdl.cc:806:import_module$90919
-    New ctrl vector for $pmux cell \195708: $auto$ghdl.cc:806:import_module$90919
-    New ctrl vector for $pmux cell \195710: $auto$ghdl.cc:806:import_module$90919
-    New ctrl vector for $pmux cell \195712: $auto$ghdl.cc:806:import_module$90919
-    New ctrl vector for $pmux cell \195714: $auto$ghdl.cc:806:import_module$90919
-    New ctrl vector for $pmux cell \195716: $auto$ghdl.cc:806:import_module$90919
+    New ctrl vector for $pmux cell \203091: $auto$ghdl.cc:806:import_module$91341
+    New ctrl vector for $pmux cell \203093: $auto$ghdl.cc:806:import_module$91341
+    New ctrl vector for $pmux cell \203095: { $auto$ghdl.cc:806:import_module$91394 $auto$ghdl.cc:806:import_module$91381 }
+    New ctrl vector for $pmux cell \203097: $auto$ghdl.cc:806:import_module$91341
+    New ctrl vector for $pmux cell \203099: $auto$ghdl.cc:806:import_module$91438
+    New ctrl vector for $pmux cell \203101: $auto$ghdl.cc:806:import_module$91341
+    New ctrl vector for $pmux cell \203103: $auto$ghdl.cc:806:import_module$91341
+    New ctrl vector for $pmux cell \203105: $auto$ghdl.cc:806:import_module$91341
+    New ctrl vector for $pmux cell \203107: $auto$ghdl.cc:806:import_module$91341
+    New ctrl vector for $pmux cell \203109: $auto$ghdl.cc:806:import_module$91341
+    New ctrl vector for $pmux cell \203111: $auto$ghdl.cc:806:import_module$91341
   Optimizing cells in module \ino_memory_unit.
 Performed a total of 11 changes.
 
@@ -369,48 +369,48 @@ Optimizing module ino_memory_unit.
 3.8.23. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 2 bits (of 4) from port B of cell ino_memory_unit.\195268 ($eq).
-Removed top 1 bits (of 4) from port B of cell ino_memory_unit.\195275 ($eq).
-Removed top 1 bits (of 4) from port B of cell ino_memory_unit.\195279 ($eq).
-Removed top 31 bits (of 32) from port A of cell ino_memory_unit.\195283 ($shl).
-Removed top 30 bits (of 32) from port B of cell ino_memory_unit.\195283 ($shl).
-Removed top 1 bits (of 32) from port Y of cell ino_memory_unit.\195283 ($shl).
-Removed top 33 bits (of 64) from port B of cell ino_memory_unit.\195286 ($add).
-Removed top 1 bits (of 2) from port B of cell ino_memory_unit.\195338 ($eq).
-Removed top 2 bits (of 4) from mux cell ino_memory_unit.\195372 ($mux).
-Removed top 1 bits (of 4) from mux cell ino_memory_unit.\195374 ($mux).
-Removed top 74 bits (of 140) from mux cell ino_memory_unit.\195376 ($mux).
-Removed top 1 bits (of 4) from mux cell ino_memory_unit.\195380 ($mux).
-Removed top 74 bits (of 140) from mux cell ino_memory_unit.\195383 ($mux).
-Removed top 3 bits (of 4) from port B of cell ino_memory_unit.\195386 ($eq).
-Removed top 56 bits (of 64) from port B of cell ino_memory_unit.\195404 ($add).
-Removed top 74 bits (of 140) from mux cell ino_memory_unit.\195418 ($mux).
-Removed top 1 bits (of 4) from mux cell ino_memory_unit.\195422 ($mux).
-Removed top 65 bits (of 140) from mux cell ino_memory_unit.\195424 ($mux).
-Removed top 65 bits (of 140) from mux cell ino_memory_unit.\195431 ($mux).
-Removed top 2 bits (of 4) from port B of cell ino_memory_unit.\195435 ($eq).
-Removed top 1 bits (of 2) from port B of cell ino_memory_unit.\195471 ($eq).
-Removed top 65 bits (of 140) from mux cell ino_memory_unit.\195517 ($mux).
-Removed top 1 bits (of 4) from port B of cell ino_memory_unit.\195521 ($eq).
-Removed top 65 bits (of 140) from mux cell ino_memory_unit.\195596 ($mux).
-Removed top 65 bits (of 140) from mux cell ino_memory_unit.\195602 ($mux).
-Removed top 1 bits (of 4) from port B of cell ino_memory_unit.\195605 ($eq).
-Removed top 65 bits (of 140) from mux cell ino_memory_unit.\195686 ($mux).
-Removed top 186 bits (of 207) from FF cell ino_memory_unit.$auto$ff.cc:266:slice$109078 ($dffe).
-Removed top 186 bits (of 207) from mux cell ino_memory_unit.\195696 ($mux).
-Removed top 186 bits (of 207) from mux cell ino_memory_unit.\195349 ($mux).
-Removed top 1 bits (of 32) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$90925.
-Removed top 2 bits (of 4) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$90953.
-Removed top 1 bits (of 4) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$90954.
-Removed top 74 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$90955.
-Removed top 1 bits (of 4) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$90956.
-Removed top 65 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$90968.
-Removed top 65 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$90971.
-Removed top 65 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$90993.
-Removed top 65 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91012.
-Removed top 65 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91015.
-Removed top 65 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91038.
-Removed top 186 bits (of 207) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91041.
+Removed top 2 bits (of 4) from port B of cell ino_memory_unit.\202663 ($eq).
+Removed top 1 bits (of 4) from port B of cell ino_memory_unit.\202670 ($eq).
+Removed top 1 bits (of 4) from port B of cell ino_memory_unit.\202674 ($eq).
+Removed top 31 bits (of 32) from port A of cell ino_memory_unit.\202678 ($shl).
+Removed top 30 bits (of 32) from port B of cell ino_memory_unit.\202678 ($shl).
+Removed top 1 bits (of 32) from port Y of cell ino_memory_unit.\202678 ($shl).
+Removed top 33 bits (of 64) from port B of cell ino_memory_unit.\202681 ($add).
+Removed top 1 bits (of 2) from port B of cell ino_memory_unit.\202733 ($eq).
+Removed top 2 bits (of 4) from mux cell ino_memory_unit.\202767 ($mux).
+Removed top 1 bits (of 4) from mux cell ino_memory_unit.\202769 ($mux).
+Removed top 74 bits (of 140) from mux cell ino_memory_unit.\202771 ($mux).
+Removed top 1 bits (of 4) from mux cell ino_memory_unit.\202775 ($mux).
+Removed top 74 bits (of 140) from mux cell ino_memory_unit.\202778 ($mux).
+Removed top 3 bits (of 4) from port B of cell ino_memory_unit.\202781 ($eq).
+Removed top 56 bits (of 64) from port B of cell ino_memory_unit.\202799 ($add).
+Removed top 74 bits (of 140) from mux cell ino_memory_unit.\202813 ($mux).
+Removed top 1 bits (of 4) from mux cell ino_memory_unit.\202817 ($mux).
+Removed top 65 bits (of 140) from mux cell ino_memory_unit.\202819 ($mux).
+Removed top 65 bits (of 140) from mux cell ino_memory_unit.\202826 ($mux).
+Removed top 2 bits (of 4) from port B of cell ino_memory_unit.\202830 ($eq).
+Removed top 1 bits (of 2) from port B of cell ino_memory_unit.\202866 ($eq).
+Removed top 65 bits (of 140) from mux cell ino_memory_unit.\202912 ($mux).
+Removed top 1 bits (of 4) from port B of cell ino_memory_unit.\202916 ($eq).
+Removed top 65 bits (of 140) from mux cell ino_memory_unit.\202991 ($mux).
+Removed top 65 bits (of 140) from mux cell ino_memory_unit.\202997 ($mux).
+Removed top 1 bits (of 4) from port B of cell ino_memory_unit.\203000 ($eq).
+Removed top 65 bits (of 140) from mux cell ino_memory_unit.\203081 ($mux).
+Removed top 186 bits (of 207) from FF cell ino_memory_unit.$auto$ff.cc:266:slice$114738 ($dffe).
+Removed top 186 bits (of 207) from mux cell ino_memory_unit.\203091 ($mux).
+Removed top 186 bits (of 207) from mux cell ino_memory_unit.\202744 ($mux).
+Removed top 1 bits (of 32) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91347.
+Removed top 2 bits (of 4) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91375.
+Removed top 1 bits (of 4) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91376.
+Removed top 74 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91377.
+Removed top 1 bits (of 4) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91378.
+Removed top 65 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91390.
+Removed top 65 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91393.
+Removed top 65 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91415.
+Removed top 65 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91434.
+Removed top 65 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91437.
+Removed top 65 bits (of 140) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91460.
+Removed top 186 bits (of 207) from wire ino_memory_unit.$auto$ghdl.cc:806:import_module$91463.
 Removed top 186 bits (of 207) from wire ino_memory_unit.slot_s.
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
@@ -422,16 +422,16 @@ Removed 0 unused cells and 13 unused wires.
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_memory_unit:
-  creating $macc model for \195286 ($add).
-  creating $macc model for \195404 ($add).
-  creating $alu model for $macc \195404.
-  creating $alu model for $macc \195286.
-  creating $alu model for \195672 ($lt): new $alu
-  creating $alu model for \195673 ($gt): new $alu
-  creating $alu cell for \195673: $auto$alumacc.cc:485:replace_alu$109122
-  creating $alu cell for \195672: $auto$alumacc.cc:485:replace_alu$109135
-  creating $alu cell for \195286: $auto$alumacc.cc:485:replace_alu$109142
-  creating $alu cell for \195404: $auto$alumacc.cc:485:replace_alu$109145
+  creating $macc model for \202681 ($add).
+  creating $macc model for \202799 ($add).
+  creating $alu model for $macc \202799.
+  creating $alu model for $macc \202681.
+  creating $alu model for \203067 ($lt): new $alu
+  creating $alu model for \203068 ($gt): new $alu
+  creating $alu cell for \203068: $auto$alumacc.cc:485:replace_alu$114782
+  creating $alu cell for \203067: $auto$alumacc.cc:485:replace_alu$114795
+  creating $alu cell for \202681: $auto$alumacc.cc:485:replace_alu$114802
+  creating $alu cell for \202799: $auto$alumacc.cc:485:replace_alu$114805
   created 4 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -567,101 +567,101 @@ Removed 0 multiplexer ports.
 
 3.18.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_memory_unit.
-    Consolidated identical input bits for $mux cell \195372:
-      Old ports: A=2'00, B=2'10, Y=$auto$ghdl.cc:806:import_module$90953
-      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$90953 [1]
-      New connections: $auto$ghdl.cc:806:import_module$90953 [0] = 1'0
-    Consolidated identical input bits for $mux cell \195376:
-      Old ports: A=66'000000000000000000000000000000000000000000000000000000000000000000, B={ \cell_address_s 2'11 }, Y=$auto$ghdl.cc:806:import_module$90955
-      New ports: A=65'00000000000000000000000000000000000000000000000000000000000000000, B={ \cell_address_s 1'1 }, Y={ $auto$ghdl.cc:806:import_module$90955 [65:2] $auto$ghdl.cc:806:import_module$90955 [0] }
-      New connections: $auto$ghdl.cc:806:import_module$90955 [1] = $auto$ghdl.cc:806:import_module$90955 [0]
-    Consolidated identical input bits for $mux cell \195418:
-      Old ports: A=66'000000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$90962 2'11 }, Y=$auto$ghdl.cc:806:import_module$90965 [65:0]
-      New ports: A=65'00000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$90962 1'1 }, Y={ $auto$ghdl.cc:806:import_module$90965 [65:2] $auto$ghdl.cc:806:import_module$90965 [0] }
-      New connections: $auto$ghdl.cc:806:import_module$90965 [1] = $auto$ghdl.cc:806:import_module$90965 [0]
-    Consolidated identical input bits for $mux cell \195424:
-      Old ports: A={ 9'000000000 $auto$ghdl.cc:806:import_module$90965 [65:0] }, B=75'100001001000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$90968
-      New ports: A={ 1'0 $auto$ghdl.cc:806:import_module$90965 [65:0] }, B=67'1000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$90968 [66:0]
-      New connections: $auto$ghdl.cc:806:import_module$90968 [74:67] = { $auto$ghdl.cc:806:import_module$90968 [66] 4'0000 $auto$ghdl.cc:806:import_module$90968 [66] 2'00 }
-    Consolidated identical input bits for $mux cell \195461:
-      Old ports: A=56'00000000000000000000000000000000000000000000000000000000, B=56'11111111111111111111111111111111111111111111111111111111, Y=$auto$ghdl.cc:806:import_module$90977
-      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$90977 [0]
-      New connections: $auto$ghdl.cc:806:import_module$90977 [55:1] = { $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] $auto$ghdl.cc:806:import_module$90977 [0] }
-    Consolidated identical input bits for $mux cell \195469:
-      Old ports: A=48'000000000000000000000000000000000000000000000000, B=48'111111111111111111111111111111111111111111111111, Y=$auto$ghdl.cc:806:import_module$90980
-      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$90980 [0]
-      New connections: $auto$ghdl.cc:806:import_module$90980 [47:1] = { $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] $auto$ghdl.cc:806:import_module$90980 [0] }
-    Consolidated identical input bits for $mux cell \195477:
-      Old ports: A=0, B=32'11111111111111111111111111111111, Y=$auto$ghdl.cc:806:import_module$90983
-      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$90983 [0]
-      New connections: $auto$ghdl.cc:806:import_module$90983 [31:1] = { $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] $auto$ghdl.cc:806:import_module$90983 [0] }
-    Consolidated identical input bits for $mux cell \195510:
-      Old ports: A=9'000000000, B=9'100001001, Y=$auto$ghdl.cc:806:import_module$90991
-      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$90991 [0]
-      New connections: $auto$ghdl.cc:806:import_module$90991 [8:1] = { $auto$ghdl.cc:806:import_module$90991 [0] 4'0000 $auto$ghdl.cc:806:import_module$90991 [0] 2'00 }
-    Consolidated identical input bits for $mux cell \195593:
-      Old ports: A=4'1000, B=4'0000, Y=$auto$ghdl.cc:806:import_module$91010
-      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$91010 [3]
-      New connections: $auto$ghdl.cc:806:import_module$91010 [2:0] = 3'000
-    Consolidated identical input bits for $mux cell \195596:
-      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B=75'100001001000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$91012
-      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$91012 [0]
-      New connections: $auto$ghdl.cc:806:import_module$91012 [74:1] = { $auto$ghdl.cc:806:import_module$91012 [0] 4'0000 $auto$ghdl.cc:806:import_module$91012 [0] 2'00 $auto$ghdl.cc:806:import_module$91012 [0] 65'00000000000000000000000000000000000000000000000000000000000000000 }
-    Consolidated identical input bits for $mux cell \195677:
-      Old ports: A=9'000000000, B=9'100000111, Y=$auto$ghdl.cc:806:import_module$91035
-      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$91035 [0]
-      New connections: $auto$ghdl.cc:806:import_module$91035 [8:1] = { $auto$ghdl.cc:806:import_module$91035 [0] 5'00000 $auto$ghdl.cc:806:import_module$91035 [0] $auto$ghdl.cc:806:import_module$91035 [0] }
-    Consolidated identical input bits for $mux cell \195686:
-      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$91036 66'000000000000000000000000000000000000000000000000000000000000000001 }, Y=$auto$ghdl.cc:806:import_module$91038
-      New ports: A=10'0000000000, B={ $auto$ghdl.cc:806:import_module$91036 1'1 }, Y={ $auto$ghdl.cc:806:import_module$91038 [74:66] $auto$ghdl.cc:806:import_module$91038 [0] }
-      New connections: $auto$ghdl.cc:806:import_module$91038 [65:1] = 65'00000000000000000000000000000000000000000000000000000000000000000
-    Consolidated identical input bits for $pmux cell \195719:
-      Old ports: A={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$91038 }, B={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$91015 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$90993 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$90971 74'00000000000000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$90958 [65:0] 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 }, Y=$auto$ghdl.cc:806:import_module$91052
-      New ports: A=$auto$ghdl.cc:806:import_module$91038, B={ $auto$ghdl.cc:806:import_module$91015 $auto$ghdl.cc:806:import_module$90993 $auto$ghdl.cc:806:import_module$90971 9'000000000 $auto$ghdl.cc:806:import_module$90958 [65:0] 75'000000000000000000000000000000000000000000000000000000000000000000000000000 }, Y=$auto$ghdl.cc:806:import_module$91052 [74:0]
-      New connections: $auto$ghdl.cc:806:import_module$91052 [139:75] = 65'00000000000000000000000000000000000000000000000000000000000000000
+    Consolidated identical input bits for $mux cell \202767:
+      Old ports: A=2'00, B=2'10, Y=$auto$ghdl.cc:806:import_module$91375
+      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$91375 [1]
+      New connections: $auto$ghdl.cc:806:import_module$91375 [0] = 1'0
+    Consolidated identical input bits for $mux cell \202771:
+      Old ports: A=66'000000000000000000000000000000000000000000000000000000000000000000, B={ \cell_address_s 2'11 }, Y=$auto$ghdl.cc:806:import_module$91377
+      New ports: A=65'00000000000000000000000000000000000000000000000000000000000000000, B={ \cell_address_s 1'1 }, Y={ $auto$ghdl.cc:806:import_module$91377 [65:2] $auto$ghdl.cc:806:import_module$91377 [0] }
+      New connections: $auto$ghdl.cc:806:import_module$91377 [1] = $auto$ghdl.cc:806:import_module$91377 [0]
+    Consolidated identical input bits for $mux cell \202813:
+      Old ports: A=66'000000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$91384 2'11 }, Y=$auto$ghdl.cc:806:import_module$91387 [65:0]
+      New ports: A=65'00000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$91384 1'1 }, Y={ $auto$ghdl.cc:806:import_module$91387 [65:2] $auto$ghdl.cc:806:import_module$91387 [0] }
+      New connections: $auto$ghdl.cc:806:import_module$91387 [1] = $auto$ghdl.cc:806:import_module$91387 [0]
+    Consolidated identical input bits for $mux cell \202819:
+      Old ports: A={ 9'000000000 $auto$ghdl.cc:806:import_module$91387 [65:0] }, B=75'100001001000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$91390
+      New ports: A={ 1'0 $auto$ghdl.cc:806:import_module$91387 [65:0] }, B=67'1000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$91390 [66:0]
+      New connections: $auto$ghdl.cc:806:import_module$91390 [74:67] = { $auto$ghdl.cc:806:import_module$91390 [66] 4'0000 $auto$ghdl.cc:806:import_module$91390 [66] 2'00 }
+    Consolidated identical input bits for $mux cell \202856:
+      Old ports: A=56'00000000000000000000000000000000000000000000000000000000, B=56'11111111111111111111111111111111111111111111111111111111, Y=$auto$ghdl.cc:806:import_module$91399
+      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$91399 [0]
+      New connections: $auto$ghdl.cc:806:import_module$91399 [55:1] = { $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] $auto$ghdl.cc:806:import_module$91399 [0] }
+    Consolidated identical input bits for $mux cell \202864:
+      Old ports: A=48'000000000000000000000000000000000000000000000000, B=48'111111111111111111111111111111111111111111111111, Y=$auto$ghdl.cc:806:import_module$91402
+      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$91402 [0]
+      New connections: $auto$ghdl.cc:806:import_module$91402 [47:1] = { $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] $auto$ghdl.cc:806:import_module$91402 [0] }
+    Consolidated identical input bits for $mux cell \202872:
+      Old ports: A=0, B=32'11111111111111111111111111111111, Y=$auto$ghdl.cc:806:import_module$91405
+      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$91405 [0]
+      New connections: $auto$ghdl.cc:806:import_module$91405 [31:1] = { $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] $auto$ghdl.cc:806:import_module$91405 [0] }
+    Consolidated identical input bits for $mux cell \202905:
+      Old ports: A=9'000000000, B=9'100001001, Y=$auto$ghdl.cc:806:import_module$91413
+      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$91413 [0]
+      New connections: $auto$ghdl.cc:806:import_module$91413 [8:1] = { $auto$ghdl.cc:806:import_module$91413 [0] 4'0000 $auto$ghdl.cc:806:import_module$91413 [0] 2'00 }
+    Consolidated identical input bits for $mux cell \202988:
+      Old ports: A=4'1000, B=4'0000, Y=$auto$ghdl.cc:806:import_module$91432
+      New ports: A=1'1, B=1'0, Y=$auto$ghdl.cc:806:import_module$91432 [3]
+      New connections: $auto$ghdl.cc:806:import_module$91432 [2:0] = 3'000
+    Consolidated identical input bits for $mux cell \202991:
+      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B=75'100001001000000000000000000000000000000000000000000000000000000000000000001, Y=$auto$ghdl.cc:806:import_module$91434
+      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$91434 [0]
+      New connections: $auto$ghdl.cc:806:import_module$91434 [74:1] = { $auto$ghdl.cc:806:import_module$91434 [0] 4'0000 $auto$ghdl.cc:806:import_module$91434 [0] 2'00 $auto$ghdl.cc:806:import_module$91434 [0] 65'00000000000000000000000000000000000000000000000000000000000000000 }
+    Consolidated identical input bits for $mux cell \203072:
+      Old ports: A=9'000000000, B=9'100000111, Y=$auto$ghdl.cc:806:import_module$91457
+      New ports: A=1'0, B=1'1, Y=$auto$ghdl.cc:806:import_module$91457 [0]
+      New connections: $auto$ghdl.cc:806:import_module$91457 [8:1] = { $auto$ghdl.cc:806:import_module$91457 [0] 5'00000 $auto$ghdl.cc:806:import_module$91457 [0] $auto$ghdl.cc:806:import_module$91457 [0] }
+    Consolidated identical input bits for $mux cell \203081:
+      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$91458 66'000000000000000000000000000000000000000000000000000000000000000001 }, Y=$auto$ghdl.cc:806:import_module$91460
+      New ports: A=10'0000000000, B={ $auto$ghdl.cc:806:import_module$91458 1'1 }, Y={ $auto$ghdl.cc:806:import_module$91460 [74:66] $auto$ghdl.cc:806:import_module$91460 [0] }
+      New connections: $auto$ghdl.cc:806:import_module$91460 [65:1] = 65'00000000000000000000000000000000000000000000000000000000000000000
+    Consolidated identical input bits for $pmux cell \203114:
+      Old ports: A={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$91460 }, B={ 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$91437 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$91415 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$91393 74'00000000000000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$91380 [65:0] 140'00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 }, Y=$auto$ghdl.cc:806:import_module$91474
+      New ports: A=$auto$ghdl.cc:806:import_module$91460, B={ $auto$ghdl.cc:806:import_module$91437 $auto$ghdl.cc:806:import_module$91415 $auto$ghdl.cc:806:import_module$91393 9'000000000 $auto$ghdl.cc:806:import_module$91380 [65:0] 75'000000000000000000000000000000000000000000000000000000000000000000000000000 }, Y=$auto$ghdl.cc:806:import_module$91474 [74:0]
+      New connections: $auto$ghdl.cc:806:import_module$91474 [139:75] = 65'00000000000000000000000000000000000000000000000000000000000000000
   Optimizing cells in module \ino_memory_unit.
-    Consolidated identical input bits for $mux cell \195374:
-      Old ports: A={ 1'1 $auto$ghdl.cc:806:import_module$90953 }, B=3'000, Y=$auto$ghdl.cc:806:import_module$90954
-      New ports: A={ 1'1 $auto$ghdl.cc:806:import_module$90953 [1] }, B=2'00, Y=$auto$ghdl.cc:806:import_module$90954 [2:1]
-      New connections: $auto$ghdl.cc:806:import_module$90954 [0] = 1'0
-    Consolidated identical input bits for $mux cell \195383:
-      Old ports: A=$auto$ghdl.cc:806:import_module$90955, B=66'000000000000000000000000000000000000000000000000000000000000000000, Y=$auto$ghdl.cc:806:import_module$90958 [65:0]
-      New ports: A={ $auto$ghdl.cc:806:import_module$90955 [65:2] $auto$ghdl.cc:806:import_module$90955 [0] }, B=65'00000000000000000000000000000000000000000000000000000000000000000, Y={ $auto$ghdl.cc:806:import_module$90958 [65:2] $auto$ghdl.cc:806:import_module$90958 [0] }
-      New connections: $auto$ghdl.cc:806:import_module$90958 [1] = $auto$ghdl.cc:806:import_module$90958 [0]
-    Consolidated identical input bits for $mux cell \195431:
-      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B=$auto$ghdl.cc:806:import_module$90968, Y=$auto$ghdl.cc:806:import_module$90971
-      New ports: A=67'0000000000000000000000000000000000000000000000000000000000000000000, B=$auto$ghdl.cc:806:import_module$90968 [66:0], Y=$auto$ghdl.cc:806:import_module$90971 [66:0]
-      New connections: $auto$ghdl.cc:806:import_module$90971 [74:67] = { $auto$ghdl.cc:806:import_module$90971 [66] 4'0000 $auto$ghdl.cc:806:import_module$90971 [66] 2'00 }
-    Consolidated identical input bits for $mux cell \195517:
-      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$90991 $auto$ghdl.cc:806:import_module$90990 1'1 }, Y=$auto$ghdl.cc:806:import_module$90993
-      New ports: A=67'0000000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$90991 [0] $auto$ghdl.cc:806:import_module$90990 1'1 }, Y=$auto$ghdl.cc:806:import_module$90993 [66:0]
-      New connections: $auto$ghdl.cc:806:import_module$90993 [74:67] = { $auto$ghdl.cc:806:import_module$90993 [66] 4'0000 $auto$ghdl.cc:806:import_module$90993 [66] 2'00 }
-    Consolidated identical input bits for $mux cell \195602:
-      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B=$auto$ghdl.cc:806:import_module$91012, Y=$auto$ghdl.cc:806:import_module$91015
-      New ports: A=1'0, B=$auto$ghdl.cc:806:import_module$91012 [0], Y=$auto$ghdl.cc:806:import_module$91015 [0]
-      New connections: $auto$ghdl.cc:806:import_module$91015 [74:1] = { $auto$ghdl.cc:806:import_module$91015 [0] 4'0000 $auto$ghdl.cc:806:import_module$91015 [0] 2'00 $auto$ghdl.cc:806:import_module$91015 [0] 65'00000000000000000000000000000000000000000000000000000000000000000 }
-    Consolidated identical input bits for $mux cell \195679:
-      Old ports: A=$auto$ghdl.cc:806:import_module$91035, B=9'100001001, Y=$auto$ghdl.cc:806:import_module$91036
-      New ports: A={ 1'0 $auto$ghdl.cc:806:import_module$91035 [0] $auto$ghdl.cc:806:import_module$91035 [0] }, B=3'101, Y={ $auto$ghdl.cc:806:import_module$91036 [3] $auto$ghdl.cc:806:import_module$91036 [1:0] }
-      New connections: { $auto$ghdl.cc:806:import_module$91036 [8:4] $auto$ghdl.cc:806:import_module$91036 [2] } = { $auto$ghdl.cc:806:import_module$91036 [0] 4'0000 $auto$ghdl.cc:806:import_module$91036 [1] }
+    Consolidated identical input bits for $mux cell \202769:
+      Old ports: A={ 1'1 $auto$ghdl.cc:806:import_module$91375 }, B=3'000, Y=$auto$ghdl.cc:806:import_module$91376
+      New ports: A={ 1'1 $auto$ghdl.cc:806:import_module$91375 [1] }, B=2'00, Y=$auto$ghdl.cc:806:import_module$91376 [2:1]
+      New connections: $auto$ghdl.cc:806:import_module$91376 [0] = 1'0
+    Consolidated identical input bits for $mux cell \202778:
+      Old ports: A=$auto$ghdl.cc:806:import_module$91377, B=66'000000000000000000000000000000000000000000000000000000000000000000, Y=$auto$ghdl.cc:806:import_module$91380 [65:0]
+      New ports: A={ $auto$ghdl.cc:806:import_module$91377 [65:2] $auto$ghdl.cc:806:import_module$91377 [0] }, B=65'00000000000000000000000000000000000000000000000000000000000000000, Y={ $auto$ghdl.cc:806:import_module$91380 [65:2] $auto$ghdl.cc:806:import_module$91380 [0] }
+      New connections: $auto$ghdl.cc:806:import_module$91380 [1] = $auto$ghdl.cc:806:import_module$91380 [0]
+    Consolidated identical input bits for $mux cell \202826:
+      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B=$auto$ghdl.cc:806:import_module$91390, Y=$auto$ghdl.cc:806:import_module$91393
+      New ports: A=67'0000000000000000000000000000000000000000000000000000000000000000000, B=$auto$ghdl.cc:806:import_module$91390 [66:0], Y=$auto$ghdl.cc:806:import_module$91393 [66:0]
+      New connections: $auto$ghdl.cc:806:import_module$91393 [74:67] = { $auto$ghdl.cc:806:import_module$91393 [66] 4'0000 $auto$ghdl.cc:806:import_module$91393 [66] 2'00 }
+    Consolidated identical input bits for $mux cell \202912:
+      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$91413 $auto$ghdl.cc:806:import_module$91412 1'1 }, Y=$auto$ghdl.cc:806:import_module$91415
+      New ports: A=67'0000000000000000000000000000000000000000000000000000000000000000000, B={ $auto$ghdl.cc:806:import_module$91413 [0] $auto$ghdl.cc:806:import_module$91412 1'1 }, Y=$auto$ghdl.cc:806:import_module$91415 [66:0]
+      New connections: $auto$ghdl.cc:806:import_module$91415 [74:67] = { $auto$ghdl.cc:806:import_module$91415 [66] 4'0000 $auto$ghdl.cc:806:import_module$91415 [66] 2'00 }
+    Consolidated identical input bits for $mux cell \202997:
+      Old ports: A=75'000000000000000000000000000000000000000000000000000000000000000000000000000, B=$auto$ghdl.cc:806:import_module$91434, Y=$auto$ghdl.cc:806:import_module$91437
+      New ports: A=1'0, B=$auto$ghdl.cc:806:import_module$91434 [0], Y=$auto$ghdl.cc:806:import_module$91437 [0]
+      New connections: $auto$ghdl.cc:806:import_module$91437 [74:1] = { $auto$ghdl.cc:806:import_module$91437 [0] 4'0000 $auto$ghdl.cc:806:import_module$91437 [0] 2'00 $auto$ghdl.cc:806:import_module$91437 [0] 65'00000000000000000000000000000000000000000000000000000000000000000 }
+    Consolidated identical input bits for $mux cell \203074:
+      Old ports: A=$auto$ghdl.cc:806:import_module$91457, B=9'100001001, Y=$auto$ghdl.cc:806:import_module$91458
+      New ports: A={ 1'0 $auto$ghdl.cc:806:import_module$91457 [0] $auto$ghdl.cc:806:import_module$91457 [0] }, B=3'101, Y={ $auto$ghdl.cc:806:import_module$91458 [3] $auto$ghdl.cc:806:import_module$91458 [1:0] }
+      New connections: { $auto$ghdl.cc:806:import_module$91458 [8:4] $auto$ghdl.cc:806:import_module$91458 [2] } = { $auto$ghdl.cc:806:import_module$91458 [0] 4'0000 $auto$ghdl.cc:806:import_module$91458 [1] }
   Optimizing cells in module \ino_memory_unit.
-    Consolidated identical input bits for $mux cell \195380:
-      Old ports: A=$auto$ghdl.cc:806:import_module$90954, B=3'010, Y=$auto$ghdl.cc:806:import_module$90956
-      New ports: A=$auto$ghdl.cc:806:import_module$90954 [2:1], B=2'01, Y=$auto$ghdl.cc:806:import_module$90956 [2:1]
-      New connections: $auto$ghdl.cc:806:import_module$90956 [0] = 1'0
-    Consolidated identical input bits for $mux cell \195422:
-      Old ports: A=$auto$ghdl.cc:806:import_module$90954, B=3'000, Y=$auto$ghdl.cc:806:import_module$90966 [2:0]
-      New ports: A=$auto$ghdl.cc:806:import_module$90954 [2:1], B=2'00, Y=$auto$ghdl.cc:806:import_module$90966 [2:1]
-      New connections: $auto$ghdl.cc:806:import_module$90966 [0] = 1'0
-    Consolidated identical input bits for $mux cell \195686:
-      Old ports: A=10'0000000000, B={ $auto$ghdl.cc:806:import_module$91036 1'1 }, Y={ $auto$ghdl.cc:806:import_module$91038 [74:66] $auto$ghdl.cc:806:import_module$91038 [0] }
-      New ports: A=4'0000, B={ $auto$ghdl.cc:806:import_module$91036 [3] $auto$ghdl.cc:806:import_module$91036 [1:0] 1'1 }, Y={ $auto$ghdl.cc:806:import_module$91038 [69] $auto$ghdl.cc:806:import_module$91038 [67:66] $auto$ghdl.cc:806:import_module$91038 [0] }
-      New connections: { $auto$ghdl.cc:806:import_module$91038 [74:70] $auto$ghdl.cc:806:import_module$91038 [68] } = { $auto$ghdl.cc:806:import_module$91038 [66] 4'0000 $auto$ghdl.cc:806:import_module$91038 [67] }
+    Consolidated identical input bits for $mux cell \202775:
+      Old ports: A=$auto$ghdl.cc:806:import_module$91376, B=3'010, Y=$auto$ghdl.cc:806:import_module$91378
+      New ports: A=$auto$ghdl.cc:806:import_module$91376 [2:1], B=2'01, Y=$auto$ghdl.cc:806:import_module$91378 [2:1]
+      New connections: $auto$ghdl.cc:806:import_module$91378 [0] = 1'0
+    Consolidated identical input bits for $mux cell \202817:
+      Old ports: A=$auto$ghdl.cc:806:import_module$91376, B=3'000, Y=$auto$ghdl.cc:806:import_module$91388 [2:0]
+      New ports: A=$auto$ghdl.cc:806:import_module$91376 [2:1], B=2'00, Y=$auto$ghdl.cc:806:import_module$91388 [2:1]
+      New connections: $auto$ghdl.cc:806:import_module$91388 [0] = 1'0
+    Consolidated identical input bits for $mux cell \203081:
+      Old ports: A=10'0000000000, B={ $auto$ghdl.cc:806:import_module$91458 1'1 }, Y={ $auto$ghdl.cc:806:import_module$91460 [74:66] $auto$ghdl.cc:806:import_module$91460 [0] }
+      New ports: A=4'0000, B={ $auto$ghdl.cc:806:import_module$91458 [3] $auto$ghdl.cc:806:import_module$91458 [1:0] 1'1 }, Y={ $auto$ghdl.cc:806:import_module$91460 [69] $auto$ghdl.cc:806:import_module$91460 [67:66] $auto$ghdl.cc:806:import_module$91460 [0] }
+      New connections: { $auto$ghdl.cc:806:import_module$91460 [74:70] $auto$ghdl.cc:806:import_module$91460 [68] } = { $auto$ghdl.cc:806:import_module$91460 [66] 4'0000 $auto$ghdl.cc:806:import_module$91460 [67] }
   Optimizing cells in module \ino_memory_unit.
-    Consolidated identical input bits for $pmux cell \195719:
-      Old ports: A=$auto$ghdl.cc:806:import_module$91038, B={ $auto$ghdl.cc:806:import_module$91015 $auto$ghdl.cc:806:import_module$90993 $auto$ghdl.cc:806:import_module$90971 9'000000000 $auto$ghdl.cc:806:import_module$90958 [65:0] 75'000000000000000000000000000000000000000000000000000000000000000000000000000 }, Y=$auto$ghdl.cc:806:import_module$91052 [74:0]
-      New ports: A={ $auto$ghdl.cc:806:import_module$91038 [69] $auto$ghdl.cc:806:import_module$91038 [67:66] 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$91038 [0] }, B={ $auto$ghdl.cc:806:import_module$91015 [0] 1'0 $auto$ghdl.cc:806:import_module$91015 [0] 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$91015 [0] $auto$ghdl.cc:806:import_module$90993 [66] 1'0 $auto$ghdl.cc:806:import_module$90993 [66:0] $auto$ghdl.cc:806:import_module$90971 [66] 1'0 $auto$ghdl.cc:806:import_module$90971 [66:0] 3'000 $auto$ghdl.cc:806:import_module$90958 [65:2] $auto$ghdl.cc:806:import_module$90958 [0] $auto$ghdl.cc:806:import_module$90958 [0] 69'000000000000000000000000000000000000000000000000000000000000000000000 }, Y={ $auto$ghdl.cc:806:import_module$91052 [69] $auto$ghdl.cc:806:import_module$91052 [67:0] }
-      New connections: { $auto$ghdl.cc:806:import_module$91052 [74:70] $auto$ghdl.cc:806:import_module$91052 [68] } = { $auto$ghdl.cc:806:import_module$91052 [66] 4'0000 $auto$ghdl.cc:806:import_module$91052 [67] }
+    Consolidated identical input bits for $pmux cell \203114:
+      Old ports: A=$auto$ghdl.cc:806:import_module$91460, B={ $auto$ghdl.cc:806:import_module$91437 $auto$ghdl.cc:806:import_module$91415 $auto$ghdl.cc:806:import_module$91393 9'000000000 $auto$ghdl.cc:806:import_module$91380 [65:0] 75'000000000000000000000000000000000000000000000000000000000000000000000000000 }, Y=$auto$ghdl.cc:806:import_module$91474 [74:0]
+      New ports: A={ $auto$ghdl.cc:806:import_module$91460 [69] $auto$ghdl.cc:806:import_module$91460 [67:66] 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$91460 [0] }, B={ $auto$ghdl.cc:806:import_module$91437 [0] 1'0 $auto$ghdl.cc:806:import_module$91437 [0] 65'00000000000000000000000000000000000000000000000000000000000000000 $auto$ghdl.cc:806:import_module$91437 [0] $auto$ghdl.cc:806:import_module$91415 [66] 1'0 $auto$ghdl.cc:806:import_module$91415 [66:0] $auto$ghdl.cc:806:import_module$91393 [66] 1'0 $auto$ghdl.cc:806:import_module$91393 [66:0] 3'000 $auto$ghdl.cc:806:import_module$91380 [65:2] $auto$ghdl.cc:806:import_module$91380 [0] $auto$ghdl.cc:806:import_module$91380 [0] 69'000000000000000000000000000000000000000000000000000000000000000000000 }, Y={ $auto$ghdl.cc:806:import_module$91474 [69] $auto$ghdl.cc:806:import_module$91474 [67:0] }
+      New connections: { $auto$ghdl.cc:806:import_module$91474 [74:70] $auto$ghdl.cc:806:import_module$91474 [68] } = { $auto$ghdl.cc:806:import_module$91474 [66] 4'0000 $auto$ghdl.cc:806:import_module$91474 [67] }
   Optimizing cells in module \ino_memory_unit.
 Performed a total of 23 changes.
 
@@ -704,75 +704,75 @@ Removed a total of 0 cells.
 3.18.14. Executing OPT_SHARE pass.
 
 3.18.15. Executing OPT_DFF pass (perform DFF optimizations).
-Setting constant 0-bit at position 70 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 76 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 77 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 78 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 79 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 80 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 81 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 82 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 83 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 84 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 85 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 86 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 87 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 88 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 89 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 90 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 91 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 92 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 93 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 94 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 95 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 96 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 97 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 98 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 99 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 100 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 101 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 102 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 103 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 104 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 105 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 106 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 107 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 108 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 109 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 110 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 111 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 112 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 113 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 114 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 115 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 116 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 117 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 118 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 119 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 120 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 121 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 122 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 123 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 124 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 125 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 126 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 127 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 128 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 129 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 130 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 131 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 132 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 133 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 134 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 135 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 136 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 137 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 138 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
-Setting constant 0-bit at position 139 on $auto$ff.cc:266:slice$108991 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 70 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 71 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 72 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 73 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 75 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 76 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 77 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 78 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 79 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 80 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 81 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 82 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 83 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 84 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 85 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 86 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 87 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 88 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 89 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 90 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 91 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 92 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 93 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 94 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 95 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 96 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 97 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 98 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 99 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 100 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 101 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 102 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 103 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 104 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 105 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 106 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 107 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 108 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 109 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 110 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 111 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 112 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 113 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 114 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 115 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 116 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 117 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 118 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 119 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 120 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 121 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 122 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 123 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 124 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 125 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 126 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 127 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 128 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 129 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 130 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 131 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 132 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 133 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 134 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 135 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 136 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 137 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 138 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
+Setting constant 0-bit at position 139 on $auto$ff.cc:266:slice$114651 ($sdff) from module ino_memory_unit.
 
 3.18.16. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_memory_unit..
@@ -1068,6 +1068,6 @@ Finding unused cells or wires in module \ino_memory_unit..
 Removed 0 unused cells and 2011 unused wires.
 <suppressed ~79 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 59aea24ad5, CPU: user 2.30s system 0.08s, MEM: 178.58 MB peak
+End of script. Logfile hash: 80991e349f, CPU: user 2.21s system 0.07s, MEM: 190.04 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 32% 2x read_rtlil (0 sec), 15% 1x abc (0 sec), ...
+Time spent: 34% 2x read_rtlil (0 sec), 14% 1x abc (0 sec), ...

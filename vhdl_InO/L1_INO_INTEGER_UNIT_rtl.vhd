@@ -11,6 +11,7 @@ use work.TAHX_1_ISA.all;
 use work.ARCH_TYPES.all;
 use work.FETCH_DECODE_TYPES.all;
 use work.IN_ORDER_TYPES.all;
+use work.INO_ARITH.all;
 
         --------------------------------------------------------------------------------
         --  INO_INTEGER_UNIT, architecture RTL.
@@ -19,6 +20,13 @@ use work.IN_ORDER_TYPES.all;
         --  L1_INTEGER_UNIT_rtl du backend OoO, mais l'enveloppe microarchitecturale
         --  disparaît : les opérandes sont directement ISSUE_i.operand et le résultat
         --  est un ino_complete_t.
+        --
+        --  COMPLETE est rendu dans le cycle d'émission (V3) : l'unité est sur le
+        --  chemin du chaînage STACK_UNIT -> INO_EXECUTE -> STACK_UNIT. D'où (étude
+        --  IPC x f) un seul additionneur en préfixe parallèle (ADD_PFX) pour ADD, SUB,
+        --  INC, DEC, NEG, ABS, LVA et les comparaisons (signe, débordement, égalité),
+        --  et un résultat qui ne dépend plus de la faute (il n'est pas écrit quand
+        --  result_valid = '0').
         --------------------------------------------------------------------------------
 
                                 ---
@@ -103,9 +111,16 @@ of INO_INTEGER_UNIT is          ---
         -- Une instruction : valeurs d'opérandes -> résultat/fautes.
         --------------------------------------------------------------------------------
 
+   -- Un seul additionneur (ADD_PFX, prefixe parallele) pour ADD, SUB, INC, DEC, NEG,
+   -- ABS, LVA et les comparaisons ; celles-ci lisent le signe, le debordement et
+   -- l'egalite. Le resultat d'une instruction fautive n'est pas force a 0 : la
+   -- STACK_UNIT ne l'ecrit pas (result_valid = '0') et ne l'enchaine pas.
    function EXECUTE( ins : ino_issue_t ) return ino_complete_t is
       constant op       : opcode_t := ins.slot.canon.op;
       variable a, b, v  : unsigned( 63 downto 0 );
+      variable x, y, sm : unsigned( 63 downto 0 );
+      variable cin      : std_logic;
+      variable ovf, lt, eq : boolean;
       variable lsb, w   : unsigned( 63 downto 0 );
       variable ins_v    : unsigned( 63 downto 0 );
       variable m        : unsigned( 63 downto 0 );
@@ -118,6 +133,25 @@ of INO_INTEGER_UNIT is          ---
       b := unsigned( ins.operand( 1 ) );
       v := ( others => '0' );
 
+      -- Operandes de l'additionneur commun.
+      x := a; y := not b; cin := '1';                       -- a - b (SUB, comparaisons)
+      if op = OP_ADD then
+         y := b; cin := '0';
+      elsif op = OP_INC then
+         y := ( others => '0' ); cin := '1';
+      elsif op = OP_DEC then
+         y := ( others => '1' ); cin := '0';
+      elsif op = OP_NEG or op = OP_ABS then
+         x := ( others => '0' ); y := not a; cin := '1';    -- 0 - a
+      elsif op = OP_LVA_B16 or op = OP_LVA_B24 then
+         y := unsigned( resize( ins.slot.canon.val, 64 ) ); cin := '0';
+      end if;
+      sm := ADD_PFX( x, y, cin );
+      -- Debordement signe de x + y + cin.
+      ovf := x( 63 ) = y( 63 ) and sm( 63 ) /= x( 63 );
+      lt  := ( sm( 63 ) = '1' ) /= ovf;                     -- a < b (signe)
+      eq  := ( a xor b ) = 0;
+
       case op is
          when OP_ET      => v := a and b;
          when OP_OU      => v := a or b;
@@ -125,18 +159,17 @@ of INO_INTEGER_UNIT is          ---
          when OP_NON     => v := not a;
 
          when OP_SHL | OP_SHR | OP_SAR =>
-            if b >= 64 then
+            n := to_integer( b( 5 downto 0 ) );
+            if b( 63 downto 6 ) /= 0 then
                faulty := true;
                fault  := FAULT_UNDEFINED;
+            end if;
+            if op = OP_SHL then
+               v := shift_left( a, n );
+            elsif op = OP_SHR then
+               v := shift_right( a, n );
             else
-               n := to_integer( b( 5 downto 0 ) );
-               if op = OP_SHL then
-                  v := shift_left( a, n );
-               elsif op = OP_SHR then
-                  v := shift_right( a, n );
-               else
-                  v := unsigned( shift_right( signed( a ), n ) );
-               end if;
+               v := unsigned( shift_right( signed( a ), n ) );
             end if;
 
          when OP_CLAMP0 =>
@@ -147,58 +180,31 @@ of INO_INTEGER_UNIT is          ---
             end if;
 
          when OP_NEG =>
-            if a = MIN_64 then
-               faulty := true;
-               fault  := FAULT_OVERFLOW;
-            end if;
-            v := 0 - a;
+            faulty := ovf;                                  -- a = MIN_64
+            fault  := FAULT_OVERFLOW;
+            v := sm;
 
          when OP_ABS =>
-            if a = MIN_64 then
-               faulty := true;
-               fault  := FAULT_OVERFLOW;
-            end if;
             if a( 63 ) = '1' then
-               v := 0 - a;
+               faulty := ovf;                               -- a = MIN_64
+               fault  := FAULT_OVERFLOW;
+               v := sm;
             else
                v := a;
             end if;
 
-         when OP_ADD =>
-            v := a + b;
-            if a( 63 ) = b( 63 ) and v( 63 ) /= a( 63 ) then
-               faulty := true;
-               fault  := FAULT_OVERFLOW;
-            end if;
-
-         when OP_SUB =>
-            v := a - b;
-            if a( 63 ) /= b( 63 ) and v( 63 ) /= a( 63 ) then
-               faulty := true;
-               fault  := FAULT_OVERFLOW;
-            end if;
-
-         when OP_INC =>
-            if a = MAX_64 then
-               faulty := true;
-               fault  := FAULT_OVERFLOW;
-            end if;
-            v := a + 1;
-
-         when OP_DEC =>
-            if a = MIN_64 then
-               faulty := true;
-               fault  := FAULT_OVERFLOW;
-            end if;
-            v := a - 1;
+         when OP_ADD | OP_SUB | OP_INC | OP_DEC =>
+            faulty := ovf;
+            fault  := FAULT_OVERFLOW;
+            v := sm;
 
          when OP_CGT | OP_CLT | OP_CNE | OP_CEQ | OP_CGE | OP_CLE =>
-            if    ( op = OP_CGT and signed( a ) >  signed( b ) )
-               or ( op = OP_CLT and signed( a ) <  signed( b ) )
-               or ( op = OP_CNE and a /= b )
-               or ( op = OP_CEQ and a =  b )
-               or ( op = OP_CGE and signed( a ) >= signed( b ) )
-               or ( op = OP_CLE and signed( a ) <= signed( b ) ) then
+            if    ( op = OP_CGT and not lt and not eq )
+               or ( op = OP_CLT and lt )
+               or ( op = OP_CNE and not eq )
+               or ( op = OP_CEQ and eq )
+               or ( op = OP_CGE and not lt )
+               or ( op = OP_CLE and ( lt or eq ) ) then
                v := to_unsigned( 1, 64 );
             end if;
 
@@ -217,28 +223,27 @@ of INO_INTEGER_UNIT is          ---
             if FIELD_ILLEGAL( lsb, w ) then
                faulty := true;
                fault  := FAULT_UNDEFINED;
-            else
-               n := to_integer( lsb( 5 downto 0 ) );
-               m := MASK( to_integer( w( 6 downto 0 ) ) );
+            end if;
+            n := to_integer( lsb( 5 downto 0 ) );
+            m := MASK( to_integer( w( 6 downto 0 ) ) );
 
-               if op = OP_UBFX or op = OP_UBFXI then
-                  v := shift_right( a, n ) and m;
-               elsif op = OP_SBFX or op = OP_SBFXI then
-                  v := shift_right( a, n ) and m;
-                  if w < 64 and v( to_integer( w( 5 downto 0 ) ) - 1 ) = '1' then
-                     v := v or not m;
-                  end if;
-               else
-                  ins_v := b;
-                  v := ( a and not shift_left( m, n ) ) or ( shift_left( ins_v and m, n ) );
+            if op = OP_UBFX or op = OP_UBFXI then
+               v := shift_right( a, n ) and m;
+            elsif op = OP_SBFX or op = OP_SBFXI then
+               v := shift_right( a, n ) and m;
+               if w( 5 downto 0 ) /= 0 and v( ( to_integer( w( 5 downto 0 ) ) - 1 ) mod 64 ) = '1' then
+                  v := v or not m;
                end if;
+            else
+               ins_v := b;
+               v := ( a and not shift_left( m, n ) ) or ( shift_left( ins_v and m, n ) );
             end if;
 
          when OP_LVA_B16 | OP_LVA_B24 =>
             if ins.address_known = '1' then
                v := ins.address;
             else
-               v := a + unsigned( resize( ins.slot.canon.val, 64 ) );
+               v := sm;
             end if;
 
          when OP_LI_D8 | OP_LI_D16 | OP_LI_D32 =>
@@ -260,13 +265,12 @@ of INO_INTEGER_UNIT is          ---
       r.taken  := '0';
       r.target := ( others => '0' );
 
+      r.result := std_logic_vector( v );
       if faulty then
          r.result_valid := '0';
-         r.result       := ( others => '0' );
          r.fault        := ( valid => '1', code => fault );
       else
          r.result_valid := '1';
-         r.result       := std_logic_vector( v );
          r.fault        := NO_FAULT;
       end if;
 

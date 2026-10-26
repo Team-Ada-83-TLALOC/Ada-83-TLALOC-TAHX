@@ -25,20 +25,23 @@ use work.INO_ARITH.all;
         -- par cycle. Les signes sont traités à part (valeurs absolues en entrée,
         -- correction en sortie).
         --
-        -- Déroulement pendant ATTENTE, un pas par cycle :
-        --   ABSOLU    valeurs absolues et signes des opérandes
+        -- Déroulement (étude IPC x f, 25 octobre) :
+        --   émission  valeurs absolues et signes des opérandes (ancien pas ABSOLU)
         --   CHARGE    MUL : produit (128 bits) dans dq_s
-        --   PRODUIT   MUL : contrôle de débordement, signe et résultat (fin)
-        --             DIV/REMI/MODI : |a| dans la moitié haute du dividende
+        --             DIV/REMI/MODI : |a| décalé de ses quartets de tête nuls (les pas
+        --                             correspondants ne produiraient que des zéros)
         --             CVTIX/CVTXI   : |a|.|b| (128 bits) comme dividende
-        --   DIVISE    64 / DIV_BITS ou 128 / DIV_BITS cycles
+        --   PRODUIT   MUL : contrôle de débordement, signe et résultat, rendus
+        --             combinatoirement dans ce cycle (mul_out_s) ; retour en LIBRE
+        --   DIVISE    un pas par quartet significatif de |a| (au plus 64 / DIV_BITS),
+        --             ou 128 / DIV_BITS pour CVTIX/CVTXI
         --   FINAL     signes, arrondi, contrôle de débordement, résultat
         --
-        -- Latences (émission -> COMPLETE_o.valid), comme l'ancien modèle à
-        -- décompte quand DIV_BITS = 4 :
-        --   MUL                 4 cycles (3 avant le pas PRODUIT, étude de vitesse)
-        --   DIV/REMI/MODI      4 +  64 / DIV_BITS  = 20 cycles
-        --   CVTIX/CVTXI        4 + 128 / DIV_BITS  = 36 cycles
+        -- Latences (émission -> COMPLETE_o.valid, en cycles) :
+        --   MUL                 2   (4 avant)
+        --   DIV/REMI/MODI       3 + nombre de quartets significatifs de |a| (3 à 19 ;
+        --                       20 avant)
+        --   CVTIX/CVTXI         3 + 128 / DIV_BITS = 35   (36 avant)
         --------------------------------------------------------------------------------
 
                                 ---
@@ -52,8 +55,8 @@ of INO_MULDIV_UNIT is           ---
    constant OP_CVTIX            : opcode_t := x"1C";
    constant OP_CVTXI            : opcode_t := x"1D";
 
-   -- Bits de quotient par cycle : 1, 2, 4 ou 8. Compromis surface/chemin
-   -- critique (DIV_BITS soustracteurs de 65 bits en série) contre latence.
+   -- Bits de quotient par cycle (DIV_BITS soustracteurs de 65 bits en série). Le
+   -- saut des quartets de tête nuls (ZERO_NIBBLES) suppose 4.
    constant DIV_BITS            : positive := 4;
 
    constant MIN_64              : signed( 63 downto 0 ) := ( 63 => '1', others => '0' );
@@ -91,6 +94,9 @@ of INO_MULDIV_UNIT is           ---
 
    -- Unique multiplieur de l'unité.
    signal prod                  : unsigned( 127 downto 0 );
+
+   -- MUL rendu dans le cycle du pas PRODUIT (combinatoire, étude IPC x f).
+   signal mul_out_s             : ino_complete_t;
 
    function IS_MULDIV_OP( op : opcode_t ) return boolean is
    begin
@@ -139,6 +145,28 @@ of INO_MULDIV_UNIT is           ---
       return r;
    end function;
 
+   -- Nombre de quartets de tête nuls de v (0 à 16).
+   function ZERO_NIBBLES( v : unsigned( 63 downto 0 ) ) return natural is
+   begin
+      for k in 0 to 15 loop
+         if v( 63 - 4 * k downto 60 - 4 * k ) /= 0 then
+            return k;
+         end if;
+      end loop;
+      return 16;
+   end function;
+
+   -- Résultat de MUL à partir du produit non signé |a|.|b|.
+   function MUL_RESULT( p : unsigned( 127 downto 0 ); neg : std_logic ) return ino_complete_t is
+   begin
+      if p( 127 downto 63 ) = 0
+         or ( neg = '1' and p( 127 downto 64 ) = 0 and p( 62 downto 0 ) = 0 ) then
+         return OK_RESULT( NEG_IF( signed( p( 63 downto 0 ) ), neg ) );
+      else
+         return FAULT_RESULT( FAULT_OVERFLOW );
+      end if;
+   end function;
+
    -- DIV_BITS pas de division restaurante.
    procedure DIVISE_PAS(
       variable dq  : inout unsigned( 127 downto 0 );
@@ -159,16 +187,22 @@ of INO_MULDIV_UNIT is           ---
 
 begin
 
-   assert DIV_BITS = 1 or DIV_BITS = 2 or DIV_BITS = 4 or DIV_BITS = 8
-      report "INO_MULDIV_UNIT : DIV_BITS doit valoir 1, 2, 4 ou 8" severity failure;
+   assert DIV_BITS = 4
+      report "INO_MULDIV_UNIT : DIV_BITS doit valoir 4 (saut des quartets de tete nuls)" severity failure;
 
    ISSUE_READY_o <= '1' when state_s = LIBRE else '0';
 
+   mul_out_s <= MUL_RESULT( dq_s, sa_s xor sb_s );
+
    OUTPUT : process( all )
    begin
-      COMPLETE_o <= result_s;
-      if state_s /= RESULTAT then
-         COMPLETE_o.valid <= '0';
+      if state_s = ATTENTE and step_s = PRODUIT then
+         COMPLETE_o <= mul_out_s;
+      else
+         COMPLETE_o <= result_s;
+         if state_s /= RESULTAT then
+            COMPLETE_o.valid <= '0';
+         end if;
       end if;
    end process OUTPUT;
 
@@ -199,6 +233,7 @@ begin
       variable fits   : boolean;
       variable d64    : unsigned( 63 downto 0 );
       variable s66    : unsigned( 65 downto 0 );
+      variable nz     : natural range 0 to 16;
    begin
       if rising_edge( CLK_i ) then
          if RESET_i = '1' then
@@ -215,7 +250,14 @@ begin
                      a_s     <= signed( ISSUE_i.operand( 0 ) );
                      b_s     <= signed( ISSUE_i.operand( 1 ) );
                      c_s     <= signed( ISSUE_i.operand( 2 ) );
-                     step_s  <= ABSOLU;
+                     -- Valeurs absolues dès l'émission (ancien pas ABSOLU).
+                     ua_s <= unsigned( NEG_IF( signed( ISSUE_i.operand( 0 ) ), ISSUE_i.operand( 0 )( 63 ) ) );
+                     ub_s <= unsigned( NEG_IF( signed( ISSUE_i.operand( 1 ) ), ISSUE_i.operand( 1 )( 63 ) ) );
+                     uc_s <= unsigned( NEG_IF( signed( ISSUE_i.operand( 2 ) ), ISSUE_i.operand( 2 )( 63 ) ) );
+                     sa_s <= ISSUE_i.operand( 0 )( 63 );
+                     sb_s <= ISSUE_i.operand( 1 )( 63 );
+                     sc_s <= ISSUE_i.operand( 2 )( 63 );
+                     step_s  <= CHARGE;
                      state_s <= ATTENTE;
                   end if;
 
@@ -246,23 +288,22 @@ begin
                            iter_s <= 128 / DIV_BITS;
                            step_s <= DIVISE;
                         else
-                           dq_s   <= ua_s & to_unsigned( 0, 64 );
+                           -- Quartets de tête nuls du dividende : les pas correspondants
+                           -- ne produiraient que des zéros (reste partiel nul).
+                           nz     := ZERO_NIBBLES( ua_s );
+                           dq_s   <= shift_left( ua_s, 4 * nz ) & to_unsigned( 0, 64 );
                            dvs_s  <= ub_s;
-                           iter_s <= 64 / DIV_BITS;
-                           step_s <= DIVISE;
+                           if nz = 16 then
+                              step_s <= FINAL;
+                           else
+                              iter_s <= 16 - nz;
+                              step_s <= DIVISE;
+                           end if;
                         end if;
 
                      when PRODUIT =>
-                        -- p = a.b tient sur 64 bits signés si |p| < 2**63,
-                        -- ou |p| = 2**63 avec p négatif.
-                        neg := sa_s xor sb_s;
-                        if dq_s( 127 downto 63 ) = 0
-                           or ( neg = '1' and dq_s( 127 downto 64 ) = 0 and dq_s( 62 downto 0 ) = 0 ) then
-                           result_s <= OK_RESULT( NEG_IF( signed( dq_s( 63 downto 0 ) ), neg ) );
-                        else
-                           result_s <= FAULT_RESULT( FAULT_OVERFLOW );
-                        end if;
-                        state_s <= RESULTAT;
+                        -- Résultat rendu dans ce cycle (mul_out_s, combinatoire).
+                        state_s <= LIBRE;
 
                      when DIVISE =>
                         dq := dq_s;

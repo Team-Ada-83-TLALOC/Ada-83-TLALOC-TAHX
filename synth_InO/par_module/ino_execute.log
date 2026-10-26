@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict decode_bloc fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_1024 ino_system ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_pipe ino_decode_predict ino_decode_queue ino_decode_queue_ram207_2_143 ino_excm_unit ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_512 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_execute
          synth -top ino_execute -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -87,15 +87,15 @@ Cleaned up 0 empty switches.
 
 3.2.12. Executing OPT_EXPR pass (perform const folding).
 Optimizing module ino_execute.
-<suppressed ~2 debug messages>
+<suppressed ~5 debug messages>
 
 3.3. Executing OPT_EXPR pass (perform const folding).
 Optimizing module ino_execute.
 
 3.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_execute..
-Removed 1 unused cells and 24 unused wires.
-<suppressed ~2 debug messages>
+Removed 50 unused cells and 76 unused wires.
+<suppressed ~51 debug messages>
 
 3.5. Executing CHECK pass (checking for obvious problems).
 Checking module ino_execute...
@@ -191,19 +191,22 @@ Optimizing module ino_execute.
 3.8.9. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 32 bits (of 64) from port A of cell ino_execute.\16830 ($add).
+Removed top 2 bits (of 34) from port A of cell ino_execute.\18928 ($xor).
+Removed top 2 bits (of 34) from port A of cell ino_execute.\18930 ($and).
+Removed top 1 bits (of 34) from port Y of cell ino_execute.\18930 ($and).
+Removed top 1 bits (of 34) from port B of cell ino_execute.\18930 ($and).
+Removed top 1 bits (of 34) from wire ino_execute.$auto$ghdl.cc:806:import_module$6870.
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
 
 3.11. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_execute..
+Removed 0 unused cells and 1 unused wires.
+<suppressed ~1 debug messages>
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_execute:
-  creating $macc model for \16830 ($add).
-  creating $alu model for $macc \16830.
-  creating $alu cell for \16830: $auto$alumacc.cc:485:replace_alu$108959
-  created 1 $alu and 0 $macc cells.
+  created 0 $alu and 0 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
 
@@ -274,7 +277,7 @@ Finding unused cells or wires in module \ino_execute..
 
 3.16.1. Executing OPT_EXPR pass (perform const folding).
 Optimizing module ino_execute.
-<suppressed ~1 debug messages>
+<suppressed ~15 debug messages>
 
 3.16.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\ino_execute'.
@@ -284,6 +287,8 @@ Removed a total of 0 cells.
 
 3.16.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_execute..
+Removed 0 unused cells and 5 unused wires.
+<suppressed ~1 debug messages>
 
 3.16.5. Finished fast OPT passes.
 
@@ -308,7 +313,12 @@ Removed 0 multiplexer ports.
 
 3.18.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \ino_execute.
-Performed a total of 0 changes.
+    Consolidated identical input bits for $mux cell \21006:
+      Old ports: A={ 32'00000000000000000000000000000000 \issue_i.address }, B={ $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7327 $auto$ghdl.cc:806:import_module$7326 $auto$ghdl.cc:806:import_module$7325 $auto$ghdl.cc:806:import_module$7324 $auto$ghdl.cc:806:import_module$7323 $auto$ghdl.cc:806:import_module$7322 $auto$ghdl.cc:806:import_module$7321 $auto$ghdl.cc:806:import_module$7320 $auto$ghdl.cc:806:import_module$7319 $auto$ghdl.cc:806:import_module$7318 $auto$ghdl.cc:806:import_module$7317 $auto$ghdl.cc:806:import_module$7316 $auto$ghdl.cc:806:import_module$7315 $auto$ghdl.cc:806:import_module$7314 $auto$ghdl.cc:806:import_module$7313 $auto$ghdl.cc:806:import_module$7312 $auto$ghdl.cc:806:import_module$7311 $auto$ghdl.cc:806:import_module$7310 $auto$ghdl.cc:806:import_module$7309 $auto$ghdl.cc:806:import_module$7308 $auto$ghdl.cc:806:import_module$7307 $auto$ghdl.cc:806:import_module$7306 $auto$ghdl.cc:806:import_module$7305 $auto$ghdl.cc:806:import_module$7304 $auto$ghdl.cc:806:import_module$7303 $auto$ghdl.cc:806:import_module$7302 $auto$ghdl.cc:806:import_module$7301 $auto$ghdl.cc:806:import_module$7300 $auto$ghdl.cc:806:import_module$7299 $auto$ghdl.cc:806:import_module$7298 $auto$ghdl.cc:806:import_module$7297 $auto$ghdl.cc:806:import_module$7296 $auto$ghdl.cc:806:import_module$6869 [0] }, Y=$auto$ghdl.cc:806:import_module$7329
+      New ports: A={ 2'00 \issue_i.address }, B={ $auto$ghdl.cc:806:import_module$7328 $auto$ghdl.cc:806:import_module$7327 $auto$ghdl.cc:806:import_module$7326 $auto$ghdl.cc:806:import_module$7325 $auto$ghdl.cc:806:import_module$7324 $auto$ghdl.cc:806:import_module$7323 $auto$ghdl.cc:806:import_module$7322 $auto$ghdl.cc:806:import_module$7321 $auto$ghdl.cc:806:import_module$7320 $auto$ghdl.cc:806:import_module$7319 $auto$ghdl.cc:806:import_module$7318 $auto$ghdl.cc:806:import_module$7317 $auto$ghdl.cc:806:import_module$7316 $auto$ghdl.cc:806:import_module$7315 $auto$ghdl.cc:806:import_module$7314 $auto$ghdl.cc:806:import_module$7313 $auto$ghdl.cc:806:import_module$7312 $auto$ghdl.cc:806:import_module$7311 $auto$ghdl.cc:806:import_module$7310 $auto$ghdl.cc:806:import_module$7309 $auto$ghdl.cc:806:import_module$7308 $auto$ghdl.cc:806:import_module$7307 $auto$ghdl.cc:806:import_module$7306 $auto$ghdl.cc:806:import_module$7305 $auto$ghdl.cc:806:import_module$7304 $auto$ghdl.cc:806:import_module$7303 $auto$ghdl.cc:806:import_module$7302 $auto$ghdl.cc:806:import_module$7301 $auto$ghdl.cc:806:import_module$7300 $auto$ghdl.cc:806:import_module$7299 $auto$ghdl.cc:806:import_module$7298 $auto$ghdl.cc:806:import_module$7297 $auto$ghdl.cc:806:import_module$7296 $auto$ghdl.cc:806:import_module$6869 [0] }, Y=$auto$ghdl.cc:806:import_module$7329 [33:0]
+      New connections: $auto$ghdl.cc:806:import_module$7329 [63:34] = { $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] $auto$ghdl.cc:806:import_module$7329 [33] }
+  Optimizing cells in module \ino_execute.
+Performed a total of 1 changes.
 
 3.18.5. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\ino_execute'.
@@ -324,7 +334,35 @@ Finding unused cells or wires in module \ino_execute..
 3.18.9. Executing OPT_EXPR pass (perform const folding).
 Optimizing module ino_execute.
 
-3.18.10. Finished OPT passes. (There is nothing left to do.)
+3.18.10. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.18.11. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ino_execute..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~1 debug messages>
+
+3.18.12. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ino_execute.
+Performed a total of 0 changes.
+
+3.18.13. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ino_execute'.
+Removed a total of 0 cells.
+
+3.18.14. Executing OPT_SHARE pass.
+
+3.18.15. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.18.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ino_execute..
+
+3.18.17. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ino_execute.
+
+3.18.18. Finished OPT passes. (There is nothing left to do.)
 
 3.19. Executing TECHMAP pass (map to technology primitives).
 
@@ -357,35 +395,31 @@ Generating RTLIL representation for module `\_90_lut'.
 Successfully finished Verilog frontend.
 
 3.19.2. Continuing TECHMAP pass.
-Using template $paramod$2126a3039e9678f6a4bd73d35a1f58ee2616afb2\_90_alu for cells of type $alu.
-Using extmapper simplemap for cells of type $mux.
-Using extmapper simplemap for cells of type $logic_not.
-Using extmapper simplemap for cells of type $not.
-Using extmapper simplemap for cells of type $pos.
-Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000001000000 for cells of type $lcu.
 Using extmapper simplemap for cells of type $and.
 Using extmapper simplemap for cells of type $xor.
 Using extmapper simplemap for cells of type $or.
+Using extmapper simplemap for cells of type $mux.
+Using extmapper simplemap for cells of type $logic_not.
+Using extmapper simplemap for cells of type $not.
 No more expansions possible.
-<suppressed ~572 debug messages>
+<suppressed ~483 debug messages>
 
 3.20. Executing OPT pass (performing simple optimizations).
 
 3.20.1. Executing OPT_EXPR pass (perform const folding).
 Optimizing module ino_execute.
-<suppressed ~258 debug messages>
+<suppressed ~1 debug messages>
 
 3.20.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\ino_execute'.
-<suppressed ~333 debug messages>
-Removed a total of 111 cells.
+Removed a total of 0 cells.
 
 3.20.3. Executing OPT_DFF pass (perform DFF optimizations).
 
 3.20.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_execute..
-Removed 33 unused cells and 152 unused wires.
-<suppressed ~34 debug messages>
+Removed 1 unused cells and 2 unused wires.
+<suppressed ~2 debug messages>
 
 3.20.5. Finished fast OPT passes.
 
@@ -402,18 +436,18 @@ Removed 0 unused modules.
 
 === ino_execute ===
 
-   Number of wires:                170
-   Number of wire bits:           2327
+   Number of wires:                464
+   Number of wire bits:           2434
    Number of public wires:          52
    Number of public wire bits:    1868
    Number of memories:               0
    Number of memory bits:            0
    Number of processes:              0
-   Number of cells:                316
-     $_AND_                        120
-     $_MUX_                         38
-     $_OR_                          88
-     $_XOR_                         69
+   Number of cells:                535
+     $_AND_                        270
+     $_MUX_                         34
+     $_OR_                         165
+     $_XOR_                         65
      ino_backend_excm                1
 
 3.23. Executing CHECK pass (checking for obvious problems).
@@ -484,7 +518,7 @@ Mapping DFF cells in module `\ino_execute':
 5. Executing ABC pass (technology mapping using ABC).
 
 5.1. Extracting gate netlist of module `\ino_execute' to `<abc-temp-dir>/input.blif'..
-Extracted 315 gates and 413 wires to a netlist network with 97 inputs and 39 outputs.
+Extracted 534 gates and 632 wires to a netlist network with 97 inputs and 35 outputs.
 
 5.1.1. Executing ABC.
 Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
@@ -523,39 +557,38 @@ ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
 ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
-ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
-ABC: Memory =    2.86 MB. Time =     0.02 sec
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
+ABC: Memory =    2.86 MB. Time =     0.01 sec
 ABC: + source /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/par_module/abc_direct.abc 
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
 5.1.2. Re-integrating ABC results.
 ABC RESULTS:     sg13g2_nor4_1 cells:        8
 ABC RESULTS:    sg13g2_nand4_1 cells:        2
-ABC RESULTS:    sg13g2_nand3_1 cells:        1
-ABC RESULTS:      sg13g2_or2_1 cells:        4
-ABC RESULTS:    sg13g2_nor2b_1 cells:        9
-ABC RESULTS:   sg13g2_nand2b_1 cells:        5
-ABC RESULTS:     sg13g2_nor2_1 cells:       14
-ABC RESULTS:    sg13g2_nand2_1 cells:       22
+ABC RESULTS:   sg13g2_nand2b_1 cells:        6
+ABC RESULTS:     sg13g2_nor2_1 cells:        9
+ABC RESULTS:     sg13g2_xor2_1 cells:        6
 ABC RESULTS:      sg13g2_inv_1 cells:       14
-ABC RESULTS:     sg13g2_and2_1 cells:       23
-ABC RESULTS:    sg13g2_o21ai_1 cells:       37
-ABC RESULTS:     sg13g2_a21o_1 cells:       17
-ABC RESULTS:     sg13g2_xor2_1 cells:       10
-ABC RESULTS:    sg13g2_xnor2_1 cells:       28
-ABC RESULTS:     sg13g2_mux2_1 cells:        8
+ABC RESULTS:    sg13g2_xnor2_1 cells:       25
 ABC RESULTS:    sg13g2_a21oi_1 cells:       33
-ABC RESULTS:     sg13g2_nor3_1 cells:        6
-ABC RESULTS:        internal signals:      277
+ABC RESULTS:     sg13g2_a21o_1 cells:       13
+ABC RESULTS:    sg13g2_nand2_1 cells:       30
+ABC RESULTS:    sg13g2_nor2b_1 cells:       11
+ABC RESULTS:      sg13g2_or2_1 cells:        5
+ABC RESULTS:    sg13g2_o21ai_1 cells:       51
+ABC RESULTS:     sg13g2_mux2_1 cells:        1
+ABC RESULTS:     sg13g2_and2_1 cells:       26
+ABC RESULTS:     sg13g2_and4_1 cells:        1
+ABC RESULTS:        internal signals:      500
 ABC RESULTS:           input signals:       97
-ABC RESULTS:          output signals:       39
+ABC RESULTS:          output signals:       35
 Removing temp directory.
 
 6. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_execute..
-Removed 0 unused cells and 216 unused wires.
+Removed 0 unused cells and 510 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 896cb76678, CPU: user 1.20s system 0.08s, MEM: 178.81 MB peak
+End of script. Logfile hash: 3244558246, CPU: user 1.30s system 0.07s, MEM: 189.81 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 65% 2x read_rtlil (0 sec), 9% 1x blackbox (0 sec), ...
+Time spent: 60% 2x read_rtlil (0 sec), 9% 1x blackbox (0 sec), ...

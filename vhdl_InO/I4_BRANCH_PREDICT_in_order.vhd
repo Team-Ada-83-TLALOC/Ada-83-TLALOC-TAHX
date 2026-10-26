@@ -12,13 +12,16 @@ use work.INO_PADDR.all;
 
 architecture IN_ORDER of BRANCH_PREDICT is
 
-   -- Taille de la table gshare : 2 ** GSHARE_BITS compteurs (10 : 1 K, en
-   -- bascules ; 16 : 64 K, la table de l'etude de limites). Doit valoir
+   -- Taille de la table gshare : 2 ** GSHARE_BITS compteurs (9 : 512, en
+   -- bascules ; 16 : 64 K, la table de l'etude de limites). 9 depuis le 26 octobre :
+   -- avec le traitement par groupes (etude IPC x f), la table de 1 K rendait
+   -- ino_decode_predict trop dense pour le routage ; 512 compteurs : surface de la
+   -- macro -23 %, cycles +0,11 % sur les 8 bancs (G8 : -35 %, +0,23 %). Doit valoir
    -- RETIRE_PC_BITS de I5a_INO_FRONT_PA.vhd (bits du pc transmis au retrait).
    -- L'indice est forme des GSHARE_BITS bits faibles de pc xor ghist ;
    -- l'historique garde ses ghist_t'length bits. Le changer ne touche que la
    -- performance (variantes VARIANTES/G*.txt des bancs).
-   constant GSHARE_BITS : positive := 10;
+   constant GSHARE_BITS : positive := 9;
    constant GSHARE : positive := 2 ** GSHARE_BITS;
    constant OP_CALLI : opcode_t := x"33";
 
@@ -51,6 +54,10 @@ architecture IN_ORDER of BRANCH_PREDICT is
    signal state_q : state_t := IDLE;
    signal work_q, step_work : pred_work_t;
    signal slot_q : natural range 0 to DECODE_WIDTH - 1 := 0;
+   -- pragma translate_off
+   -- Observation (N3_INO_PLATEFORME) : etat de l'automate, state_t'pos.
+   signal obs_pred_s : natural := 0;
+   -- pragma translate_on
    signal step_done : std_logic;
    signal step_next_slot : natural range 0 to DECODE_WIDTH - 1;
 
@@ -137,6 +144,9 @@ begin
       report "BRANCH_PREDICT(IN_ORDER) : DECODE_WIDTH doit valoir 4"
       severity failure;
 
+   -- pragma translate_off
+   obs_pred_s <= state_t'pos(state_q);
+   -- pragma translate_on
    IN_READY_o <= '1' when state_q = IDLE and RECOVERY_i.valid = '0' else '0';
    OUT_VALID_o <= '1' when state_q = OUTPUT else '0';
    OUT_BLOCK_o <= work_q.blk;
@@ -153,9 +163,9 @@ begin
 
    --------------------------------------------------------------------------------
    -- Une lecture de prediction synchrone. En IDLE, l'adresse de la case 0 est
-   -- presentee avant le front qui accepte le bloc. En EVAL, l'etat obtenu pour la
-   -- case courante permet de presenter combinatoirement l'adresse de la suivante :
-   -- apres l'amorcage, une case est donc traitee par cycle.
+   -- presentee avant le front qui accepte le bloc. En EVAL, l'etat obtenu pour les
+   -- cases traitees dans le cycle permet de presenter combinatoirement l'adresse du
+   -- branchement conditionnel suivant (step_next_slot).
    --------------------------------------------------------------------------------
 
    PRED_ADDR_P : process(all)
@@ -173,91 +183,104 @@ begin
    end process PRED_ADDR_P;
 
    --------------------------------------------------------------------------------
-   -- Traitement combinatoire d'une seule case, a partir du compteur lu au cycle
-   -- precedent. C'est exactement la logique de l'ancien etage SLOTi, mais partagee
-   -- entre les quatre cases.
+   -- Traitement combinatoire d'un groupe de cases (etude IPC x f, 25 octobre) : la
+   -- case slot_q, dont le compteur gshare a ete lu au cycle precedent, puis, dans le
+   -- meme cycle, les cases suivantes tant qu'elles n'ont pas besoin d'un compteur
+   -- (tout sauf un branchement conditionnel). Le groupe s'arrete sur un transfert
+   -- pris (fin du bloc), ou avant le branchement conditionnel suivant, dont le
+   -- compteur est lu pour le cycle suivant (step_next_slot). Chaque case suit la
+   -- logique de l'ancien etage SLOTi ; seules changent les cases traitees par cycle.
+   -- Un bloc sans branchement conditionnel passe ainsi IDLE, EVAL, OUTPUT (3 cycles
+   -- au lieu de 2 + n), et la famine du frontal, surtout faite de cycles EVAL, baisse.
    --------------------------------------------------------------------------------
 
    STEP : process(all)
       variable v : pred_work_t;
-      variable i : natural range 0 to DECODE_WIDTH - 1;
       variable taken : boolean;
       variable target, fin : address_t;
       variable op : opcode_t;
       variable pnew : natural range 0 to RAS_N - 1;
+      variable fini, arret : boolean;
    begin
       v := work_q;
-      i := slot_q;
       step_done <= '0';
       step_next_slot <= slot_q;
+      fini := false;
+      arret := false;
 
-      if i < v.n then
-         op := v.blk(i).canon.op;
-         target := CUT(v.blk(i).pc + v.blk(i).canon.len + unsigned(resize(v.blk(i).canon.val, 64)));
-         fin := CUT(v.blk(i).pc + v.blk(i).canon.len - 1);
-
-         if v.e(63 downto 5) /= fin(63 downto 5) then
-            v.e := fin(63 downto 5) & "00000";
-         end if;
-
-         v.blk(i).pred := NO_PREDICTION;
-         v.blk(i).pred.ghist := v.g;
-         v.blk(i).pred.ras_ptr := to_unsigned(v.p, ras_ptr_t'length);
-         taken := false;
-
-         if IS_BRANCH_COND(op) then
-            taken := unsigned(pred_ctr) >= 2;
-            if not taken and v.cv = '0' then
-               v.cv := '1';
-               v.ct := '0';
-               v.ck := v.e;
-               v.cf := fin;
-            end if;
-            v.blk(i).pred.target := target;
-            if taken then
-               v.g := v.g(v.g'high - 1 downto 0) & '1';
+      for i in 0 to DECODE_WIDTH - 1 loop
+         if not fini and not arret and i >= slot_q then
+            if i >= v.n then
+               fini := true;
+            elsif i /= slot_q and IS_BRANCH_COND(v.blk(i).canon.op) then
+               arret := true;
+               step_next_slot <= i;
             else
-               v.g := v.g(v.g'high - 1 downto 0) & '0';
-            end if;
-         elsif IS_BRA(op) then
-            taken := true;
-            v.blk(i).pred.target := target;
-         elsif op = OP_CALL or op = OP_CALLI then
-            if op = OP_CALL then
-               taken := true;
-               v.blk(i).pred.target := target;
-            end if;
-            v.rs(v.p) := CUT(v.blk(i).pc + v.blk(i).canon.len);
-            if v.p = RAS_N - 1 then pnew := 0; else pnew := v.p + 1; end if;
-            v.p := pnew;
-         elsif op = OP_RTD_0 or op = OP_RTD_N then
-            if v.p = 0 then pnew := RAS_N - 1; else pnew := v.p - 1; end if;
-            v.p := pnew;
-            taken := true;
-            v.blk(i).pred.target := v.rs(pnew);
-         end if;
+               op := v.blk(i).canon.op;
+               target := CUT(v.blk(i).pc + v.blk(i).canon.len + unsigned(resize(v.blk(i).canon.val, 64)));
+               fin := CUT(v.blk(i).pc + v.blk(i).canon.len - 1);
 
-         if taken then
-            v.blk(i).pred.taken := '1';
-            v.n := i + 1;
-            v.redirect := '1';
-            v.redirect_pc := v.blk(i).pred.target;
-            v.cv := '1';
-            v.ct := '1';
-            v.ck := v.e;
-            v.cf := fin;
-            v.cg := v.blk(i).pred.target;
-            v.e := v.blk(i).pred.target;
-            step_done <= '1';
-         elsif i + 1 >= v.n then
-            step_done <= '1';
-         else
-            step_next_slot <= i + 1;
+               if v.e(63 downto 5) /= fin(63 downto 5) then
+                  v.e := fin(63 downto 5) & "00000";
+               end if;
+
+               v.blk(i).pred := NO_PREDICTION;
+               v.blk(i).pred.ghist := v.g;
+               v.blk(i).pred.ras_ptr := to_unsigned(v.p, ras_ptr_t'length);
+               taken := false;
+
+               if IS_BRANCH_COND(op) then
+                  taken := unsigned(pred_ctr) >= 2;
+                  if not taken and v.cv = '0' then
+                     v.cv := '1';
+                     v.ct := '0';
+                     v.ck := v.e;
+                     v.cf := fin;
+                  end if;
+                  v.blk(i).pred.target := target;
+                  if taken then
+                     v.g := v.g(v.g'high - 1 downto 0) & '1';
+                  else
+                     v.g := v.g(v.g'high - 1 downto 0) & '0';
+                  end if;
+               elsif IS_BRA(op) then
+                  taken := true;
+                  v.blk(i).pred.target := target;
+               elsif op = OP_CALL or op = OP_CALLI then
+                  if op = OP_CALL then
+                     taken := true;
+                     v.blk(i).pred.target := target;
+                  end if;
+                  v.rs(v.p) := CUT(v.blk(i).pc + v.blk(i).canon.len);
+                  if v.p = RAS_N - 1 then pnew := 0; else pnew := v.p + 1; end if;
+                  v.p := pnew;
+               elsif op = OP_RTD_0 or op = OP_RTD_N then
+                  if v.p = 0 then pnew := RAS_N - 1; else pnew := v.p - 1; end if;
+                  v.p := pnew;
+                  taken := true;
+                  v.blk(i).pred.target := v.rs(pnew);
+               end if;
+
+               if taken then
+                  v.blk(i).pred.taken := '1';
+                  v.n := i + 1;
+                  v.redirect := '1';
+                  v.redirect_pc := v.blk(i).pred.target;
+                  v.cv := '1';
+                  v.ct := '1';
+                  v.ck := v.e;
+                  v.cf := fin;
+                  v.cg := v.blk(i).pred.target;
+                  v.e := v.blk(i).pred.target;
+                  fini := true;
+               end if;
+            end if;
          end if;
-      else
+      end loop;
+
+      if not arret then
          step_done <= '1';
       end if;
-
       step_work <= v;
    end process STEP;
 

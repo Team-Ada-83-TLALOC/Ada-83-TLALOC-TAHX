@@ -150,8 +150,10 @@ begin
          do_flush := RAND < p_flush;
          do_push := RAND < p_push;
          push_n := RAND_INT( DECODE_WIDTH );
-         -- file vide : le bloc présenté est en sortie au même cycle (contournement)
-         if n = 0 and do_push and not do_flush then pc := push_n; end if;
+         -- file vide : le bloc présenté est en sortie au même cycle (contournement),
+         -- même pendant un vidage (étude IPC x f : FLUSH_i hors de la condition ; la
+         -- case présentée est alors sans effet, comme celle d'une file non vide).
+         if n = 0 and do_push then pc := push_n; end if;
          for i in 0 to DECODE_WIDTH - 1 loop
             if i < push_n then
                blk( i ) := TO_PA( SLOT_OF( next_seq + i ) );

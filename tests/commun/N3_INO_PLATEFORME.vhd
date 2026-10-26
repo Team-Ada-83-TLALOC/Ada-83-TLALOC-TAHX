@@ -226,6 +226,11 @@ begin
       -- Occupation de la file : etat interne de INO_DECODE_QUEUE (pas de port) ;
       -- 8 = DQ_DEPTH de J1b_INO_DECODE_QUEUE_rtl.vhd.
       alias dq_occupancy  is << signal DUT.U_DECODE_QUEUE.count : natural range 0 to 8 >>;
+      -- Frontal (etude IPC x f) : etat du predicteur (IDLE, EVAL, OUTPUT), bloc decode
+      -- presente, file de decodage prete.
+      alias pred_st   is << signal DUT.U_INSTRUCTION.U_DECODE_PREDICT.U_PREDICT.obs_pred_s : natural >>;
+      alias dec_valid is << signal DUT.U_INSTRUCTION.U_DECODE_PREDICT.decode_valid : std_logic >>;
+      alias fe_ready  is << signal DUT.fe_ready : std_logic >>;
       alias stack_idle    is << signal DUT.stack_idle : std_logic >>;
       alias recovery      is << signal DUT.recovery : recovery_t >>;
       alias system_hold   is << signal DUT.system_hold : std_logic >>;
@@ -283,6 +288,11 @@ begin
       -- V0 : famine du frontal.
       variable famine       : famine_t := FAM_AUTRE;
       variable fam_cycles, fam_episodes : natural_by_famine_t := ( others => 0 );
+      -- Etat du frontal, hors famine (0) et en famine (1) : IDLE sans bloc decode
+      -- (attente d'octets), IDLE avec bloc (prise), EVAL, OUTPUT, OUTPUT bloque.
+      type front_t is array( 0 to 1, 0 to 4 ) of natural;
+      variable front : front_t := ( others => ( others => 0 ) );
+      variable fcat, frow : natural;
       variable starving, starving_prev : boolean := false;
       variable transfers_ok : natural := 0;
 
@@ -451,6 +461,11 @@ begin
                     & " (transferts " & IMG( transfers_ok ) & ")" );
          PERF_LINE( "PERF famine autre (cycles / episodes)               "
                     & IMG( fam_cycles( FAM_AUTRE ) ) & " / " & IMG( fam_episodes( FAM_AUTRE ) ) );
+         for r in 0 to 1 loop
+            PERF_LINE( "PERF FRONT famine=" & IMG( r ) & " idle_attente " & IMG( front( r, 0 ) )
+                       & " idle_prise " & IMG( front( r, 1 ) ) & " eval " & IMG( front( r, 2 ) )
+                       & " sortie " & IMG( front( r, 3 ) ) & " sortie_bloquee " & IMG( front( r, 4 ) ) );
+         end loop;
 
          for u in 0 to OBS_UNITS - 1 loop
             for s in 0 to NB_MOTS( NOMS_ETATS( u ) ) - 1 loop
@@ -532,6 +547,18 @@ begin
          else
             cyc_busy := cyc_busy + 1;
          end if;
+
+         if starving then frow := 1; else frow := 0; end if;
+         if pred_st = 0 then
+            if dec_valid = '1' then fcat := 1; else fcat := 0; end if;
+         elsif pred_st = 1 then
+            fcat := 2;
+         elsif fe_ready = '1' then
+            fcat := 3;
+         else
+            fcat := 4;
+         end if;
+         front( frow, fcat ) := front( frow, fcat ) + 1;
 
          if stack_mem_req.valid = '1' then cyc_stack_mem := cyc_stack_mem + 1; end if;
          if exec_mem_req.valid  = '1' then cyc_exec_mem  := cyc_exec_mem  + 1; end if;

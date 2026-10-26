@@ -118,12 +118,17 @@ begin
    end process;
 
    -----------------------------------------------------------------------------
-   -- Sortie. Le contournement de la file vide est celui de DECODE_QUEUE.
+   -- Sortie. Le contournement de la file vide est celui de DECODE_QUEUE, sans
+   -- FLUSH_i ni RESET_i dans sa condition (etude IPC x f) : pendant une reprise
+   -- (FLUSH_i), la STACK_UNIT est en ST_MISPRED_HOLD ou au repos sous SYSTEM_HOLD et
+   -- ne prend rien (TAHX_1 le verifie) ; la case presentee est alors sans effet,
+   -- comme celle d'une file non vide. FLUSH_i venait de RECOVERY (K9), donc du
+   -- commit : il formait le chemin STACK_UNIT -> file -> prise de la STACK_UNIT.
    -----------------------------------------------------------------------------
    OUTPUTS : process( ram_rdata, head, count, PUSH_VALID_i, PUSH_BLOCK_i,
-                      PUSH_COUNT_i, FLUSH_i, RESET_i )
+                      PUSH_COUNT_i )
    begin
-      if count = 0 and PUSH_VALID_i = '1' and FLUSH_i = '0' and RESET_i = '0' then
+      if count = 0 and PUSH_VALID_i = '1' then
          POP_SLOT_o <= PUSH_BLOCK_i( 0 );
          if PUSH_COUNT_i /= 0 then
             POP_SLOT_o.valid <= '1';

@@ -28,6 +28,15 @@ use work.TB_UTILS.all;
 		--  au hasard, adresses sur 64 bits), réduits par TO_BP / TO_PA pour le bloc.
 		--  Chaque cycle : toutes les sorties comparées (TO_PA de la référence), et
 		--  les adresses de la référence réalisables (exactitude de TO_PA).
+		--  Consommation différée (étude IPC x f) : CONSUME, CONSUMED_BYTES et STOP
+		--  du bloc sont ceux de la référence au cycle précédent (STOP seulement
+		--  avec CONSUME, CONSUMED_BYTES seulement avec CONSUME).
+		--  Décodage en deux étages (INO_DECODE_PIPE, 26 octobre) : la fenêtre suit le
+		--  contrat de la file d'octets (octets présents inchangés tant que la tête ne
+		--  bouge pas, nombre d'octets qui ne baisse qu'au vidage) ; la tête bouge au
+		--  front où CONSUME_o du bloc vaut '1', la fenêtre est alors quelconque. La
+		--  référence décode la fenêtre courante limitée au nombre d'octets du cycle
+		--  précédent, ou rien si la tête a bougé ou si le nombre a baissé.
 		--------------------------------------------------------------------------------
 
 
@@ -60,6 +69,7 @@ of T_I5_INO_DECODE_PREDICT_tb is
    signal recovery		: recovery_t;
 
    -- référence
+   signal r_window_count	: window_count_t := ( others => '0' );
    signal r_decoded		: decoded_block_t;
    signal r_decoded_count	: decode_count_t;
    signal r_decode_valid	: std_logic;
@@ -101,7 +111,7 @@ begin
 
    R_DECODE : entity work.DECODE_BLOC( IN_ORDER )
       port map (
-         WINDOW_i => window, WINDOW_COUNT_i => window_count, WINDOW_PC_i => TO_VA( window_pc_pa ),
+         WINDOW_i => window, WINDOW_COUNT_i => r_window_count, WINDOW_PC_i => TO_VA( window_pc_pa ),
          WINDOW_FAULT_i => window_fault,
          DECODED_o => r_decoded, DECODED_COUNT_o => r_decoded_count, DECODE_VALID_o => r_decode_valid,
          DECODE_READY_i => r_decode_ready,
@@ -157,6 +167,14 @@ begin
       variable rc		: recovery_t;
       variable ok		: boolean;
       variable outs, preds, trains, recs, stops : natural := 0;
+      -- référence du cycle précédent (consommation différée)
+      variable p_consume, p_stop	: std_logic := '0';
+      variable p_consumed		: window_count_t := ( others => '0' );
+      -- contrat de la file d'octets (décodage en deux étages)
+      variable pp_consume		: std_logic := '0';		-- prise appliquée au front précédent
+      variable cnt, cnt_prev		: natural range 0 to 32 := 0;
+      variable pc_cur			: unsigned( 31 downto 0 ) := x"00010000";
+      variable moved, empties	: natural := 0;
 
       constant SPECIAL : opcode_t := x"E0";		-- famille des sauts : E0 .. EB
 
@@ -208,12 +226,38 @@ begin
 
       for cycle in 1 to CYCLES loop
 		-- entrées du cycle
-         for k in w'range loop w( k ) := RAND_BYTE; end loop;
-         for k in f'range loop f( k ) := B( RAND < 0.01 ); end loop;
+         -- Fenêtre : quelconque si la tête a bougé au front (CONSUME_o du bloc au
+         -- cycle précédent) ou au vidage (3 %, nombre d'octets nul) ; sinon octets
+         -- présents inchangés et nombre d'octets qui croît.
+         cnt_prev := cnt;
+         if pp_consume = '1' or RAND < 0.03 then
+            for k in w'range loop w( k ) := RAND_BYTE; end loop;
+            for k in f'range loop f( k ) := B( RAND < 0.01 ); end loop;
+            if pp_consume = '1' then
+               cnt := RAND_INT( 32 );
+               moved := moved + 1;
+            else
+               cnt := 0;
+               empties := empties + 1;
+            end if;
+            pc_cur := to_unsigned( RAND_INT( 2 ** 20 ), 32 ) + x"00010000";
+         else
+            for k in w'range loop
+               if k >= cnt then w( k ) := RAND_BYTE; f( k ) := B( RAND < 0.01 ); end if;
+            end loop;
+            if RAND < 0.4 then cnt := minimum( 32, cnt + RAND_INT( 16 ) ); end if;
+         end if;
          window <= w;
          window_fault <= f;
-         window_count <= to_unsigned( RAND_INT( 32 ), window_count'length );
-         window_pc_pa <= to_unsigned( RAND_INT( 2 ** 20 ), 32 ) + x"00010000";
+         window_count <= to_unsigned( cnt, window_count'length );
+         window_pc_pa <= pc_cur;
+         -- Référence : nombre d'octets validé par le bloc (pas de mouvement de tête,
+         -- nombre non décroissant), sinon rien.
+         if pp_consume = '0' and cnt >= cnt_prev then
+            r_window_count <= to_unsigned( cnt_prev, window_count'length );
+         else
+            r_window_count <= ( others => '0' );
+         end if;
          out_ready <= B( RAND < 0.7 );
 
          for k in rb'range loop
@@ -242,7 +286,8 @@ begin
          wait for 1 ns;
 
 		-- vérifications
-         ok := d_consume = r_consume and d_consumed = r_consumed and d_stop = r_stop;
+         ok := d_consume = p_consume and d_stop = ( p_stop and p_consume )
+               and ( p_consume = '0' or d_consumed = p_consumed );
          if ok then CHECK_PASSED( c ); else
             CHECK( c, false, "cycle " & integer'image( cycle ) & " : CONSUME / CONSUMED_BYTES / STOP" );
          end if;
@@ -270,6 +315,10 @@ begin
          if r_predict_valid = '1' then preds := preds + 1; end if;
          if r_train_valid = '1' then trains := trains + 1; end if;
          if r_stop = '1' then stops := stops + 1; end if;
+         pp_consume := p_consume;
+         p_consume  := r_consume;
+         p_consumed := r_consumed;
+         p_stop     := r_stop;
 
          wait until falling_edge( clk );
       end loop;
@@ -278,7 +327,8 @@ begin
       report "graines " & integer'image( SEED_1 ) & ", " & integer'image( SEED_2 )
              & " ; blocs transmis " & integer'image( outs ) & ", prédictions " & integer'image( preds )
              & ", apprentissages " & integer'image( trains ) & ", reprises " & integer'image( recs )
-             & ", arrêts sur faute " & integer'image( stops ) severity note;
+             & ", arrêts sur faute " & integer'image( stops ) & ", têtes déplacées " & integer'image( moved )
+             & ", vidages " & integer'image( empties ) severity note;
       CHECK( c, outs > 1000 and preds > 200 and recs > 200,
              "le tirage a transmis des blocs, prédit et repris" );
       FINISH( c, "T_I5_INO_DECODE_PREDICT_tb" );

@@ -38,6 +38,23 @@ PL_MAX_DISPLACEMENT_Y: 400
 # Fils longs (slews) et antennes.
 DESIGN_REPAIR_MAX_WIRE_LENGTH: 800
 GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 800
+
+# Parasites estimes (26 octobre) : la configuration LibreLane de sg13cmos5l laisse
+# LAYERS_RC vide ; l'estimation (repair_design, reparations apres routage global,
+# timing des etapes de placement-routage) prend alors les valeurs du LEF technologique,
+# environ 0,09 fF/um et 0,5 ohm/um en Metal2, quand l'extraction finale (OpenRCX,
+# IHP_rcx_patterns.rules) en donne environ le double en capacite. Les reparations
+# voient des fils deux fois trop legers : en signoff, des portes de force 1 chargent
+# 0,28 pF (slews de 4 a 5 ns ; run E : 244 violations de slew, 4 vues par la
+# reparation). Valeurs de la configuration de sg13g2 (ajustement d'OpenROAD-flow-
+# scripts), meme pile de metaux de Metal1 a Metal4 ; TopMetal1 et vias : LEF.
+LAYERS_RC:
+  "*":
+    Metal1: { res: 8.54576E-03, cap: 1.0E-10 }
+    Metal2: { res: 2.53519E-03, cap: 1.69121E-04 }
+    Metal3: { res: 1.54329E-03, cap: 1.82832E-04 }
+    Metal4: { res: 6.31424E-04, cap: 1.66454E-04 }
+
 GRT_ANTENNA_REPAIR_ITERS: 6
 GRT_ANTENNA_REPAIR_MARGIN: 20
 DIODE_ON_PORTS: in

@@ -20,6 +20,7 @@ PL_TIMING_DRIVEN: true
 # depassait d'une piste en Metal3 (GRT-0116). Le routage detaille resorbe ce
 # depassement ; route__drc_errors le verifie.
 GRT_ALLOW_CONGESTION: true
+
 # Variante : synthese, placement et arbre d'horloge cibles au coin slow (le defaut
 # de la PDK est nom_typ_1p20V_25C ; seul le resizer voyait le coin slow).
 SYNTH_CORNER: nom_slow_1p08V_125C
@@ -28,6 +29,52 @@ PNR_CORNERS: [nom_slow_1p08V_125C]
 FP_SIZING: absolute
 DIE_AREA: [0, 0, 800, 1050]
 PL_TARGET_DENSITY_PCT: 60
+
+# Antennes (26 octobre, apres P8) : le routage detaille convergeait (0 violation en
+# 55 iterations, 4 h 30), puis check_antennas trouvait 75 nets et 80 broches en
+# violation ; repair_antennas inserait 115 diodes et relancait un routage detaille
+# entier. Diodes sur les entrees et reparation au routage global plus poussee
+# (reglages d'ino_execute). Pas d'insertion heuristique (RUN_HEURISTIC_DIODE_INSERTION) :
+# dans cette macro plus dense qu'ino_execute, ses diodes ne se placaient pas
+# (DPL-0036, 51 instances, run apres P11) ; les antennes restantes sont reparees
+# apres le routage detaille, comme au run D.
+GRT_ANTENNA_REPAIR_ITERS: 6
+GRT_ANTENNA_REPAIR_MARGIN: 20
+DIODE_ON_PORTS: in
+DIODE_CELL: sg13cmos5l_antennanp/A
+
+# Fils longs (run E, 26 octobre) : tampons sur les fils de plus de 400 um (la boite
+# fait 800 x 1050 um ; ino_execute : 800 um pour 1900 x 1700), en plus de la
+# correction des parasites estimes ci-dessous.
+DESIGN_REPAIR_MAX_WIRE_LENGTH: 400
+GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 400
+
+# Parasites estimes (26 octobre) : la configuration LibreLane de sg13cmos5l laisse
+# LAYERS_RC vide ; l'estimation (repair_design, reparations apres routage global,
+# timing des etapes de placement-routage) prend alors les valeurs du LEF technologique,
+# environ 0,09 fF/um et 0,5 ohm/um en Metal2, quand l'extraction finale (OpenRCX,
+# IHP_rcx_patterns.rules) en donne environ le double en capacite. Les reparations
+# voient des fils deux fois trop legers : en signoff, des portes de force 1 chargent
+# 0,28 pF (slews de 4 a 5 ns ; run E : 244 violations de slew, 4 vues par la
+# reparation). Valeurs de la configuration de sg13g2 (ajustement d'OpenROAD-flow-
+# scripts), meme pile de metaux de Metal1 a Metal4 ; TopMetal1 et vias : LEF.
+LAYERS_RC:
+  "*":
+    Metal1: { res: 8.54576E-03, cap: 1.0E-10 }
+    Metal2: { res: 2.53519E-03, cap: 1.69121E-04 }
+    Metal3: { res: 1.54329E-03, cap: 1.82832E-04 }
+    Metal4: { res: 6.31424E-04, cap: 1.66454E-04 }
+
+# Marges des reparations (run F, 26 octobre) : -0,72 ns au coin slow sur 20 extremites,
+# toutes issues d'une meme bascule du deuxieme etage du decodeur (pre_q -> chaine ->
+# work_q, 24,8 ns de logique). Il reste des portes de force 1 sur 0,07 a 0,19 pF (une
+# dizaine d'etages a ~1 ns, un nor4_1 a 1,8 ns) et 30 violations de slew : l'ecart
+# entre l'estimation et l'extraction n'est pas tout a fait comble. On demande aux
+# reparations de viser 1 ns de marge de setup et 25 % de marge de slew.
+PL_RESIZER_SETUP_SLACK_MARGIN: 1.0
+GRT_RESIZER_SETUP_SLACK_MARGIN: 1.0
+DESIGN_REPAIR_MAX_SLEW_PCT: 25
+GRT_DESIGN_REPAIR_MAX_SLEW_PCT: 25
 
 RUN_LVS: false               # extraction SPICE (Magic) et LVS (Netgen)
 

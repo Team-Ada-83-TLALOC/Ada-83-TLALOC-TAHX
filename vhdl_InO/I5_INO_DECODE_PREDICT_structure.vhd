@@ -27,17 +27,20 @@ architecture STRUCTURE of INO_DECODE_PREDICT is
    signal out_block     : decoded_block_t;
    signal predict_pc    : address_t;
 
+   -- Decodage en deux etages (INO_DECODE_PIPE, etude IPC x f, 26 octobre) :
+   -- predecodage enregistre, puis chaine et champs ; CONSUME, CONSUMED_BYTES et STOP
+   -- enregistres (consommation differee, 25 octobre).
 begin
 
 U_DECODE :
-  entity work.DECODE_BLOC( IN_ORDER )
+  entity work.INO_DECODE_PIPE( RTL )
     port map (
+         CLK_i => CLK_i, RESET_i => RESET_i,
          WINDOW_i => WINDOW_i, WINDOW_COUNT_i => WINDOW_COUNT_i, WINDOW_PC_i => TO_VA( WINDOW_PC_i ),
          WINDOW_FAULT_i => WINDOW_FAULT_i,
          DECODED_o => decoded, DECODED_COUNT_o => decoded_count, DECODE_VALID_o => decode_valid,
          DECODE_READY_i => decode_ready,
-         CONSUME_o => CONSUME_o, CONSUMED_BYTES_o => CONSUMED_BYTES_o,
-         NEED_MORE_BYTES_o => open, STOP_o => STOP_o );
+         CONSUME_o => CONSUME_o, CONSUMED_BYTES_o => CONSUMED_BYTES_o, STOP_o => STOP_o );
 
 U_PREDICT :
   entity work.BRANCH_PREDICT( IN_ORDER )

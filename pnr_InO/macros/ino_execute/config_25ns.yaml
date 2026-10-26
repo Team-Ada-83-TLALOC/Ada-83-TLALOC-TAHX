@@ -1,0 +1,94 @@
+PDK: ihp-sg13cmos5l
+
+DESIGN_NAME: ino_execute
+DESIGN_REPAIR_MAX_WIRE_LENGTH: 800
+
+IO_PIN_ORDER_CFG: dir::pin_order.cfg
+
+VERILOG_FILES:
+  - dir::src/ino_execute.v
+
+CLOCK_PORT: clk_i
+CLOCK_PERIOD: 25
+
+# Run contraint (etude de vitesse, 25 octobre, § 8) : budgets d'entree / sortie tires
+# du coeur entier par synth_InO/sta/sdc_macro.tcl (netlist d'estimation v2s : patchs
+# P1 a P4, unites d'execution projetees a part ; coin slow, fils 'Zero').
+PNR_SDC_FILE: dir::ino_execute_25ns.sdc
+SIGNOFF_SDC_FILE: dir::ino_execute_25ns.sdc
+
+# Reglages valides sur ino_decode_queue / ino_decode_predict (§ 7) : synthese DELAY,
+# placement guide par le timing, synthese, placement et arbre d'horloge au coin lu.
+SYNTH_STRATEGY: "DELAY 1"
+PL_TIMING_DRIVEN: true
+SYNTH_CORNER: nom_slow_1p08V_125C
+PNR_CORNERS: [nom_slow_1p08V_125C]
+
+# ABC (abc -D CLOCK_PERIOD) ne voit pas les budgets d'entree / sortie : la partie
+# interne des chemins entre macros (chainage STACK_UNIT -> INO_EXECUTE -> STACK_UNIT)
+# parait avoir toute la periode, et la recuperation de surface refait des retenues
+# propagees ; le pire chemin interne (flottant) fixe en outre le temps requis de tout
+# le reste. Projetees chacune a part (keep_hierarchy, puis aplaties par OpenROAD), ces
+# unites gardent leur structure (§ 8.3 : chainage 14,2 -> 12,3 ns typ 'Zero').
+# SYNTH_HIERARCHY_MODE reste 'flatten' (defaut) : seuls ces modules sont gardes.
+SYNTH_KEEP_HIERARCHY_MODULES:
+  - ino_integer_unit
+  - ino_branch_unit
+  - ino_muldiv_unit
+  - ino_float_unit
+  - fexp_unit
+
+# Parasites estimes (26 octobre) : la configuration LibreLane de sg13cmos5l laisse
+# LAYERS_RC vide ; l'estimation (repair_design, reparations apres routage global,
+# timing des etapes de placement-routage) prend alors les valeurs du LEF technologique,
+# environ 0,09 fF/um et 0,5 ohm/um en Metal2, quand l'extraction finale (OpenRCX,
+# IHP_rcx_patterns.rules) en donne environ le double en capacite. Les reparations
+# voient des fils deux fois trop legers : en signoff, des portes de force 1 chargent
+# 0,28 pF (slews de 4 a 5 ns ; run E : 244 violations de slew, 4 vues par la
+# reparation). Valeurs de la configuration de sg13g2 (ajustement d'OpenROAD-flow-
+# scripts), meme pile de metaux de Metal1 a Metal4 ; TopMetal1 et vias : LEF.
+LAYERS_RC:
+  "*":
+    Metal1: { res: 8.54576E-03, cap: 1.0E-10 }
+    Metal2: { res: 2.53519E-03, cap: 1.69121E-04 }
+    Metal3: { res: 1.54329E-03, cap: 1.82832E-04 }
+    Metal4: { res: 6.31424E-04, cap: 1.66454E-04 }
+
+# Backend InO (≈ 1,47 mm2 de cellules en synthese d'estimation, davantage en DELAY) :
+# boite inchangee, environ 50 % d'utilisation.
+FP_SIZING: absolute
+DIE_AREA: [0, 0, 1900, 1700]
+PL_TARGET_DENSITY_PCT: 55
+PL_ROUTABILITY_DRIVEN: true
+
+GRT_ALLOW_CONGESTION: true
+GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 800
+GRT_ANTENNA_REPAIR_ITERS: 6
+GRT_ANTENNA_REPAIR_MARGIN: 20
+DIODE_ON_PORTS: in
+DIODE_CELL: sg13cmos5l_antennanp/A
+
+meta:
+  version: 2
+  flow: Classic
+  substituting_steps:
+    Odb.CheckDesignAntennaProperties: null
+    Magic.SpiceExtraction: null
+    Checker.IllegalOverlap: null
+    Netgen.LVS: null
+    Checker.LVS: null
+
+RUN_POST_GRT_DESIGN_REPAIR: true
+RUN_POST_GRT_RESIZER_TIMING: true
+
+RUN_MAGIC_STREAMOUT: false
+RUN_MAGIC_WRITE_LEF: false
+RUN_MAGIC_DRC: false
+
+RUN_KLAYOUT_STREAMOUT: true
+RUN_KLAYOUT_XOR: false
+RUN_KLAYOUT_DRC: false
+
+RUN_LVS: false
+RUN_HEURISTIC_DIODE_INSERTION: true
+HEURISTIC_ANTENNA_THRESHOLD: 100
