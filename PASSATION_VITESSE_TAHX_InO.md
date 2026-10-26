@@ -113,6 +113,7 @@ Exemples : `pnr_InO/macros/ino_decode_predict/config_25ns_slow.yaml`, `pnr_InO/m
 | P9 `decode_predict_antennes` | réglages d'antennes d'`ino_execute` dans `config_25ns_slow.yaml` d'`ino_decode_predict` | évite la reprise du routage détaillé après `repair_antennas` |
 | P11 `decodeur_deux_etages` | prédécodage enregistré (`I3a_INO_DECODE_PKG`, `I3b_INO_DECODE_PIPE`), banc I5 au contrat de la file d'octets | cycles +1,3 % ; chemin fenêtre → `work_q` coupé (étude § 8.8) |
 | P12, P13, P14 | `ino_decode_predict` : sans diodes heuristiques (DPL-0036), tampons sur les fils de plus de 400 µm ; `LAYERS_RC` de sg13g2 pour Metal1 à Metal4 dans `config_25ns_slow.yaml` (decode_predict) et `config_25ns.yaml` (ino_execute) | run F : slow −0,72 ns, typ +3,60 ns (étude § 8.9) |
+| P16, P17 | marges de réparation (setup 1 ns, slew 25 %) dans `config_25ns_slow.yaml` d'`ino_decode_predict` puis dans `config_25ns.yaml` d'`ino_execute` ; étude § 8.10 | run G : `ino_decode_predict` à +0,79 ns au coin slow, +3,66 ns au typ |
 
 Après P1 à P5 : 1 873 910 cycles (−11,1 %), **IPC 0,464**, famine 2,2 % ; `LISTE` : 50 tests OK. Période routée estimée, unités d'exécution projetées à part (`SOUS`, voir ci-dessous) : **≈ 16,2 ns typ (62 MHz), ≈ 26,4 ns slow (38 MHz)** ; **28,7 MIPS typ (+31 %), 17,6 MIPS slow (+30 %)**.
 
@@ -122,7 +123,7 @@ Constat principal côté fréquence : ABC (Yosys comme LibreLane, `abc -D CLOCK_
 
 Suite proposée :
 
-0. Décodeur coupé (P11) ; run F d'`ino_decode_predict` : −0,72 ns au coin slow (20 extrémités), +3,60 ns au typ (étude § 8.9). **`LAYERS_RC` (P14) est à reporter dans toutes les configurations sg13cmos5l**, y compris celles des autres sessions. Prochain run : `ino_execute` (`config_25ns.yaml`, P7 et P14).
+0. `ino_decode_predict` tient 25 ns au coin slow (run G, étude § 8.10). **`LAYERS_RC` (P14) et les marges de réparation (P16) sont à reporter dans toutes les configurations sg13cmos5l**, y compris celles des autres sessions. Run en cours : `ino_execute` (`config_25ns.yaml`, P7, P14, P17), à comparer à la prévision du SDC (slow `Zero` +4,4 ns, `30k` −12,8 ns).
 
 1. Run LibreLane contraint d'`ino_execute` avec `SYNTH_KEEP_HIERARCHY_MODULES: [ino_integer_unit, ino_branch_unit, ino_muldiv_unit, ino_float_unit, fexp_unit]` (et le SDC de `sdc_macro.tcl` tiré de la netlist `v2s`), à comparer à la prévision.
 2. Prise de la `stack_unit` (nouveau chemin limitant, 13,4 ns typ `Zero` depuis la file de décodage) : arithmétique de la prise en préfixe parallèle, contrôles de limites hors du cône de `fast_ok`, attributs ISA précalculés en amont.
@@ -135,4 +136,4 @@ Netlists d'estimation de l'étude (dans le conteneur, non versionnées) : `ref` 
 
 `decodeur_predecodage`, `chainage_clvl`, `mul_csa`, `mesure_sans_fraig`, `flottant_etages`, `calibration_25ns`, `calibration_latence`, `calibration_hold`, `calibration_bilan`, `calibration_decode_predict`, `calibration_coin_slow`, `calibration_bilan_slow`.
 
-Étude IPC × f (25 octobre, livrés, à appliquer dans l'ordre) : `P1_frontal_groupes`, `P2_consommation_differee`, `P3_arith_chainage`, `P4_muldiv_rapide`, `P5_flottant_rapide`, `P6_doc_ipc_f`, `P7_ino_execute_25ns`, `P8_gshare_512`, `P9_decode_predict_antennes`, `P10_doc_run_D`, `P11_decodeur_deux_etages`, `P12` à `P14` (configurations), `P15_doc_runs_E_F`.
+Étude IPC × f (25 octobre, livrés, à appliquer dans l'ordre) : `P1_frontal_groupes`, `P2_consommation_differee`, `P3_arith_chainage`, `P4_muldiv_rapide`, `P5_flottant_rapide`, `P6_doc_ipc_f`, `P7_ino_execute_25ns`, `P8_gshare_512`, `P9_decode_predict_antennes`, `P10_doc_run_D`, `P11_decodeur_deux_etages`, `P12` à `P14` (configurations), `P15_doc_runs_E_F`, `P16_decode_predict_marges`, `P17_ino_execute_marges`.

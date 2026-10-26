@@ -54,6 +54,14 @@ LAYERS_RC:
     Metal3: { res: 1.54329E-03, cap: 1.82832E-04 }
     Metal4: { res: 6.31424E-04, cap: 1.66454E-04 }
 
+# Marges des reparations, validees sur ino_decode_predict (run G, 26 octobre :
+# -0,72 -> +0,79 ns au coin slow, occupation inchangee) : 1 ns de marge de setup
+# visee par les reparations de timing, 25 % de marge de slew.
+PL_RESIZER_SETUP_SLACK_MARGIN: 1.0
+GRT_RESIZER_SETUP_SLACK_MARGIN: 1.0
+DESIGN_REPAIR_MAX_SLEW_PCT: 25
+GRT_DESIGN_REPAIR_MAX_SLEW_PCT: 25
+
 # Backend InO (≈ 1,47 mm2 de cellules en synthese d'estimation, davantage en DELAY) :
 # boite inchangee, environ 50 % d'utilisation.
 FP_SIZING: absolute

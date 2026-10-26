@@ -679,3 +679,22 @@ Mêmes réglages que D (`config_25ns_slow.yaml`, même SDC), RTL P1 à P11.
 - **F** : `LAYERS_RC` de sg13g2 pour Metal1 à Metal4 (P14), et tampons sur les fils de plus de 400 µm (P13). Les violations de capacité disparaissent, celles de slew passent de 244 à 30, et la marge slow de −7,94 à −0,72 ns. La macro tient 25 ns au coin typ avec 3,6 ns de marge (budgets d'entrée et de sortie du coin slow), et ≈ 25,7 ns au coin slow.
 
 **À reporter sur les autres macros** : `LAYERS_RC` (P14) vaut pour tous les runs sur sg13cmos5l. Les règles de calibration du § 7 (25 % / 20 %) ont été mesurées sans lui et sont à refaire avec.
+
+### 8.10 Run G : `ino_decode_predict` tient 25 ns au coin slow (26 octobre)
+
+Run F, plus des marges de réparation (P16) : `PL_RESIZER_SETUP_SLACK_MARGIN` et `GRT_RESIZER_SETUP_SLACK_MARGIN` à 1 ns (défauts 0,05 et 0,025 ns), `DESIGN_REPAIR_MAX_SLEW_PCT` et `GRT_DESIGN_REPAIR_MAX_SLEW_PCT` à 25 % (défauts 20 et 10 %).
+
+| | F | **G** |
+|---|---|---|
+| marge slow | −0,72 ns (20 extrémités) | **+0,79 ns** |
+| marge typ / fast | +3,60 / +4,01 | +3,66 / +4,06 |
+| registre à registre slow / typ | −0,72 / +8,69 | +0,79 / +9,60 |
+| violations de slew, slow | 30 | 7 |
+| occupation | 60,6 % | 60,6 % |
+| DRC, antennes, hold | 0, 0, 0 | 0, 0, 0 |
+
+Le gain vient surtout du redimensionnement des portes de force 1 restées sur le deuxième étage du décodeur (pre_q → chaîne → `work_q`). Les tampons de réparation passent de 7 803 à 7 809, et l'occupation ne change pas.
+
+**`ino_decode_predict` tient donc 25 ns au coin slow**, avec les budgets d'entrée et de sortie tirés du cœur entier. Le décodeur n'est plus la famille limitante du cœur.
+
+Réglages d'une macro contrainte sur sg13cmos5l, au 26 octobre : `DELAY 1`, placement guidé par le timing, synthèse et placement-routage au coin slow, SDC de `sdc_macro.tcl`, `LAYERS_RC` de sg13g2 (Metal1 à Metal4), tampons sur les fils longs (`DESIGN_REPAIR_MAX_WIRE_LENGTH`, `GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH`), marges de réparation ci-dessus, diodes sur les entrées sans insertion heuristique dans les macros denses. `ino_execute/config_25ns.yaml` les reprend (P7, P14, P17).
