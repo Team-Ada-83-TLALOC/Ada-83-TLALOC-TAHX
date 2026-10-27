@@ -114,6 +114,8 @@ Exemples : `pnr_InO/macros/ino_decode_predict/config_25ns_slow.yaml`, `pnr_InO/m
 | P11 `decodeur_deux_etages` | prédécodage enregistré (`I3a_INO_DECODE_PKG`, `I3b_INO_DECODE_PIPE`), banc I5 au contrat de la file d'octets | cycles +1,3 % ; chemin fenêtre → `work_q` coupé (étude § 8.8) |
 | P12, P13, P14 | `ino_decode_predict` : sans diodes heuristiques (DPL-0036), tampons sur les fils de plus de 400 µm ; `LAYERS_RC` de sg13g2 pour Metal1 à Metal4 dans `config_25ns_slow.yaml` (decode_predict) et `config_25ns.yaml` (ino_execute) | run F : slow −0,72 ns, typ +3,60 ns (étude § 8.9) |
 | P16, P17 | marges de réparation (setup 1 ns, slew 25 %) dans `config_25ns_slow.yaml` d'`ino_decode_predict` puis dans `config_25ns.yaml` d'`ino_execute` ; étude § 8.10 | run G : `ino_decode_predict` à +0,79 ns au coin slow, +3,66 ns au typ |
+| P18 `ino_execute_postgrt` | `config_25ns.yaml` d'`ino_execute` : `GRT_RESIZER_SETUP_SLACK_MARGIN` 0,3 ns et `GRT_RESIZER_SETUP_REPAIR_TNS_PCT` 10 | l'étape `ResizerTimingPostGRT` durait plus de 11 h avec 1 ns sur toutes les extrémités |
+| P19 `ino_execute_sans_diodes_heuristiques` | `config_25ns.yaml` d'`ino_execute` sans `RUN_HEURISTIC_DIODE_INSERTION` | le run du 26–27 octobre : +0,58 mm² de diodes à l'étape 43 (occupation 58 → 77 %), routage global en débordement |
 
 Après P1 à P5 : 1 873 910 cycles (−11,1 %), **IPC 0,464**, famine 2,2 % ; `LISTE` : 50 tests OK. Période routée estimée, unités d'exécution projetées à part (`SOUS`, voir ci-dessous) : **≈ 16,2 ns typ (62 MHz), ≈ 26,4 ns slow (38 MHz)** ; **28,7 MIPS typ (+31 %), 17,6 MIPS slow (+30 %)**.
 
@@ -130,10 +132,12 @@ Suite proposée :
 3. Partie `stack_unit` du chaînage : prise décidée sans COMPLETE.fault ni MISPREDICTED pour l'entier et les branchements, annulée au cycle suivant en cas de faute ou de mauvaise prédiction.
 4. IPC restant : adresse de la SRAM d'instructions présentée dès la redirection ; cycle ST_IDLE après LINK/RTD/UNLINKR/CALL (≈ 1,7 %).
 
+Durée des runs (27 octobre) : les étapes longues hors routage détaillé (résizer, routage global, STA, Yosys) n'utilisent qu'un cœur ; le routage détaillé utilise `DRT_THREADS` (défaut : fils de la machine ; vérifier `nproc`). Pour explorer : `librelane --to OpenROAD.GlobalRouting <config>` (estimation fiable depuis `LAYERS_RC`), plusieurs macros en parallèle, `DRT_OPT_ITERS: 20` hors signoff.
+
 Netlists d'estimation de l'étude (dans le conteneur, non versionnées) : `ref` (commit `5b32c67`), `v2` (P1 à P4), `v2s` (`v2` avec `SOUS="ino_integer_unit ino_branch_unit ino_muldiv_unit ino_float_unit fexp_unit"`).
 
 ## 6. Historique des patchs de cette phase (tous commités)
 
 `decodeur_predecodage`, `chainage_clvl`, `mul_csa`, `mesure_sans_fraig`, `flottant_etages`, `calibration_25ns`, `calibration_latence`, `calibration_hold`, `calibration_bilan`, `calibration_decode_predict`, `calibration_coin_slow`, `calibration_bilan_slow`.
 
-Étude IPC × f (25 octobre, livrés, à appliquer dans l'ordre) : `P1_frontal_groupes`, `P2_consommation_differee`, `P3_arith_chainage`, `P4_muldiv_rapide`, `P5_flottant_rapide`, `P6_doc_ipc_f`, `P7_ino_execute_25ns`, `P8_gshare_512`, `P9_decode_predict_antennes`, `P10_doc_run_D`, `P11_decodeur_deux_etages`, `P12` à `P14` (configurations), `P15_doc_runs_E_F`, `P16_decode_predict_marges`, `P17_ino_execute_marges`.
+Étude IPC × f (25 octobre, livrés, à appliquer dans l'ordre) : `P1_frontal_groupes`, `P2_consommation_differee`, `P3_arith_chainage`, `P4_muldiv_rapide`, `P5_flottant_rapide`, `P6_doc_ipc_f`, `P7_ino_execute_25ns`, `P8_gshare_512`, `P9_decode_predict_antennes`, `P10_doc_run_D`, `P11_decodeur_deux_etages`, `P12` à `P14` (configurations), `P15_doc_runs_E_F`, `P16_decode_predict_marges`, `P17_ino_execute_marges`, `P18_ino_execute_postgrt`, `P19_ino_execute_sans_diodes_heuristiques`.
