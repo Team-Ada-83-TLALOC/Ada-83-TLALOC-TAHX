@@ -698,3 +698,105 @@ Le gain vient surtout du redimensionnement des portes de force 1 restées sur le
 **`ino_decode_predict` tient donc 25 ns au coin slow**, avec les budgets d'entrée et de sortie tirés du cœur entier. Le décodeur n'est plus la famille limitante du cœur.
 
 Réglages d'une macro contrainte sur sg13cmos5l, au 26 octobre : `DELAY 1`, placement guidé par le timing, synthèse et placement-routage au coin slow, SDC de `sdc_macro.tcl`, `LAYERS_RC` de sg13g2 (Metal1 à Metal4), tampons sur les fils longs (`DESIGN_REPAIR_MAX_WIRE_LENGTH`, `GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH`), marges de réparation ci-dessus, diodes sur les entrées sans insertion heuristique dans les macros denses. `ino_execute/config_25ns.yaml` les reprend (P7, P14, P17).
+
+### 8.11 `ino_execute` : routage non convergent, découpage en macros (27–28 octobre)
+
+**Run du 27 octobre** (`config_25ns.yaml`, P7 à P19, boîte 1900 × 1700 µm) : ≈ 1,55 mm² de cellules en synthèse plus ≈ 0,28 mm² de tampons, ≈ 58 % d'occupation. Le routage global déborde (4 926), le routage détaillé stagne vers 9 000 violations (itération 21 : 9 091), surtout des courts-circuits Metal2 / Metal3. Metal3 est la seule couche horizontale fine de sg13cmos5l, et le bus d'émission (`issue_i`, ≈ 420 bits) et `complete_o` entrent tous deux par l'ouest pour se répartir sur toute la macro. Une boîte élargie (P20, 2100 × 1700 µm) aggrave le débordement (129 232). Les variantes P21 (1600 × 2000 µm) et P22 (synthèse `AREA 0`) sont à évaluer jusqu'au routage global.
+
+**Surfaces par unité** (Yosys + ABC `direct`, typ, chaque unité synthétisée seule, `~/unit` dans le conteneur) :
+
+| unité | µm² | dont |
+|---|---|---|
+| `INO_MULDIV_UNIT` | 403 000 | multiplieur 64 × 64 `MUL_CSA` ≈ 274 000 ; diviseur 4 pas ≈ 56 000 |
+| `INO_FLOAT_UNIT` | 402 000 | FMUL ≈ 236 000, dont multiplieur 53 × 53 ≈ 189 000 ; FADD ≈ 66 000 ; FDIV ≈ 75 000 |
+| `INO_COMPLEX_UNIT` | 380 000 | `FEXP_UNIT` ≈ 318 000 (FMUL et FDIV recopiés) ; co-pile ≈ 62 000 |
+| `INO_BLOCK_UNIT` | 104 000 | |
+| `INO_INTEGER_UNIT` | 67 000 | |
+| `INO_MEMORY_UNIT` | 42 000 | |
+| `INO_EXCM_UNIT` | 36 000 | |
+| `INO_ADDRESS_UNIT` | 30 000 | |
+| `INO_BRANCH_UNIT` | 7 000 | |
+
+Les trois multiplieurs (64 × 64, 53 × 53 de FMUL et 53 × 53 de FEXP) font ≈ 650 000 µm², soit 44 % de la macro, et FDIV est présent deux fois. Pourtant, sur les huit bancs B_*, FEXP n'est jamais exécutée. MUL l'est 26 669 fois, FMUL 2 243, FDIV 3 141, FADD/FSUB 4 061, DIV/MODI 4 771 et CVTIX 16. LINK/UNLINK/UNLINKR sont fréquents : ≈ 22 700 exécutions (classe COMPLEX).
+
+**Découpage proposé** (deux macros pairs au niveau du cœur, chacune routée seule) :
+
+- `ino_exec_entier` (≈ 0,39 mm² de cellules) contient l'entier, les branchements, l'adresse, la mémoire et le chemin rapide, la co-pile (LINK, UNLINK, UNLINKR, CO_VAR, HEAP_ALLOC), BLOCK et EXC_MACH. Elle garde l'interface actuelle vers `stack_unit` et `data_cache`. Elle reçoit en plus `ARITH_READY` et `ARITH_COMPLETE` et les multiplexe dans `ISSUE_READY_o` et `COMPLETE_o`.
+- `ino_exec_arith` (≈ 0,55 à 0,6 mm² estimés, au lieu de 1,12 mm²) est une unité arithmétique longue unique : MUL, DIV, REMI, MODI, CVTIX, CVTXI, tout le flottant et FEXP. Elle a **un seul multiplieur** 64 × 64, qui fait le produit `|a|.|b|` de MUL et de CVT et le produit des mantisses de FMUL et de FEXP. Elle a **un seul diviseur** de 4 pas par cycle, partagé par la division entière, FDIV et le 1 / p de FEXP. FEXP devient une micro-séquence sur ces chemins. Une seule instruction est en vol dans `stack_unit`, il n'y a donc aucun conflit de ressource.
+- `ino_exec_arith` prend sur le bus d'émission seulement `issue_valid`, la classe, l'opcode et les opérandes 0 à 2 (≈ 205 bits au lieu de ≈ 420 ; l'opérande 2 sert à CVTIX et CVTXI). Elle les enregistre dès l'émission, précédés seulement des valeurs absolues de MUL/DIV, comme `INO_MULDIV_UNIT` (budget d'entrée actuel ≈ 3,3 ns). `ARITH_READY` vient de registres. **Aucun cycle n'est ajouté**, et toutes les latences sont conservées, y compris celle de FEXP (§ 8.12).
+
+Méthode : `INO_ARITH_UNIT` est nouvelle, et les unités actuelles (L2, L4, L5c) restent comme modèles de référence. Un banc différentiel aléatoire la compare bit pour bit à ces modèles (NaN, infinis, dénormaux, MIN_64, débordements). Les bancs B_* doivent ensuite donner des cycles identiques. Puis chaque macro reçoit sa synthèse d'estimation, son SDC (`sdc_macro.tcl`) et sa configuration LibreLane. Si `ino_exec_arith` reste difficile à router, son multiplieur pourra devenir une macro durcie à part.
+
+### 8.12 `INO_ARITH_UNIT` : `ino_execute` en deux macros (patch P24, 28 octobre)
+
+**RTL.**
+
+- `L8_INO_ARITH_UNIT` remplace `INO_MULDIV_UNIT`, `INO_FLOAT_UNIT` et la `FEXP_UNIT` d'`INO_COMPLEX_UNIT`. Elle contient un seul exemplaire de chaque ressource : `MUL_CSA` 64 × 64, `FMUL_A`, `FMUL_C`, `DIV_PREP`, `DIV_FINAL` et un diviseur de 4 pas par cycle. Leurs entrées sont multiplexées par la famille depuis des registres.
+- Chaque famille garde l'automate de son unité d'origine, recopié à l'identique. Les résultats et toutes les latences sont conservés, FEXP comprise (y compris le cycle `S_RETURN` d'`INO_COMPLEX_UNIT`).
+- L'émission est acceptée comme le faisaient les trois unités : chacune était libre au cycle où une autre rendait son résultat (RESULTAT, ou PRODUIT de MUL).
+- La division flottante passe sur le diviseur entier : `rem_s` = `win( 56 downto 1 )`, et le bit de dividende entrant est nul. Il y a 57 pas en 15 cycles de 4, plus 3 pas de tête qui ne soustraient jamais.
+- `INO_EXECUTE( STRUCTURE )` instancie désormais `INO_EXEC_ARITH` (K7c) et `INO_EXEC_ENTIER` (K7d) :
+  - `INO_EXEC_ARITH` prend sur le bus d'émission la classe, l'opcode et les opérandes 0 à 2. Elle rend `READY_o( 2 downto 0 )` (prête pour MUL_DIV, FLOAT ou FEXP, fonction des seuls registres) et `COMPLETE_*`.
+  - `INO_EXEC_ENTIER` est `INO_BACKEND_EXCM` avec `WITH_ARITH => false`. Ce générique, ajouté de K2 à K7, retire MUL/DIV et le flottant ; `WITH_FEXP` fait de même dans L5. Elle sélectionne aussi `ARITH_READY` et `ARITH_COMPLETE` vers STACK_UNIT.
+- Les unités L2, L4 et L5c restent comme modèles de référence. Les bancs unitaires L2, L4, L5 et K2 à K7 sont inchangés.
+
+**Vérification.**
+
+- Le banc `tests_InO/L8_INO_ARITH_UNIT` compare chaque cycle à la référence formée des trois unités d'origine : 60 000 émissions, 59 634 retours, dont 5 666 FEXP, avec SYNC et RESET au hasard. Son émetteur imite STACK_UNIT (émission dans le cycle même du retour). Cinq mutations sont toutes détectées : départ de la division flottante, règle « prête », latence de FEXP, pas du diviseur, bits du produit.
+- `LISTE` : 51 tests OK.
+- Bancs B_* : **1 900 559 cycles, identiques banc par banc.**
+
+**Surfaces** (estimation `v3s`, Yosys + ABC `direct`, typ ; même flot que `v2s` avec `MACROS` découpé et `SOUS="ino_integer_unit ino_branch_unit"`) :
+
+| macro | µm² | broches | boîte proposée |
+|---|---|---|---|
+| `ino_exec_arith` | 596 000 (1 123 000 pour les trois unités d'origine) | 207 entrées, 78 sorties | 1150 × 1150 µm |
+| `ino_exec_entier` | 351 000 (dont entier 67 000 et branchement 6 500) | 1 134 entrées, 539 sorties | 900 × 1000 µm |
+| total | 947 000 (≈ 1,47 mm² pour `ino_execute` d'un bloc) | | 2,22 mm² (3,23 mm² pour `ino_execute`) |
+
+**Timing estimé** (cœur entier, coin slow, `Zero`, cible ABC 20 ns) :
+
+- **Pire chemin d'`ino_exec_arith`** : les 4 pas du diviseur partagé (`dvs_s` → `rem_s`), 21,7 ns, soit +3,3 ns à 25 ns. C'est plus lent que l'ancien interne d'`ino_execute` (19,1 ns), car les pas sont sur 66 bits pour la division flottante aussi. Au coin typ, il passe à 14,1 ns.
+- **Chaînage `stack_unit` → `ino_exec_entier` → `stack_unit`** : marge +0,27 ns à 20 ns. Le pire chemin passe 11,3 ns dans la macro, contre 10,9 ns dans `ino_execute` (+0,4 ns, dont la sélection de `ARITH_COMPLETE`). Au modèle `30k`, il est à −24,5 ns (−22,4 avant).
+- **SDC** : `sdc_macro.tcl` sur `u_core.u_backend.u_arith` et `u_core.u_backend.u_entier`, 25 ns, coin slow, `Zero`.
+  - Entrées d'`ino_exec_arith` : 2,2 à 4,1 ns. Sorties : 0,9 à 5,9 ns.
+  - Entrées d'`ino_exec_entier` depuis `ino_exec_arith` : 2,7 ns (`arith_ready_i`) à 6,4 ns (`arith_complete_result_i`). Les autres budgets sont ceux d'`ino_execute`, à ±0,3 ns près.
+
+**Configurations** : `pnr_InO/macros/ino_exec_arith` et `ino_exec_entier` contiennent chacune `config_25ns.yaml`, le SDC et `pin_order.cfg`. Les réglages sont ceux d'`ino_execute/config_25ns.yaml` (P7 à P19), avec 400 µm pour les fils longs, comme `ino_decode_predict`. `ino_exec_entier` garde la hiérarchie de l'entier et du branchement (chaînage) ; `ino_exec_arith` n'a pas de chemin traversant. Placement des broches :
+
+- `ino_exec_arith` : émission à l'ouest, retour et READY à l'est.
+- `ino_exec_entier` : broches d'`ino_execute`, plus `arith_*` à l'est.
+
+Extraction : `pnr_InO/etat_macros.sh --extraire ino_exec_entier ino_exec_arith`.
+
+### 8.13 Premiers runs des deux macros (28 octobre)
+
+**`ino_exec_arith`** (`config_25ns.yaml` de P24, boîte 1150 × 1150 µm) :
+
+| | valeur |
+|---|---|
+| débordement du routage global | 4 (contre 4 926 pour `ino_execute` d'un bloc) |
+| routage détaillé | 1 315 → 0 violation en 7 itérations |
+| cellules | 0,669 mm² (dont 0,108 mm² de tampons de réparation), 52,5 % d'occupation |
+| marge setup slow / typ / fast | −0,32 ns (11 extrémités, TNS −1,58) / +8,95 / +14,35 ns |
+| hold, DRC, antennes | 0, 0, 0 |
+
+Les 11 extrémités violées partent toutes de `fm_b_s` : c'est la normalisation et l'arrondi de FMUL_C (sticky, incrément de la mantisse, exposant). Le diviseur, pire chemin de l'estimation (§ 8.12), n'en fait pas partie. Le run utilisait la marge réduite après routage global (0,3 ns, 10 % des extrémités), choisie pour la durée d'`ino_execute`. P25 rétablit 1 ns sur toutes les extrémités, comme pour le run G d'`ino_decode_predict`.
+
+**`ino_exec_entier`** (boîte 900 × 1000 µm) :
+
+| | valeur |
+|---|---|
+| débordement du routage global | 199 (Metal3 surtout : sous `mem_ready_i` au nord, et en bas des entrées ouest) |
+| routage détaillé | 42 509 violations à l'itération 0, puis un dernier court-circuit Metal2 résolu à la 60e itération (plusieurs heures sur 8 fils) |
+| cellules | 0,457 mm² (dont 0,080 mm² de tampons de réparation), 53,2 % d'occupation |
+| marge setup slow / typ / fast | **+0,36** / +4,90 / +6,55 ns |
+| registre à registre, slow | +18,7 ns |
+| hold, DRC, antennes | 0, 0, 0 |
+
+**`ino_exec_entier` tient 25 ns au coin slow** avec les budgets du cœur entier. Toutes les extrémités critiques sont des chemins de chaînage : `issue_i.slot[4]` (opcode), puis l'ALU entière, puis `complete_o.fault` / `complete_o.result`.
+- Ce chemin passe 17,4 ns dans la macro au coin slow, dont 2,6 ns pour l'arbre de sortance de l'opcode depuis la broche.
+- Dans l'ALU, quelques portes de force 1 (`nand4_1`, `nor3_1`, `nor4_1`) coûtent 1,2 à 1,4 ns chacune.
+- Les chemins internes, eux, ont 18,7 ns de marge.
+
+Pour les runs d'exploration, `DRT_OPT_ITERS: 30` évite les heures passées sur une violation résiduelle.

@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 # Extraction du Verilog des macros sans SRAM (stack_unit_16_8, decode_queue,
-# ino_decode_predict, ino_execute, ino_system), depuis vhdl_InO/.
+# ino_decode_predict, ino_execute, ino_exec_entier, ino_exec_arith, ino_system),
+# depuis vhdl_InO/.
 #   BRUT      : RTLIL de TAHX_1(IN_ORDER) (defaut ../synth_InO/par_module/brut.il,
 #               ecrit par mesure_par_module.sh ou pnr_InO/etat_macros.sh)
 #   DEST_ROOT : repertoire des macros (defaut ../pnr_InO/macros) ; ecrit
@@ -52,6 +53,27 @@ yosys -p "
    setundef -zero
    opt_clean
    write_verilog -noattr $DEST_ROOT/ino_execute/src/ino_execute.v
+"
+
+# ino_execute en deux macros (etude de vitesse, § 8.11) : memes commandes.
+yosys -p "
+   read_rtlil $BRUT
+   hierarchy -check -top ino_exec_entier
+   proc
+   chformal -remove
+   setundef -zero
+   opt_clean
+   write_verilog -noattr $DEST_ROOT/ino_exec_entier/src/ino_exec_entier.v
+"
+
+yosys -p "
+   read_rtlil $BRUT
+   hierarchy -check -top ino_exec_arith
+   proc
+   chformal -remove
+   setundef -zero
+   opt_clean
+   write_verilog -noattr $DEST_ROOT/ino_exec_arith/src/ino_exec_arith.v
 "
 
 yosys -p "

@@ -30,6 +30,10 @@ use work.IN_ORDER_TYPES.all;
                                 ----------------
 entity                          INO_COMPLEX_UNIT
 is                              ----------------
+   generic (
+      -- false : sans FEXP (faite par INO_ARITH_UNIT, etude de vitesse, § 8.11).
+      WITH_FEXP         : boolean := true
+   );
    port (
       CLK_i             : in  std_logic;
       RESET_i           : in  std_logic;

@@ -47,6 +47,7 @@ begin
                     else base_issue_ready_s;
 
    U_BASE : entity work.INO_BACKEND_BLOCK
+      generic map ( WITH_ARITH => WITH_ARITH )
       port map (
          CLK_i => CLK_i, RESET_i => RESET_i,
          ISSUE_VALID_i => base_issue_valid_s, ISSUE_i => ISSUE_i, ISSUE_READY_o => base_issue_ready_s,

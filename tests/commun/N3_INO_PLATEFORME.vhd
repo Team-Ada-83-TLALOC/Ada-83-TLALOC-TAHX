@@ -239,11 +239,11 @@ begin
       -- Etats observes (V0), hors synthese dans le RTL (pragma translate_off).
       alias st_stack is << signal DUT.U_CORE.U_STACK.obs_state_s : natural >>;
       alias st_m2    is << signal
-         DUT.U_CORE.U_BACKEND.U_BACKEND.U_BASE.U_BASE.U_BASE.U_BASE.U_MEMORY.obs_state_s : natural >>;
+         DUT.U_CORE.U_BACKEND.U_ENTIER.U_BACKEND.U_BASE.U_BASE.U_BASE.U_BASE.U_MEMORY.obs_state_s : natural >>;
       alias st_cache is << signal DUT.U_DATA_CACHE.U_CORE.obs_state : natural >>;
       alias noms_stack is << constant DUT.U_CORE.U_STACK.OBS_STATE_NAMES : string >>;
       alias noms_m2    is << constant
-         DUT.U_CORE.U_BACKEND.U_BACKEND.U_BASE.U_BASE.U_BASE.U_BASE.U_MEMORY.OBS_STATE_NAMES : string >>;
+         DUT.U_CORE.U_BACKEND.U_ENTIER.U_BACKEND.U_BASE.U_BASE.U_BASE.U_BASE.U_MEMORY.OBS_STATE_NAMES : string >>;
       alias noms_cache is << constant DUT.U_DATA_CACHE.U_CORE.OBS_STATE_NAMES : string >>;
 
       file fa : text;

@@ -10,7 +10,9 @@ sont pas suivis par git (`.gitignore`) ; ce qui fait foi d'un run est son résum
 | `stack_unit_16_8` | `stack_unit_16_8` | `vhdl_InO/extraire_units.sh` |
 | `decode_queue` | `ino_decode_queue` | `vhdl_InO/extraire_units.sh` |
 | `ino_decode_predict` | `ino_decode_predict` | `vhdl_InO/extraire_units.sh` |
-| `ino_execute` | `ino_execute` | `vhdl_InO/extraire_units.sh` |
+| `ino_execute` (jusqu'au 27 octobre, une macro) | `ino_execute` | `vhdl_InO/extraire_units.sh` |
+| `ino_exec_entier` | `ino_exec_entier` (entier, mémoire, co-pile, BLOCK, EXC_MACH) | `vhdl_InO/extraire_units.sh` |
+| `ino_exec_arith` | `ino_exec_arith` (MUL/DIV, flottant, FEXP) | `vhdl_InO/extraire_units.sh` |
 | `ino_system` | `ino_system` | `vhdl_InO/extraire_units.sh` |
 | `ino_data_cache` | `ino_data_cache` (6 SRAM) | `vhdl_InO/extraire_data_cache.sh` |
 | `ino_fetch` | `ino_fetch` (SRAM 2P) | `vhdl_InO/extraire_ino_fetch.sh` |

@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict fexp_unit ino_address_unit ino_backend ino_backend_block ino_backend_complex ino_backend_excm ino_backend_float ino_backend_memory ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_pipe ino_decode_predict ino_decode_queue ino_excm_unit ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_float_unit ino_frontend_control ino_integer_unit ino_memory_unit ino_muldiv_unit ino_pred_table2_2r_512 ino_system ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict ino_address_unit ino_arith_unit ino_backend_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_block_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_complex_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_excm_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_float_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_memory_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_pipe ino_decode_predict ino_decode_queue ino_excm_unit ino_exec_arith ino_exec_entier ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_frontend_control ino_integer_unit ino_memory_unit ino_pred_table2_2r_512 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_decode_queue_ram207_2_143
          synth -top ino_decode_queue_ram207_2_143 -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -343,8 +343,8 @@ Removed a total of 0 cells.
 3.18.14. Executing OPT_SHARE pass.
 
 3.18.15. Executing OPT_DFF pass (perform DFF optimizations).
-Adding EN signal on $memory\ram[1]$114623 ($dff) from module ino_decode_queue_ram207_2_143 (D = \wdata_i, Q = \ram[1]).
-Adding EN signal on $memory\ram[0]$114621 ($dff) from module ino_decode_queue_ram207_2_143 (D = \wdata_i, Q = \ram[0]).
+Adding EN signal on $memory\ram[1]$100753 ($dff) from module ino_decode_queue_ram207_2_143 (D = \wdata_i, Q = \ram[1]).
+Adding EN signal on $memory\ram[0]$100751 ($dff) from module ino_decode_queue_ram207_2_143 (D = \wdata_i, Q = \ram[0]).
 
 3.18.16. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_decode_queue_ram207_2_143..
@@ -591,6 +591,6 @@ Finding unused cells or wires in module \ino_decode_queue_ram207_2_143..
 Removed 0 unused cells and 864 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 869737d78b, CPU: user 1.13s system 0.06s, MEM: 190.19 MB peak
+End of script. Logfile hash: 842b34da69, CPU: user 0.98s system 0.06s, MEM: 166.26 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 70% 2x read_rtlil (0 sec), 10% 1x blackbox (0 sec), ...
+Time spent: 66% 2x read_rtlil (0 sec), 10% 1x abc (0 sec), ...

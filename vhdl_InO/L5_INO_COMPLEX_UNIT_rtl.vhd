@@ -131,17 +131,24 @@ begin
                    else '0';
    fexp_abort_s <= SYNC_VALID_i;
 
-   U_FEXP : entity work.FEXP_UNIT( INO )
-      port map (
-         CLK_i   => CLK_i,
-         RESET_i => RESET_i,
-         START_i => fexp_start_s,
-         X_i     => ISSUE_i.operand( 0 ),
-         N_i     => ISSUE_i.operand( 1 ),
-         ABORT_i => fexp_abort_s,
-         BUSY_o  => fexp_busy_s,
-         DONE_o  => fexp_done_s,
-         R_o     => fexp_r_s );
+   G_FEXP : if WITH_FEXP generate
+      U_FEXP : entity work.FEXP_UNIT( INO )
+         port map (
+            CLK_i   => CLK_i,
+            RESET_i => RESET_i,
+            START_i => fexp_start_s,
+            X_i     => ISSUE_i.operand( 0 ),
+            N_i     => ISSUE_i.operand( 1 ),
+            ABORT_i => fexp_abort_s,
+            BUSY_o  => fexp_busy_s,
+            DONE_o  => fexp_done_s,
+            R_o     => fexp_r_s );
+   else generate
+      -- FEXP dans INO_ARITH_UNIT (INO_EXEC_ARITH) : jamais emise ici.
+      fexp_busy_s <= '0';
+      fexp_done_s <= '0';
+      fexp_r_s    <= ( others => '0' );
+   end generate G_FEXP;
 
    SEQUENCEUR : process( CLK_i )
       variable c       : ino_complete_t;

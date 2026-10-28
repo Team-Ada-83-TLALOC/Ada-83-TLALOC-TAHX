@@ -2,7 +2,8 @@
 #
 # Netlist en cellules SG13 de TAHX_1(IN_ORDER), hierarchique aux frontieres des
 # macros de pnr_InO (stack_unit_16_8, ino_decode_queue, ino_decode_predict,
-# ino_execute, ino_system, ino_data_cache, ino_fetch) : chaque macro est
+# ino_exec_entier, ino_exec_arith, ino_system, ino_data_cache, ino_fetch ; variable
+# MACROS) : chaque macro est
 # synthetisee en un bloc, la logique de liaison de TAHX_1 est a plat ; les SRAM
 # IHP sont des boites noires (leurs .lib donnent leur timing a OpenSTA).
 #
@@ -58,7 +59,10 @@ if [ "$KS" = 1 ]; then
 else
    SYNTH="synth -top TAHX_1 -flatten -noshare $NOABC"
 fi
-MACROS="stack_unit_16_8 ino_decode_queue ino_decode_predict ino_execute ino_system ino_data_cache ino_fetch"
+# ino_execute contient depuis le 28 octobre deux macros, ino_exec_entier et
+# ino_exec_arith (etude de vitesse, § 8.11) ; MACROS="... ino_execute ..." garde
+# l'ancien decoupage (une macro).
+MACROS=${MACROS:-"stack_unit_16_8 ino_decode_queue ino_decode_predict ino_exec_entier ino_exec_arith ino_system ino_data_cache ino_fetch"}
 
 yosys -l $B.log -p "
    read_rtlil $BRUT

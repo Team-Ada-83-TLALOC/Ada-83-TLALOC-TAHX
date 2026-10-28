@@ -16,8 +16,10 @@ KS=1 LIB=… BRUT=… ./synth_hier.sh 20       # additionneurs Kogge-Stone -> ta
 
 - `BRUT` : RTLIL élaboré de `TAHX_1(IN_ORDER)`, celui que `pnr_InO/etat_macros.sh` produit
   (ou `vhdl_InO/mesure_par_module.sh`). Défaut `../par_module/brut.il`.
-- Les sept macros (`stack_unit_16_8`, `ino_decode_queue`, `ino_decode_predict`,
-  `ino_execute`, `ino_system`, `ino_data_cache`, `ino_fetch`) gardent leur hiérarchie ; la
+- Les huit macros (`stack_unit_16_8`, `ino_decode_queue`, `ino_decode_predict`,
+  `ino_exec_entier`, `ino_exec_arith`, `ino_system`, `ino_data_cache`, `ino_fetch` ;
+  variable `MACROS`, `ino_execute` à la place des deux pour l'ancien découpage) gardent
+  leur hiérarchie ; la
   liaison de `TAHX_1` est à plat ; les SRAM IHP sont des boîtes noires.
 - ABC reçoit une cible `-D` (la période) et `-constr` (tampons, redimensionnement), comme
   la synthèse de LibreLane. Ce n'est pas un `repair_timing` : la cible est par module et
@@ -109,7 +111,8 @@ STDLIB=… SRAMLIB=… sta -no_splash -exit sdc_macro.tcl      # -> ino_decode_q
 Pour chaque port de la macro (par bus, le pire bit), le pire chemin du cœur entier qui
 le traverse donne `set_input_delay` (arrivée du pilote extérieur) ou `set_output_delay`
 (période − temps requis au port). Une dizaine de minutes pour `ino_decode_queue`.
-Instances : `u_decode_queue`, `u_data_cache`, `u_core.u_stack`, `u_core.u_backend`,
+Instances : `u_decode_queue`, `u_data_cache`, `u_core.u_stack`, `u_core.u_backend.u_entier`,
+`u_core.u_backend.u_arith` (`u_core.u_backend` avec `MACROS` contenant `ino_execute`),
 `u_core.u_system`, `u_instruction.u_fetch`, `u_instruction.u_decode_predict`.
 
 Prévision pour la macro seule avec ce SDC, à comparer au run LibreLane coin par coin :

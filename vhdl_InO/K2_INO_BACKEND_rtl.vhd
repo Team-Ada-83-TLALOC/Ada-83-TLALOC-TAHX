@@ -28,6 +28,10 @@ of INO_BACKEND is               ---
    signal branch_issue_ready_s  : std_logic;
    signal branch_complete_s     : ino_complete_t;
 
+   constant NO_COMPLETE_ARITH : ino_complete_t := (
+      valid => '0', result_valid => '0', result => ( others => '0' ),
+      fault => NO_FAULT, taken => '0', target => ( others => '0' ) );
+
 begin
 
         --------------------------------------------------------------------------------
@@ -79,14 +83,20 @@ begin
          ISSUE_READY_o     => integer_issue_ready_s,
          COMPLETE_o        => integer_complete_s );
 
-   U_MULDIV : entity work.INO_MULDIV_UNIT
-      port map (
-         CLK_i             => CLK_i,
-         RESET_i           => RESET_i,
-         ISSUE_VALID_i     => muldiv_issue_valid_s,
-         ISSUE_i           => ISSUE_i,
-         ISSUE_READY_o     => muldiv_issue_ready_s,
-         COMPLETE_o        => muldiv_complete_s );
+   G_MULDIV : if WITH_ARITH generate
+      U_MULDIV : entity work.INO_MULDIV_UNIT
+         port map (
+            CLK_i             => CLK_i,
+            RESET_i           => RESET_i,
+            ISSUE_VALID_i     => muldiv_issue_valid_s,
+            ISSUE_i           => ISSUE_i,
+            ISSUE_READY_o     => muldiv_issue_ready_s,
+            COMPLETE_o        => muldiv_complete_s );
+   else generate
+      -- MUL/DIV dans INO_EXEC_ARITH.
+      muldiv_issue_ready_s <= '0';
+      muldiv_complete_s    <= NO_COMPLETE_ARITH;
+   end generate G_MULDIV;
 
    U_BRANCH : entity work.INO_BRANCH_UNIT
       port map (

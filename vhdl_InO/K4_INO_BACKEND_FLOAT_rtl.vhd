@@ -24,6 +24,10 @@ of INO_BACKEND_FLOAT is         ---
    signal float_issue_ready_s   : std_logic;
    signal float_complete_s      : ino_complete_t;
 
+   constant NO_COMPLETE_ARITH : ino_complete_t := (
+      valid => '0', result_valid => '0', result => ( others => '0' ),
+      fault => NO_FAULT, taken => '0', target => ( others => '0' ) );
+
 begin
 
    base_issue_valid_s <= ISSUE_VALID_i
@@ -36,6 +40,7 @@ begin
                     else base_issue_ready_s;
 
    U_BASE : entity work.INO_BACKEND_MEMORY
+      generic map ( WITH_ARITH => WITH_ARITH )
       port map (
          CLK_i         => CLK_i,
          RESET_i       => RESET_i,
@@ -47,14 +52,20 @@ begin
          MEM_RSP_i     => MEM_RSP_i,
          COMPLETE_o    => base_complete_s );
 
-   U_FLOAT : entity work.INO_FLOAT_UNIT
-      port map (
-         CLK_i         => CLK_i,
-         RESET_i       => RESET_i,
-         ISSUE_VALID_i => float_issue_valid_s,
-         ISSUE_i       => ISSUE_i,
-         ISSUE_READY_o => float_issue_ready_s,
-         COMPLETE_o    => float_complete_s );
+   G_FLOAT : if WITH_ARITH generate
+      U_FLOAT : entity work.INO_FLOAT_UNIT
+         port map (
+            CLK_i         => CLK_i,
+            RESET_i       => RESET_i,
+            ISSUE_VALID_i => float_issue_valid_s,
+            ISSUE_i       => ISSUE_i,
+            ISSUE_READY_o => float_issue_ready_s,
+            COMPLETE_o    => float_complete_s );
+   else generate
+      -- Flottant dans INO_EXEC_ARITH.
+      float_issue_ready_s <= '0';
+      float_complete_s    <= NO_COMPLETE_ARITH;
+   end generate G_FLOAT;
 
    COMPLETE_o <= float_complete_s when float_complete_s.valid = '1'
                  else base_complete_s;

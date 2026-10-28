@@ -172,6 +172,10 @@ $A L4_INO_FLOAT_UNIT_rtl.vhd
 $A K4_INO_BACKEND_FLOAT.vhd
 $A K4_INO_BACKEND_FLOAT_rtl.vhd
 
+# Unite arithmetique longue (MUL/DIV, flottant, FEXP partageant multiplieur et diviseur).
+$A L8_INO_ARITH_UNIT.vhd
+$A L8_INO_ARITH_UNIT_rtl.vhd
+
 # Operations complexes et frames.
 $A L5_INO_COMPLEX_UNIT.vhd
 $A L5_INO_COMPLEX_UNIT_rtl.vhd
@@ -189,6 +193,10 @@ $A L7_INO_EXCM_UNIT.vhd
 $A L7_INO_EXCM_UNIT_rtl.vhd
 $A K7_INO_BACKEND_EXCM.vhd
 $A K7_INO_BACKEND_EXCM_rtl.vhd
+$A K7c_INO_EXEC_ARITH.vhd
+$A K7c_INO_EXEC_ARITH_structure.vhd
+$A K7d_INO_EXEC_ENTIER.vhd
+$A K7d_INO_EXEC_ENTIER_structure.vhd
 $A K7b_INO_EXECUTE.vhd
 $A K7b_INO_EXECUTE_structure.vhd
 

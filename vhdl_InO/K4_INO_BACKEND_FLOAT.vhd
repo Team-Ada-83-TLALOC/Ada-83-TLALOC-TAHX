@@ -21,6 +21,11 @@ use work.IN_ORDER_TYPES.all;
                                 -----------------
 entity                          INO_BACKEND_FLOAT
 is                              -----------------
+   generic (
+      -- false : MUL/DIV, flottant et FEXP sont hors de ce backend, dans
+      -- INO_EXEC_ARITH (etude de vitesse, § 8.11) ; ces classes n'y arrivent pas.
+      WITH_ARITH        : boolean := true
+   );
    port (
       CLK_i             : in  std_logic;
       RESET_i           : in  std_logic;

@@ -39,6 +39,7 @@ begin
                     else base_issue_ready_s;
 
    U_BASE : entity work.INO_BACKEND_FLOAT
+      generic map ( WITH_ARITH => WITH_ARITH )
       port map (
          CLK_i         => CLK_i,
          RESET_i       => RESET_i,
@@ -51,6 +52,7 @@ begin
          COMPLETE_o    => base_complete_s );
 
    U_COMPLEX : entity work.INO_COMPLEX_UNIT
+      generic map ( WITH_FEXP => WITH_ARITH )
       port map (
          CLK_i         => CLK_i,
          RESET_i       => RESET_i,
