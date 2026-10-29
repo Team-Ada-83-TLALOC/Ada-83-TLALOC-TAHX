@@ -783,6 +783,8 @@ Extraction : `pnr_InO/etat_macros.sh --extraire ino_exec_entier ino_exec_arith`.
 
 Les 11 extrémités violées partent toutes de `fm_b_s` : c'est la normalisation et l'arrondi de FMUL_C (sticky, incrément de la mantisse, exposant). Le diviseur, pire chemin de l'estimation (§ 8.12), n'en fait pas partie. Le run utilisait la marge réduite après routage global (0,3 ns, 10 % des extrémités), choisie pour la durée d'`ino_execute`. P25 rétablit 1 ns sur toutes les extrémités, comme pour le run G d'`ino_decode_predict`.
 
+Relance avec P25 (29 octobre) : **+1,02 ns slow**, +9,88 typ, +14,98 fast (registre à registre partout), 0 DRC en 21 itérations, 0 antenne, 0 hold, 52,6 % d'occupation. **`ino_exec_arith` tient 25 ns au coin slow.**
+
 **`ino_exec_entier`** (boîte 900 × 1000 µm) :
 
 | | valeur |
@@ -800,3 +802,5 @@ Les 11 extrémités violées partent toutes de `fm_b_s` : c'est la normalisation
 - Les chemins internes, eux, ont 18,7 ns de marge.
 
 Pour les runs d'exploration, `DRT_OPT_ITERS: 30` évite les heures passées sur une violation résiduelle.
+
+**Bilan au 29 octobre** : `ino_execute`, qui ne se routait pas d'un bloc (≈ 9 000 violations, débordement de 4 926), se route en deux macros. Les deux tiennent 25 ns au coin slow : `ino_exec_entier` à +0,36 ns, `ino_exec_arith` à +1,02 ns. Elles font 0,457 + 0,670 mm² de cellules dans 0,90 + 1,32 mm² de boîtes, contre 3,23 mm² pour `ino_execute`. Les cycles sont inchangés (1 900 559).
