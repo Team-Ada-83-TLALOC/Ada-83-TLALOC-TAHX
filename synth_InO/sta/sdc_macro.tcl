@@ -118,7 +118,9 @@ foreach v $vus {
    lassign $v bus dir borne sl
    if { $borne eq "port" } { continue }
    if { [string first "/" $borne] < 0 } {
-      set a [arrivee [get_ports $borne]]
+      # Port de TAHX_1 relie directement a la macro : OpenSTA n'a pas de propriete
+      # d'arrivee sur un port ; son arrivee est le set_input_delay ci-dessus.
+      set a [expr { $IO_FRAC * $P }]
    } else {
       set a [arrivee [get_pins $borne]]
    }

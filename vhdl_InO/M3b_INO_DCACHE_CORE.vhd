@@ -15,9 +15,17 @@ use ieee.numeric_std.all;
 -- Memoires (RAM a un port, INO_CACHE_RAM1P, contrat des SRAM IHP 1P) :
 --   donnees : une RAM par voie, (SETS * 4) x 64, adresse = ensemble * 4 + mot ;
 --             on lit le mot utile des WAYS_G voies a la fois ;
---   tags    : une RAM SETS x 48 pour deux voies (champ de 24 bits par voie, ecrit
+--   tags    : une RAM SETS x 48 pour deux voies (champ de FIELD = 24 bits par voie, ecrit
 --             par masque de bits) ; le tag est la partie de l'adresse au-dessus de
 --             l'indice de voie (PA_BITS - log2(SIZE_BYTES_G / WAYS_G) bits).
+--             Le champ porte aussi les bits de presence (bit FIELD - 1) et de
+--             modification (bit FIELD - 2) de sa ligne ; le champ de la voie 0 porte
+--             en plus le compteur de remplacement tournant de l'ensemble (bits
+--             FIELD - 3 .. FIELD - 2 - log2(WAYS_G)). Etude de vitesse § 8.22 : ces 2 560 bits etaient des
+--             registres, avec leurs multiplexeurs 256 vers 1, soit l'essentiel de la
+--             logique de la macro.
+-- Apres RESET, l'etat INIT efface les RAM de tags, un ensemble par cycle (SETS
+-- cycles, 256 en configuration TAHX) ; aucune requete n'est acceptee pendant INIT.
 -- Configuration TAHX (32 Kio, 4 voies) : 4 SRAM 1P 1024x64 + 2 SRAM 1P 256x48.
 --
 -- Une RAM a un port ne lit pas tout l'ensemble : la reecriture d'une victime lit ses
@@ -94,8 +102,15 @@ architecture RTL of INO_DCACHE_CORE is
    constant SET_BITS   : natural  := LOG2( SETS );
    constant OFF_BITS   : natural  := SET_BITS + 5;          -- octets d'une voie
    constant TAG_W      : positive := PA_BITS - OFF_BITS;
-   constant FIELD      : positive := 24;                    -- champ de tag d'une voie
+   constant RR_W       : natural  := LOG2( WAYS_G );       -- remplacement tournant
+   -- Champ d'une voie : tag, presence, modification et (voie 0) compteur ; 24 bits
+   -- en configuration TAHX (19 + 2 + 2, SRAM 256 x 48), plus pour un petit cache
+   -- de test aux tags longs (RAM generique plus large).
+   constant FIELD      : positive := maximum( 24, TAG_W + 2 + RR_W );
    constant TAG_RAMS   : positive := ( WAYS_G + 1 ) / 2;
+   constant V_BIT      : natural  := FIELD - 1;            -- presence, dans le champ
+   constant D_BIT      : natural  := FIELD - 2;            -- modification
+   constant RR_LO      : natural  := FIELD - 2 - RR_W;     -- compteur, champ de la voie 0
    constant DEPTH      : positive := SETS * WORDS;
 
    subtype tag_t   is unsigned( TAG_W - 1 downto 0 );
@@ -103,11 +118,10 @@ architecture RTL of INO_DCACHE_CORE is
 
    type way_word_t   is array ( 0 to WAYS_G - 1 ) of word64_t;
    type tag_word_t   is array ( 0 to TAG_RAMS - 1 ) of tword_t;
-   type set_bits_t   is array ( 0 to SETS - 1 ) of std_logic;
-   type way_bits_t   is array ( 0 to WAYS_G - 1 ) of set_bits_t;
-   type rr_array_t   is array ( 0 to SETS - 1 ) of natural range 0 to WAYS_G - 1;
+   subtype field_t is std_logic_vector( FIELD - 1 downto 0 );
 
-   type state_t is ( LIBRE, LECTURE, PARTIE, RECRITURE, REMPLISSAGE, REPONSE );
+   -- INIT en dernier : les indices (state_t'pos) des autres etats ne changent pas.
+   type state_t is ( LIBRE, LECTURE, PARTIE, RECRITURE, REMPLISSAGE, REPONSE, INIT );
 
    -- RAM de donnees : adresse, donnee et masque communs ; validation par voie.
    signal data_rdata             : way_word_t;
@@ -119,11 +133,9 @@ architecture RTL of INO_DCACHE_CORE is
    signal tag_rdata              : tag_word_t;
    signal tag_en, tag_we         : std_logic_vector( 0 to TAG_RAMS - 1 );
    signal tag_addr               : natural range 0 to SETS - 1;
-   signal tag_wdata, tag_bm      : tword_t;
+   signal tag_wdata, tag_bm      : tag_word_t;             -- par RAM
 
-   -- Registres remis a zero au RESET (1024 bits chacun en configuration TAHX).
-   signal present, dirty : way_bits_t;
-   signal rr             : rr_array_t;
+   signal init_set       : natural range 0 to SETS - 1;
 
    signal state          : state_t;
    signal port_rr        : natural range 0 to PORTS_G - 1;
@@ -190,6 +202,40 @@ architecture RTL of INO_DCACHE_CORE is
       end if;
    end function;
 
+   -- Champ complet de la voie wy (tag, presence, modification).
+   function WAY_FIELD( t : tag_word_t; wy : natural ) return field_t is
+      variable x : tword_t;
+   begin
+      x := t( wy / 2 );
+      if wy mod 2 = 0 then
+         return x( FIELD - 1 downto 0 );
+      else
+         return x( 2 * FIELD - 1 downto FIELD );
+      end if;
+   end function;
+
+   function WAY_PRESENT( t : tag_word_t; wy : natural ) return std_logic is
+      constant f : field_t := WAY_FIELD( t, wy );
+   begin
+      return f( V_BIT );
+   end function;
+
+   function WAY_DIRTY( t : tag_word_t; wy : natural ) return std_logic is
+      constant f : field_t := WAY_FIELD( t, wy );
+   begin
+      return f( D_BIT );
+   end function;
+
+   -- Compteur de remplacement tournant de l'ensemble lu (champ de la voie 0).
+   function SET_RR( t : tag_word_t ) return natural is
+      constant x : tword_t := t( 0 );
+   begin
+      if RR_W = 0 then
+         return 0;
+      end if;
+      return to_integer( unsigned( x( RR_LO + RR_W - 1 downto RR_LO ) ) );
+   end function;
+
    function VALID_ACCESS( r : exec_mem_request_pa_t; n : natural ) return boolean is
       constant a : address_t := TO_VA( r.address );
    begin
@@ -216,8 +262,6 @@ begin
 
    assert SETS * LINE_BYTES * WAYS_G = SIZE_BYTES_G and 2 ** SET_BITS = SETS
       report "INO_DCACHE_CORE : taille non puissance de 2 de ligne*voies" severity failure;
-   assert TAG_W <= FIELD
-      report "INO_DCACHE_CORE : tag plus large que son champ de 24 bits" severity failure;
 
    ---------------------------------------------------------------------------------------------------------------------
    -- RAM physiques.
@@ -236,7 +280,7 @@ begin
          generic map ( WIDTH_G => 2 * FIELD, DEPTH_G => SETS )
          port map (
             CLK_i => CLK_i, EN_i => tag_en( t ), WE_i => tag_we( t ), ADDR_i => tag_addr,
-            WDATA_i => tag_wdata, BM_i => tag_bm, RDATA_o => tag_rdata( t ) );
+            WDATA_i => tag_wdata( t ), BM_i => tag_bm( t ), RDATA_o => tag_rdata( t ) );
    end generate GEN_TAG;
 
    ---------------------------------------------------------------------------------------------------------------------
@@ -284,16 +328,14 @@ begin
 
    HIT : process( all )
       variable h   : integer;
-      variable s   : natural;
       variable off : natural;
       variable w   : word64_t;
       variable r   : word64_t;
    begin
       h := -1;
       if state = PARTIE then
-         s := SET_OF( part_addr );
          for wy in 0 to WAYS_G - 1 loop
-            if present( wy )( s ) = '1' and WAY_TAG( tag_rdata, wy ) = TAG_OF( part_addr ) then
+            if WAY_PRESENT( tag_rdata, wy ) = '1' and WAY_TAG( tag_rdata, wy ) = TAG_OF( part_addr ) then
                h := wy;
             end if;
          end loop;
@@ -319,16 +361,24 @@ begin
    ---------------------------------------------------------------------------------------------------------------------
    -- Commande des RAM. Une RAM fait au plus un acces par cycle :
    --   LECTURE     : lecture du tag et du mot utile de toutes les voies ;
-   --   PARTIE      : hit en ecriture : ecriture des octets (masque) dans la voie du hit ;
+   --   PARTIE      : hit en ecriture : ecriture des octets (masque) dans la voie du hit,
+   --                 et du bit de modification de la voie dans sa RAM de tags ;
    --                 defaut : lecture du mot 0 de l'ensemble (reecriture eventuelle) ;
    --   RECRITURE   : lecture du mot suivant de la victime quand le mot courant part ;
-   --   REMPLISSAGE : ecriture de chaque mot recu ; tag ecrit au dernier mot sans faute.
+   --   REMPLISSAGE : ecriture de chaque mot recu ; au dernier mot, champ de la victime
+   --                 (tag, presence a 1 sans faute et a 0 sur faute, modification a 0)
+   --                 et compteur de l'ensemble (champ de la voie 0) ;
+   --   INIT        : effacement des RAM de tags, ensemble init_set.
+   -- Les sorties des RAM de tags lues en PARTIE restent valides jusqu'a la lecture
+   -- suivante (une ecriture ne les change pas) : RECRITURE y prend le tag de la
+   -- victime, REMPLISSAGE le compteur de l'ensemble.
    ---------------------------------------------------------------------------------------------------------------------
 
    RAM_CTRL : process( all )
       variable s, off, nxt : natural;
       variable w, m        : word64_t;
-      variable tw, tm      : tword_t;
+      variable tw, tm      : tag_word_t;
+      variable b           : natural;
    begin
       data_en    <= ( others => '0' );
       data_we    <= ( others => '0' );
@@ -338,8 +388,8 @@ begin
       tag_en     <= ( others => '0' );
       tag_we     <= ( others => '0' );
       tag_addr   <= 0;
-      tag_wdata  <= ( others => '0' );
-      tag_bm     <= ( others => '0' );
+      tag_wdata  <= ( others => ( others => '0' ) );
+      tag_bm     <= ( others => ( others => '0' ) );
 
       case state is
 
@@ -380,6 +430,19 @@ begin
                   data_addr  <= s * WORDS + WORD_OF( part_addr );
                   data_wdata <= w;
                   data_bm    <= m;
+                  -- Bit de modification de la voie du hit.
+                  tw := ( others => ( others => '0' ) );
+                  for wy in 0 to WAYS_G - 1 loop
+                     if wy = hit_way then
+                        b := FIELD * ( wy mod 2 ) + D_BIT;
+                        tw( wy / 2 )( b ) := '1';
+                        tag_en( wy / 2 ) <= '1';
+                        tag_we( wy / 2 ) <= '1';
+                     end if;
+                  end loop;
+                  tag_addr  <= s;
+                  tag_wdata <= tw;
+                  tag_bm    <= tw;
                end if;
             else
                data_en   <= ( others => '1' );
@@ -403,23 +466,41 @@ begin
                   data_wdata <= D_RDATA_i;
                   data_bm    <= ( others => '1' );
                end if;
-               if received = WORDS - 1 and fill_fault = '0' and D_FAULT_i = '0' then
-                  tw := ( others => '0' );
-                  tm := ( others => '0' );
-                  if victim_way mod 2 = 0 then
-                     tw( TAG_W - 1 downto 0 ) := std_logic_vector( TAG_OF( line_addr ) );
-                     tm( FIELD - 1 downto 0 ) := ( others => '1' );
-                  else
-                     tw( FIELD + TAG_W - 1 downto FIELD ) := std_logic_vector( TAG_OF( line_addr ) );
-                     tm( 2 * FIELD - 1 downto FIELD ) := ( others => '1' );
+               if received = WORDS - 1 then
+                  tw := ( others => ( others => '0' ) );
+                  tm := ( others => ( others => '0' ) );
+                  for wy in 0 to WAYS_G - 1 loop
+                     if wy = victim_way then
+                        b := FIELD * ( wy mod 2 );
+                        if fill_fault = '0' and D_FAULT_i = '0' then
+                           tw( wy / 2 )( b + TAG_W - 1 downto b ) := std_logic_vector( TAG_OF( line_addr ) );
+                           tm( wy / 2 )( b + TAG_W - 1 downto b ) := ( others => '1' );
+                           tw( wy / 2 )( b + V_BIT ) := '1';
+                        end if;
+                        tm( wy / 2 )( b + V_BIT ) := '1';
+                        tm( wy / 2 )( b + D_BIT ) := '1';
+                        tag_en( wy / 2 ) <= '1';
+                        tag_we( wy / 2 ) <= '1';
+                     end if;
+                  end loop;
+                  if RR_W > 0 then
+                     tw( 0 )( RR_LO + RR_W - 1 downto RR_LO ) :=
+                        std_logic_vector( to_unsigned( ( SET_RR( tag_rdata ) + 1 ) mod WAYS_G, RR_W ) );
+                     tm( 0 )( RR_LO + RR_W - 1 downto RR_LO ) := ( others => '1' );
+                     tag_en( 0 ) <= '1';
+                     tag_we( 0 ) <= '1';
                   end if;
-                  tag_en( victim_way / 2 ) <= '1';
-                  tag_we( victim_way / 2 ) <= '1';
                   tag_addr  <= victim_set;
                   tag_wdata <= tw;
                   tag_bm    <= tm;
                end if;
             end if;
+
+         when INIT =>
+            tag_en    <= ( others => '1' );
+            tag_we    <= ( others => '1' );
+            tag_addr  <= init_set;
+            tag_bm    <= ( others => ( others => '1' ) );
 
          when others =>
             null;
@@ -463,10 +544,8 @@ begin
    begin
       if rising_edge( CLK_i ) then
          if RESET_i = '1' then
-            state        <= LIBRE;
-            present      <= ( others => ( others => '0' ) );
-            dirty        <= ( others => ( others => '0' ) );
-            rr           <= ( others => 0 );
+            state        <= INIT;
+            init_set     <= 0;
             port_rr      <= 0;
             cur_port     <= 0;
             cur          <= ( valid => '0', write => '0', probe => '0', outside => '0',
@@ -528,9 +607,7 @@ begin
                   s := SET_OF( part_addr );
 
                   if hit_way >= 0 then
-                     if cur.write = '1' then
-                        dirty( hit_way )( s ) <= '1';
-                     end if;
+                     -- Ecriture : bit de modification ecrit par RAM_CTRL.
                      result <= hit_result;
 
                      if rest_n > 0 then
@@ -546,28 +623,26 @@ begin
 
                   else
                      -- Victime : voie libre si possible, sinon remplacement tournant.
-                     way := rr( s );
+                     way := SET_RR( tag_rdata );
                      for wy in WAYS_G - 1 downto 0 loop
-                        if present( wy )( s ) = '0' then
+                        if WAY_PRESENT( tag_rdata, wy ) = '0' then
                            way := wy;
                         end if;
                      end loop;
 
                      victim_set <= s;
                      victim_way <= way;
-                     rr( s ) <= ( rr( s ) + 1 ) mod WAYS_G;
                      line_addr <= part_addr( PA_BITS - 1 downto 5 ) & "00000";
                      issued <= 0;
                      received <= 0;
                      fill_fault <= '0';
 
-                     -- Invalidation immediate ; le tag (sortie de sa RAM) et le mot 0
-                     -- (lu a ce front) servent a la reecriture de la victime.
-                     present( way )( s ) <= '0';
-                     if present( way )( s ) = '1' and dirty( way )( s ) = '1' then
+                     -- Le tag (sortie de sa RAM) et le mot 0 (lu a ce front) servent a
+                     -- la reecriture de la victime. Son champ et le compteur de
+                     -- l'ensemble sont ecrits au dernier mot du remplissage (RAM_CTRL).
+                     if WAY_PRESENT( tag_rdata, way ) = '1' and WAY_DIRTY( tag_rdata, way ) = '1' then
                         state <= RECRITURE;
                      else
-                        dirty( way )( s ) <= '0';
                         state <= REMPLISSAGE;
                      end if;
                   end if;
@@ -575,7 +650,6 @@ begin
                when RECRITURE =>
                   if D_READY_i = '1' then
                      if issued = WORDS - 1 then
-                        dirty( victim_way )( victim_set ) <= '0';
                         issued <= 0;
                         state <= REMPLISSAGE;
                      else
@@ -592,11 +666,8 @@ begin
                      if received = WORDS - 1 then
                         if fill_fault = '1' or D_FAULT_i = '1' then
                            result_fault <= '1';
-                           present( victim_way )( victim_set ) <= '0';
                            state <= REPONSE;
                         else
-                           present( victim_way )( victim_set ) <= '1';
-                           dirty( victim_way )( victim_set ) <= '0';
                            state <= LECTURE;
                         end if;
                      else
@@ -609,6 +680,13 @@ begin
 
                when REPONSE =>
                   state <= LIBRE;
+
+               when INIT =>
+                  if init_set = SETS - 1 then
+                     state <= LIBRE;
+                  else
+                     init_set <= init_set + 1;
+                  end if;
 
             end case;
          end if;

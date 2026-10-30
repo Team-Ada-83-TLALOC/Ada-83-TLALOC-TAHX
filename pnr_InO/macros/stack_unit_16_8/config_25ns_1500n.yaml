@@ -1,0 +1,88 @@
+PDK: ihp-sg13cmos5l
+
+DESIGN_NAME: stack_unit_16_8
+
+# Variante broches (29 octobre, § 8.16) : la congestion horizontale du premier run
+# suit une verticale au premier tiers ouest, sur toute la hauteur. C'est la coupe
+# entre la prise (case de decode_queue, broches a l'ouest) et le chemin de donnees
+# vers l'emission (broches a l'est) : tout le flux traverse la macro en Metal3.
+# La case de decode_queue passe au nord (entree verticale, Metal2 / Metal4 a 62 %),
+# le port memoire a l'ouest.
+IO_PIN_ORDER_CFG: dir::pin_order_25ns.cfg
+
+VERILOG_FILES:
+  - dir::src/stack_unit_16_8.v
+
+CLOCK_PORT: clk_i
+CLOCK_PERIOD: 25
+
+# Run contraint a 25 ns (etude de vitesse, 29 octobre, § 8.14) : reglages valides
+# sur ino_decode_predict (run G), ino_exec_entier et ino_exec_arith (§ 8.13).
+# Budgets d'entree / sortie tires du coeur entier par synth_InO/sta/sdc_macro.tcl
+# (netlist d'estimation v3s, coin slow, fils 'Zero').
+PNR_SDC_FILE: dir::stack_unit_16_8_25ns.sdc
+SIGNOFF_SDC_FILE: dir::stack_unit_16_8_25ns.sdc
+
+# Synthese DELAY, placement guide par le timing, synthese et placement-routage au
+# coin lu.
+SYNTH_STRATEGY: "DELAY 1"
+PL_TIMING_DRIVEN: true
+SYNTH_CORNER: nom_slow_1p08V_125C
+PNR_CORNERS: [nom_slow_1p08V_125C]
+
+# Parasites estimes : LAYERS_RC de sg13g2 (Metal1 a Metal4), la configuration de
+# sg13cmos5l le laisse vide (§ 8.9).
+LAYERS_RC:
+  "*":
+    Metal1: { res: 8.54576E-03, cap: 1.0E-10 }
+    Metal2: { res: 2.53519E-03, cap: 1.69121E-04 }
+    Metal3: { res: 1.54329E-03, cap: 1.82832E-04 }
+    Metal4: { res: 6.31424E-04, cap: 1.66454E-04 }
+
+# Marges des reparations (§ 8.10, P25) et tampons sur les fils longs.
+PL_RESIZER_SETUP_SLACK_MARGIN: 1.0
+GRT_RESIZER_SETUP_SLACK_MARGIN: 1.0
+DESIGN_REPAIR_MAX_SLEW_PCT: 25
+GRT_DESIGN_REPAIR_MAX_SLEW_PCT: 25
+DESIGN_REPAIR_MAX_WIRE_LENGTH: 400
+GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 400
+
+# stack_unit_16_8 : 0,719 mm2 de cellules en synthese d'estimation typ (v4s, port
+# d'ecriture unique des caches de pile, P29 ; 1,035 mm2 avant), environ 0,9 mm2
+# attendus apres DELAY et tampons. Boite de 1,69 mm2 : environ 55 % d'utilisation.
+# Diodes sur les entrees, pas d'insertion heuristique (§ 8.11).
+FP_SIZING: absolute
+# Variante (29 octobre, etude § 8.16) : le routage global dans 1300 x 1300 um
+# deborde de 3 923 (Metal3 3 027, usage 89 %, jusqu'a 34 pistes de trop dans une
+# case). Boite de 2,25 mm2 (+33 % de pistes), densite visee 50 %.
+DIE_AREA: [0, 0, 1500, 1500]
+PL_TARGET_DENSITY_PCT: 50
+PL_ROUTABILITY_DRIVEN: true
+GRT_ALLOW_CONGESTION: true
+GRT_ANTENNA_REPAIR_ITERS: 6
+GRT_ANTENNA_REPAIR_MARGIN: 20
+DIODE_ON_PORTS: in
+DIODE_CELL: sg13cmos5l_antennanp/A
+
+
+RUN_LVS: false               # extraction SPICE (Magic) et LVS (Netgen)
+meta:
+  version: 2
+  flow: Classic
+  substituting_steps:
+    Odb.CheckDesignAntennaProperties: null   # retire l'étape (pas de LEF sans Magic)
+    Magic.SpiceExtraction: null
+    Checker.IllegalOverlap: null
+    Netgen.LVS: null
+    Checker.LVS: null
+
+RUN_POST_GRT_DESIGN_REPAIR: true
+RUN_POST_GRT_RESIZER_TIMING: true
+
+RUN_MAGIC_STREAMOUT: false
+RUN_MAGIC_WRITE_LEF: false
+RUN_MAGIC_DRC: false
+
+RUN_KLAYOUT_STREAMOUT: true
+RUN_KLAYOUT_DRC: false
+RUN_KLAYOUT_XOR: false

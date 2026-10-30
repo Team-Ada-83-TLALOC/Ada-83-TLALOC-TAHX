@@ -804,3 +804,258 @@ Relance avec P25 (29 octobre) : **+1,02 ns slow**, +9,88 typ, +14,98 fast (regis
 Pour les runs d'exploration, `DRT_OPT_ITERS: 30` évite les heures passées sur une violation résiduelle.
 
 **Bilan au 29 octobre** : `ino_execute`, qui ne se routait pas d'un bloc (≈ 9 000 violations, débordement de 4 926), se route en deux macros. Les deux tiennent 25 ns au coin slow : `ino_exec_entier` à +0,36 ns, `ino_exec_arith` à +1,02 ns. Elles font 0,457 + 0,670 mm² de cellules dans 0,90 + 1,32 mm² de boîtes, contre 3,23 mm² pour `ino_execute`. Les cycles sont inchangés (1 900 559).
+
+### 8.14 `stack_unit` : un port d'écriture par cache de pile (patch P29, 29 octobre)
+
+**Faut-il découper la `stack_unit` en macros ?** Non, à mon avis. Contrairement à `ino_execute`, ce n'est pas un ensemble d'unités autour d'un bus. C'est une seule boucle de contrôle :
+- la prise décode la case de `ino_decode_queue` ;
+- elle calcule DSP et les indices des 5 ports de lecture, lit le cache de pile ;
+- elle compare les adresses lues, décide `fast_ok` et enregistre les opérandes, dans le même cycle.
+
+Mettre le cache de pile dans une autre macro ferait traverser deux frontières (indices, puis cellules lues) au chemin `ino_decode_queue` → `stack_unit`, le plus long du cœur (§ 7). On garde donc une macro, mais on optimise son composant le plus coûteux.
+
+**Mesure.** Synthèse de `STACK_UNIT` seule, typ, en faisant varier les génériques :
+
+| caches (pile, retours) | µm² |
+|---|---|
+| 16, 8 (macro `stack_unit_16_8`) | 1 043 000 |
+| 8, 8 | 747 000 |
+| 16, 2 | 996 000 |
+
+Chaque cellule du cache de pile coûtait ≈ 37 000 µm². Ses registres n'en font que ≈ 5 000 (98 bits) ; le reste vient de la logique d'écriture. Le process séquentiel écrivait `cells_s` en une vingtaine d'endroits, à indice dynamique (prise, commit, FILL, SPILL, cohérence, maintenance, LINK, parcours de plage). La synthèse en tire, pour chaque cellule, une chaîne de priorité de comparateurs d'indice et de multiplexeurs de 98 bits.
+
+**Modification (V6).** Chaque cache de pile (données, retours) a désormais :
+- **un port d'écriture de cellule entière** (`wr_en`, `wr_idx`, `wr_cell`), à une écriture par cycle au plus (assertion en simulation) ;
+- **deux masques**, d'invalidation (valid, dirty) et de nettoyage (dirty).
+
+Les sites d'écriture remplissent ces variables. Un bloc unique (`ECRITURES`), en fin de cycle, les applique dans l'ordre « écriture, sinon invalidation, sinon nettoyage ». Cet ordre est celui des affectations précédentes : la destination était toujours écrite après les invalidations du même cycle. `INVALIDATE_CELL` remplit le masque. Les ports de lecture, la prise et les contournements sont inchangés.
+
+**Résultats.**
+
+| | avant | après (P29) |
+|---|---|---|
+| `STACK_UNIT` seule, typ | 1 043 000 µm² | **721 000 µm² (−31 %)** |
+| coût d'une cellule du cache de pile | ≈ 37 000 µm² | ≈ 17 000 µm² |
+| `stack_unit_16_8` dans le cœur (`v4s`) | 1 035 000 µm² | 719 000 µm² |
+| `ino_decode_queue` → `stack_unit`, slow `Zero`, 20 ns | −0,97 ns | plus parmi les familles critiques (marge > +0,05 ns) |
+| chaînage `stack_unit` → `ino_exec_entier` → `stack_unit` | +0,27 ns | +0,05 ns (variation d'ABC) |
+| cycles des 8 bancs | 1 900 559 | 1 900 559, identiques banc par banc |
+| `LISTE` | | 51 tests OK |
+
+**Configurations à 25 ns** (piste 3) : `config_25ns.yaml` pour `stack_unit_16_8`, `ino_system`, `ino_data_cache` et `ino_fetch`.
+- Elles reprennent les réglages validés : `DELAY 1`, placement guidé par le timing, coin slow, `LAYERS_RC`, marges de 1 ns, slew 25 %, fils longs 400 µm, pas de diodes heuristiques.
+- Chacune a son SDC tiré du cœur entier par `sdc_macro.tcl`. Celui de `stack_unit_16_8` vient de `v3s`, les trois autres de `v4s`.
+- `sdc_macro.tcl` lit maintenant le budget d'une entrée reliée directement à un port de `TAHX_1` (`set_input_delay` du cœur). C'est le cas d'`ino_system`, d'`ino_data_cache` et d'`ino_fetch`, qui s'arrêtaient sur une erreur d'OpenSTA.
+- `stack_unit_16_8` passe à une boîte de 1300 × 1300 µm (environ 55 %), pour 1 513 broches.
+
+### 8.15 `ino_system` : boîte trop plate pour Metal3 (patch P31, 29 octobre)
+
+Premier routage global de `config_25ns.yaml` (boîte 1645 × 520 µm, broches de `pin_order.cfg`) :
+
+| couche | usage | débordement |
+|---|---|---|
+| Metal2 (verticale) | 81 % | 50 |
+| Metal3 (horizontale) | **108 %** | **34 569** |
+| Metal4 (verticale) | 42 % | 112 |
+| TopMetal1 | 70 % | 2 091 |
+
+La logique est petite (0,31 mm² typ) mais très reliée aux broches : 1 705 broches, dont `limits_o` (256), `copile_i` et `sync_copile_o` (386), l'émission et le retour (≈ 250). La boîte, de rapport 3,2, en met ≈ 840 sur les 1 645 µm du nord et 386 sur les 520 µm de l'est. Les liaisons sont donc surtout horizontales, alors que Metal3 est la seule couche horizontale fine.
+
+P31 donne au flot à 25 ns sa propre répartition (`pin_order_25ns.cfg`) et une boîte de 1100 × 1000 µm :
+- nord : émission, retour, sommets de pile et DISPLAY (≈ 350) ;
+- est : co-pile et SYNC (≈ 490) ;
+- sud : port mémoire, maintenance de pile et `limits_o` (≈ 560) ;
+- ouest : démarrage, fautes, interruptions, arrêt (≈ 330).
+
+`config.yaml` et `pin_order.cfg` ne changent pas. Le placement de la macro dans le cœur (session floorplan) devra suivre cette répartition.
+
+**Run complet avec P31 (29 octobre)** : 0 DRC en 3 itérations, 0 antenne, 0 hold. Marge setup slow **+6,36 ns**, typ +9,26, fast +9,88 ; registre à registre slow +10,5 ns. Cellules 0,371 mm², 35 % d'occupation : la boîte pourra être réduite si le floorplan le demande.
+
+### 8.16 `stack_unit_16_8` : premier routage global à 25 ns (29 octobre)
+
+Boîte 1300 × 1300 µm (P30, cache de pile à port d'écriture unique, P29) :
+
+| couche | usage | débordement (pire case) |
+|---|---|---|
+| Metal2 | 86 % | 75 (6) |
+| Metal3 | 89 % | 3 027 (34) |
+| Metal4 | 62 % | 103 (5) |
+| TopMetal1 | 64 % | 718 (4) |
+| total | | **3 923** (7,9 m de fils, 34 min) |
+
+C'est proche d'`ino_execute` d'un bloc (4 926, routage détaillé sans convergence), et loin d'`ino_exec_entier` (199, convergé en plusieurs heures). Une case dépasse Metal3 de 34 pistes : la congestion est concentrée. P32 ajoute `config_25ns_1500.yaml` (1500 × 1500 µm, densité 50 %, +33 % de pistes), à lancer jusqu'au routage global. La carte de congestion du premier run dira si le point chaud est au bord est (≈ 620 broches d'émission et de retour) ou au centre (5 ports de lecture du cache de pile).
+
+**Carte de congestion du premier run** : 2 271 marqueurs horizontaux contre 59 verticaux.
+- **Zone principale :** une verticale au premier tiers ouest, sur toute la hauteur. C'est la coupe entre la prise et le chemin de données. La case de `ino_decode_queue` entre à l'ouest (`pin_order.cfg`), tandis que l'émission et le retour sortent à l'est. Les indices des ports de lecture, les cellules lues et les opérandes traversent donc toute la macro, en Metal3 seulement.
+- **Zone secondaire :** le dernier quart est, vers le bas, où arrivent les broches d'émission et de retour.
+
+P33 ajoute `config_25ns_1500n.yaml`, avec la boîte de P32 et `pin_order_25ns.cfg` :
+- la case de `ino_decode_queue`, `decode_take_o`, `commit_o` et `idle_o` passent au nord, où l'entrée se fait en Metal2 et Metal4 (verticales, 62 % d'usage) ;
+- le port mémoire passe à l'ouest ;
+- l'est et le sud ne changent pas.
+
+`config.yaml` et `pin_order.cfg` restent ceux de la session floorplan.
+
+**Variante P32 (boîte 1500 × 1500 µm, densité 50 %, broches d'origine)** : routage global sans aucun débordement. Metal2 / Metal3 / Metal4 sont à 72 / 76 / 36 %, en 1 min 05 contre 34 min. La boîte suffit, sans changer les broches : la variante P33 (case de `decode_queue` au nord) n'est pas nécessaire et reste en réserve. Run complet en cours.
+
+
+### 8.17 `ino_fetch` : premier routage global à 25 ns (29 octobre)
+
+Boîte 1800 × 2050 µm, onze SRAM 2P 512 × 32 en deux colonnes et six rangées ; la logique occupe la bande du bas, le couloir central et les intervalles entre rangées.
+
+| couche | usage | débordement (pire case H / V) |
+|---|---|---|
+| Metal2 | 57 % | 9 057 (2 / 6) |
+| Metal3 | 54 % | 7 516 (7 / 2) |
+| Metal4 | 25 % | 13 437 (1 / 7) |
+| TopMetal1 | 26 % | 6 062 (3 / 1) |
+| total | 45 % | **36 072** |
+
+L'usage moyen est bas, mais le débordement touche toutes les couches, verticales comprises. La demande se concentre donc dans les passages étroits laissés entre les SRAM, ce qui n'est pas un manque global de pistes.
+
+Hypothèse à vérifier : les tampons de fils longs (`DESIGN_REPAIR_MAX_WIRE_LENGTH` 400 µm, absents du run à 100 ns). Sur une macro de 2 050 µm de haut, chaque liaison entre une SRAM et la logique en reçoit, et ils ne peuvent se placer que dans ces passages. P35 ajoute `config_25ns_sansfil.yaml`, identique à `config_25ns.yaml` sans ces deux réglages, à lancer jusqu'au routage global.
+
+**Carte et cellules du premier run** :
+- Marqueurs : 10 000 verticaux et 9 441 horizontaux. Toutes les SRAM en sont couvertes, sauf la première au nord-ouest et la dernière au sud-ouest ; le couloir central et le premier canal large du sud-est sont saturés.
+- Le routage global fait donc passer des liaisons au-dessus des SRAM, là où il n'y a presque plus de ressources.
+- **11 385 tampons de réparation (0,147 mm²)**, soit plus que toute la logique combinatoire (0,182 mm²) et 6 fois le nombre de bascules.
+
+Les réparations de fils longs, de slew et de setup (marges de 1 ns) remplissent les canaux. P36 ajoute `config_25ns_sansfil2.yaml` : comme P35, avec en plus la marge de setup après placement à 0,3 ns et la marge de slew à 20 %. Ordre proposé : P35, puis P36, chacun jusqu'au routage global, en comparant le nombre de tampons et le débordement.
+
+**Résultat de P35** (sans fils longs) : le débordement passe de 36 072 à **1 626**, avec au plus 3 pistes de trop par case (Metal2 116, Metal3 365, Metal4 419, TopMetal1 726), en 56 min de routage global. Les fils longs expliquaient donc l'essentiel. Suite : P36 (marges réduites en plus) en run complet. P37 donne la même variante à `ino_data_cache` (`config_25ns_sansfil2.yaml`).
+
+### 8.18 `stack_unit_16_8` : chemins traversants mal budgétés (patch P38, 29 octobre)
+
+Run complet de `config_25ns_1500.yaml` : registre à registre **+15,3 ns slow** (+19,6 typ, +21,4 fast), mais une seule extrémité en violation à tous les coins : −9,40 slow, −8,54 typ, −8,05 fast. Une violation presque indépendante du coin désigne une contrainte, pas la logique.
+
+**Cause.** C'est `decode_take_o`, au bout du chemin combinatoire « terminaison → prise enchaînée → `DECODE_TAKE` » qui traverse la macro. `sdc_macro.tcl` budgète chaque port par le pire chemin du cœur qui le traverse :
+- `issue_ready_i` (15,1 ns) et `complete_i` (10 à 12,7 ns) prennent l'arrivée du chaînage ;
+- `decode_take_o` (16,3 ns avant le front) prend un autre chemin.
+
+Leur somme dépasse la période. Dans le cœur, ces mêmes chemins ont de +4,8 à +10,8 ns de marge (`v4s`, slow `Zero`, 25 ns). La prévision de la macro seule (`sta_macro.tcl`) retrouve −9,15 ns avec l'ancien SDC.
+
+**Correction.** `synth_InO/sta/sdc_traversees.tcl` cherche, pour chaque couple (entrée, sortie), le pire chemin du cœur qui passe par les deux ports. Il ajoute un `set_max_delay` quand les budgets d'horloge laissent moins que la traversée permise D. D est la part de ce chemin dans la macro, plus la moitié de sa marge : le reste couvre les fils et les autres macros. Pour `stack_unit_16_8`, six couples vers `decode_take_o`, avec D de 4,7 à 11,4 ns. La prévision passe de −9,15 à **+1,61 ns** (`complete_i.fault` → `decode_take_o`, slow `Zero`). `ino_data_cache` et `ino_fetch` n'ont aucun couple sous-budgété, et leur SDC ne change pas.
+
+Le routé ajoutera la traversée de la macro, de `complete_i` (est) à `decode_take_o` (ouest), soit 1 500 µm. Si ce chemin reste en violation, `config_25ns_1500n.yaml` (P33 : la case de `decode_queue` et `decode_take_o` au nord) le raccourcit.
+
+### 8.19 `ino_data_cache` : bande logique trop basse (patch P39, 29 octobre)
+
+Routage global de `config_25ns_sansfil2.yaml` (P37, boîte 2275 × 1334 µm) :
+
+| couche | usage | débordement (pire case H / V) |
+|---|---|---|
+| Metal2 | 79 % | 1 437 (1 / 10) |
+| Metal3 | **119 %** | **106 263** (25 / 1) |
+| Metal4 | 51 % | 1 026 (2 / 7) |
+| TopMetal1 | 90 % | 6 586 (5 / 0) |
+| total | 85 % | **115 312**, 8,6 m de fils, 6 h 54 de routage global |
+
+Les quatre SRAM de données (784 × 336 µm) occupent le haut et le bas, et TopMetal1 est interdit au-dessus d'elles (obstructions, à cause des bandes d'alimentation). La logique n'a donc que la bande de 620 µm entre les deux rangées et la colonne des étiquettes. Les broches sont aux bords ouest et est. Les liaisons sont surtout horizontales sur 2 275 µm, et Metal3 sature comme pour `ino_system` (§ 8.15).
+
+P39 ajoute `config_25ns_haut.yaml` : P37 avec une boîte de 2275 × 1600 µm. Les SRAM du haut, l'étiquette du haut et leurs obstructions TopMetal1 sont remontées de 266 µm. La bande logique passe à 887 µm (+43 % de pistes horizontales), et les SRAM du bas ne bougent pas.
+
+**Tampons du run** (`RUN_2026-10-29_07-52-04`, lancé avec `config_25ns.yaml` de P30, donc avec les fils longs) : 17 511 tampons de réparation, 0,206 mm², pour 0,243 mm² de logique combinatoire. Répartition d'après les journaux :
+
+| réparation | tampons |
+|---|---|
+| sortance, slew, capacité après placement (652 + 433 + 273 violations) | 6 884 |
+| fils longs (3 222) | 5 636 |
+| hold (marges de 0,4 ns au seul coin slow) | 4 767 |
+| autres | 463 |
+
+P37, puis P39, retirent les fils longs. P40 complète `config_25ns_haut.yaml` :
+- le hold est vu au coin fast pendant le placement-routage (`PNR_CORNERS` slow et fast) ;
+- les marges de hold passent à 0,1 ns.
+
+La marge de 0,4 ns avait été réglée à 100 ns pour couvrir le coin fast depuis le seul coin slow ; à 25 ns, elle fait insérer des milliers de tampons de retard dans la bande. La sortance (652 violations) reste à surveiller.
+
+**Run complet avec le SDC de P38** (`config_25ns_1500.yaml`, broches d'origine) :
+
+| | valeur |
+|---|---|
+| marge setup slow / typ / fast | **+0,43** / +1,82 / +2,63 ns |
+| registre à registre, slow | +14,9 ns |
+| routage détaillé | 12 → 0 violation en 7 itérations |
+| hold | 0 |
+| antennes | **1 net** en violation |
+| cellules | 0,975 mm² (dont 0,257 mm² de tampons de réparation), 44,7 % d'occupation |
+
+**`stack_unit_16_8` tient 25 ns au coin slow.** Les extrémités limitantes sont les traversées vers `decode_take_o` : leurs `set_max_delay` ne dépendent pas du coin, d'où des marges typ et fast proches de la marge slow. La variante P33 (broches au nord) n'est pas nécessaire. Reste l'antenne isolée, à reprendre avec plus d'itérations de réparation (`GRT_ANTENNA_REPAIR_ITERS`) ou une diode à la main.
+
+### 8.20 `ino_fetch` : courts-circuits TopMetal1 au-dessus des SRAM (patch P42, 29 octobre)
+
+Run complet de `config_25ns_sansfil.yaml` (P35) : le routage détaillé finit ses 64 itérations avec **292 courts-circuits, tous en TopMetal1**. Les itérations de réparation des antennes repartent de là et n'y changent rien.
+- Le routage global met des liaisons en TopMetal1 au-dessus des SRAM (usage 13 %), là où passent les bandes d'alimentation TopMetal1.
+- `ino_data_cache` avait déjà rencontré ce problème (87 courts-circuits VPWR/VGND). Sa configuration interdit donc TopMetal1 au-dessus de ses SRAM (`ROUTING_OBSTRUCTIONS`) ; celle d'`ino_fetch` ne le faisait pas.
+
+P42 ajoute les mêmes obstructions aux trois configurations à 25 ns d'`ino_fetch`, une par SRAM 2P 512 × 32 (685,49 × 219,77 µm d'après le LEF), aux emplacements de `MACROS`.
+
+### 8.21 `ino_fetch` : canaux de SRAM élargis (patch P43, 30 octobre)
+
+**Run P35 + P42** (`config_25ns_sansfil.yaml`, TopMetal1 interdit au-dessus des SRAM) : le problème se déplace au lieu de disparaître.
+
+| | P35 | P35 + P42 |
+|---|---|---|
+| débordement du routage global | 1 626 | **4 901** (Metal2 2 437, Metal3 2 034, Metal4 353, TopMetal1 77) |
+| routage détaillé | 292 courts-circuits TopMetal1 après 64 itérations | **2 133** à la 7e itération (Metal4 : 1 744 courts-circuits et 119 espacements ; Metal3 : 268 courts-circuits), quasi stagnant |
+
+Lecture du LEF de la SRAM 2P 512 × 32 :
+- Metal1 et Metal3 sont obstrués sur toute la macro, et Metal2 presque entièrement (règle SPACING), sauf la bande de broches ;
+- les 376 broches de signal sont des carrés Metal2 au bord sud (au bord nord en FS) ;
+- **Metal4 porte 113 bandes d'obstruction verticales sur 48 % de la surface**, dont les broches VDD!, VSS! et VDDARRAY!, sur toute la hauteur.
+
+**Correction (P44)** : le LEF technologique de sg13cmos5l donne Metal1, Metal3 et TopMetal1 horizontaux, Metal2 et Metal4 verticaux. Au-dessus d'une SRAM, Metal1 à Metal3 sont obstrués par son LEF. TopMetal1 y est donc la seule couche horizontale, et Metal4 la seule couche verticale (à 52 %).
+- P42 n'a pas déplacé les traversées vers Metal4 (couche verticale). Il a renvoyé **toutes les liaisons horizontales** dans les canaux (130 µm) et les bandes dos à dos (30 µm), d'où les débordements Metal3 et Metal2 (accès aux broches) du routage global.
+- Les 1 744 courts-circuits Metal4 sont plus probablement dans ces canaux encombrés : P35 n'en avait aucun.
+
+**Les 1 744 courts-circuits Metal4 restent à localiser.** Le fichier `.drc` du routage détaillé s'écrit à la fin de ses 64 itérations. `ino_data_cache/analyser_drc.py <drc> config_25ns_sansfil.yaml` classe alors chaque violation : « sur la SRAM », « broches de », « logique / canaux ». Il donne aussi les nets en cause : VPWR et VGND désignent les bandes d'alimentation.
+
+P43 ajoute deux variantes, sur la base de P35 :
+
+| | `config_25ns_canaux.yaml` | `config_25ns_canaux_obs.yaml` |
+|---|---|---|
+| boîte | 1800 × 2200 µm (+7 %) | idem |
+| canaux où se font face les broches | 130 → 180 µm | idem |
+| densité visée | 50 % | idem |
+| au-dessus des SRAM | rien d'interdit (comme P35) | TopMetal1 interdit (comme P42 ; P43 interdisait aussi Metal4, retiré par P44) |
+
+Détails :
+- Les rangées 2 et 3 remontent de 49,92 µm, les rangées 4 et 5 de 99,84 µm et la rangée 6 de 150,24 µm. Ce sont des multiples du pas de 0,48 µm, ce qui conserve la règle de `placer_sram.py` (une piste Metal3 au milieu de la bande de broches, sinon DRT-0418).
+- Ce sont aussi, à 0,24 µm près, des multiples du pas de 50 µm des bandes d'alimentation TopMetal1 (horizontales, VPWR à 15,12 + 10 + 50 k µm, VGND 6 µm au-dessus). Les canaux de 30 µm entre rangées dos à dos (9,7 µm de rangs de cellules entre les halos) gardent donc la phase d'origine : la bande VGND les traverse et la réparation de canal de la PDN y ajoute VPWR.
+- **Première version de P43** (canaux de 200 µm, décalages de 70,08 / 140,16 / 210,24 µm, boîte 1800 × 2260) : échec à la génération de la PDN, `PDN-0179 Unable to repair all channels`. Le canal y = 1570,04 .. 1579,72 contenait la bande VPWR et n'avait plus la place d'une bande VGND (2 µm + 4 µm d'espacement). P44 corrige les décalages.
+- Les rangées dos à dos restent à 30 µm. Les colonnes ne bougent pas : la marge est (215 µm) porte les 256 fils de `window_o`.
+
+Avant les runs complets, lancer les deux variantes jusqu'à `OpenROAD.GlobalRouting` et comparer leurs débordements à celui de P35 (1 626). `canaux` est la variante à préférer : elle garde TopMetal1 au-dessus des SRAM. `canaux_obs` dira si des canaux de 180 µm suffisent à toutes les liaisons horizontales.
+
+`ino_fetch` garde aussi en bascules les 512 bits de présence de son cache d'instructions, lus à trois indices (ligne courante et deux suivantes). Les placer dans les SRAM de tags, comme pour `ino_data_cache` (§ 8.22), est plus délicat : il y a trois lectures par cycle sur des RAM à deux ports. Ce serait la piste suivante si les canaux ne suffisent pas.
+
+### 8.22 `ino_data_cache` : présence, modification et remplacement dans les SRAM de tags (patch P45, 30 octobre)
+
+**Run de `config_25ns_haut.yaml`** (P39 + P40, 2275 × 1600 µm) : le routage global déborde encore de **38 908** (Metal3 30 583 à 82 % d'usage, TopMetal1 4 161, Metal2 2 319, Metal4 1 845). La longueur de fil est de 9,6 m pour 37 529 nets, et le routage global a duré 4 h 13. Le progrès est réel par rapport à 115 312, mais insuffisant.
+
+**Cause.** `INO_DCACHE_CORE` gardait en bascules, remises à zéro au RESET :
+- les bits de présence (4 voies × 256 ensembles = 1 024) ;
+- les bits de modification (1 024) ;
+- les compteurs de remplacement tournant (256 × 2 bits = 512).
+
+Ces **2 560 bascules** représentent 92 % des 2 777 bascules de la macro. Il faut y ajouter leurs lectures (multiplexeurs 256 → 1 par voie, à l'indice de la requête) et leurs décodeurs d'écriture. Ce sont elles qui remplissaient la bande logique entre les deux rangées de SRAM, et non le chemin de données vers les SRAM.
+
+**P45** range ces bits dans les SRAM de tags, déjà lues au même cycle que le tag.
+- Le champ de 24 bits d'une voie contient le tag (19 bits), puis la présence (bit 23) et la modification (bit 22). Le champ de la voie 0 porte en plus le compteur de l'ensemble (bits 21 .. 20). Pour un petit cache de test aux tags longs, `FIELD` vaut `maximum(24, TAG_W + 2 + log2(WAYS_G))`.
+- Un store réussi écrit son bit de modification dans la RAM de tags pendant le cycle PARTIE. La RAM de tags y est libre, puisque la requête suivante ne lit qu'en LIBRE.
+- Au dernier mot d'un remplissage, le champ de la victime (tag, présence à 1, ou à 0 sur faute, modification à 0) et le compteur incrémenté de l'ensemble sont écrits en un cycle. Les masques d'écriture sont désormais propres à chaque RAM de tags.
+- Le compteur est lu sur la sortie de la RAM de tags, qui reste valide pendant la réécriture et le remplissage (contrat des SRAM IHP : une écriture ou un cycle sans accès ne change pas la sortie). C'est déjà ainsi que la réécriture lit le tag de la victime.
+- L'invalidation immédiate de la victime disparaît : aucune requête n'est servie avant la fin du remplissage.
+- **Nouvel état INIT** après le RESET : il efface les deux RAM de tags, un ensemble par cycle (256 cycles en configuration TAHX). Les sorties ne présentent aucune requête pendant cet état. L'état est ajouté en dernier dans `state_t`, ce qui laisse inchangés les indices observés par `N3_INO_PLATEFORME`.
+
+| synthèse sg13 typ de `INO_DATA_CACHE` seule (cible 25 ns) | avant | P45 |
+|---|---|---|
+| cellules | 35 525 | **9 124** (dont 3 665 cellules de tie) |
+| bascules | 2 777 | **226** |
+| surface des cellules | 0,447 mm² | **0,089 mm²** (−80 %) |
+
+**Cycles.** Les bancs M3 (10 624 vérifications) et M3b passent, de même que N3 et les 8 programmes B_*. Chaque programme prend **+259 à +270 cycles**, soit l'état INIT puis quelques cycles de déphasage au démarrage. Le total passe de 1 900 559 à 1 902 672 (+0,11 %). Les nombres de SPILL / FILL et les latences par classe sont identiques, à un cycle près sur une instruction.
+
+**Placement-routage.** P45 ajoute `config_25ns_compact.yaml` : les réglages de `config_25ns_haut.yaml` (P37, P40) dans la boîte d'origine de 2275 × 1334 µm, avec la bande logique de 620 µm et les emplacements de SRAM de `config.yaml`. Il faut d'abord réextraire la macro : `pnr_InO/etat_macros.sh --extraire ino_data_cache`.
+
+Le budget du SDC (`ino_data_cache_25ns.sdc`) reste valable. Le chemin de succès part toujours des sorties des SRAM de tags : la présence y arrive avec le tag, au lieu de sortir d'un multiplexeur 256 → 1 de bascules.

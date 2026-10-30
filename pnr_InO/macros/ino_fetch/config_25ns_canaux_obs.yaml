@@ -1,0 +1,180 @@
+PDK: ihp-sg13cmos5l
+
+DESIGN_NAME: ino_fetch
+
+IO_PIN_ORDER_CFG: dir::pin_order.cfg
+
+CTS_CLK_MAX_WIRE_LENGTH: 300        # µm : coupe les fils d'horloge longs par des tampons
+CTS_DISTANCE_BETWEEN_BUFFERS: 300   # µm : tampons le long des grandes branches de l'arbre
+
+VERILOG_FILES:
+  - dir::src/ino_fetch.v
+
+CLOCK_PORT: clk_i
+CLOCK_PERIOD: 25
+
+# Run contraint a 25 ns (etude de vitesse, 29 octobre, § 8.14) : reglages valides
+# sur ino_decode_predict (run G), ino_exec_entier et ino_exec_arith (§ 8.13).
+# Budgets d'entree / sortie tires du coeur entier par synth_InO/sta/sdc_macro.tcl
+# (netlist d'estimation v3s, coin slow, fils 'Zero').
+PNR_SDC_FILE: dir::ino_fetch_25ns.sdc
+SIGNOFF_SDC_FILE: dir::ino_fetch_25ns.sdc
+
+# Synthese DELAY, placement guide par le timing, synthese et placement-routage au
+# coin lu.
+SYNTH_STRATEGY: "DELAY 1"
+PL_TIMING_DRIVEN: true
+SYNTH_CORNER: nom_slow_1p08V_125C
+PNR_CORNERS: [nom_slow_1p08V_125C]
+
+# Parasites estimes : LAYERS_RC de sg13g2 (Metal1 a Metal4), la configuration de
+# sg13cmos5l le laisse vide (§ 8.9).
+LAYERS_RC:
+  "*":
+    Metal1: { res: 8.54576E-03, cap: 1.0E-10 }
+    Metal2: { res: 2.53519E-03, cap: 1.69121E-04 }
+    Metal3: { res: 1.54329E-03, cap: 1.82832E-04 }
+    Metal4: { res: 6.31424E-04, cap: 1.66454E-04 }
+
+# Marges des reparations (§ 8.10, P25) et tampons sur les fils longs.
+PL_RESIZER_SETUP_SLACK_MARGIN: 1.0
+GRT_RESIZER_SETUP_SLACK_MARGIN: 1.0
+DESIGN_REPAIR_MAX_SLEW_PCT: 25
+GRT_DESIGN_REPAIR_MAX_SLEW_PCT: 25
+# Variante (29 octobre, etude § 8.17) : sans tampons de fils longs. Le premier
+# routage global a 25 ns deborde de 36 072 sur toutes les couches (usage moyen
+# 45 %) : avec 400 um, chaque liaison SRAM -> logique (macro de 2 050 um de haut)
+# recoit des tampons, places dans le couloir central et les bandes entre rangees
+# de SRAM, deja etroits.
+
+# Boite fixee : deux colonnes de SRAM (685 x 220 um), six rangees de pas 280 um
+# a partir de y = 420 ; la logique va dans la bande du bas et le couloir central.
+# Variante canaux (30 octobre, etude § 8.21) : les canaux ou se font face les
+# broches de deux rangees de SRAM passent de 130 a 180 um (rangees remontees de
+# 49,92, 99,84 et 150,24 um), boite 1800 x 2200 um (+ 7 %), densite visee 50 %.
+# Les decalages sont des multiples du pas de 0,48 um des pistes Metal2 et Metal3
+# (voir placer_sram.py) et sont proches de multiples du pas de 50 um des bandes
+# d'alimentation TopMetal1 (PDN, depart a 15,12 + 10 um) : les canaux de 30 um
+# entre rangees dos a dos gardent la phase d'origine, ou la bande VGND les
+# traverse et ou la reparation de canal de la PDN place VPWR. Une premiere
+# version decalee de 70,08 / 140,16 / 210,24 um echouait a la generation de la PDN
+# (PDN-0179 : canal y 1570,04 .. 1579,72 sans place pour VGND).
+# Les SRAM gardent leurs colonnes (x = 50 et 900) : la marge est (215 um) porte
+# les 256 fils de window_o vers les broches est.
+DIE_AREA: [0, 0, 1800, 2200]
+FP_SIZING: absolute
+FP_MACRO_HORIZONTAL_HALO: 10
+FP_MACRO_VERTICAL_HALO: 10
+
+PL_TARGET_DENSITY_PCT: 50
+PL_ROUTABILITY_DRIVEN: true
+PL_RESIZER_HOLD_SLACK_MARGIN: 0.4
+
+GRT_ALLOW_CONGESTION: true
+GRT_ANTENNA_REPAIR_ITERS: 6
+GRT_ANTENNA_REPAIR_MARGIN: 20
+GRT_RESIZER_HOLD_SLACK_MARGIN: 0.4
+DIODE_ON_PORTS: in
+DIODE_CELL: sg13cmos5l_antennanp/A
+
+# SRAM IHP (bibliotheque sg13cmos5l_sram = lien vers sg13g2_sram).
+MACROS:
+  RM_IHPSG13_2P_512x32_c2_bm_bist:
+    gds:
+      - pdk_dir::libs.ref/sg13cmos5l_sram/gds/RM_IHPSG13_2P_512x32_c2_bm_bist.gds
+    lef:
+      - pdk_dir::libs.ref/sg13cmos5l_sram/lef/RM_IHPSG13_2P_512x32_c2_bm_bist.lef
+    vh:
+      - dir::src/RM_IHPSG13_2P_512x32_c2_bm_bist_blackbox.v
+    lib:
+      "*_typ_*":
+        - pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_2P_512x32_c2_bm_bist_typ_1p20V_25C.lib
+      "*_slow_*":
+        - pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_2P_512x32_c2_bm_bist_slow_1p08V_125C.lib
+      "*_fast_*":
+        - pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_2P_512x32_c2_bm_bist_fast_1p32V_m55C.lib
+    # Coller ici la sortie de : python3 placer_sram.py <netlist synthetise>
+    instances:
+      "u_fetch.gen_banks:1.u_ram.u_w0":
+        location: [50, 249.80]
+        orientation: FS
+      "u_fetch.gen_banks:1.u_ram.u_w1":
+        location: [900, 249.80]
+        orientation: FS
+      "u_fetch.gen_banks:2.u_ram.u_w0":
+        location: [50, 649.79]
+        orientation: N
+      "u_fetch.gen_banks:2.u_ram.u_w1":
+        location: [900, 649.79]
+        orientation: N
+      "u_fetch.gen_banks:3.u_ram.u_w0":
+        location: [50, 899.72]
+        orientation: FS
+      "u_fetch.gen_banks:3.u_ram.u_w1":
+        location: [900, 899.72]
+        orientation: FS
+      "u_fetch.gen_banks:4.u_ram.u_w0":
+        location: [50, 1299.71]
+        orientation: N
+      "u_fetch.gen_banks:4.u_ram.u_w1":
+        location: [900, 1299.71]
+        orientation: N
+      "u_fetch.u_tag_nx.u_r0":
+        location: [50, 1549.64]
+        orientation: FS
+      "u_fetch.u_tag_nx.u_r1":
+        location: [900, 1549.64]
+        orientation: FS
+      "u_fetch.u_tag.u_w0":
+        location: [50, 1950.11]
+        orientation: N
+
+# Variante canaux_obs : TopMetal1 interdit au-dessus des SRAM (comme P42), avec
+# les canaux elargis. TopMetal1 est horizontal (LEF technologique) : au-dessus
+# d'une SRAM, Metal1 a Metal3 sont deja obstrues par son LEF, les liaisons
+# horizontales passent donc toutes par les canaux (180 um) et les bandes dos a dos.
+# Metal4 (vertical) reste permis : P35 n'y avait aucun court-circuit. Run P35 + P42
+# (canaux de 130 um) : debordement 4 901 au routage global (Metal2 2 437, Metal3
+# 2 034), 2 133 violations stagnantes au routage detaille (Metal4 1 744, Metal3
+# 268), sans doute dans les canaux encombres.
+ROUTING_OBSTRUCTIONS:
+  - [TopMetal1, 50.00, 249.80, 735.49, 469.57]
+  - [TopMetal1, 900.00, 249.80, 1585.49, 469.57]
+  - [TopMetal1, 50.00, 649.79, 735.49, 869.56]
+  - [TopMetal1, 900.00, 649.79, 1585.49, 869.56]
+  - [TopMetal1, 50.00, 899.72, 735.49, 1119.49]
+  - [TopMetal1, 900.00, 899.72, 1585.49, 1119.49]
+  - [TopMetal1, 50.00, 1299.71, 735.49, 1519.48]
+  - [TopMetal1, 900.00, 1299.71, 1585.49, 1519.48]
+  - [TopMetal1, 50.00, 1549.64, 735.49, 1769.41]
+  - [TopMetal1, 900.00, 1549.64, 1585.49, 1769.41]
+  - [TopMetal1, 50.00, 1950.11, 735.49, 2169.88]
+
+# Alimentation des SRAM : VDD! et VDDARRAY! sur VPWR, VSS! sur VGND (broches
+# Metal4 de la macro).
+PDN_MACRO_CONNECTIONS:
+  - "u_fetch.* VPWR VGND VDD! VSS!"
+  - "u_fetch.* VPWR VGND VDDARRAY! VSS!"
+
+RUN_LVS: false
+RUN_KLAYOUT_DRC: false
+
+meta:
+  version: 2
+  flow: Classic
+  substituting_steps:
+    Odb.CheckDesignAntennaProperties: null
+    Magic.SpiceExtraction: null
+    Checker.IllegalOverlap: null
+    Netgen.LVS: null
+    Checker.LVS: null
+
+RUN_POST_GRT_DESIGN_REPAIR: true
+RUN_POST_GRT_RESIZER_TIMING: true
+
+RUN_MAGIC_STREAMOUT: false
+RUN_MAGIC_WRITE_LEF: false
+RUN_MAGIC_DRC: false
+
+RUN_KLAYOUT_STREAMOUT: true
+RUN_KLAYOUT_XOR: false

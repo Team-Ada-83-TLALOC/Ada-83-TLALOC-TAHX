@@ -393,17 +393,16 @@ of STACK_UNIT is                ---
       end if;
    end function;
 
-   -- r est la cellule d'indice WIDX( a ), lue par un port de lecture.
+   -- r est la cellule d'indice WIDX( a ), lue par un port de lecture : sa
+   -- correspondance avec a marque l'entrée à invalider (masque inv, appliqué en fin
+   -- de cycle, voir ECRITURES).
    procedure INVALIDATE_CELL(
-      signal c : inout stack_cell_array_t;
+      variable m : inout std_logic_vector;
       constant r : in stack_cell_t;
       constant a : in address_t ) is
-      variable i : natural;
    begin
-      i := WIDX( a );
       if r.valid = '1' and r.addr = a then
-         c( i ).valid <= '0';
-         c( i ).dirty <= '0';
+         m( WIDX( a ) ) := '1';
       end if;
    end procedure;
 
@@ -583,6 +582,21 @@ begin
       variable local_ld         : boolean;           -- chargement servi par le cache de pile (V5)
       variable local_st         : boolean;           -- rangement fusionné dans une cellule sale (V5)
       variable ld_off           : natural range 0 to 7;
+      -- Écritures des caches de pile (V6, étude de vitesse § 8.14) : un seul port
+      -- d'écriture de cellule entière par cache et par cycle, et des masques
+      -- d'invalidation (valid, dirty) et de nettoyage (dirty), appliqués en fin de
+      -- cycle. L'écriture l'emporte sur les masques, comme la dernière affectation
+      -- de l'écriture précédente (destination écrite après les invalidations).
+      variable inv_m            : std_logic_vector( 0 to STACK_CACHE_WORDS_G - 1 );
+      variable cln_m            : std_logic_vector( 0 to STACK_CACHE_WORDS_G - 1 );
+      variable wr_en            : boolean;
+      variable wr_idx           : natural range 0 to STACK_CACHE_WORDS_G - 1;
+      variable wr_cell          : stack_cell_t;
+      variable rinv_m           : std_logic_vector( 0 to RETURN_CACHE_WORDS_G - 1 );
+      variable rcln_m           : std_logic_vector( 0 to RETURN_CACHE_WORDS_G - 1 );
+      variable rwr_en           : boolean;
+      variable rwr_idx          : natural range 0 to RETURN_CACHE_WORDS_G - 1;
+      variable rwr_cell         : stack_cell_t;
    begin
       if rising_edge( CLK_i ) then
 
@@ -918,6 +932,16 @@ begin
 
          else
             fast_commit_v := false;
+            inv_m  := ( others => '0' );
+            cln_m  := ( others => '0' );
+            wr_en  := false;
+            wr_idx := 0;
+            wr_cell := NO_CELL;
+            rinv_m := ( others => '0' );
+            rcln_m := ( others => '0' );
+            rwr_en := false;
+            rwr_idx := 0;
+            rwr_cell := NO_CELL;
             take_v := MAINT_i.valid = '0' and DECODE_VALID_i = '1'
                       and ( state_s = ST_IDLE or chain_s = '1' );
 
@@ -963,13 +987,17 @@ begin
                   -- invalidée (cp_inv_*).
                   for j in 0 to 3 loop
                      if cp_inv_en_s( j ) = '1' then
-                        cells_s( cp_inv_idx_s( j ) ).valid <= '0';
-                        cells_s( cp_inv_idx_s( j ) ).dirty <= '0';
+                        inv_m( cp_inv_idx_s( j ) ) := '1';
                      end if;
                   end loop;
                   if destination_valid_s = '1' then
                      idx := WIDX( destination_address_s );
-                     cells_s( idx ) <= ( valid => '1', dirty => '1',
+                     -- pragma translate_off
+                     assert not wr_en report "STACK_UNIT: deux ecritures de cellule dans un cycle" severity failure;
+                     -- pragma translate_on
+                     wr_en   := true;
+                     wr_idx  := idx;
+                     wr_cell := ( valid => '1', dirty => '1',
                                          addr => CUT( destination_address_s ),
                                          data => source_value_s( 0 ) );
                   end if;
@@ -1030,12 +1058,17 @@ begin
                         if entry_s.issue_class = ISSUE_NONE then
                            case entry_s.stack_action is
                               when STACK_DROP =>
-                                 INVALIDATE_CELL( cells_s, rd( 1 ), old_dsp_s );
+                                 INVALIDATE_CELL( inv_m, rd( 1 ), old_dsp_s );
                                  frame_s.dsp <= new_dsp_s;
 
                               when STACK_DUP | STACK_OVER =>
                                  idx := WIDX( destination_address_s );
-                                 cells_s( idx ) <= ( valid => '1', dirty => '1',
+                                 -- pragma translate_off
+                                 assert not wr_en report "STACK_UNIT: deux ecritures de cellule dans un cycle" severity failure;
+                                 -- pragma translate_on
+                                 wr_en   := true;
+                                 wr_idx  := idx;
+                                 wr_cell := ( valid => '1', dirty => '1',
                                                      addr => CUT( destination_address_s ),
                                                      data => source_value_s( 0 ) );
                                  frame_s.dsp <= new_dsp_s;
@@ -1115,7 +1148,7 @@ begin
                      elsif entry_s.issue_class = ISSUE_NONE then
                         case entry_s.stack_action is
                            when STACK_DROP =>
-                              INVALIDATE_CELL( cells_s, rd( 1 ), old_dsp_s );
+                              INVALIDATE_CELL( inv_m, rd( 1 ), old_dsp_s );
                               frame_s.dsp <= new_dsp_s;
                            when others =>
                               null;
@@ -1150,8 +1183,7 @@ begin
                                       taken => '0', target => ( others => '0' ) );
                         state_s <= ST_FAULT_HOLD;
                      else
-                        cells_s( mem_cell_index_s ).valid <= '0';
-                        cells_s( mem_cell_index_s ).dirty <= '0';
+                        inv_m( mem_cell_index_s ) := '1';
                         mem_address_s <= CUT( source_address_s( source_index_s ) );
                         state_s <= ST_SRC_FILL_REQ;
                      end if;
@@ -1171,7 +1203,12 @@ begin
                         state_s <= ST_FAULT_HOLD;
                      else
                         idx := WIDX( source_address_s( source_index_s ) );
-                        cells_s( idx ) <= ( valid => '1', dirty => '0',
+                        -- pragma translate_off
+                        assert not wr_en report "STACK_UNIT: deux ecritures de cellule dans un cycle" severity failure;
+                        -- pragma translate_on
+                        wr_en   := true;
+                        wr_idx  := idx;
+                        wr_cell := ( valid => '1', dirty => '0',
                                             addr => CUT( source_address_s( source_index_s ) ),
                                             data => MEM_RSP_i.rdata );
                         source_value_s( source_index_s ) <= MEM_RSP_i.rdata;
@@ -1197,8 +1234,7 @@ begin
                                       taken => '0', target => ( others => '0' ) );
                         state_s <= ST_FAULT_HOLD;
                      else
-                        cells_s( mem_cell_index_s ).valid <= '0';
-                        cells_s( mem_cell_index_s ).dirty <= '0';
+                        inv_m( mem_cell_index_s ) := '1';
                         state_s <= ST_PREPARE;
                      end if;
                   end if;
@@ -1220,8 +1256,7 @@ begin
                                       taken => '0', target => ( others => '0' ) );
                         state_s <= ST_FAULT_HOLD;
                      else
-                        return_cells_s( ret_mem_cell_index_s ).valid <= '0';
-                        return_cells_s( ret_mem_cell_index_s ).dirty <= '0';
+                        rinv_m( ret_mem_cell_index_s ) := '1';
                         if ret_after_spill_fill_s = '1' then
                            mem_address_s <= CUT( frame_s.rsp );
                            state_s <= ST_RET_FILL_REQ;
@@ -1246,8 +1281,12 @@ begin
                         state_s <= ST_FAULT_HOLD;
                      else
                         ridx := RWIDX( frame_s.rsp );
-                        return_cells_s( ridx ) <=
-                           ( valid => '1', dirty => '0', addr => CUT( frame_s.rsp ),
+                        -- pragma translate_off
+                        assert not rwr_en report "STACK_UNIT: deux ecritures de cellule dans un cycle" severity failure;
+                        -- pragma translate_on
+                        rwr_en   := true;
+                        rwr_idx  := ridx;
+                        rwr_cell := ( valid => '1', dirty => '0', addr => CUT( frame_s.rsp ),
                              data => std_logic_vector( CUT( unsigned( MEM_RSP_i.rdata ) ) ) );
                         return_target_s <= CUT( unsigned( MEM_RSP_i.rdata ) );
                         state_s <= ST_PREPARE;
@@ -1296,7 +1335,7 @@ begin
                      else
                         -- La cellule reste valide : sa copie mémoire est désormais
                         -- conforme à la valeur architecturale tenue dans le cache.
-                        cells_s( mem_cell_index_s ).dirty <= '0';
+                        cln_m( mem_cell_index_s ) := '1';
                         coh_index_s <= coh_index_s + 1;
                         state_s <= ST_COH_SCAN;
                      end if;
@@ -1366,7 +1405,7 @@ begin
                            for k in 0 to 2 loop
                               a := ( coh_base_s( 63 downto 3 ) & "000" ) + to_unsigned( 8 * k, 64 );
                               if a < coh_base_s + coh_length_s then
-                                 INVALIDATE_CELL( cells_s, rd( 2 + k ), a );
+                                 INVALIDATE_CELL( inv_m, rd( 2 + k ), a );
                               end if;
                            end loop;
                         end if;
@@ -1400,8 +1439,7 @@ begin
                                  and cells_s( j ).addr > range_lo
                                  and cells_s( j ).addr <= range_hi
                                  and not ( range_keep and cells_s( j ).addr = old_dsp_s + 8 ) then
-                                 cells_s( j ).valid <= '0';
-                                 cells_s( j ).dirty <= '0';
+                                 inv_m( j ) := '1';
                               end if;
                            end loop;
                         end if;
@@ -1416,7 +1454,12 @@ begin
                            if clvl > 0 then
                               a := old_dsp_s + 8;
                               idx := WIDX( a );
-                              cells_s( idx ) <= ( valid => '1', dirty => '1', addr => CUT( a ),
+                              -- pragma translate_off
+                              assert not wr_en report "STACK_UNIT: deux ecritures de cellule dans un cycle" severity failure;
+                              -- pragma translate_on
+                              wr_en   := true;
+                              wr_idx  := idx;
+                              wr_cell := ( valid => '1', dirty => '1', addr => CUT( a ),
                                                   data => std_logic_vector( frame_s.display( clvl ) ) );
                               frame_s.display( clvl ) <= CUT( a );
                            end if;
@@ -1436,14 +1479,18 @@ begin
                            -- touche pas. L'adresse de retour est le PC suivant.
                            for j in 0 to 3 loop
                               if j < source_count_s then
-                                 INVALIDATE_CELL( cells_s, rd( j ), source_address_s( j ) );
+                                 INVALIDATE_CELL( inv_m, rd( j ), source_address_s( j ) );
                               end if;
                            end loop;
                            frame_s.dsp <= new_dsp_s;
                            frame_s.rsp <= new_rsp_s;
                            ridx := RWIDX( new_rsp_s );
-                           return_cells_s( ridx ) <=
-                              ( valid => '1', dirty => '1', addr => CUT( new_rsp_s ),
+                           -- pragma translate_off
+                           assert not rwr_en report "STACK_UNIT: deux ecritures de cellule dans un cycle" severity failure;
+                           -- pragma translate_on
+                           rwr_en   := true;
+                           rwr_idx  := ridx;
+                           rwr_cell := ( valid => '1', dirty => '1', addr => CUT( new_rsp_s ),
                                 data => std_logic_vector( CUT(
                                    slot_s.pc + resize( slot_s.canon.len, 64 ) ) ) );
 
@@ -1454,8 +1501,7 @@ begin
                            ridx := RWIDX( frame_s.rsp );
                            if rrd.valid = '1'
                               and rrd.addr = frame_s.rsp then
-                              return_cells_s( ridx ).valid <= '0';
-                              return_cells_s( ridx ).dirty <= '0';
+                              rinv_m( ridx ) := '1';
                            end if;
                            frame_s.rsp <= CUT( frame_s.rsp + 8 );
 
@@ -1464,7 +1510,7 @@ begin
                         elsif entry_s.stack_action = STACK_LINEAR then
                            for j in 0 to 3 loop
                               if j < source_count_s then
-                                 INVALIDATE_CELL( cells_s, rd( j ), source_address_s( j ) );
+                                 INVALIDATE_CELL( inv_m, rd( j ), source_address_s( j ) );
                               end if;
                            end loop;
                            frame_s.dsp <= new_dsp_s;
@@ -1476,7 +1522,12 @@ begin
                                  severity failure;
                               -- pragma translate_on
                               idx := WIDX( destination_address_s );
-                              cells_s( idx ) <= ( valid => '1', dirty => '1',
+                              -- pragma translate_off
+                              assert not wr_en report "STACK_UNIT: deux ecritures de cellule dans un cycle" severity failure;
+                              -- pragma translate_on
+                              wr_en   := true;
+                              wr_idx  := idx;
+                              wr_cell := ( valid => '1', dirty => '1',
                                                   addr => CUT( destination_address_s ),
                                                   data => cpl.result );
                            end if;
@@ -1547,8 +1598,7 @@ begin
                               or IN_RANGE( rd( 0 ).addr, maint_s.base, maint_s.length ) ) then
 
                         if maint_s.kind = MAINT_INVALIDATE_RANGE then
-                           cells_s( idx ).valid <= '0';
-                           cells_s( idx ).dirty <= '0';
+                           inv_m( idx ) := '1';
                            maint_index_s <= maint_index_s + 1;
 
                         elsif rd( 0 ).dirty = '1' and rd( 0 ).addr <= frame_s.dsp then
@@ -1582,7 +1632,7 @@ begin
                      if MEM_RSP_i.fault = '0' then
                         if rd( 0 ).valid = '1'
                            and rd( 0 ).addr = mem_address_s then
-                           cells_s( mem_cell_index_s ).dirty <= '0';
+                           cln_m( mem_cell_index_s ) := '1';
                         end if;
                      end if;
                      maint_index_s <= maint_index_s + 1;
@@ -1631,7 +1681,7 @@ begin
                      if MEM_RSP_i.fault = '0' then
                         if rrd.valid = '1'
                            and rrd.addr = mem_address_s then
-                           return_cells_s( ret_mem_cell_index_s ).dirty <= '0';
+                           rcln_m( ret_mem_cell_index_s ) := '1';
                         end if;
                      end if;
                      ret_maint_index_s <= ret_maint_index_s + 1;
@@ -1651,8 +1701,7 @@ begin
             if fast_commit_v then
                for j in 0 to 3 loop
                   if cp_inv_en_s( j ) = '1' then
-                     cells_s( cp_inv_idx_s( j ) ).valid <= '0';
-                     cells_s( cp_inv_idx_s( j ) ).dirty <= '0';
+                     inv_m( cp_inv_idx_s( j ) ) := '1';
                   end if;
                end loop;
                frame_s.dsp <= new_dsp_s;
@@ -1663,7 +1712,12 @@ begin
                      severity failure;
                   -- pragma translate_on
                   idx := WIDX( destination_address_s );
-                  cells_s( idx ) <= ( valid => '1', dirty => '1',
+                  -- pragma translate_off
+                  assert not wr_en report "STACK_UNIT: deux ecritures de cellule dans un cycle" severity failure;
+                  -- pragma translate_on
+                  wr_en   := true;
+                  wr_idx  := idx;
+                  wr_cell := ( valid => '1', dirty => '1',
                                       addr => CUT( destination_address_s ),
                                       data => cpl.result );
                end if;
@@ -2085,6 +2139,29 @@ begin
                   state_s <= ST_PREPARE;
                end if;
             end if;
+            ------------------------------------------------------------------
+            -- ECRITURES des caches de pile : masques, puis port d'écriture.
+            ------------------------------------------------------------------
+            for j in 0 to STACK_CACHE_WORDS_G - 1 loop
+               if wr_en and wr_idx = j then
+                  cells_s( j ) <= wr_cell;
+               elsif inv_m( j ) = '1' then
+                  cells_s( j ).valid <= '0';
+                  cells_s( j ).dirty <= '0';
+               elsif cln_m( j ) = '1' then
+                  cells_s( j ).dirty <= '0';
+               end if;
+            end loop;
+            for j in 0 to RETURN_CACHE_WORDS_G - 1 loop
+               if rwr_en and rwr_idx = j then
+                  return_cells_s( j ) <= rwr_cell;
+               elsif rinv_m( j ) = '1' then
+                  return_cells_s( j ).valid <= '0';
+                  return_cells_s( j ).dirty <= '0';
+               elsif rcln_m( j ) = '1' then
+                  return_cells_s( j ).dirty <= '0';
+               end if;
+            end loop;
          end if;
 
          -- Ecriture d'une entrée de DISPLAY par SYSTEM_UNIT, avant une SYNC

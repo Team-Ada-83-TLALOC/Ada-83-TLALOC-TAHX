@@ -115,6 +115,20 @@ Instances : `u_decode_queue`, `u_data_cache`, `u_core.u_stack`, `u_core.u_backen
 `u_core.u_backend.u_arith` (`u_core.u_backend` avec `MACROS` contenant `ino_execute`),
 `u_core.u_system`, `u_instruction.u_fetch`, `u_instruction.u_decode_predict`.
 
+Chemins qui **traversent** la macro (entrée → sortie combinatoire) : chaque port est
+budgété par le pire chemin du cœur qui le traverse. L'arrivée d'une entrée et le temps
+requis d'une sortie peuvent donc venir de deux chemins différents, et leur somme ne rien
+laisser à la traversée (`stack_unit_16_8` : `issue_ready_i` à 15,1 ns, `decode_take_o`
+16,3 ns avant le front, d'où −9,4 ns sur quelques portes). `sdc_traversees.tcl` ajoute
+au SDC un `set_max_delay` par couple dans ce cas. La traversée permise est la part du
+pire chemin du cœur qui passe par les deux ports, dans la macro, plus la moitié
+(`PART_MARGE`) de sa marge :
+
+```
+NETLIST=tahx_1_sg13_arbres.v INSTANCE=u_core.u_stack SDC=stack_unit_16_8_25ns.sdc \
+PERIODE=25 COIN=slow STDLIB=… SRAMLIB=… sta -no_splash -exit sdc_traversees.tcl
+```
+
 Prévision pour la macro seule avec ce SDC, à comparer au run LibreLane coin par coin :
 
 ```
