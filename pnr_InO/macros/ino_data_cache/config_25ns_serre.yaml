@@ -1,0 +1,177 @@
+PDK: ihp-sg13cmos5l
+
+DESIGN_NAME: ino_data_cache
+
+IO_PIN_ORDER_CFG: dir::pin_order_serre.cfg
+
+VERILOG_FILES:
+  - dir::src/ino_data_cache.v
+
+CLOCK_PORT: clk_i
+CLOCK_PERIOD: 25
+
+# Run contraint a 25 ns (etude de vitesse, 29 octobre, § 8.14) : reglages valides
+# sur ino_decode_predict (run G), ino_exec_entier et ino_exec_arith (§ 8.13).
+# Budgets d'entree / sortie tires du coeur entier par synth_InO/sta/sdc_macro.tcl
+# (netlist d'estimation v3s, coin slow, fils 'Zero').
+PNR_SDC_FILE: dir::ino_data_cache_25ns.sdc
+SIGNOFF_SDC_FILE: dir::ino_data_cache_25ns.sdc
+
+# Synthese DELAY, placement guide par le timing, synthese et placement-routage au
+# coin lu.
+SYNTH_STRATEGY: "DELAY 1"
+PL_TIMING_DRIVEN: true
+SYNTH_CORNER: nom_slow_1p08V_125C
+# Hold vu au coin fast pendant le placement-routage (29 octobre, etude § 8.19) :
+# avec le seul coin slow, la marge de hold de 0,4 ns (reglee a 100 ns pour couvrir
+# le coin fast) faisait inserer 4 767 tampons de hold au routage global.
+PNR_CORNERS: [nom_slow_1p08V_125C, nom_fast_1p32V_m40C]
+
+# Parasites estimes : LAYERS_RC de sg13g2 (Metal1 a Metal4), la configuration de
+# sg13cmos5l le laisse vide (§ 8.9).
+LAYERS_RC:
+  "*":
+    Metal1: { res: 8.54576E-03, cap: 1.0E-10 }
+    Metal2: { res: 2.53519E-03, cap: 1.69121E-04 }
+    Metal3: { res: 1.54329E-03, cap: 1.82832E-04 }
+    Metal4: { res: 6.31424E-04, cap: 1.66454E-04 }
+
+# Marges des reparations (§ 8.10, P25) et tampons sur les fils longs.
+PL_RESIZER_SETUP_SLACK_MARGIN: 0.3
+GRT_RESIZER_SETUP_SLACK_MARGIN: 1.0
+DESIGN_REPAIR_MAX_SLEW_PCT: 20
+GRT_DESIGN_REPAIR_MAX_SLEW_PCT: 20
+# Variante (29 octobre, etude § 8.17) : comme ino_fetch (P35, P36), sans tampons
+# de fils longs et avec des marges de reparation reduites apres placement ; les
+# SRAM ne laissent a la logique que des canaux etroits.
+
+# Plan 2 (voir placer_sram.py) : une bande de logique horizontale de 620 um au
+# milieu (y 355 .. 976 ; 420 um donnaient 44 000 de debordement au routage global) ; en dessous (FS) donnees voies 0, 1 et tags 0-1, au-dessus
+# (N) donnees voies 2, 3 et tags 2-3, toutes broches vers la bande. Broches de la
+# macro aux deux bouts de la bande (W : D_* ; E : EXEC_*, STACK_*, horloge, reset).
+# Colonne libre de ~55 um a droite des tags du bas, du bas du die a la bande : elle
+# garde des rangs de cellules sous les SRAM du bas (sinon le premier rang est a
+# y = 147 et le controle de padding de DPL echoue sur les SRAM placees dessous).
+FP_SIZING: absolute
+# Variante serree (30 octobre, etude § 8.22) : le run de config_25ns_compact.yaml
+# (P45) route sans debordement (Metal3 30 %, cellules 6,4 % du coeur), 0 DRC,
+# +1,25 ns au coin slow. Bande logique ramenee de 620 a 349 um : rangee du haut
+# (donnees et tags) et ses obstructions descendues de 272.16 um = 9 x 30,24 um,
+# multiple du pas des pistes (0,48 um, regle de placer_sram.py) et du pas des
+# rails (3,78 um, bord de la grille Metal4 coupee a 1,8 um des rails, PDN-0195).
+# Broches W et E reparties sur la nouvelle bande (pin_order_serre.cfg).
+DIE_AREA: [0, 0, 2275, 1061.84]
+FP_MACRO_HORIZONTAL_HALO: 10
+FP_MACRO_VERTICAL_HALO: 10
+
+PL_TARGET_DENSITY_PCT: 45
+PL_ROUTABILITY_DRIVEN: true
+GRT_ALLOW_CONGESTION: true
+
+# Arbre d'horloge avec macros (lecon d'ino_fetch) et marges de hold.
+CTS_CLK_MAX_WIRE_LENGTH: 300
+CTS_DISTANCE_BETWEEN_BUFFERS: 300
+PL_RESIZER_HOLD_SLACK_MARGIN: 0.1
+GRT_RESIZER_HOLD_SLACK_MARGIN: 0.1
+
+# Buffers de fil poses au-dessus d'une SRAM : les ramener jusqu'a la bande.
+PL_MAX_DISPLACEMENT_Y: 400
+
+# Fils longs (slews) et antennes.
+GRT_ANTENNA_REPAIR_ITERS: 6
+GRT_ANTENNA_REPAIR_MARGIN: 20
+DIODE_ON_PORTS: in
+DIODE_CELL: sg13cmos5l_antennanp/A
+
+# SRAM IHP (bibliotheque sg13cmos5l_sram = lien vers sg13g2_sram).
+MACROS:
+  RM_IHPSG13_1P_1024x64_c2_bm_bist:
+    gds:
+      - pdk_dir::libs.ref/sg13cmos5l_sram/gds/RM_IHPSG13_1P_1024x64_c2_bm_bist.gds
+    lef:
+      - pdk_dir::libs.ref/sg13cmos5l_sram/lef/RM_IHPSG13_1P_1024x64_c2_bm_bist.lef
+    vh:
+      - dir::src/RM_IHPSG13_1P_1024x64_c2_bm_bist_blackbox.v
+    lib:
+      "*_typ_*":
+        - pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_1024x64_c2_bm_bist_typ_1p20V_25C.lib
+      "*_slow_*":
+        - pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_1024x64_c2_bm_bist_slow_1p08V_125C.lib
+      "*_fast_*":
+        - pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_1024x64_c2_bm_bist_fast_1p32V_m55C.lib
+    # Sortie de placer_sram.py (y cales sur la grille des pistes).
+    instances:
+      "u_core.gen_data:1.u_data.u_sram":
+        location: [10, 18.39]
+        orientation: FS
+      "u_core.gen_data:2.u_data.u_sram":
+        location: [810, 18.39]
+        orientation: FS
+      "u_core.gen_data:3.u_data.u_sram":
+        location: [10, 703.55]
+        orientation: N
+      "u_core.gen_data:4.u_data.u_sram":
+        location: [810, 703.55]
+        orientation: N
+  RM_IHPSG13_1P_256x48_c2_bm_bist:
+    gds:
+      - pdk_dir::libs.ref/sg13cmos5l_sram/gds/RM_IHPSG13_1P_256x48_c2_bm_bist.gds
+    lef:
+      - pdk_dir::libs.ref/sg13cmos5l_sram/lef/RM_IHPSG13_1P_256x48_c2_bm_bist.lef
+    vh:
+      - dir::src/RM_IHPSG13_1P_256x48_c2_bm_bist_blackbox.v
+    lib:
+      "*_typ_*":
+        - pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_256x48_c2_bm_bist_typ_1p20V_25C.lib
+      "*_slow_*":
+        - pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_256x48_c2_bm_bist_slow_1p08V_125C.lib
+      "*_fast_*":
+        - pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_1P_256x48_c2_bm_bist_fast_1p32V_m55C.lib
+    instances:
+      "u_core.gen_tag:1.u_tag.u_sram":
+        location: [1610, 16.23]
+        orientation: FS
+      "u_core.gen_tag:2.u_tag.u_sram":
+        location: [1610, 919.07]
+        orientation: N
+
+# Pas de signal en TopMetal1 au-dessus des SRAM : les bandes d'alimentation
+# TopMetal1 y passent (courts-circuits VPWR/VGND du routage detaille, 87 violations
+# au premier run complet). Obstructions posees apres la grille d'alimentation et
+# retirees apres le routage detaille. Boites = SRAM (placer_sram.py).
+ROUTING_OBSTRUCTIONS:
+  - [TopMetal1, 10, 18.39, 794.48, 354.85]
+  - [TopMetal1, 810, 18.39, 1594.48, 354.85]
+  - [TopMetal1, 10, 703.55, 794.48, 1040.01]
+  - [TopMetal1, 810, 703.55, 1594.48, 1040.01]
+  - [TopMetal1, 1610, 16.23, 2206.48, 135.01]
+  - [TopMetal1, 1610, 919.07, 2206.48, 1037.85]
+
+# Alimentation des SRAM : VDD! et VDDARRAY! sur VPWR, VSS! sur VGND (broches
+# Metal4 de la macro).
+PDN_MACRO_CONNECTIONS:
+  - "u_core.* VPWR VGND VDD! VSS!"
+  - "u_core.* VPWR VGND VDDARRAY! VSS!"
+
+RUN_LVS: false
+RUN_KLAYOUT_DRC: false
+
+meta:
+  version: 2
+  flow: Classic
+  substituting_steps:
+    Odb.CheckDesignAntennaProperties: null
+    Magic.SpiceExtraction: null
+    Checker.IllegalOverlap: null
+    Netgen.LVS: null
+    Checker.LVS: null
+
+RUN_POST_GRT_DESIGN_REPAIR: true
+RUN_POST_GRT_RESIZER_TIMING: true
+
+RUN_MAGIC_STREAMOUT: false
+RUN_MAGIC_WRITE_LEF: false
+RUN_MAGIC_DRC: false
+
+RUN_KLAYOUT_STREAMOUT: true
+RUN_KLAYOUT_XOR: false

@@ -1059,3 +1059,39 @@ Ces **2 560 bascules** représentent 92 % des 2 777 bascules de la macro. Il fau
 **Placement-routage.** P45 ajoute `config_25ns_compact.yaml` : les réglages de `config_25ns_haut.yaml` (P37, P40) dans la boîte d'origine de 2275 × 1334 µm, avec la bande logique de 620 µm et les emplacements de SRAM de `config.yaml`. Il faut d'abord réextraire la macro : `pnr_InO/etat_macros.sh --extraire ino_data_cache`.
 
 Le budget du SDC (`ino_data_cache_25ns.sdc`) reste valable. Le chemin de succès part toujours des sorties des SRAM de tags : la présence y arrive avec le tag, au lieu de sortir d'un multiplexeur 256 → 1 de bascules.
+
+**Run complet de `config_25ns_compact.yaml`** (30 octobre, après réextraction). Un premier run était parti de l'ancienne netlist, que `etat_macros.sh --extraire` avait reprise d'une bibliothèque GHDL non réanalysée : 36 749 nets, débordement de 97 179. Il faut lancer `Z_analyze.sh` avant d'extraire.
+
+| | valeur |
+|---|---|
+| routage global | **débordement 0** (Metal3 30 %, Metal2 21 %), 9 697 nets, 1,66 m, 7 s au lieu de 4 h 55 |
+| routage détaillé | 184 → 0 violation en 8 itérations ; 0 antenne |
+| marge setup slow / typ / fast | **+1,25** / +5,03 / +5,44 ns ; registre à registre +9,50 ns slow |
+| hold | +0,39 ns slow, +0,10 ns fast, 0 violation |
+| cellules | 10 048, 0,112 mm², dont 2 951 tampons de réparation (0,032 mm²) et 226 bascules |
+| occupation du cœur par les cellules | **6,4 %** (SRAM : 1,197 mm² sur 3,03 mm² de boîte) |
+| restes | 78 transitions trop lentes et 27 sortances au coin slow (règles de conception, sans violation de timing) |
+
+**`ino_data_cache` tient 25 ns au coin slow.** Le chemin limitant part de la SRAM de tags du haut : arrivée de l'horloge à 1,9 ns, depuis la broche est à travers la macro ; 5,38 ns de la SRAM jusqu'à `A_DOUT`, puis comparaison, succès, extraction des octets et `exec_rsp_o.rdata` (arrivée 17,44 ns pour 18,69 ns requis).
+
+**P46 : variante serrée** `config_25ns_serre.yaml`.
+- La bande logique passe de 620 à 349 µm, avec une boîte de 2275 × 1061,84 µm (−20 %).
+- La rangée du haut (données et tags) et ses obstructions descendent de 272,16 µm, soit 9 × 30,24 µm. C'est un multiple du pas des pistes (0,48 µm, règle de `placer_sram.py`) et du pas des rails (3,78 µm : le bord de la grille Metal4 coupée reste à 1,8 µm des rails, PDN-0195).
+- `pin_order_serre.cfg` recalcule les vides pour que les broches W (165) et E (339) restent face à la bande, y ≈ 366 .. 692 µm. `io_place.py` répartit un nombre entier de pistes par emplacement, soit 4 pistes à l'ouest et 2 à l'est.
+- Au prorata, l'usage de Metal3 devrait monter vers 55 %. Les liaisons plus courtes devraient aussi profiter au chemin des tags.
+
+**Run complet de `config_25ns_serre.yaml`** (P46, 30 octobre, même netlist que le run compact) :
+
+| | compact (2275 × 1334) | **serré (2275 × 1061,84)** |
+|---|---|---|
+| surface de la boîte | 3,03 mm² | **2,42 mm²** (−20 %) |
+| marge setup slow / typ / fast | +1,25 / +5,03 / +5,44 ns | **+1,11** / +5,14 / +5,50 ns |
+| hold slow / fast | +0,39 / +0,10 ns | +0,23 / +0,02 ns, 0 violation |
+| routage détaillé | 184 → 0 en 8 itérations | 423 → 0 en 4 itérations |
+| antennes | 0 | 0 |
+| cellules | 10 048, dont 2 951 tampons | 9 922, dont 2 957 tampons |
+| occupation (cellules / tout) | 6,4 % / 44 % | 9,8 % / 56 % |
+| fil routé | 1,47 m | 1,35 m |
+| restes (règles de conception, coin slow) | 78 slew, 27 sortances | 99 slew, 26 sortances, 10 capacités |
+
+**`ino_data_cache` tient 25 ns au coin slow dans 2275 × 1061,84 µm.** C'est la boîte à transmettre à la session floorplan, avec `pin_order_serre.cfg`. La boîte reste plus large que haute : les deux rangées de SRAM font 2 206 µm de large. La serrer davantage demanderait un autre plan (SRAM empilées), pour un gain modeste, puisque les SRAM occupent déjà la moitié de la boîte.

@@ -2,6 +2,45 @@
 
 Suite de `claude/PASSATION_TAHX_InO_silicium.md` (implantation physique, 21 octobre) pour la partie **vitesse** : IPC (paliers V1 à V5), puis fréquence (timing du cœur entier, retouches du RTL, calibration par des runs LibreLane contraints). Le document de référence est `ETUDE_VITESSE_TAHX_InO.md`, à la racine du dépôt et en copie dans le projet (`claude/ETUDE_VITESSE_TAHX_InO.md`). Claude le tient à jour aux deux endroits.
 
+## 0. Reprise au 30 octobre : `ino_fetch` à 25 ns
+
+**État des macros à 25 ns (coin slow, runs complets, 0 DRC)** :
+
+| macro | marge slow | boîte (µm) | configuration |
+|---|---|---|---|
+| `ino_decode_predict` | +0,79 ns | — | run G (§ 8.10) |
+| `ino_exec_entier` | +0,36 ns | 900 × 1000 | `config_25ns.yaml` (§ 8.13) |
+| `ino_exec_arith` | +1,02 ns | 1150 × 1150 | `config_25ns.yaml` + P25 (§ 8.13) |
+| `ino_system` | +6,36 ns | 1100 × 1000 | `config_25ns.yaml`, `pin_order_25ns.cfg` (§ 8.15) |
+| `stack_unit_16_8` | +0,43 ns, **1 antenne** | 1500 × 1500 | `config_25ns_1500.yaml`, SDC de P38 (§ 8.18) |
+| `ino_data_cache` | +1,11 ns | 2275 × 1061,84 | `config_25ns_serre.yaml`, `pin_order_serre.cfg` (§ 8.22) |
+| `ino_fetch` | **à faire** | 1800 × 2200 | `config_25ns_canaux.yaml` (§ 8.21) |
+| `decode_queue` | à relancer | — | — |
+
+**`ino_fetch`, ce qu'on sait** (étude § 8.17, § 8.20, § 8.21) :
+- 11 SRAM 2P 512 × 32 (685,49 × 219,77 µm), en deux colonnes (x = 50 et 900) et six rangées. Les rangées se font face par paires (broches en vis-à-vis dans un canal) et sont dos à dos entre les paires (30 µm). La logique est dans la bande du bas et dans le couloir central. Les broches `window_o` (256) sont à l'est, d'où la marge est de 215 µm.
+- **Directions des couches** (LEF technologique) : Metal1, Metal3 et TopMetal1 horizontales, Metal2 et Metal4 verticales. Au-dessus d'une SRAM, Metal1 à Metal3 sont obstruées par son LEF, et Metal4 l'est à 48 % (113 bandes). TopMetal1 est donc la seule couche horizontale qui passe au-dessus des SRAM.
+- Sans tampons de fils longs (P35) : débordement de 1 626 au routage global, puis 292 courts-circuits TopMetal1 restants (bandes d'alimentation) après 64 itérations.
+- Avec TopMetal1 interdit au-dessus des SRAM (P42) : débordement de 4 901, et un routage détaillé bloqué vers 2 133 violations (Metal4 1 744). Toutes les liaisons horizontales sont renvoyées dans les canaux de 130 µm.
+- **P44** élargit ces canaux à 180 µm, dans une boîte de 1800 × 2200 µm :
+  - `config_25ns_canaux.yaml`, sans obstruction, est la variante à lancer en premier ;
+  - `config_25ns_canaux_obs.yaml` interdit TopMetal1 au-dessus des SRAM.
+  - Les lancer d'abord jusqu'à `OpenROAD.GlobalRouting` et comparer le débordement à celui de P35 (1 626).
+- **Règles de placement des SRAM** (toute variante) :
+  - y doit respecter la grille des pistes de 0,48 µm (`placer_sram.py` : y = k × 0,48 − 0,13 en N, y = k × 0,48 − 219,64 en FS), sinon les broches sont inaccessibles (DRT-0418) ;
+  - les canaux dos à dos de 30 µm doivent garder leur phase par rapport aux bandes d'alimentation TopMetal1 (pas de 50 µm ; VPWR à 15,12 + 10 + 50 k µm, VGND 6 µm au-dessus), sinon PDN-0179 ;
+  - un décalage de rangée doit donc être à la fois multiple de 0,48 µm et proche d'un multiple de 50 µm : 49,92, 99,84, 150,24 µm…
+- **Piste RTL de secours** si les canaux ne suffisent pas : `I1d_INO_FETCH_LINE.vhd` garde 512 bits de présence en bascules (`present`), lus à trois indices par cycle (ligne courante, deux suivantes). C'est la même idée que P45 pour `ino_data_cache` (§ 8.22 : 35 525 → 9 124 cellules, débordement 115 312 → 0), mais plus délicate avec des RAM à deux ports. La logique d'`ino_fetch` compte 20 163 cellules, dont 1 843 bascules (`v4s`). Une bonne part vient de la file d'octets, qui est réelle.
+- Diagnostic d'un routage détaillé : `pnr_InO/macros/ino_data_cache/analyser_drc.py <run>/…-detailedrouting/<macro>.drc <config.yaml>` classe les violations en « sur la SRAM », « broches de … » ou « logique / canaux ». Le `.drc` n'est écrit qu'à la fin des itérations.
+
+**Pièges de la session du 28 au 30 octobre** :
+- **Toujours `vhdl_InO/Z_analyze.sh` avant `pnr_InO/etat_macros.sh --extraire`.** L'extraction élabore la bibliothèque GHDL déjà analysée : un run d'`ino_data_cache` est ainsi parti de l'ancien RTL (nets en nombre inchangé, débordement de 97 179). Contrôle : l'empreinte de `PROVENANCE.txt` et `etat_macros.sh` (« a jour »).
+- P45 ajoute 256 cycles d'effacement des tags après le RESET : chaque banc B_* prend de +259 à +270 cycles (total 1 900 559 → 1 902 672). Les `MESURES` changent d'autant, sans autre écart.
+- Conteneur de Claude : `export GHDL_PREFIX=/usr/lib/ghdl/mcode/vhdl` pour GHDL et le greffon de Yosys. Ne pas attendre un processus avec `pgrep -f <motif>` dans une boucle (le motif se trouve lui-même) : utiliser un fichier marqueur.
+- Les bancs complets (N3 et B_*) prennent environ 15 min avec `lancer_tests.sh -j 2` dans le conteneur, qui n'a que 2 cœurs.
+
+**Reste après `ino_fetch`** : l'antenne de `stack_unit_16_8` (`GRT_ANTENNA_REPAIR_ITERS` ou une diode), `decode_queue`, puis l'assemblage du cœur avec la session floorplan (boîtes et ordres de broches ci-dessus ; `ino_execute` remplacée par `ino_exec_entier` et `ino_exec_arith`).
+
 ## 1. Cadre de travail
 
 - **Échanges en français.** Utilisateur : Vincent Morin (UBO), enseignant en physique et informatique.
@@ -136,6 +175,9 @@ Exemples : `pnr_InO/macros/ino_decode_predict/config_25ns_slow.yaml`, `pnr_InO/m
 | P43 `ino_fetch_canaux` | `ino_fetch/config_25ns_canaux.yaml` (canaux de broches de SRAM à 200 µm, boîte 1800 × 2260, densité 50 %, sans obstruction) et `config_25ns_canaux_obs.yaml` (idem, TopMetal1 et Metal4 interdits au-dessus des SRAM) ; étude § 8.21 | run P35 + P42 : débordement 4 901, 2 133 violations stagnantes au routage détaillé (Metal4 1 744) |
 | P44 `ino_fetch_canaux_pdn` | `ino_fetch/config_25ns_canaux*.yaml` : canaux à 180 µm (décalages de 49,92 / 99,84 / 150,24 µm, en phase avec le pas de 50 µm des bandes TopMetal1), boîte 1800 × 2200 ; `canaux_obs` n'interdit plus que TopMetal1 (TopMetal1 est horizontal, Metal4 vertical) ; étude § 8.21 | P43 : `PDN-0179` (canal dos à dos sans place pour VGND) |
 | P45 `data_cache_etat_en_sram` | `M3b_INO_DCACHE_CORE.vhd` : présence, modification et compteurs de remplacement dans les SRAM de tags, état INIT (256 cycles) ; `ino_data_cache/config_25ns_compact.yaml` (2275 × 1334) ; étude § 8.22 | run `config_25ns_haut.yaml` : débordement 38 908 ; synthèse 35 525 → 9 124 cellules ; bancs +259 à +270 cycles |
+| P46 `data_cache_serre` | `ino_data_cache/config_25ns_serre.yaml` et `pin_order_serre.cfg` : bande logique de 349 µm, boîte 2275 × 1061,84 (−20 %) ; étude § 8.22 | run `config_25ns_compact.yaml` (P45) : débordement 0, 0 DRC, **+1,25 ns slow**, cellules à 6,4 % du cœur |
+| P47 `doc_data_cache_serre` | étude § 8.22 et passation : `ino_data_cache` serrée à +1,11 ns slow | — |
+| P48 `doc_reprise_ino_fetch` | passation : section 0, reprise d'`ino_fetch` en nouvelle session | — |
 
 Après P1 à P5 : 1 873 910 cycles (−11,1 %), **IPC 0,464**, famine 2,2 % ; `LISTE` : 50 tests OK. Période routée estimée, unités d'exécution projetées à part (`SOUS`, voir ci-dessous) : **≈ 16,2 ns typ (62 MHz), ≈ 26,4 ns slow (38 MHz)** ; **28,7 MIPS typ (+31 %), 17,6 MIPS slow (+30 %)**.
 
@@ -145,7 +187,7 @@ Constat principal côté fréquence : ABC (Yosys comme LibreLane, `abc -D CLOCK_
 
 Suite proposée :
 
-000000. **30 octobre, `ino_data_cache`** : la logique de la macro était à 92 % les 2 560 bascules de présence, de modification et de remplacement de `INO_DCACHE_CORE`. P45 les range dans les SRAM de tags : 35 525 → 9 124 cellules, 0,447 → 0,089 mm². Coût : 256 cycles d'effacement après le RESET (+0,11 % sur les 8 bancs). À faire : `pnr_InO/etat_macros.sh --extraire ino_data_cache`, puis le run `config_25ns_compact.yaml` (2275 × 1334), d'abord jusqu'à `OpenROAD.GlobalRouting` (étude § 8.22). `ino_fetch` garde 512 bits de présence en bascules (§ 8.21), piste possible ensuite.
+000000. **30 octobre, `ino_data_cache`** : P45 range présence, modification et remplacement dans les SRAM de tags (35 525 → 9 124 cellules ; +256 cycles d'effacement après le RESET). **Run `config_25ns_serre.yaml` (P46, 2275 × 1061,84 µm, `pin_order_serre.cfg`) : 0 DRC, 0 antenne, +1,11 ns slow**, +5,14 typ, hold propre ; c'est la boîte à transmettre au floorplan (étude § 8.22). Toujours lancer `vhdl_InO/Z_analyze.sh` avant `pnr_InO/etat_macros.sh --extraire`. `ino_fetch` garde 512 bits de présence en bascules (§ 8.21), piste possible ensuite.
 
 00000. **30 octobre, `ino_fetch`** : P42 (TopMetal1 interdit au-dessus des SRAM) renvoie toutes les liaisons horizontales dans les canaux de 130 µm (TopMetal1 est la seule couche horizontale au-dessus d'une SRAM) : routage global 4 901, routage détaillé bloqué vers 2 133 violations, dont 1 744 courts-circuits Metal4 (étude § 8.21). P43 puis P44 élargissent ces canaux à 180 µm (boîte 1800 × 2200), en phase avec les bandes d'alimentation : `config_25ns_canaux.yaml` sans obstruction (à préférer), `config_25ns_canaux_obs.yaml` avec TopMetal1 interdit. Les lancer d'abord jusqu'à `OpenROAD.GlobalRouting` (P35 : 1 626).
 
@@ -170,4 +212,4 @@ Netlists d'estimation de l'étude (dans le conteneur, non versionnées) : `ref` 
 
 `decodeur_predecodage`, `chainage_clvl`, `mul_csa`, `mesure_sans_fraig`, `flottant_etages`, `calibration_25ns`, `calibration_latence`, `calibration_hold`, `calibration_bilan`, `calibration_decode_predict`, `calibration_coin_slow`, `calibration_bilan_slow`.
 
-Étude IPC × f (25 octobre, livrés, à appliquer dans l'ordre) : `P1_frontal_groupes`, `P2_consommation_differee`, `P3_arith_chainage`, `P4_muldiv_rapide`, `P5_flottant_rapide`, `P6_doc_ipc_f`, `P7_ino_execute_25ns`, `P8_gshare_512`, `P9_decode_predict_antennes`, `P10_doc_run_D`, `P11_decodeur_deux_etages`, `P12` à `P14` (configurations), `P15_doc_runs_E_F`, `P16_decode_predict_marges`, `P17_ino_execute_marges`, `P18_ino_execute_postgrt`, `P19_ino_execute_sans_diodes_heuristiques`, `P20` à `P22` (variantes d'`ino_execute`), `P23_doc_decoupage_execute`, `P24_execute_deux_macros`, `P25_exec_arith_marge_postgrt`, `P26` à `P28` (documentation), `P29_stack_unit_port_ecriture`, `P30_configs_25ns_restantes`, `P31_ino_system_boite_carree`, `P32_stack_unit_boite_1500`, `P33_stack_unit_broches_nord`, `P34` (documentation), `P35_ino_fetch_sans_fils_longs`, `P36_ino_fetch_marges_reduites`, `P37_data_cache_sans_fils_longs`, `P38_sdc_traversees`, `P39_data_cache_boite_haute`, `P40_data_cache_hold_fast`, `P41_doc_stack_unit_25ns`, `P42_ino_fetch_obstructions_tm1`, `P43_ino_fetch_canaux`, `P44_ino_fetch_canaux_pdn`, `P45_data_cache_etat_en_sram`.
+Étude IPC × f (25 octobre, livrés, à appliquer dans l'ordre) : `P1_frontal_groupes`, `P2_consommation_differee`, `P3_arith_chainage`, `P4_muldiv_rapide`, `P5_flottant_rapide`, `P6_doc_ipc_f`, `P7_ino_execute_25ns`, `P8_gshare_512`, `P9_decode_predict_antennes`, `P10_doc_run_D`, `P11_decodeur_deux_etages`, `P12` à `P14` (configurations), `P15_doc_runs_E_F`, `P16_decode_predict_marges`, `P17_ino_execute_marges`, `P18_ino_execute_postgrt`, `P19_ino_execute_sans_diodes_heuristiques`, `P20` à `P22` (variantes d'`ino_execute`), `P23_doc_decoupage_execute`, `P24_execute_deux_macros`, `P25_exec_arith_marge_postgrt`, `P26` à `P28` (documentation), `P29_stack_unit_port_ecriture`, `P30_configs_25ns_restantes`, `P31_ino_system_boite_carree`, `P32_stack_unit_boite_1500`, `P33_stack_unit_broches_nord`, `P34` (documentation), `P35_ino_fetch_sans_fils_longs`, `P36_ino_fetch_marges_reduites`, `P37_data_cache_sans_fils_longs`, `P38_sdc_traversees`, `P39_data_cache_boite_haute`, `P40_data_cache_hold_fast`, `P41_doc_stack_unit_25ns`, `P42_ino_fetch_obstructions_tm1`, `P43_ino_fetch_canaux`, `P44_ino_fetch_canaux_pdn`, `P45_data_cache_etat_en_sram`, `P46_data_cache_serre`, `P47_doc_data_cache_serre`, `P48_doc_reprise_ino_fetch`.

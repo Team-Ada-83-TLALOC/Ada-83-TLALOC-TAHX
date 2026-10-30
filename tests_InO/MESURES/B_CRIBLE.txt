@@ -1,20 +1,20 @@
-PERF T_B_CRIBLE_tb : 220879 cycles, 120894 retraits
+PERF T_B_CRIBLE_tb : 221140 cycles, 120894 retraits
 PERF IPC (retraits par cycle)                       0,55
 PERF prises DECODE_QUEUE                            120895
-PERF partition SYSTEM_HOLD                          1740
-PERF partition FRONTEND_STARVE                      3897
-PERF partition IDLE_AVEC_TRAVAIL                    1139
+PERF partition SYSTEM_HOLD                          1995
+PERF partition FRONTEND_STARVE                      3902
+PERF partition IDLE_AVEC_TRAVAIL                    1140
 PERF partition INSTRUCTION_BUSY                     214103
 PERF cycles requete memoire STACK                   314
-PERF cycles requete memoire EXEC                    65462
-PERF occupation moyenne DECODE_QUEUE                5,59
+PERF cycles requete memoire EXEC                    65717
+PERF occupation moyenne DECODE_QUEUE                5,58
 PERF occupation max DECODE_QUEUE                    8
 PERF reprises du frontal (RECOVERY)                 538
 PERF CLASS NONE count 9667 lat_sum 9883 lat_avg 1,02 lat_max 5
 PERF CLASS INTEGER count 39424 lat_sum 39679 lat_avg 1,01 lat_max 16
 PERF CLASS MULDIV count 3681 lat_sum 11851 lat_avg 3,22 lat_max 36
 PERF CLASS MEMORY count 49191 lat_sum 130328 lat_avg 2,65 lat_max 20
-PERF CLASS BRANCH count 18798 lat_sum 19253 lat_avg 1,02 lat_max 7
+PERF CLASS BRANCH count 18798 lat_sum 19254 lat_avg 1,02 lat_max 7
 PERF CLASS FLOAT count 2 lat_sum 8 lat_avg 4,00 lat_max 4
 PERF CLASS COMPLEX count 99 lat_sum 3662 lat_avg 36,99 lat_max 1534
 PERF CLASS SYSTEM count 32 lat_sum 1592 lat_avg 49,75 lat_max 117
@@ -91,7 +91,7 @@ PERF OP DD count 2 lat_sum 2 lat_avg 1,00 lat_max 1
 PERF OP DE count 1 lat_sum 1 lat_avg 1,00 lat_max 1
 PERF OP DF count 5 lat_sum 5 lat_avg 1,00 lat_max 1
 PERF OP E0 count 2640 lat_sum 2675 lat_avg 1,01 lat_max 2
-PERF OP E1 count 1083 lat_sum 1105 lat_avg 1,02 lat_max 2
+PERF OP E1 count 1083 lat_sum 1106 lat_avg 1,02 lat_max 2
 PERF OP E4 count 3045 lat_sum 3045 lat_avg 1,00 lat_max 1
 PERF OP E5 count 7173 lat_sum 7173 lat_avg 1,00 lat_max 1
 PERF OP E8 count 4692 lat_sum 4736 lat_avg 1,01 lat_max 2
@@ -107,12 +107,12 @@ PERF CACHE requetes STACK (lect / ecr / sondes)     106 / 208 / 0
 PERF CACHE requetes EXEC (lect / ecr / sondes)      54786 / 10510 / 166
 PERF CACHE remplissages de lignes (defauts)         174
 PERF CACHE reecritures de victimes                  1
-PERF famine apres reprise (cycles / episodes)       3084 / 538
-PERF famine apres transfert pris bien predit        808 / 311 (transferts 7586)
+PERF famine apres reprise (cycles / episodes)       3083 / 537
+PERF famine apres transfert pris bien predit        814 / 311 (transferts 7586)
 PERF famine autre (cycles / episodes)               5 / 2
-PERF FRONT famine=0 idle_attente 25055 idle_prise 32128 eval 45961 sortie 32439 sortie_bloquee 81399
-PERF FRONT famine=1 idle_attente 2299 idle_prise 647 eval 951 sortie 0 sortie_bloquee 0
-PERF ETAT STACK ST_IDLE cycles 5249 entrees 1139
+PERF FRONT famine=0 idle_attente 25306 idle_prise 32128 eval 45962 sortie 32439 sortie_bloquee 81403
+PERF FRONT famine=1 idle_attente 2305 idle_prise 647 eval 950 sortie 0 sortie_bloquee 0
+PERF ETAT STACK ST_IDLE cycles 5510 entrees 1140
 PERF ETAT STACK ST_PREPARE cycles 397 entrees 385
 PERF ETAT STACK ST_SRC_SPILL_REQ cycles 0 entrees 0
 PERF ETAT STACK ST_SRC_SPILL_RSP cycles 0 entrees 0
@@ -128,7 +128,7 @@ PERF ETAT STACK ST_COH_SCAN cycles 188 entrees 112
 PERF ETAT STACK ST_COH_SPILL_REQ cycles 18 entrees 18
 PERF ETAT STACK ST_COH_SPILL_RSP cycles 36 entrees 18
 PERF ETAT STACK ST_FAST_COMMIT cycles 9792 entrees 9756
-PERF ETAT STACK ST_ISSUE cycles 111087 entrees 58494
+PERF ETAT STACK ST_ISSUE cycles 111087 entrees 58495
 PERF ETAT STACK ST_WAIT_EXEC cycles 91993 entrees 53036
 PERF ETAT STACK ST_MISPRED_HOLD cycles 505 entrees 505
 PERF ETAT STACK ST_FAULT_HOLD cycles 0 entrees 0
@@ -138,7 +138,7 @@ PERF ETAT STACK ST_MAINT_SPILL_RSP cycles 165 entrees 120
 PERF ETAT STACK ST_MAINT_RET_SCAN cycles 288 entrees 77
 PERF ETAT STACK ST_MAINT_RET_SPILL_REQ cycles 45 entrees 45
 PERF ETAT STACK ST_MAINT_RET_SPILL_RSP cycles 54 entrees 45
-PERF ETAT M2 ST_IDLE cycles 220669 entrees 71
+PERF ETAT M2 ST_IDLE cycles 220930 entrees 71
 PERF ETAT M2 ST_DISPATCH cycles 70 entrees 70
 PERF ETAT M2 ST_PTR_REQ cycles 70 entrees 70
 PERF ETAT M2 ST_PTR_RSP cycles 70 entrees 70
@@ -148,12 +148,13 @@ PERF ETAT M2 ST_CHK_FST_REQ cycles 0 entrees 0
 PERF ETAT M2 ST_CHK_FST_RSP cycles 0 entrees 0
 PERF ETAT M2 ST_CHK_LST_REQ cycles 0 entrees 0
 PERF ETAT M2 ST_CHK_LST_RSP cycles 0 entrees 0
-PERF ETAT CACHE LIBRE cycles 153533 entrees 65777
+PERF ETAT CACHE LIBRE cycles 153539 entrees 65777
 PERF ETAT CACHE LECTURE cycles 174 entrees 174
 PERF ETAT CACHE PARTIE cycles 65784 entrees 65784
 PERF ETAT CACHE RECRITURE cycles 4 entrees 1
 PERF ETAT CACHE REMPLISSAGE cycles 1218 entrees 174
 PERF ETAT CACHE REPONSE cycles 166 entrees 166
+PERF ETAT CACHE INIT cycles 255 entrees 1
 PERF OPETAT 04 STACK ST_ISSUE=4
 PERF OPETAT 04 M2 ST_IDLE=4
 PERF OPETAT 04 CACHE LIBRE=4
@@ -373,9 +374,9 @@ PERF OPETAT DF CACHE LIBRE=5
 PERF OPETAT E0 STACK ST_IDLE=35 ST_ISSUE=2640
 PERF OPETAT E0 M2 ST_IDLE=2675
 PERF OPETAT E0 CACHE LIBRE=2675
-PERF OPETAT E1 STACK ST_IDLE=22 ST_ISSUE=1083
-PERF OPETAT E1 M2 ST_IDLE=1105
-PERF OPETAT E1 CACHE LIBRE=1105
+PERF OPETAT E1 STACK ST_IDLE=23 ST_ISSUE=1083
+PERF OPETAT E1 M2 ST_IDLE=1106
+PERF OPETAT E1 CACHE LIBRE=1106
 PERF OPETAT E4 STACK ST_ISSUE=3045
 PERF OPETAT E4 M2 ST_IDLE=3045
 PERF OPETAT E4 CACHE LIBRE=3045
