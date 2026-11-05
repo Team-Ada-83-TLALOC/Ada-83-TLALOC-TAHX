@@ -63,9 +63,12 @@ is                              -----------
 
       FRAME_DSP_i       : in  paddr_t;
       FRAME_RSP_i       : in  paddr_t;
+
       DISP_SEL_o        : out disp_sel_t;
       DISP_i            : in  paddr_t;
+
       LIMITS_i          : in  limits_t;
+
       SYNC_VALID_i      : in  std_logic;
       SYNC_COPILE_i     : in  copile_state_t;
       COPILE_o          : out copile_state_t;

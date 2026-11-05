@@ -1,0 +1,35 @@
+diff --git a/ETUDE_VITESSE_TAHX_InO.md b/ETUDE_VITESSE_TAHX_InO.md
+index 6d5d848..540d5a0 100644
+--- a/ETUDE_VITESSE_TAHX_InO.md
++++ b/ETUDE_VITESSE_TAHX_InO.md
+@@ -1194,4 +1194,4 @@ Dans le run du 29 octobre (`config_25ns_1500.yaml`), la réparation d'antennes a
+ | slew, capacité | 0 |
+ | cellules | 0,975 mm² (44,7 % d'occupation), dont 0,257 mm² de tampons de réparation |
+ 
+-**Les huit macros tiennent 25 ns au coin slow, sans DRC ni antenne.** Pour `ino_data_cache`, la vérification des broches de SRAM signale 10 sorties de tags « non atteintes » : ce sont les bits inutilisés du champ de 24 bits (bit 19 de chaque voie, compteur des voies 1 à 3), sur des réseaux sans autre extrémité. P63 les compte à part.
++**Les huit macros tiennent 25 ns au coin slow, sans DRC ni antenne.** Pour `ino_data_cache`, la vérification des broches de SRAM signale 10 sorties de tags « non atteintes » : ce sont les bits inutilisés du champ de 24 bits (bit 19 de chaque voie, compteur des voies 1 à 3), sur des réseaux sans autre extrémité. P63 les compte à part : 0 non atteinte, 4 et 6 sorties seules sur leur réseau.
+diff --git a/PASSATION_VITESSE_TAHX_InO.md b/PASSATION_VITESSE_TAHX_InO.md
+index d151091..1f3566a 100644
+--- a/PASSATION_VITESSE_TAHX_InO.md
++++ b/PASSATION_VITESSE_TAHX_InO.md
+@@ -30,7 +30,7 @@ Suite de `claude/PASSATION_TAHX_InO_silicium.md` (implantation physique, 21 octo
+ **Pièges** :
+ - **Toujours `vhdl_InO/Z_analyze.sh` avant `pnr_InO/etat_macros.sh --extraire`.** L'extraction élabore la bibliothèque GHDL déjà analysée, et un run d'`ino_data_cache` est ainsi parti de l'ancien RTL. Contrôle : l'empreinte de `PROVENANCE.txt` et `etat_macros.sh` (« a jour »).
+ - **`metrics.json` en cours de flot** : avec `PNR_CORNERS: [slow, fast]`, `STAMidPNR` ne met à jour que le coin fast. Les valeurs slow et typ (−25 à −223 ns, milliers de slews) sont celles d'avant placement. Seul le signoff compte (§ 8.25).
+-- **LVS désactivé** : une liaison ouverte ne donne aucune erreur. Pour les macros à SRAM (`ino_fetch`, `ino_data_cache` ; `ino_decode_predict` n'en a pas), passer `verifier_broches_sram.py <DEF> <LEF de chaque type de SRAM>` sur le DEF routé avant de générer les LEF et GDS. `ino_fetch` : 0 broche non atteinte. `ino_data_cache` : SRAM de données propres ; 10 sorties de tags inutilisées, à confirmer « seules sur leur réseau » avec P63.
++- **LVS désactivé** : une liaison ouverte ne donne aucune erreur. Pour les macros à SRAM (`ino_fetch`, `ino_data_cache` ; `ino_decode_predict` n'en a pas), passer `verifier_broches_sram.py <DEF> <LEF de chaque type de SRAM>` sur le DEF routé avant de générer les LEF et GDS. `ino_fetch` : 0 broche non atteinte. `ino_data_cache` : 0 non atteinte ; les 10 sorties de tags inutilisées sont seules sur leur réseau (4 et 6), comme prévu.
+ - **Flot chaotique** : un déplacement de SRAM de 0,1 µm change tout le placement. Un run réussi se garde, il ne se « corrige » pas.
+ - `GRT_ALLOW_CONGESTION: false` arrête le flot au moindre débordement : à réserver aux configurations déjà validées.
+ - Position des SRAM : y sur la grille de 0,48 µm (`placer_sram.py`) et phase des bandes TopMetal1 (pas de 50 µm) dans les canaux dos à dos, sinon PDN-0179. Il faut aussi assez de place pour les deux bandes en haut du cœur (P49).
+@@ -39,9 +39,8 @@ Suite de `claude/PASSATION_TAHX_InO_silicium.md` (implantation physique, 21 octo
+ - Les bancs complets (N3 et B_*) prennent environ 15 min avec `lancer_tests.sh -j 2`.
+ 
+ **Reste** :
+-1. Confirmer avec P63 que les 10 broches de tags d'`ino_data_cache` sont seules sur leur réseau (0 non atteinte).
+-2. Nettoyage des `config.yaml` : une configuration de référence par macro, celles du tableau ci-dessus.
+-3. LEF et GDS des macros, puis assemblage de `TAHX_1`. `ino_execute` est remplacée par `ino_exec_entier` et `ino_exec_arith` ; son dossier de macro est retiré (P51).
++1. Nettoyage des `config.yaml` : une configuration de référence par macro, celles du tableau ci-dessus.
++2. LEF et GDS des macros, puis assemblage de `TAHX_1`. `ino_execute` est remplacée par `ino_exec_entier` et `ino_exec_arith` ; son dossier de macro est retiré (P51).
+ 
+ ## 1. Cadre de travail
+ 

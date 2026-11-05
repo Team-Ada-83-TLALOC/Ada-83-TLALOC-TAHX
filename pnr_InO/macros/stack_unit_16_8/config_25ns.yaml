@@ -2,7 +2,7 @@ PDK: ihp-sg13cmos5l
 
 DESIGN_NAME: stack_unit_16_8
 
-IO_PIN_ORDER_CFG: dir::pin_order.cfg
+IO_PIN_ORDER_CFG: dir::pin_order_25ns.cfg
 
 VERILOG_FILES:
   - dir::src/stack_unit_16_8.v
@@ -46,12 +46,22 @@ GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 400
 # attendus apres DELAY et tampons. Boite de 1,69 mm2 : environ 55 % d'utilisation.
 # Diodes sur les entrees, pas d'insertion heuristique (§ 8.11).
 FP_SIZING: absolute
-DIE_AREA: [0, 0, 1300, 1300]
-PL_TARGET_DENSITY_PCT: 55
+# Variante (29 octobre, etude § 8.16) : le routage global dans 1300 x 1300 um
+# deborde de 3 923 (Metal3 3 027, usage 89 %, jusqu'a 34 pistes de trop dans une
+# case). Boite de 2,25 mm2 (+33 % de pistes), densite visee 50 %.
+DIE_AREA: [0, 0, 1500, 1500]
+PL_TARGET_DENSITY_PCT: 50
 PL_ROUTABILITY_DRIVEN: true
 GRT_ALLOW_CONGESTION: true
-GRT_ANTENNA_REPAIR_ITERS: 6
-GRT_ANTENNA_REPAIR_MARGIN: 20
+# Variante 1500a (P62, 3 novembre) : run de config_25ns_1500.yaml (29 octobre) a
+# +0,43 ns slow, 0 DRC, mais 1 net en violation d'antenne au signoff, apres les 6
+# iterations de reparation du routage global et les 3 (defaut) du routage detaille.
+# Plus d'iterations aux deux etapes, et une marge de 30 % (DRT reprend la marge de
+# GRT_ANTENNA_REPAIR_MARGIN, drt.tcl de LibreLane 3.0.0rc0). Le reste de la
+# configuration est inchange, pour garder le timing du run.
+GRT_ANTENNA_REPAIR_ITERS: 10
+GRT_ANTENNA_REPAIR_MARGIN: 30
+DRT_ANTENNA_REPAIR_ITERS: 10
 DIODE_ON_PORTS: in
 DIODE_CELL: sg13cmos5l_antennanp/A
 

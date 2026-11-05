@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Extraction du Verilog des macros sans SRAM (stack_unit_16_8, decode_queue,
-# ino_decode_predict, ino_execute, ino_exec_entier, ino_exec_arith, ino_system),
+# ino_decode_predict, ino_exec_entier, ino_exec_arith, ino_system),
 # depuis vhdl_InO/.
 #   BRUT      : RTLIL de TAHX_1(IN_ORDER) (defaut ../synth_InO/par_module/brut.il,
 #               ecrit par mesure_par_module.sh ou pnr_InO/etat_macros.sh)
@@ -38,24 +38,15 @@ yosys -p "
    write_verilog -noattr $DEST_ROOT/ino_decode_predict/src/ino_decode_predict.v
 "
 
-# ino_execute : l'unite flottante utilise ieee.float_pkg.
+# ino_exec_entier et ino_exec_arith (ino_execute coupee en deux macros, etude de
+# vitesse, § 8.11 ; l'ancienne macro d'un bloc est retiree le 30 octobre, P51).
+# L'unite flottante utilise ieee.float_pkg.
 #  - Classfp teste d'abord Is_X ; GHDL le rend par une constante 'z' (mux de
 #    selection 1'hz), refusee par le lint (Verilator). En materiel Is_X est
 #    faux : setundef -zero remplace ces constantes (et les 'x') par 0.
 #  - Des assertions (unite flottante, fexp, fonctions de float_pkg) deviennent
 #    des cellules $assert, que LibreLane signale non placees (Unmapped Yosys
 #    instances) : chformal -remove les retire (sans effet sur le materiel).
-yosys -p "
-   read_rtlil $BRUT
-   hierarchy -check -top ino_execute
-   proc
-   chformal -remove
-   setundef -zero
-   opt_clean
-   write_verilog -noattr $DEST_ROOT/ino_execute/src/ino_execute.v
-"
-
-# ino_execute en deux macros (etude de vitesse, § 8.11) : memes commandes.
 yosys -p "
    read_rtlil $BRUT
    hierarchy -check -top ino_exec_entier

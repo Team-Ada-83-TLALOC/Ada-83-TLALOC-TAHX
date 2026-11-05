@@ -1095,3 +1095,103 @@ Le budget du SDC (`ino_data_cache_25ns.sdc`) reste valable. Le chemin de succès
 | restes (règles de conception, coin slow) | 78 slew, 27 sortances | 99 slew, 26 sortances, 10 capacités |
 
 **`ino_data_cache` tient 25 ns au coin slow dans 2275 × 1061,84 µm.** C'est la boîte à transmettre à la session floorplan, avec `pin_order_serre.cfg`. La boîte reste plus large que haute : les deux rangées de SRAM font 2 206 µm de large. La serrer davantage demanderait un autre plan (SRAM empilées), pour un gain modeste, puisque les SRAM occupent déjà la moitié de la boîte.
+
+### 8.23 `ino_fetch` tient 25 ns : disposition en quinconce (patchs P49 à P61, 30 octobre – 3 novembre)
+
+**Canaux de 180 µm (P44, P49).** Le premier run de `config_25ns_canaux.yaml` échoue à la génération de la PDN (`PDN-0179`) : au-dessus de `u_tag`, la bande de rangs entre son halo et le haut du cœur (y = 2180,12 .. 2185,06) ne contient que la bande VGND. P49 descend `u_tag` de 9,60 µm (20 pistes). Le routage global déborde alors de **104** seulement (1 626 avec P35), et le run complet finit à 0 DRC, mais à **−1,74 ns** au coin slow (90 chemins).
+
+**Réseaux sous-dimensionnés (P50, P52).** Les pires chemins partent de `fetch_pc[8]` et traversent `net11035` (un `buf_1` chargé de 1,0 pF, slew 6,1 ns) et `_01949_` (un `o21ai_1`, 0,40 pF). L'analyse de l'étape 45 voit déjà ces réseaux : l'estimation est juste. Ils sont dégradés par `ResizerTimingPostGRT`, qui retire des tampons par défaut, sans réparation de slew ni de capacité derrière.
+
+| variante | réglages ajoutés | marge slow | DRC |
+|---|---|---|---|
+| `canaux` | — | −1,74 ns | 0 |
+| `canaux_rep` (P50) | `GRT_RESIZER_SETUP_BUFFER_REMOVAL: false`, `GRT_DESIGN_REPAIR_MAX_CAP_PCT: 30` | −0,46 ns | 8 |
+| `canaux_fil` (P50, P52) | + tampons de fils longs à 1 000 µm, hold au coin fast avec des marges de 0,1 ns | **+1,76 ns** | 28 |
+
+Avec `canaux_rep`, `net11035` reste piloté par un `buf_1` : seuls les tampons de fils longs le découpent. Le hold vu au coin fast retire du pire chemin deux cellules de retard (1,28 ns) qu'y mettait la marge de 0,4 ns au coin slow.
+
+**Courts-circuits TopMetal1.** Dans les deux colonnes alignées, les violations restantes sont toutes des segments verticaux de TopMetal1, couche horizontale. Chacun coupe une paire VPWR/VGND, toujours **la première paire à l'intérieur d'une SRAM, à 25–45 µm d'un bord nord ou sud**. Leur nombre suit la demande : 0 (`canaux`), 8 (`canaux_rep`), 28 (`canaux_fil`), 292 (P35).
+
+| variante | obstruction | résultat |
+|---|---|---|
+| `canaux_m4` (P54) | Metal4 au-dessus des SRAM | routage global inchangé (4 192 221 µm à l'unité près), 10 DRC, +1,64 ns |
+| `canaux_fil_obs` (P56) | TopMetal1 au-dessus des SRAM | débordement 476 |
+| `canaux_bords` (P57) | TopMetal1 le long des bords nord et sud | 52 DRC, −0,85 ns |
+
+- `canaux_m4` montre que le routage global ne prévoyait déjà aucun passage Metal4 au-dessus des SRAM : les pas à contre-sens naissent dans le routage détaillé lui-même.
+- P58 (`eco_routage.tcl`) prépare une retouche incrémentale dans OpenROAD (`dbWire_destroy` puis `detailed_route`), restée inutilisée.
+
+**Disposition en quinconce (V. Morin, 2 novembre ; P59, P61).**
+- Les SRAM de la colonne est sont décalées en x (950 à 1125 µm) et en y par rapport à celles de l'ouest, dans une boîte de 1900 × 2200 µm.
+- Configuration : `config_25ns_quinconce.yaml`, identique au run.
+
+| | `canaux_m4` | **quinconce** |
+|---|---|---|
+| boîte | 1800 × 2200 | 1900 × 2200 (+5,6 %) |
+| routage global | débordement 104 | **0** (`GRT_ALLOW_CONGESTION: false`) |
+| routage détaillé | 10 violations bloquées (60 itérations) | 52 → **0 en 3 itérations** |
+| antennes | 1 | **0** |
+| marge setup slow / typ / fast | +1,64 / +9,55 / +12,11 ns | **+5,22** / +12,12 / +13,87 ns |
+| hold slow / fast | +0,27 / +0,10 ns | +0,07 / +0,02 ns, 0 violation |
+| fil le plus long / longueur routée | 6 069 µm / 3,40 m | **1 726 µm** / 2,53 m |
+| tampons de réparation | 0,091 mm² | 0,078 mm² |
+
+Les liaisons entre SRAM et logique ne traversent plus toute la macro. Le routeur n'a plus à franchir les paires d'alimentation au même endroit.
+
+**Broches hors grille.**
+- Dix des onze SRAM du run sont à 50–200 nm de la grille de `placer_sram.py`, d'où 624 avertissements `DRT-0418`, dont 17 `A_ADDR`, 52 `A_DIN`, 58 `A_DOUT`, 18 `B_ADDR` et 58 `B_DIN`.
+- Le LVS étant désactivé dans tous les runs, une broche sans accès pourrait rester ouverte sans aucune erreur. **P60** ajoute `pnr_InO/verifier_broches_sram.py`, qui relit le DEF routé et cherche, pour chaque broche de SRAM reliée à un réseau, un fil ou un via de ce réseau qui la touche sur sa couche.
+- Sur le run : 344 broches reliées par SRAM, **toutes atteintes**. Le routeur a trouvé d'autres accès malgré les avertissements.
+- Ramenées sur la grille (P59, déplacements de 0,05 à 0,20 µm), les SRAM donnent un autre placement et le run s'arrête après le routage global. Le flot est chaotique : on garde le run réussi, vérifié par le script.
+
+**`ino_fetch` tient 25 ns au coin slow, avec +5,22 ns, dans 1900 × 2200 µm.**
+
+### 8.24 `decode_queue` : nouveau SDC et boîte de 400 × 1100 µm (patchs P53, P55, 31 octobre)
+
+**SDC.** Il est refait sur la netlist `v5s`, synthétisée le 31 octobre à partir du RTL après P45 (`SOUS="ino_integer_unit ino_branch_unit"`, `arbres_tampons.py`).
+- `pop_take_i` arrive à 19,0 ns, contre 21,6 ns avant P11 et P29.
+- `sdc_traversees.tcl` ne trouve aucune traversée combinatoire.
+- Prévision de la macro seule au coin slow : +4,14 ns (`Zero`), +3,10 ns (`30k`).
+
+**Configuration** : la recette commune (§ 8.25). Dans la boîte d'origine de 350 × 800 µm, le routage global déborde de 7 668 (usage moyen 92 %, Metal3 101 %).
+- Les données vont de l'ouest (`push_*`) à l'est (`pop_slot_o`) : la capacité horizontale croît avec la hauteur de la boîte, la demande avec sa largeur.
+- P55 passe à 400 × 1100 µm avec une densité de 55 % : débordement 0, usage moyen 45 % (Metal3 54 %).
+
+| run complet (`config_25ns_400x1100.yaml`) | valeur |
+|---|---|
+| marge setup slow / typ / fast | **+1,86** / +3,26 / +4,11 ns ; registre à registre +14,36 ns slow |
+| hold slow / fast | +0,37 / +0,10 ns |
+| DRC, antennes, slew, capacité | 0 |
+| cellules | 0,166 mm² (occupation 40 %), dont 2 700 tampons de réparation |
+
+Le pire chemin passe par un port (`pop_take_i`), comme dans le run A : il dépasse la prévision `30k`, le fil d'accès depuis le bord dominant. La boîte pourrait descendre vers 400 × 900 µm (Metal3 estimé vers 65 %), si la surface coince à l'assemblage.
+
+### 8.25 Recette commune et lecture des métriques (31 octobre)
+
+Réglages validés pour une macro contrainte à 25 ns (sg13cmos5l) :
+- `SYNTH_STRATEGY: "DELAY 1"`, `PL_TIMING_DRIVEN: true`, `SYNTH_CORNER` au coin slow ;
+- `PNR_CORNERS: [nom_slow_1p08V_125C, nom_fast_1p32V_m40C]`, avec des marges de hold de 0,1 ns après placement et après routage global ;
+- `LAYERS_RC` de sg13g2 pour Metal1 à Metal4 ;
+- marges de réparation : setup 1 ns, slew 25 %, capacité après routage global 30 % ;
+- `GRT_RESIZER_SETUP_BUFFER_REMOVAL: false` ;
+- tampons de fils longs à 1 000 µm s'il y a des liaisons de plusieurs mm ;
+- `GRT_ANTENNA_REPAIR_ITERS: 6`, `GRT_ANTENNA_REPAIR_MARGIN: 20`, `DIODE_ON_PORTS: in`.
+
+**Métriques en cours de flot.** L'analyse de timing en cours de placement-routage (`OpenROAD.STAMidPNR`, script `sta/corner.tcl` de LibreLane 3.0.0rc0) ne traite que le premier coin, qui est `nom_fast…` dans l'ordre des noms. Avec `PNR_CORNERS: [slow, fast]`, un `metrics.json` pris avant le signoff montre donc pour les coins slow et typ les valeurs d'avant placement : horloge idéale (décalage de +0,5 / −0,1 ns, soit les incertitudes du SDC), milliers de violations de slew, marges de −25 à −223 ns. Seuls le signoff (`STAPostPNR`, `summary.rpt`) et les rapports de réparation donnent le coin slow. La réparation, elle, travaille bien sur les deux coins.
+
+**LVS désactivé.** `RUN_LVS: false` dans toutes les configurations : une liaison ouverte ne produit ni DRC ni erreur de `Checker.DisconnectedPins`. Pour les macros à SRAM, passer `pnr_InO/verifier_broches_sram.py <DEF> <LEF des SRAM>` avant de générer les LEF et GDS.
+
+### 8.26 `stack_unit_16_8` : antenne résolue (patch P62, 3 novembre)
+
+Dans le run du 29 octobre (`config_25ns_1500.yaml`), la réparation d'antennes après le routage détaillé progressait à chaque passe : 176 diodes, puis 8 violations corrigées par 11 diodes, puis 1 violation corrigée par 1 diode. Elle s'arrêtait ensuite, faute d'itérations (`DRT_ANTENNA_REPAIR_ITERS`, défaut 3). `config_25ns_1500a.yaml` (P62) ne change que la réparation d'antennes : 10 itérations après le routage global et après le routage détaillé, marge de 30 %.
+
+| run complet (3 novembre) | valeur |
+|---|---|
+| marge setup slow / typ / fast | **+0,43** / +1,82 / +2,63 ns ; registre à registre +14,9 ns slow |
+| hold slow / fast | +0,39 / +0,10 ns |
+| routage détaillé | 10 → 0 violation |
+| antennes | **0** (190 diodes) |
+| slew, capacité | 0 |
+| cellules | 0,975 mm² (44,7 % d'occupation), dont 0,257 mm² de tampons de réparation |
+
+**Les huit macros tiennent 25 ns au coin slow, sans DRC ni antenne.** Pour `ino_data_cache`, la vérification des broches de SRAM signale 10 sorties de tags « non atteintes » : ce sont les bits inutilisés du champ de 24 bits (bit 19 de chaque voie, compteur des voies 1 à 3), sur des réseaux sans autre extrémité. P63 les compte à part : 0 non atteinte, 4 et 6 sorties seules sur leur réseau.

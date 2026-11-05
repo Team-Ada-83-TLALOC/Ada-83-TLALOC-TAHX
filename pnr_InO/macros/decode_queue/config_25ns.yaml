@@ -4,8 +4,12 @@ DESIGN_NAME: ino_decode_queue
 
 SYNTH_STRATEGY: "DELAY 1"
 PL_TIMING_DRIVEN: true
+# Recette du 31 octobre (etude § 8.10 a § 8.22) : synthese et placement-routage au
+# coin slow, hold vu au coin fast (P40), marges de reparation (P16), antennes.
+SYNTH_CORNER: nom_slow_1p08V_125C
+PNR_CORNERS: [nom_slow_1p08V_125C, nom_fast_1p32V_m40C]
 
-IO_PIN_ORDER_CFG: dir::pin_order.cfg
+IO_PIN_ORDER_CFG: dir::pin_order_25ns.cfg
 
 VERILOG_FILES:
   - dir::src/ino_decode_queue.v
@@ -15,13 +19,40 @@ CLOCK_PERIOD: 25
 
 # Run de calibration (etude de vitesse, 24 octobre) : budgets d'entree / sortie tires
 # du coeur entier par synth_InO/sta/sdc_macro.tcl, au lieu du SDC par defaut.
+# SDC refait le 31 octobre sur la netlist v5s (P53) : pop_take_i arrive a 19,0 ns
+# (21,6 avant P11 et P29) ; aucune traversee combinatoire. Run A (24 octobre, ancien
+# SDC, coin typ) : -0,41 ns slow ; prevision avec le nouveau : +4,14 / +3,10 ns.
 PNR_SDC_FILE: dir::ino_decode_queue_25ns.sdc
 SIGNOFF_SDC_FILE: dir::ino_decode_queue_25ns.sdc
 
 FP_SIZING: absolute
-DIE_AREA: [0, 0, 350, 800]
+# Variante 400 x 1100 (P55, 31 octobre) : avec la recette du 31 octobre (synthese au
+# coin slow, marges de reparation, hold au coin fast), le routage global dans
+# 350 x 800 deborde de 7 668 (usage moyen 92 %, Metal3 101 %, Metal2 94 %). Les
+# donnees vont de l'ouest (push_*) a l'est (pop_slot_o) : la capacite horizontale
+# croit avec la hauteur, la demande avec la largeur. Cellules (v5s, typ) : 0,133 mm2.
+# Boite 0,44 mm2 (+57 %) ; estimation : Metal3 ~75 %, Metal2 ~65 %.
+DIE_AREA: [0, 0, 400, 1100]
 
-PL_TARGET_DENSITY_PCT: 70
+PL_TARGET_DENSITY_PCT: 55
+PL_ROUTABILITY_DRIVEN: true
+
+# Marges des reparations (§ 8.10, P16) ; retrait de tampons interdit apres le routage
+# global (lecon d'ino_fetch, P50) ; hold a 0,1 ns, vu au coin fast.
+PL_RESIZER_SETUP_SLACK_MARGIN: 1.0
+GRT_RESIZER_SETUP_SLACK_MARGIN: 1.0
+DESIGN_REPAIR_MAX_SLEW_PCT: 25
+GRT_DESIGN_REPAIR_MAX_SLEW_PCT: 25
+GRT_DESIGN_REPAIR_MAX_CAP_PCT: 30
+GRT_RESIZER_SETUP_BUFFER_REMOVAL: false
+PL_RESIZER_HOLD_SLACK_MARGIN: 0.1
+GRT_RESIZER_HOLD_SLACK_MARGIN: 0.1
+
+GRT_ALLOW_CONGESTION: true
+GRT_ANTENNA_REPAIR_ITERS: 6
+GRT_ANTENNA_REPAIR_MARGIN: 20
+DIODE_ON_PORTS: in
+DIODE_CELL: sg13cmos5l_antennanp/A
 
 # Parasites estimes (26 octobre) : la configuration LibreLane de sg13cmos5l laisse
 # LAYERS_RC vide ; l'estimation (repair_design, reparations apres routage global,

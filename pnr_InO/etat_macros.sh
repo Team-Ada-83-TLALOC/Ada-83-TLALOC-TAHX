@@ -32,7 +32,6 @@ declare -A TETE=(
    [stack_unit_16_8]=stack_unit_16_8
    [decode_queue]=ino_decode_queue
    [ino_decode_predict]=ino_decode_predict
-   [ino_execute]=ino_execute
    [ino_exec_entier]=ino_exec_entier
    [ino_exec_arith]=ino_exec_arith
    [ino_system]=ino_system
@@ -41,7 +40,9 @@ declare -A TETE=(
 )
 # ino_execute (une macro, jusqu'au 27 octobre) contient depuis le 28 octobre
 # ino_exec_entier et ino_exec_arith, routees chacune a part (etude de vitesse, § 8.11).
-ORDRE=( stack_unit_16_8 decode_queue ino_decode_predict ino_execute ino_exec_entier ino_exec_arith ino_system ino_data_cache ino_fetch )
+# Son repertoire de macro est retire le 30 octobre (P51) ; l'entite VHDL INO_EXECUTE
+# reste, comme enveloppe des deux macros.
+ORDRE=( stack_unit_16_8 decode_queue ino_decode_predict ino_exec_entier ino_exec_arith ino_system ino_data_cache ino_fetch )
 
 EXTRAIRE=()
 if [ "${1:-}" = "--extraire" ]; then

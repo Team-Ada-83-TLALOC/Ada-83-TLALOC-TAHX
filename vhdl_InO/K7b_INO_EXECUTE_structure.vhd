@@ -39,17 +39,20 @@ U_ARITH :
   entity work.INO_EXEC_ARITH
     port map (
       CLK_i => CLK_i, RESET_i => RESET_i,
-      ISSUE_VALID_i => ISSUE_VALID_i,
-      ISSUE_CLASS_i => ISSUE_i.issue_class,
-      ISSUE_OP_i    => ISSUE_i.slot.canon.op,
-      ISSUE_A_i     => ISSUE_i.operand( 0 ),
-      ISSUE_B_i     => ISSUE_i.operand( 1 ),
-      ISSUE_C_i     => ISSUE_i.operand( 2 ),
-      SYNC_VALID_i  => SYNC_VALID_i,
-      READY_o       => arith_ready,
+
+      ISSUE_VALID_i		=> ISSUE_VALID_i,
+      ISSUE_CLASS_i		=> ISSUE_i.issue_class,
+      ISSUE_OP_i    	=> ISSUE_i.slot.canon.op,
+      ISSUE_A_i     	=> ISSUE_i.operand( 0 ),
+      ISSUE_B_i     	=> ISSUE_i.operand( 1 ),
+      ISSUE_C_i     	=> ISSUE_i.operand( 2 ),
+
+      SYNC_VALID_i 		=> SYNC_VALID_i,
+
+      READY_o		=> arith_ready,
       COMPLETE_VALID_o        => arith_valid,
       COMPLETE_RESULT_VALID_o => arith_result_valid,
-      COMPLETE_RESULT_o       => arith_result,
+      COMPLETE_RESULT_o       => arith_result,		-- sorties vers EXEC_ENTIER
       COMPLETE_FAULT_o        => arith_fault
     );
 
@@ -57,18 +60,30 @@ U_ENTIER :
   entity work.INO_EXEC_ENTIER
     port map (
       CLK_i => CLK_i, RESET_i => RESET_i,
-      ISSUE_VALID_i => ISSUE_VALID_i, ISSUE_i => ISSUE_i, ISSUE_READY_o => ISSUE_READY_o,
+
+      ISSUE_VALID_i		=> ISSUE_VALID_i,
+      ISSUE_i		=> ISSUE_i,
+      ISSUE_READY_o		=> ISSUE_READY_o,
+
       FRAME_DSP_i => FRAME_DSP_i, FRAME_RSP_i => FRAME_RSP_i,
+
       DISP_SEL_o => DISP_SEL_o, DISP_i => DISP_i, LIMITS_i => LIMITS_i,
-      SYNC_VALID_i => SYNC_VALID_i, SYNC_COPILE_i => SYNC_COPILE_i, COPILE_o => COPILE_o,
+
+      SYNC_VALID_i => SYNC_VALID_i,
+      SYNC_COPILE_i => SYNC_COPILE_i, COPILE_o => COPILE_o,
       STACK_MAINT_o => STACK_MAINT_o, STACK_MAINT_DONE_i => STACK_MAINT_DONE_i,
-      MEM_REQ_o => MEM_REQ_o, MEM_READY_i => MEM_READY_i, MEM_RSP_i => MEM_RSP_i,
-      COMPLETE_o => COMPLETE_o,
-      ARITH_READY_i                 => arith_ready,
-      ARITH_COMPLETE_VALID_i        => arith_valid,
-      ARITH_COMPLETE_RESULT_VALID_i => arith_result_valid,
-      ARITH_COMPLETE_RESULT_i       => arith_result,
-      ARITH_COMPLETE_FAULT_i        => arith_fault
+
+      MEM_REQ_o	=> MEM_REQ_o,
+      MEM_READY_i	=> MEM_READY_i,
+      MEM_RSP_i	=> MEM_RSP_i,
+
+      COMPLETE_o			=> COMPLETE_o,
+
+      ARITH_READY_i			=> arith_ready,
+      ARITH_COMPLETE_VALID_i		=> arith_valid,
+      ARITH_COMPLETE_RESULT_VALID_i	=> arith_result_valid,
+      ARITH_COMPLETE_RESULT_i		=> arith_result,
+      ARITH_COMPLETE_FAULT_i		=> arith_fault
     );
 
 end architecture STRUCTURE;

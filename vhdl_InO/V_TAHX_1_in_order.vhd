@@ -131,12 +131,12 @@ U_DECODE_QUEUE :
 
 U_CORE :
   entity work.INO_CORE_SYSTEM
-  port map (
-    CLK_i => CLK_i, RESET_i => RESET_i, BOOT_BLOCK_i => BOOT_BLOCK_i,
+    port map (
+      CLK_i => CLK_i, RESET_i => RESET_i, BOOT_BLOCK_i => BOOT_BLOCK_i,
 
-    DECODE_BLOCK_i => dq_block,
-    DECODE_COUNT_i => dq_count,
-    DECODE_TAKE_o => dq_take,
+      DECODE_BLOCK_i => dq_block,
+      DECODE_COUNT_i => dq_count,
+      DECODE_TAKE_o => dq_take,
 
 
          COMMIT_o => commit,
@@ -144,12 +144,20 @@ U_CORE :
          REDIRECT_VALID_o => redirect_valid, REDIRECT_PC_o => redirect_pc,
          SYSTEM_HOLD_o => system_hold,
          FRAME_o => frame, COPILE_o => copile, LIMITS_o => limits, DR_o => dr,
-         STACK_MEM_REQ_o => stack_mem_req, STACK_MEM_READY_i => dc_ready( 0 ), STACK_MEM_RSP_i => stack_mem_rsp,
-         EXEC_MEM_REQ_o => exec_mem_req, EXEC_MEM_READY_i => dc_ready( 1 ), EXEC_MEM_RSP_i => exec_mem_rsp,
-         IRQ_PENDING_i => IRQ_PENDING_i, IRQ_ACK_o => IRQ_ACK_o, IRQ_ACK_CODE_o => IRQ_ACK_CODE_o,
-         HALT_REQ_i => HALT_REQ_i, HALTED_o => halted, HALT_CAUSE_o => HALT_CAUSE_o,
-         EXIT_CODE_o => EXIT_CODE_o, FPC_o => FPC_o, FCODE_o => FCODE_o,
-         STACK_IDLE_o => stack_idle );
+
+      STACK_MEM_REQ_o	=> stack_mem_req,
+      STACK_MEM_READY_i	=> dc_ready( 0 ),
+      STACK_MEM_RSP_i	=> stack_mem_rsp,	-- Vient du cache data
+
+      EXEC_MEM_REQ_o	=> exec_mem_req,
+      EXEC_MEM_READY_i	=> dc_ready( 1 ),
+      EXEC_MEM_RSP_i	=> exec_mem_rsp,	-- Vient du cache data
+
+      IRQ_PENDING_i => IRQ_PENDING_i, IRQ_ACK_o => IRQ_ACK_o, IRQ_ACK_CODE_o => IRQ_ACK_CODE_o,
+      HALT_REQ_i => HALT_REQ_i, HALTED_o => halted, HALT_CAUSE_o => HALT_CAUSE_o,
+      EXIT_CODE_o => EXIT_CODE_o, FPC_o => FPC_o, FCODE_o => FCODE_o,
+      STACK_IDLE_o => stack_idle
+    );
 
    -----------------------------------------------------------------------------
    -- Adaptateur du commit InO vers le predicteur du frontal.
@@ -176,17 +184,33 @@ U_CORE :
    dc_req( 0 ) <= stack_mem_req;
    dc_req( 1 ) <= exec_mem_req;
 
-   U_DATA_CACHE : entity work.INO_DATA_CACHE(STRUCTURE)
-      port map (
-         CLK_i => CLK_i, RESET_i => RESET_i,
-         STACK_REQ_i => TO_PA( stack_mem_req ), STACK_READY_o => dc_ready( 0 ), STACK_RSP_o => stack_mem_rsp,
-         EXEC_REQ_i => TO_PA_EXEC( exec_mem_req ), EXEC_READY_o => dc_ready( 1 ), EXEC_RSP_o => exec_mem_rsp,
-         D_REQ_o => D_REQ_o, D_WRITE_o => D_WRITE_o, D_ADDR_o => dc_d_addr, D_WDATA_o => D_WDATA_o,
-         D_READY_i => D_READY_i, D_RVALID_i => D_RVALID_i, D_RDATA_i => D_RDATA_i, D_FAULT_i => D_FAULT_i );
+U_DATA_CACHE :
+  entity work.INO_DATA_CACHE(STRUCTURE)
+    port map (
+      CLK_i	=> CLK_i,
+      RESET_i	=> RESET_i,
 
-   D_ADDR_o  <= TO_VA( dc_d_addr );
-   D_SIZE_o  <= "11";
-   D_WSTRB_o <= ( others => '1' );
+      STACK_REQ_i	=> TO_PA( stack_mem_req ),
+      STACK_READY_o	=> dc_ready( 0 ),
+      STACK_RSP_o	=> stack_mem_rsp,
+
+      EXEC_REQ_i	=> TO_PA_EXEC( exec_mem_req ),
+      EXEC_READY_o	=> dc_ready( 1 ),
+      EXEC_RSP_o	=> exec_mem_rsp,
+
+      D_REQ_o	=> D_REQ_o,
+      D_WRITE_o	=> D_WRITE_o,
+      D_ADDR_o	=> dc_d_addr,
+      D_WDATA_o	=> D_WDATA_o,
+      D_READY_i	=> D_READY_i,
+      D_RVALID_i	=> D_RVALID_i,
+      D_RDATA_i	=> D_RDATA_i,
+      D_FAULT_i	=> D_FAULT_i
+    );
+
+  D_ADDR_o  <= TO_VA( dc_d_addr );
+  D_SIZE_o  <= "11";
+  D_WSTRB_o <= ( others => '1' );
 
    -- pragma translate_off
    CHECK : process( CLK_i )

@@ -2,7 +2,7 @@ PDK: ihp-sg13cmos5l
 
 DESIGN_NAME: ino_fetch
 
-IO_PIN_ORDER_CFG: dir::pin_order.cfg
+IO_PIN_ORDER_CFG: dir::pin_order_25ns.cfg
 
 CTS_CLK_MAX_WIRE_LENGTH: 300        # µm : coupe les fils d'horloge longs par des tampons
 CTS_DISTANCE_BETWEEN_BUFFERS: 300   # µm : tampons le long des grandes branches de l'arbre
@@ -25,7 +25,11 @@ SIGNOFF_SDC_FILE: dir::ino_fetch_25ns.sdc
 SYNTH_STRATEGY: "DELAY 1"
 PL_TIMING_DRIVEN: true
 SYNTH_CORNER: nom_slow_1p08V_125C
-PNR_CORNERS: [nom_slow_1p08V_125C]
+# canaux_fil (P52) : hold vu au coin fast pendant le placement-routage, marges de
+# hold de 0,1 ns (recette d'ino_data_cache, P40). Run canaux_rep : deux cellules de
+# retard (dlygate4sd3, 1,28 ns) sur fetch_pc[8], en tete du pire chemin de setup ;
+# elles venaient de la marge de 0,4 ns au coin slow, reglee pour couvrir le fast.
+PNR_CORNERS: [nom_slow_1p08V_125C, nom_fast_1p32V_m40C]
 
 # Parasites estimes : LAYERS_RC de sg13g2 (Metal1 a Metal4), la configuration de
 # sg13cmos5l le laisse vide (§ 8.9).
@@ -41,24 +45,50 @@ PL_RESIZER_SETUP_SLACK_MARGIN: 1.0
 GRT_RESIZER_SETUP_SLACK_MARGIN: 1.0
 DESIGN_REPAIR_MAX_SLEW_PCT: 25
 GRT_DESIGN_REPAIR_MAX_SLEW_PCT: 25
-DESIGN_REPAIR_MAX_WIRE_LENGTH: 400
-GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 400
 
-# Boite fixee : deux colonnes de SRAM (685 x 220 um), six rangees de pas 280 um
-# a partir de y = 420 ; la logique va dans la bande du bas et le couloir central.
-DIE_AREA: [0, 0, 1800, 2050]
+# Variantes canaux_rep et canaux_fil (P50, 30 octobre, etude § 8.21) : run canaux routé, 0 DRC,
+# mais -1,74 ns au coin slow (90 chemins). Les pires chemins passent tous par deux
+# reseaux sous-dimensionnes au signoff : net11035 (buf_1, 1,00 pF, slew 6,1 ns,
+# 3,18 ns) et _01949_ (o21ai_1, 0,40 pF, slew 6,0 ns, 4,25 ns), plus une dizaine
+# d'autres pilotes de 0,56 a 1 pF. La reparation apres routage global (etape 41)
+# n'a vu aucun de ces reseaux en violation. L'optimisation de setup qui la suit
+# (ResizerTimingPostGRT) retire des tampons par defaut et n'est suivie d'aucune
+# reparation de slew et de capacite : on interdit ce retrait, et la marge de
+# capacite de la reparation apres routage global passe de 10 a 30 %.
+GRT_RESIZER_SETUP_BUFFER_REMOVAL: false
+GRT_DESIGN_REPAIR_MAX_CAP_PCT: 30
+# Run canaux_rep (31 octobre) : -0,46 ns au coin slow (43 chemins, contre -1,74 et
+# 90), mais net11035 reste pilote par un buf_1 (1,08 pF, 3,50 ns plus 2,34 ns de
+# fil) : aucune reparation de slew et de capacite ne le corrige. Variante
+# canaux_fil : en plus, tampons sur les fils de plus de 1 000 um (aux deux
+# reparations). Apres placement, la longueur vient de l'arbre de Steiner de toutes
+# les broches, sans dependre du routage global. P35 avait retire ceux de 400 um (debordement 36 072 dans les
+# canaux de 130 um) ; les canaux de 180 um debordent de 104 et les cellules
+# n'occupent que 18,7 % du coeur.
+DESIGN_REPAIR_MAX_WIRE_LENGTH: 1000
+GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 1000
+# Variante (29 octobre, etude § 8.17) : sans tampons de fils longs. Le premier
+# routage global a 25 ns deborde de 36 072 sur toutes les couches (usage moyen
+# 45 %) : avec 400 um, chaque liaison SRAM -> logique (macro de 2 050 um de haut)
+# recoit des tampons, places dans le couloir central et les bandes entre rangees
+# de SRAM, deja etroits.
+
+# Boite 1900 x 2200 um (variante quinconce, P59, P61) ; historique des boites et des
+# canaux (P43, P44, P49) dans l'etude, § 8.21.
+DIE_AREA: [0, 0, 1900, 2200]
 FP_SIZING: absolute
 FP_MACRO_HORIZONTAL_HALO: 10
 FP_MACRO_VERTICAL_HALO: 10
 
-PL_TARGET_DENSITY_PCT: 58
+PL_TARGET_DENSITY_PCT: 50
 PL_ROUTABILITY_DRIVEN: true
-PL_RESIZER_HOLD_SLACK_MARGIN: 0.4
+PL_RESIZER_HOLD_SLACK_MARGIN: 0.1
 
-GRT_ALLOW_CONGESTION: true
+# Valeur du run du 2 novembre (aucun debordement au routage global).
+GRT_ALLOW_CONGESTION: false
 GRT_ANTENNA_REPAIR_ITERS: 6
 GRT_ANTENNA_REPAIR_MARGIN: 20
-GRT_RESIZER_HOLD_SLACK_MARGIN: 0.4
+GRT_RESIZER_HOLD_SLACK_MARGIN: 0.1
 DIODE_ON_PORTS: in
 DIODE_CELL: sg13cmos5l_antennanp/A
 
@@ -78,58 +108,61 @@ MACROS:
         - pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_2P_512x32_c2_bm_bist_slow_1p08V_125C.lib
       "*_fast_*":
         - pdk_dir::libs.ref/sg13cmos5l_sram/lib/RM_IHPSG13_2P_512x32_c2_bm_bist_fast_1p32V_m55C.lib
-    # Coller ici la sortie de : python3 placer_sram.py <netlist synthetise>
+    # Disposition en quinconce (V. Morin, 2 novembre ; P59, P61) : la colonne est est
+    # decalee en x (950 a 1125) et en y par rapport a la colonne ouest, au lieu de deux
+    # colonnes alignees ; boite 1900 x 2200. Run du 2 novembre (RUN_2026-11-01_23-36-47) :
+    # routage global sans debordement, 0 DRC en 3 iterations, 0 antenne, +5,22 ns au
+    # coin slow (+1,76 dans canaux_fil), fil le plus long 1 726 um (6 069).
+    # Ces positions sont celles du run, hors de la grille de placer_sram.py pour 10 SRAM
+    # sur 11 (50 a 200 nm) : 624 avertissements DRT-0418, dont des broches de signal.
+    # verifier_broches_sram.py (P60) sur le DEF du routage : 344 broches reliees par
+    # SRAM, toutes atteintes par le routage. Ramenees sur la grille (P59), le placement
+    # change et le run echoue : le flot est chaotique, on garde ce tirage.
     instances:
       "u_fetch.gen_banks:1.u_ram.u_w0":
-        location: [50, 249.80]
-        orientation: FS
-      "u_fetch.gen_banks:1.u_ram.u_w1":
-        location: [900, 249.80]
+        location: [50, 200]
         orientation: FS
       "u_fetch.gen_banks:2.u_ram.u_w0":
-        location: [50, 599.87]
-        orientation: N
-      "u_fetch.gen_banks:2.u_ram.u_w1":
-        location: [900, 599.87]
+        location: [50, 636]
         orientation: N
       "u_fetch.gen_banks:3.u_ram.u_w0":
-        location: [50, 849.80]
-        orientation: FS
-      "u_fetch.gen_banks:3.u_ram.u_w1":
-        location: [900, 849.80]
+        location: [50, 888]
         orientation: FS
       "u_fetch.gen_banks:4.u_ram.u_w0":
-        location: [50, 1199.87]
-        orientation: N
-      "u_fetch.gen_banks:4.u_ram.u_w1":
-        location: [900, 1199.87]
+        location: [50, 1270]
         orientation: N
       "u_fetch.u_tag_nx.u_r0":
-        location: [50, 1449.80]
-        orientation: FS
-      "u_fetch.u_tag_nx.u_r1":
-        location: [900, 1449.80]
+        location: [50, 1556]
         orientation: FS
       "u_fetch.u_tag.u_w0":
-        location: [50, 1799.87]
+        location: [50, 1930]
         orientation: N
+      "u_fetch.gen_banks:1.u_ram.u_w1":
+        location: [1000, 92]
+        orientation: FS
+      "u_fetch.gen_banks:2.u_ram.u_w1":
+        location: [950, 484]
+        orientation: N
+      "u_fetch.gen_banks:3.u_ram.u_w1":
+        location: [950, 899.72]
+        orientation: FS
+      "u_fetch.gen_banks:4.u_ram.u_w1":
+        location: [1100, 1480]
+        orientation: N
+      "u_fetch.u_tag_nx.u_r1":
+        location: [1125, 1749.64]
+        orientation: FS
 
-# Pas de signal en TopMetal1 au-dessus des SRAM (29 octobre, etude § 8.20), comme
-# ino_data_cache : les bandes d'alimentation TopMetal1 y passent. Run P35 : 292
-# courts-circuits TopMetal1 restants apres 64 iterations de routage detaille.
-# SRAM 2P 512 x 32 : 685,49 x 219,77 um (LEF).
-ROUTING_OBSTRUCTIONS:
-  - [TopMetal1, 50.00, 249.80, 735.49, 469.57]
-  - [TopMetal1, 900.00, 249.80, 1585.49, 469.57]
-  - [TopMetal1, 50.00, 599.87, 735.49, 819.64]
-  - [TopMetal1, 900.00, 599.87, 1585.49, 819.64]
-  - [TopMetal1, 50.00, 849.80, 735.49, 1069.57]
-  - [TopMetal1, 900.00, 849.80, 1585.49, 1069.57]
-  - [TopMetal1, 50.00, 1199.87, 735.49, 1419.64]
-  - [TopMetal1, 900.00, 1199.87, 1585.49, 1419.64]
-  - [TopMetal1, 50.00, 1449.80, 735.49, 1669.57]
-  - [TopMetal1, 900.00, 1449.80, 1585.49, 1669.57]
-  - [TopMetal1, 50.00, 1799.87, 735.49, 2019.64]
+# Pas d'obstruction de routage : ni TopMetal1 (P42, P56), ni Metal4 (P54), ni bandes
+# de bord (P57) ; aucune n'a resolu les courts-circuits TopMetal1 des deux colonnes
+# alignees, que la disposition en quinconce fait disparaitre.
+
+# Historique : avec
+# l'obstruction (P42), TopMetal1 etant la seule couche horizontale libre au-dessus
+# d'une SRAM, les liaisons horizontales sont toutes renvoyees dans les canaux de
+# 130 um, et le routage detaille cale (1 744 courts-circuits Metal4, 268 Metal3, a
+# la 7e iteration). Sans elle (P35), il restait 292 courts-circuits TopMetal1 : les
+# canaux elargis doivent laisser au routeur la place de les contourner.
 
 # Alimentation des SRAM : VDD! et VDDARRAY! sur VPWR, VSS! sur VGND (broches
 # Metal4 de la macro).

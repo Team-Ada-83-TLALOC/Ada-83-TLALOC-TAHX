@@ -95,8 +95,8 @@ begin
                      else '0';
    DECODE_TAKE_o  <= to_unsigned( 1, DECODE_TAKE_o'length ) when decode_take_s = '1' else ( others => '0' );
 
-   system_issue_valid_s <= issue_valid_s when IS_SYSTEM_OP( issue_s.slot.canon.op ) else '0';
-   backend_issue_valid_s <= issue_valid_s when not IS_SYSTEM_OP( issue_s.slot.canon.op ) else '0';
+   system_issue_valid_s	<= issue_valid_s when IS_SYSTEM_OP( issue_s.slot.canon.op ) else '0';
+   backend_issue_valid_s	<= issue_valid_s when not IS_SYSTEM_OP( issue_s.slot.canon.op ) else '0';
 
    issue_ready_s <= system_issue_ready_s when IS_SYSTEM_OP( issue_s.slot.canon.op )
                     else backend_issue_ready_s;
@@ -168,7 +168,7 @@ U_STACK :
       MAINT_i		=> stack_maint_s,
       MAINT_DONE_o		=> stack_maint_done_s,
 
-      MEM_REQ_o		=> stack_mem_req_pa_s,
+      MEM_REQ_o		=> stack_mem_req_pa_s,	-- Dialogue avec le DATA_CACHE
       MEM_READY_i		=> STACK_MEM_READY_i,
       MEM_RSP_i		=> STACK_MEM_RSP_i,
       IDLE_o		=> stack_idle_s
@@ -179,16 +179,28 @@ U_STACK :
    -- adresses de 64 bits pour la fusion avec SYSTEM_UNIT (TO_VA exact pour
    -- COMPLETE ; pour la requete memoire, une adresse non realisable reste non
    -- realisable, voir exec_mem_request_pa_t).
-   U_BACKEND : entity work.INO_EXECUTE( STRUCTURE )
-      port map (
-         CLK_i => CLK_i, RESET_i => RESET_i,
-         ISSUE_VALID_i => backend_issue_valid_s, ISSUE_i => stack_issue_pa_s, ISSUE_READY_o => backend_issue_ready_s,
-         FRAME_DSP_i => stack_dsp_pa_s, FRAME_RSP_i => stack_rsp_pa_s,
-         DISP_SEL_o => backend_disp_sel_s, DISP_i => stack_disp_pa_s, LIMITS_i => limits_s,
-         SYNC_VALID_i => sync_valid_s, SYNC_COPILE_i => sync_copile_s, COPILE_o => copile_s,
-         STACK_MAINT_o => backend_maint_s, STACK_MAINT_DONE_i => stack_maint_done_s,
-         MEM_REQ_o => backend_mem_req_pa_s, MEM_READY_i => EXEC_MEM_READY_i, MEM_RSP_i => EXEC_MEM_RSP_i,
-         COMPLETE_o => backend_complete_pa_s );
+U_BACKEND :
+  entity work.INO_EXECUTE( STRUCTURE )
+    port map (
+      CLK_i	=> CLK_i,
+      RESET_i	=> RESET_i,
+
+      ISSUE_VALID_i		=> backend_issue_valid_s,	-- Vient de STACK_UNIT
+      ISSUE_i		=> stack_issue_pa_s,
+      ISSUE_READY_o		=> backend_issue_ready_s,
+
+      FRAME_DSP_i => stack_dsp_pa_s, FRAME_RSP_i => stack_rsp_pa_s,
+
+      DISP_SEL_o => backend_disp_sel_s, DISP_i => stack_disp_pa_s, LIMITS_i => limits_s,
+
+      SYNC_VALID_i => sync_valid_s, SYNC_COPILE_i => sync_copile_s, COPILE_o => copile_s,
+      STACK_MAINT_o => backend_maint_s, STACK_MAINT_DONE_i => stack_maint_done_s,
+
+      MEM_REQ_o	=> backend_mem_req_pa_s,	-- Dialogue avec le DATA_CACHE
+      MEM_READY_i	=> EXEC_MEM_READY_i,
+      MEM_RSP_i	=> EXEC_MEM_RSP_i,
+      COMPLETE_o	=> backend_complete_pa_s
+    );
 
    backend_complete_s <= TO_VA( backend_complete_pa_s );
    backend_mem_req_s  <= TO_VA( backend_mem_req_pa_s );
@@ -200,10 +212,13 @@ U_STACK :
    U_SYSTEM : entity work.INO_SYSTEM( STRUCTURE )
       port map (
          CLK_i => CLK_i, RESET_i => RESET_i, BOOT_BLOCK_i => BOOT_BLOCK_i,
+
          ISSUE_VALID_i => system_issue_valid_s, ISSUE_i => TO_SYS( stack_issue_pa_s ),
          ISSUE_READY_o => system_issue_ready_s, COMPLETE_o => system_complete_pa_s,
+
          FAULT_VALID_i => commit_s.valid and commit_s.fault.valid,
          FAULT_PC_i => stack_commit_pa_s.slot.pc, FAULT_i => commit_s.fault,
+
          BOUNDARY_VALID_i => BOUNDARY_VALID_i, BOUNDARY_PC_i => TO_PA( BOUNDARY_PC_i ),
          SYSTEM_HOLD_o => system_hold_s,
          REDIRECT_VALID_o => REDIRECT_VALID_o, REDIRECT_PC_o => system_redirect_pc_pa_s,
