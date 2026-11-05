@@ -29,6 +29,11 @@ PNR_CORNERS: [nom_slow_1p08V_125C]
 FP_SIZING: absolute
 DIE_AREA: [0, 0, 800, 1050]
 PL_TARGET_DENSITY_PCT: 60
+# P68 (5 novembre) : broches du plan de puce TAHX_SOC (fenetre et prediction toutes a
+# l'ouest) ; le placement detaille de ResizerTimingPostCTS echouait sur 4 cellules
+# (DPL-0036) avec le deplacement vertical par defaut de 100 um.
+PL_MAX_DISPLACEMENT_X: 1000
+PL_MAX_DISPLACEMENT_Y: 400
 
 # Antennes (26 octobre, apres P8) : le routage detaille convergeait (0 violation en
 # 55 iterations, 4 h 30), puis check_antennas trouvait 75 nets et 80 broches en
