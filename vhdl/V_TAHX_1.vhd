@@ -139,6 +139,10 @@ is				------
       HALT_REQ_i		:in  std_logic;				-- Demande d'arrêt
       HALTED_o		:out std_logic;				-- Machine arrêtée
       HALT_CAUSE_o		:out halt_cause_t;				-- HALT_xxx de TAHX_1_ISA
+      RESUME_REQ_i		:in  std_logic := '0';			-- Reprise apres HALT_REQUEST (InO)
+      RESUME_PC_i		:in  address_t := ( others => '0' );	-- PC de reprise (InO)
+      HALT_PC_o		:out address_t;				-- PC a l'arret HALT_REQUEST (InO ; OoO : 0)
+      ICACHE_INVALIDATE_i	:in  std_logic := '0';			-- ICACHE_INVALIDATE_ALL (InO)
       EXIT_CODE_o		:out word64_t;				-- code de TRAP 0 (EXIT)
       FPC_o		:out address_t;				-- dernière faute ou interruption
       FCODE_o		:out trap_code_t				-- Code de faute/trappe

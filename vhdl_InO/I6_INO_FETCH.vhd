@@ -57,6 +57,7 @@ is                    	          ---------
       CLK_i		:in  std_logic;
       RESET_i		:in  std_logic;
       HALT_i		:in  std_logic;			-- Machine arrêtée : plus rien n'est chargé
+      ICACHE_INVALIDATE_i	:in  std_logic;			-- ICACHE_INVALIDATE_ALL (INO_FETCH_LINE)
 
       ------------------------------------------------------------------
       -- Mémoire d'instructions

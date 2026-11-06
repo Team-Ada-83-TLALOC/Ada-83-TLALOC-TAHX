@@ -29,7 +29,7 @@ begin
 
    U_CORE : entity work.INO_DCACHE_CORE(RTL)
       generic map ( PORTS_G => 2, SIZE_BYTES_G => 32 * 1024, WAYS_G => 4,
-                    VALID_BASE_G => DATA_VALID_BASE, VALID_LIMIT_G => DATA_VALID_LIMIT )
+                    VALID_BASE_G => INO_DATA_VALID_BASE, VALID_LIMIT_G => DATA_VALID_LIMIT )
       port map (
          CLK_i => CLK_i, RESET_i => RESET_i,
          REQ_i => req, READY_o => ready, RSP_o => rsp,

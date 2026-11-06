@@ -21,8 +21,22 @@ use work.INO_PORTS_PA.all;
         -- déjà précise. Avant toute SYNC, STACK_MAINT_o demande WRITEBACK_ALL afin que
         -- l'invalidation du cache de pile par STACK_UNIT ne perde aucune valeur.
         --
-        -- Priorité au repos : HALT_REQ, faute précise, interruption livrable,
-        -- instruction sérialisante.
+        -- Priorité au repos : faute précise, HALT_REQ à une frontière, interruption
+        -- livrable, instruction sérialisante.
+        --
+        -- Arrêt de mise au point (HALT_REQ_i) : il n'est pris qu'à une frontière
+        -- (BOUNDARY_VALID_i : unité de pile au repos, prochaine instruction connue),
+        -- comme une interruption. Rien n'est alors en vol, aucune faute ne se perd, et
+        -- HALT_PC_o est le PC de la prochaine instruction. Une faute qui arrive avant
+        -- la frontière est livrée d'abord : l'arrêt a lieu à la première instruction
+        -- du handler. Tant que HALT_REQ est levé, INO_CORE_SYSTEM ne laisse prendre
+        -- une instruction qu'au repos de l'unité de pile, si bien qu'une frontière
+        -- finit par venir (y compris après une forme len = 0).
+        -- RESUME_REQ_i en S_HALT (cause HALT_REQUEST seulement) redirige vers
+        -- RESUME_PC_i. La redirection vide le frontal, qui relit donc des octets
+        -- modifiés par le débogueur ; le cache d'instructions demande, lui,
+        -- ICACHE_INVALIDATE_ALL. Si HALT_REQ_i est encore levé, la machine s'arrête de
+        -- nouveau à la première frontière, au PC de reprise.
         --
         -- SYSTEM_HOLD_o doit empêcher STACK_UNIT de prendre une nouvelle instruction
         -- pendant une séquence système. Pour une interruption, il est aussi levé au
@@ -117,6 +131,13 @@ is                              ---------------
       HALT_REQ_i        : in  std_logic;
       HALTED_o          : out std_logic;
       HALT_CAUSE_o      : out halt_cause_t;
+      -- Reprise apres un arret HALT_REQUEST (sans effet pour les autres causes) :
+      -- RESUME_REQ_i est lu en S_HALT et redirige vers RESUME_PC_i. HALT_PC_o est le
+      -- PC de la prochaine instruction au dernier arret HALT_REQUEST (frontiere) ; les
+      -- autres arrets ne le changent pas (0 apres RESET).
+      RESUME_REQ_i      : in  std_logic := '0';
+      RESUME_PC_i       : in  address_t := ( others => '0' );
+      HALT_PC_o         : out address_t;
       EXIT_CODE_o       : out word64_t;
       FPC_o             : out address_t;
       FCODE_o           : out trap_code_t

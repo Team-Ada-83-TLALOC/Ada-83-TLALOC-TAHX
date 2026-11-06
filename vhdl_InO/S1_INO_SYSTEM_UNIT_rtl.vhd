@@ -66,6 +66,7 @@ of INO_SYSTEM_UNIT is           ---
 
    signal halted_s      : std_logic := '0';
    signal halt_cause_s  : halt_cause_t := HALT_NONE;
+   signal halt_pc_s     : address_t := ( others => '0' );   -- HALT_REQUEST : prochaine instruction
    signal exit_code_s   : word64_t := ( others => '0' );
 
    -- événement / instruction figés au début de la séquence
@@ -286,6 +287,7 @@ begin
    FCODE_o      <= fcode_s;
    HALTED_o     <= halted_s;
    HALT_CAUSE_o <= halt_cause_s;
+   HALT_PC_o    <= halt_pc_s;
    EXIT_CODE_o  <= exit_code_s;
 
    COMPLETE_o <= complete_r_s when state_s = S_COMPLETE else
@@ -306,15 +308,17 @@ begin
    IRQ_ACK_o      <= '1' when state_s = S_REDIRECT and seq_s = Q_IRQ else '0';
    IRQ_ACK_CODE_o <= irq_code_s;
 
+   -- Une instruction systeme deja prise est acceptee meme si HALT_REQ est leve :
+   -- l'arret attend la frontiere qui suit sa terminaison.
    ISSUE_READY_o <= '1' when state_s = S_IDLE
-                              and HALT_REQ_i = '0'
                               and FAULT_VALID_i = '0'
+                              and not ( HALT_REQ_i = '1' and BOUNDARY_VALID_i = '1' )
                               and not ( dr_s = '0' and BOUNDARY_VALID_i = '1'
                                         and IRQ_PICK( IRQ_PENDING_i, imask_s ) >= 0 )
                     else '0';
 
    SYSTEM_HOLD_o <= '1' when state_s /= S_IDLE
-                              or HALT_REQ_i = '1'
+                              or ( HALT_REQ_i = '1' and BOUNDARY_VALID_i = '1' )
                               or FAULT_VALID_i = '1'
                               or ( dr_s = '0' and BOUNDARY_VALID_i = '1'
                                    and IRQ_PICK( IRQ_PENDING_i, imask_s ) >= 0 )
@@ -381,6 +385,7 @@ begin
             dr_s <= '0'; fpc_s <= ( others => '0' ); fcode_s <= ( others => '0' );
             imask_s <= ( others => '1' );
             halted_s <= '0'; halt_cause_s <= HALT_NONE; exit_code_s <= ( others => '0' );
+            halt_pc_s <= ( others => '0' );
             redirect_pending_s <= '0'; sync_pending_s <= '0';
             complete_r_s <= ( valid => '0', result_valid => '0', result => ( others => '0' ),
                               fault => NO_FAULT, taken => '0', target => ( others => '0' ) );
@@ -400,10 +405,8 @@ begin
                   complete_r_s.valid <= '0';
                   k := IRQ_PICK( IRQ_PENDING_i, imask_s );
 
-                  if HALT_REQ_i = '1' then
-                     HALT( HALT_REQUEST );
-
-                  elsif FAULT_VALID_i = '1' and FAULT_i.valid = '1' then
+                  -- La faute d'abord : FAULT_VALID_i est une impulsion du commit.
+                  if FAULT_VALID_i = '1' and FAULT_i.valid = '1' then
                      if dr_s = '1' then
                         HALT( HALT_DOUBLE_FAULT );
                      else
@@ -411,6 +414,11 @@ begin
                         pc_s <= CUT( FAULT_PC_i ); fpc_s <= CUT( FAULT_PC_i ); fcode_s <= FAULT_i.code; dr_s <= '1';
                         seq_s <= Q_FAULT; state_s <= S_MAINT_PULSE;
                      end if;
+
+                  elsif HALT_REQ_i = '1' and BOUNDARY_VALID_i = '1' then
+                     -- Arret de mise au point, a une frontiere : rien n'est en vol.
+                     HALT( HALT_REQUEST );
+                     halt_pc_s <= CUT( BOUNDARY_PC_i );
 
                   elsif dr_s = '0' and BOUNDARY_VALID_i = '1' and k >= 0 then
                      if FRAME_RSP_i - 8 < limits_s.lim_rsp - RESERVE_RSP then
@@ -651,7 +659,13 @@ begin
                   end if;
 
                when S_HALT =>
-                  null;
+                  -- Seul l'arret de mise au point se reprend ; les autres sont terminaux.
+                  if RESUME_REQ_i = '1' and halt_cause_s = HALT_REQUEST then
+                     halted_s <= '0'; halt_cause_s <= HALT_NONE;
+                     seq_s <= Q_NONE; sync_pending_s <= '0';
+                     redirect_pc_s <= CUT( RESUME_PC_i );
+                     state_s <= S_REDIRECT;
+                  end if;
 
             end case;
          end if;

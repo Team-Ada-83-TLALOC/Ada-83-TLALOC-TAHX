@@ -165,7 +165,7 @@ begin
 
    DUT : entity work.INO_FETCH( STRUCTURE )
       port map (
-         CLK_i => clk, RESET_i => reset, HALT_i => halt,
+         CLK_i => clk, RESET_i => reset, HALT_i => halt, ICACHE_INVALIDATE_i => '0',
          I_REQ_o => d_i_req, I_ADDR_o => d_i_addr, I_READY_i => i_ready,
          I_RVALID_i => i_rvalid, I_RDATA_i => i_rdata, I_FAULT_i => i_fault,
          WINDOW_o => d_window, WINDOW_COUNT_o => d_window_count, WINDOW_PC_o => d_window_pc,

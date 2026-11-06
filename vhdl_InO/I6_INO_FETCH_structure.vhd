@@ -49,7 +49,7 @@ U_FETCH :
       FETCH_VALID_o => fetch_valid, FETCH_PC_o => fetch_pc, FETCH_LINE_o => fetch_line,
       FETCH_COUNT_o => fetch_count, FETCH_READY_i => fetch_ready, FETCH_FAULT_o => fetch_fault,
       RECOVERY_i => recovery, PREDICT_VALID_i => PREDICT_VALID_i, PREDICT_PC_i => TO_VA( PREDICT_PC_i ),
-      STOP_i => stop, FLUSH_o => flush
+      STOP_i => stop, FLUSH_o => flush, INVALIDATE_ALL_i => ICACHE_INVALIDATE_i
     );
 
 U_BYTES :

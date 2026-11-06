@@ -180,6 +180,7 @@ BUS_RESULTATS :
    maint			<= sys_maint when sys_maint.valid = '1' else cx_maint;
 
    HALTED_o		<= halted;
+   HALT_PC_o		<= ( others => '0' );			-- RESUME : InO seulement
 
 		--------------------------------------------------------------------------------
 		-- Frontal

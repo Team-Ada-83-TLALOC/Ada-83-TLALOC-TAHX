@@ -51,7 +51,16 @@ is                              --------------
       PREDICT_VALID_i   :in  std_logic;
       PREDICT_PC_i      :in  address_t;
       STOP_i            :in  std_logic;
-      FLUSH_o           :out std_logic
+      FLUSH_o           :out std_logic;
+
+      -- ICACHE_INVALIDATE_ALL : toutes les lignes deviennent absentes (present a 0,
+      -- ligne fautive oubliee). Un remplissage en cours a pu lire d'anciens octets :
+      -- il se termine normalement sur le bus, mais ne rend pas sa ligne presente.
+      -- Une impulsion d'un cycle suffit. Les octets deja passes dans la file
+      -- d'octets ou dans la file de decodage ne sont pas touches : le logiciel fait
+      -- suivre l'invalidation d'un transfert qui redirige le frontal (TRAP / RTX,
+      -- ou RESUME du debogueur) avant d'executer le code modifie.
+      INVALIDATE_ALL_i  :in  std_logic := '0'
    );
 end entity                      INO_FETCH_LINE;
                                 --------------
@@ -88,6 +97,7 @@ architecture IN_ORDER of INO_FETCH_LINE is
    constant WORDS : positive := FETCH_BLOCK_SIZE / 8;
 
    signal present  : std_logic_vector(0 to LINES - 1);
+   signal fill_stale : std_logic;           -- remplissage en cours anterieur a une invalidation
 
    -- Sorties des RAM de tags. Comme pour les donnees, elles correspondent aux
    -- adresses presentes avant le dernier front.
@@ -284,6 +294,7 @@ begin
             fault_valid <= '0';
             filling <= '0';
             fill_fault <= '0';
+            fill_stale <= '0';
             req_k <= 0;
             resp_k <= 0;
          else
@@ -324,7 +335,10 @@ begin
                   if resp_k = WORDS - 1 then
                      filling <= '0';
                      resp_k <= 0;
-                     if ff = '1' then
+                     if fill_stale = '1' then
+                        -- Ligne lue avant une invalidation : ni presente, ni fautive.
+                        present(fill_index) <= '0';
+                     elsif ff = '1' then
                         fault_valid <= '1';
                         fault_line <= fill_line;
                         present(fill_index) <= '0';
@@ -345,6 +359,7 @@ begin
                filling <= '1';
                fill_line <= new_line;
                fill_fault <= '0';
+               fill_stale <= '0';
                req_k <= 0;
                resp_k <= 0;
                -- Les mots arrivent directement dans les banques : rendre l'ancienne
@@ -361,6 +376,7 @@ begin
                filling <= '1';
                fill_line <= new_line;
                fill_fault <= '0';
+               fill_stale <= '0';
                req_k <= 0;
                resp_k <= 0;
                present(new_idx) <= '0';
@@ -380,6 +396,15 @@ begin
 
             elsif show = '1' and FETCH_READY_i = '1' then
                pc <= CUT(line_base + FETCH_BLOCK_SIZE);
+            end if;
+
+            -- ICACHE_INVALIDATE_ALL, en dernier : il l'emporte sur tout ce qui
+            -- precede (fin de remplissage comprise). Un remplissage qui commence a ce
+            -- front est lui aussi ecarte (prudence : un seul remplissage de plus).
+            if INVALIDATE_ALL_i = '1' then
+               present <= (others => '0');
+               fault_valid <= '0';
+               fill_stale <= '1';
             end if;
 
          end if;

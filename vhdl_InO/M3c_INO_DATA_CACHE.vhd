@@ -8,7 +8,7 @@ use ieee.numeric_std.all;
 -- INO_DATA_CACHE : la macro de cache de donnees de TAHX_1(IN_ORDER).
 --
 -- INO_DCACHE_CORE dans la configuration de TAHX (32 Kio, 4 voies, regle de validite
--- DATA_VALID_BASE .. DATA_VALID_LIMIT), sans generique (nom de module fixe pour
+-- INO_DATA_VALID_BASE (0) .. DATA_VALID_LIMIT), sans generique (nom de module fixe pour
 -- LibreLane), avec ses deux clients :
 --   port 0 : STACK_UNIT (FILL / SPILL, maintenance), adresses toujours realisables ;
 --   port 1 : execution (INO_EXECUTE ou INO_SYSTEM), exec_mem_request_pa_t.

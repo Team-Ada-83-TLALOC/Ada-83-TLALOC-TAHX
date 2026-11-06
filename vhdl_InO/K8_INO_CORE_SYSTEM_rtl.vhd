@@ -56,6 +56,7 @@ of INO_CORE_SYSTEM is           ---
    signal system_mem_req_pa_s   : exec_mem_request_pa_t;
    signal system_redirect_pc_pa_s : paddr_t;
    signal system_fpc_pa_s       : paddr_t;
+   signal system_halt_pc_pa_s   : paddr_t;
    signal sync_dsp_pa_s         : paddr_t;
    signal sync_rsp_pa_s         : paddr_t;
    signal disp_wdata_pa_s       : paddr_t;
@@ -89,9 +90,11 @@ begin
    -- suivante au cycle du commit, sans passer par IDLE. Une interruption n'est
    -- livree qu'a une frontiere observee unite de pile au repos (BOUNDARY_VALID de
    -- INO_FRONTEND_CONTROL) : quand une interruption est en attente, la prise n'est
-   -- offerte qu'au repos, ce qui garde cette frontiere.
+   -- offerte qu'au repos, ce qui garde cette frontiere. Meme regle pour l'arret de
+   -- mise au point (HALT_REQ_i), pris lui aussi a une frontiere.
    decode_valid_s <= '1' when system_hold_s = '0' and DECODE_COUNT_i /= 0 and DECODE_BLOCK_i( 0 ).valid = '1'
-                              and ( stack_idle_s = '1' or IRQ_PENDING_i = ( IRQ_PENDING_i'range => '0' ) )
+                              and ( stack_idle_s = '1'
+                                    or ( IRQ_PENDING_i = ( IRQ_PENDING_i'range => '0' ) and HALT_REQ_i = '0' ) )
                      else '0';
    DECODE_TAKE_o  <= to_unsigned( 1, DECODE_TAKE_o'length ) when decode_take_s = '1' else ( others => '0' );
 
@@ -232,6 +235,8 @@ U_BACKEND :
          MEM_REQ_o => system_mem_req_pa_s, MEM_READY_i => EXEC_MEM_READY_i, MEM_RSP_i => EXEC_MEM_RSP_i,
          IRQ_PENDING_i => IRQ_PENDING_i, IRQ_ACK_o => IRQ_ACK_o, IRQ_ACK_CODE_o => IRQ_ACK_CODE_o,
          HALT_REQ_i => HALT_REQ_i, HALTED_o => HALTED_o, HALT_CAUSE_o => HALT_CAUSE_o,
+         RESUME_REQ_i => RESUME_REQ_i, RESUME_PC_i => TO_PA( RESUME_PC_i ),
+         HALT_PC_o => system_halt_pc_pa_s,
          EXIT_CODE_o => EXIT_CODE_o, FPC_o => system_fpc_pa_s, FCODE_o => FCODE_o );
 
    system_complete_s <= TO_VA( system_complete_pa_s );
@@ -241,6 +246,7 @@ U_BACKEND :
    disp_wdata_s      <= TO_VA( disp_wdata_pa_s );
    REDIRECT_PC_o     <= TO_VA( system_redirect_pc_pa_s );
    FPC_o             <= TO_VA( system_fpc_pa_s );
+   HALT_PC_o         <= TO_VA( system_halt_pc_pa_s );
 
    -- pragma translate_off
    CHECK_EXCLUSION : process( CLK_i )

@@ -58,6 +58,7 @@ U_FETCH :
   entity work.INO_FETCH( STRUCTURE )
     port map (
       CLK_i => CLK_i, RESET_i => RESET_i, HALT_i => HALT_i,
+      ICACHE_INVALIDATE_i => ICACHE_INVALIDATE_i,
       I_REQ_o => I_REQ_o, I_ADDR_o => i_addr, I_READY_i => I_READY_i,
       I_RVALID_i => I_RVALID_i, I_RDATA_i => I_RDATA_i, I_FAULT_i => I_FAULT_i,
       WINDOW_o => window, WINDOW_COUNT_o => window_count, WINDOW_PC_o => window_pc,

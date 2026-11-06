@@ -23,9 +23,9 @@ use work.INO_PORTS_PA.all;
         --  l'interieur :
         --    - ISSUE_i en sys_issue_pa_t : les seuls champs lus par la system_unit
         --      (opcode, val, longueur, pc, operande 0) ; TO_VA rend les autres nuls ;
-        --    - en paddr_t : FAULT_PC_i, BOUNDARY_PC_i, FRAME_DSP/RSP_i, DISP_i (la
+        --    - en paddr_t : FAULT_PC_i, BOUNDARY_PC_i, RESUME_PC_i, FRAME_DSP/RSP_i, DISP_i (la
         --      system_unit les coupe par CUT a l'entree : exact) et REDIRECT_PC_o,
-        --      SYNC_DSP/RSP_o, DISP_WDATA_o, FPC_o (registres deja coupes par CUT) ;
+        --      SYNC_DSP/RSP_o, DISP_WDATA_o, FPC_o, HALT_PC_o (registres deja coupes par CUT) ;
         --    - COMPLETE_o en complete_pa_t : cible toujours nulle ;
         --    - MEM_REQ_o en exec_mem_request_pa_t : une adresse non realisable
         --      (contexte ou bloc hors espace) n'est pas tronquee, outside la signale.
@@ -88,6 +88,9 @@ is                              ----------
       HALT_REQ_i        : in  std_logic;
       HALTED_o          : out std_logic;
       HALT_CAUSE_o      : out halt_cause_t;
+      RESUME_REQ_i      : in  std_logic;
+      RESUME_PC_i       : in  paddr_t;
+      HALT_PC_o         : out paddr_t;
       EXIT_CODE_o       : out word64_t;
       FPC_o             : out paddr_t;
       FCODE_o           : out trap_code_t

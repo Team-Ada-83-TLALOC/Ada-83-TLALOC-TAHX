@@ -91,6 +91,7 @@ U_INSTRUCTION :
   port map (
          CLK_i => CLK_i, RESET_i => RESET_i,
          HALT_i => halted,
+         ICACHE_INVALIDATE_i => ICACHE_INVALIDATE_i,
          I_REQ_o => I_REQ_o, I_ADDR_o => I_ADDR_o, I_READY_i => I_READY_i,
          I_RVALID_i => I_RVALID_i, I_RDATA_i => I_RDATA_i, I_FAULT_i => I_FAULT_i,
          OUT_VALID_o => fe_valid, OUT_BLOCK_o => fe_block, OUT_COUNT_o => fe_count,
@@ -155,6 +156,7 @@ U_CORE :
 
       IRQ_PENDING_i => IRQ_PENDING_i, IRQ_ACK_o => IRQ_ACK_o, IRQ_ACK_CODE_o => IRQ_ACK_CODE_o,
       HALT_REQ_i => HALT_REQ_i, HALTED_o => halted, HALT_CAUSE_o => HALT_CAUSE_o,
+      RESUME_REQ_i => RESUME_REQ_i, RESUME_PC_i => RESUME_PC_i, HALT_PC_o => HALT_PC_o,
       EXIT_CODE_o => EXIT_CODE_o, FPC_o => FPC_o, FCODE_o => FCODE_o,
       STACK_IDLE_o => stack_idle
     );

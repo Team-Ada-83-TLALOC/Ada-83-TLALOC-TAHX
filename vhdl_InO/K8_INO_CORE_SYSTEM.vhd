@@ -73,6 +73,9 @@ is                              ---------------
       HALT_REQ_i        : in  std_logic;
       HALTED_o          : out std_logic;
       HALT_CAUSE_o      : out halt_cause_t;
+      RESUME_REQ_i      : in  std_logic := '0';
+      RESUME_PC_i       : in  address_t := ( others => '0' );
+      HALT_PC_o         : out address_t;
       EXIT_CODE_o       : out word64_t;
       FPC_o             : out address_t;
       FCODE_o           : out trap_code_t;

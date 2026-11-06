@@ -63,6 +63,9 @@ is			----------------
 		-- machine arrêtée par SYSTEM_UNIT : plus aucun chargement
 	HALT_i		:in  std_logic;
 
+		-- ICACHE_INVALIDATE_ALL (InO seulement : OoO l'ignore)
+	ICACHE_INVALIDATE_i	:in  std_logic := '0';
+
 		----------------------------------------------------------------
 		-- Interface mémoire instructions (vers le sommet TAHX_1)
 		----------------------------------------------------------------

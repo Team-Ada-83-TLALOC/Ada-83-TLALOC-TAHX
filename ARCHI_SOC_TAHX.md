@@ -1,4 +1,4 @@
-# TAHX_SOC : sous-système mémoire et périphériques (projet, 5 novembre 2026)
+# TAHX_SOC : sous-système mémoire et périphériques (projet, 5 novembre 2026, revu le 6 novembre)
 
 But : mettre `TAHX_1` (cœur InO, 64 bits) dans un boîtier **QFN64**. Le système mémoire externe est fait de flashs et de PSRAM octales (xSPI), ce qui est bien plus simple que de la DDR. Avec une UART et un bus I2C, on obtient un microcontrôleur 64 bits.
 
@@ -81,9 +81,17 @@ Les adresses physiques du cœur font 32 bits (`PA_BITS` = 32, `A0_INO_PADDR.vhd`
 | `0xF000_0000` – `0xF00F_FFFF` | 1 Mio | registres (§ 2.2) | **non** |
 | reste | | faute d'accès | — |
 
+Carte avec `BOOT_SEL = 0`. Avec `BOOT_SEL = 1` (§ 4.3), les deux fenêtres du port A sont échangées : CS1 en `0x0000_0000`, CS0 (flash de démarrage) en `0x1000_0000`.
+
 - **Fenêtres à base fixe** (les quatre ci-dessus). Pas de registre `BASE` : il n'y a ni recouvrement possible, ni comparateur générique. Une cartographie programmable pourra venir avec TAHX_2.
 - **Pas de répétition d'un composant plus petit que sa fenêtre.** Avec un cache de données en réécriture différée, deux adresses qui désignent le même octet physique peuvent avoir deux copies différentes dans le cache. Chaque sélection a donc un registre `SIZE`, codé en **log2** (les composants ont des tailles en puissance de 2), et un registre `TYPE` (flash, PSRAM, absent). Un décalage dans la fenêtre au-delà de `SIZE` donne une faute précise, au décodeur (§ 2.2). Par exemple, une flash de 64 Mio occupe `0x0000_0000` – `0x03FF_FFFF`, et `0x0400_0000` – `0x0FFF_FFFF` donne une faute.
-- **Bas de la mémoire.** Le cache de données refuse aujourd'hui les accès sous `DATA_VALID_BASE = 0x0040_0000`, une limite héritée de la plateforme de simulation (`vhdl/L0__exec_types.vhd`, générique `VALID_BASE_G` de `INO_DCACHE_CORE`). Avec la flash de démarrage en 0, un chargement ne pourrait pas lire les 4 premiers Mio, qui restent accessibles aux instructions. Proposition : `VALID_BASE_G = 0` pour TAHX_SOC, passé au générique dans `M3c_INO_DATA_CACHE_structure` sans toucher à la constante partagée avec le OoO. Une page interdite en 0 pourra détecter les pointeurs nuls. C'est une constante dans `ino_data_cache` : la macro sera à reconstruire, avec la même configuration.
+- **Bas de la mémoire (décision du 6 novembre : `VALID_BASE_G = 0`, relance d'`ino_data_cache`).** Le cache de données refuse aujourd'hui les accès sous `DATA_VALID_BASE = 0x0040_0000`, une limite héritée de la plateforme de simulation (`vhdl/L0__exec_types.vhd`, générique `VALID_BASE_G` de `INO_DCACHE_CORE`). La valeur est passée au générique dans `M3c_INO_DATA_CACHE_structure`, sans toucher à la constante partagée avec le OoO.
+  - **La convention « pas de données sous 4 Mio » n'est pas tenable** : au RESET, `INO_SYSTEM_UNIT` lit le bloc de démarrage de 232 octets à `BOOT_BLOCK` (séquence `Q_BOOT`) par le port EXEC, donc par `VALID_ACCESS` du cache de données. Avec `BOOT_BLOCK = 0x0000_0000` et la limite actuelle, le démarrage fauterait dès sa première lecture. Il en va de même de toute lecture de constantes par `BOOT_STAGE0`.
+  - **Compatibilité avec eXecutor** : `VALID_BASE_G = 0` ne fait qu'élargir les adresses valides. Les images HX restent liées à `0x0040_0000` (en-tête +16 et +24, CEV, et adresses absolues des `LCA` / `LSPA`) et s'exécutent sans changement. Seul écart avec `tx_run` : un accès sous `0x0040_0000` y fait la faute 132, alors que dans TAHX_SOC il atteint la mémoire placée en 0. TLALOC ne contrôle pas les pointeurs `null` : un déréférencement de `null` n'est détecté ni par le compilateur, ni par TAHX_SOC (voir la zone de garde `NULL_GUARD` du § 4.3).
+  - **Fait (P71)** : constante `INO_DATA_VALID_BASE = 0` dans `A0_INO_PADDR`, passée au générique par `M3c_INO_DATA_CACHE_structure`. `DATA_VALID_BASE` reste celle du OoO et des bancs de `DATA_CACHE`. Netlist de la macro : une seule ligne change (le comparateur de `VALID_ACCESS`).
+- **Où va une image HX.** Elle est liée en absolu à `0x0040_0000`, qui tombe dans la fenêtre de la flash de démarrage (port A, CS0) :
+  - **exécution en place depuis la flash** (XIP) : c'est le cas naturel du premier silicium. `BOOT_STAGE0`, le bloc de démarrage et les handlers vivent sous `0x0040_0000`, l'image au-dessus. Tout ce qui est inscriptible est placé en PSRAM par le bloc de démarrage : piles, co-pile, tas, **VTB et FSCR** (en-tête +72 et +80 à 0, table fournie par le chargeur, car le run-time écrit `VTB[n]`). À vérifier : aucune écriture de TLALOC dans l'image elle-même (`tx_run` l'autorise, la région image y étant inscriptible ; une option de `tx_run` rendant `[0x0040_0000, fin de l'image)` non inscriptible le montrerait) ;
+  - **chargement en PSRAM** (§ 4.2) : avec la carte par défaut, impossible sans relier l'image, puisque les fenêtres de PSRAM commencent à `0x1000_0000`. Avec `BOOT_SEL = 1` (§ 4.3), la PSRAM est en 0 et l'image se charge à `0x0040_0000` sans changement. Il faudrait une base de liaison paramétrable dans `codi_HX` (l'en-tête porte déjà la base en +16, et la table des instructions est relative à la base) et un `tx_run` qui accepte une autre base que `0x0040_0000` (`Memoire.Charger_Image` la vérifie aujourd'hui). Ce n'est pas nécessaire au premier silicium.
 - Pas d'entrelacement des lignes entre A et B pour l'instant : un cache n'a qu'une ligne manquante à la fois, et l'entrelacement ne doublerait pas le débit sans préchargement.
 
 ## 4. Contrôleur xSPI (un par port)
@@ -110,6 +118,13 @@ Registres d'une séquence brute : commande, adresse, nombre d'octets, données (
 - Au RESET, le port A est en **SPI standard (1S-1S-1S), commande `0x03`, adresse sur 3 octets**, à une horloge lente, divisée depuis celle du cœur. La flash retenue doit être **configurée pour démarrer dans ce mode** : beaucoup de NOR xSPI le permettent (démarrage SDR × 1 ou DDR × 8 selon leur configuration non volatile ; la famille IS25LX démarre en SPI × 1 avec une adresse de 3 octets), mais on ne le suppose pas de toute flash.
 - **`BOOT_STAGE0` tient dans les 16 premiers Mio** (`0x0000_0000` – `0x00FF_FFFF`), seule zone adressable sur 3 octets. Ce n'est pas une contrainte pratique : ce premier étage tient en quelques Kio. Il passe la flash et le contrôleur en 8D-8D-8D avec des adresses de 4 octets ; le reste de la flash devient alors accessible.
 - `BOOT_BLOCK` devient la constante `0x0000_0000`. `BOOT_STAGE0` configure la flash et le contrôleur en octal DTR, puis la PSRAM.
+- **Décision (6 novembre) : bloc de démarrage au choix, `BOOT_SEL`.** Une broche de configuration, lue à la sortie du RESET, échange les deux fenêtres du port A : `BOOT_SEL = 0`, CS0 en `0x0000_0000` et CS1 en `0x1000_0000` ; `BOOT_SEL = 1`, l'inverse. La flash de démarrage reste câblée sur CS0 ; avec `BOOT_SEL = 1`, elle apparaît en `0x1000_0000` (`BOOT_BLOCK = 0x1000_0000`) et la PSRAM de CS1 en `0x0000_0000`.
+  - Intérêt : les images HX liées à `0x0040_0000` tombent alors en PSRAM. Le chargeur par l'UART ou par JTAG les écrit sans relier, et la disposition de la plateforme N3 (`0x40_0000` – `0x4E_0000`) se reprend telle quelle. Avec `BOOT_SEL = 0`, on garde l'exécution en place depuis la flash.
+  - Coût : une bascule de configuration, un OU exclusif sur le bit 28 dans le choix de la sélection du port A (matrice) et dans l'index des registres `SIZE` / `TYPE` (décodeur d'attributs). Le bit est constant après le RESET : rien sur les chemins critiques. `BOOT_BLOCK_i` d'`ino_system` est une entrée : aucune macro ne change.
+  - Broche : pas de broche dédiée (la réserve du QFN64 est de 0 à 4) ; `GPIO0` sert d'entrée de configuration, échantillonnée à la sortie du RESET, avec un rappel sur la carte. Lisible dans un registre système. `MEM_RESET_A#` et le haute impédance du port A pendant le RESET valent pour les deux sélections.
+  - Valeurs au RESET des registres `TYPE` / `SIZE` : la sélection de démarrage (CS0) est de type flash, de 16 Mio (adressage sur 3 octets) ; l'autre est absente jusqu'à ce que `BOOT_STAGE0` la configure.
+  - En production avec `BOOT_SEL = 1`, `BOOT_STAGE0` copie l'image de la flash vers la PSRAM. La copie doit passer par le mode indirect (§ 4.2) : une copie par des STORE laisserait des lignes sales dans le cache de données, que le chargement d'instructions ne verrait pas, tant que `DCACHE_WRITEBACK_ALL` n'existe pas.
+  - **Zone de garde contre `null`** (décision du 6 novembre, dans le décodeur d'attributs, hors macro) : un registre `NULL_GUARD` (log2, 0 au RESET = sans garde) met `outside` à 1 pour les requêtes EXEC sous `2^NULL_GUARD`. Le test est un OU sur `addr[31:k]`, comme celui de `SIZE`. Avec la PSRAM en 0, une écriture par un pointeur `null` corromprait la mémoire sans rien signaler ; avec `NULL_GUARD = 22`, on retrouve le comportement de `tx_run` (faute 132 sous `0x0040_0000`). `BOOT_STAGE0` l'arme après avoir placé le bloc de démarrage, VTB et FSCR au-dessus.
 - **Programmation en circuit** : pendant RESET, les broches du port A sont en haute impédance, `MEM_RESET_A#` compris (§ 4.5). Un programmateur externe peut alors écrire la flash directement. Une fois le système démarré, un chargeur par l'UART peut prendre le relais.
 
 ### 4.4 Horloge, débit et plots
@@ -184,7 +199,14 @@ PC, FPC et FCODE se lisent comme registres du module de débogage par `DBG_ADDRE
 
 **Points de conception :**
 - **RESET du TAP** : pas de broche `TRST#` (QFN64). Le TAP revient en Test-Logic-Reset par cinq `TCK` avec `TMS` = 1, et sur le RESET de la puce (tenant lieu de remise à zéro à la mise sous tension). Le RESET du **cœur** est distinct : `RESET` de la puce ou bit `DBG_CONTROL.CORE_RESET`, ce qui permet de relancer le cœur sans perdre le TAP, puis de l'arrêter avant sa première instruction (`HALT_ON_RESET`).
-- **Arrêt et reprise** : `HALT_REQ_i` d'`ino_system` existe (aujourd'hui une broche de la puce, désormais pilotée par le module de débogage). Mais **l'état `S_HALT` d'`INO_SYSTEM_UNIT` est terminal** (`when S_HALT => null;`) : seul le RESET en sort. `RESUME` demande donc une retouche RTL d'`ino_system` (sortie de `S_HALT` vers une redirection au PC suivant), et une relance de la macro, aujourd'hui à +7,0 ns. Sans elle, le débogage du premier silicium reste possible en « arrêt, lecture, RESET du cœur ».
+- **Arrêt et reprise (RTL du 6 novembre, `ino_system` à relancer)** : `HALT_REQ_i` d'`ino_system` est piloté par le module de débogage. Ports ajoutés : `RESUME_REQ_i`, `RESUME_PC_i` (32 bits), `HALT_PC_o` (32 bits), au sud de la macro.
+  - L'arrêt `HALT_REQUEST` n'est pris qu'à une **frontière** (`BOUNDARY_VALID` : unité de pile au repos, prochaine instruction connue), comme une interruption. Rien n'est alors en vol : aucune faute ne se perd, et `HALT_PC_o` est le PC de la prochaine instruction. Avant, `HALT_REQ` arrêtait au premier cycle de repos d'`INO_SYSTEM_UNIT`, instruction en vol comprise, et une faute arrivant ensuite était perdue (sans conséquence tant que l'arrêt était terminal).
+  - Priorité au repos : faute précise, puis arrêt, puis interruption. Une faute qui précède la frontière est livrée d'abord ; l'arrêt a lieu à la première instruction du handler, FPC et FCODE intacts.
+  - Tant que `HALT_REQ` est levé, la prise d'instruction n'est offerte qu'au repos de l'unité de pile (logique de sommet d'`INO_CORE_SYSTEM`, hors macro, comme pour les interruptions). Une forme `len = 0` (LI D64) se termine donc avant l'arrêt. Une instruction système déjà prise est acceptée.
+  - `RESUME_REQ_i` en `S_HALT`, pour la cause `HALT_REQUEST` seulement, redirige vers `RESUME_PC_i` : la redirection vide le frontal. Les arrêts `EXIT`, double faute, vecteur nul et livraison impossible restent terminaux.
+  - Le module de débogage garde un registre `DPC` chargé depuis `HALT_PC_o`, lisible et modifiable par JTAG, et le présente sur `RESUME_PC_i` : « arrêt, lecture, reprise » et « fixer le PC, reprendre ». Avec `HALT_ON_RESET` (HALT_REQ tenu pendant le RESET), le cœur exécute la séquence de démarrage puis s'arrête avant sa première instruction ; en écrivant un programme en PSRAM et `DPC`, on démarre sans flash. Il émet `RESUME_REQ` sur un cycle : maintenu avec `HALT_REQ`, il ferait refaire indéfiniment arrêt et redirection au même PC.
+  - Le pas à pas (une seule prise, puis arrêt) n'est pas fait : il demanderait d'ouvrir la prise d'une instruction tout en gardant `HALT_REQ`.
+  - Banc : `T_K8_CORE_SYSTEM_tb`, 5 scénarios (prise hors frontière, arrêt et reprise, reprise à un autre PC avec `HALT_REQ` maintenu, faute avant la frontière, double faute non reprenable).
 - **Accès mémoire** : le module de débogage est un **troisième maître de la matrice**, de priorité la plus basse, qui n'agit que cœur arrêté. Il atteint la mémoire externe même si le cœur ne démarre pas (port A en `0x03` au RESET), et le bus de registres `R_*` par le même décodage. Il ne voit pas les lignes sales du cache de données : tant que `DCACHE_WRITEBACK_ALL` n'existe pas (§ 6), une lecture de débogage peut rendre une valeur périmée d'une ligne modifiée.
 - **Domaines d'horloge** : `TCK` est asynchrone de l'horloge du cœur. Les commandes et les accès traversent par une poignée de main synchronisée sur deux bascules dans chaque sens ; le BSR et le TAP restent entièrement dans le domaine `TCK`.
 - **Registre de balayage** : une cellule par plot d'entrée, deux par plot de sortie à trois états (donnée et validation), trois par plot bidirectionnel (entrée, sortie, validation). Pour les 40 plots de signal hors JTAG : environ 100 cellules. `CLK` et `RESET` sont en observation seule. Le multiplexeur de chaque cellule est sur le chemin plot ↔ cœur : à compter dans le budget de sortie xSPI en DTR (§ 4.4). Il faudra aussi écrire le **fichier BSDL** de la puce, qui décrit le TAP et l'ordre du BSR aux outils de test.
@@ -192,7 +214,13 @@ PC, FPC et FCODE se lisent comme registres du module de débogage par `DBG_ADDRE
 ## 6. Cohérence des caches
 
 - Le cache d'instructions (`present(0..511)`) n'a pas d'autre invalidation que le RESET, et le cache de données n'a pas de réécriture générale des lignes sales.
-- Première étape : **`ICACHE_INVALIDATE_ALL`**, un registre système qui remet `present` à zéro. C'est une petite modification d'`ino_fetch` : une entrée de plus et un OU sur le RESET de `present`. Avec le chargement par le mode indirect xSPI (§ 4.2) **dans une région de PSRAM que le cache de données n'a jamais touchée**, cela suffit au chargeur du premier silicium.
+- Première étape : **`ICACHE_INVALIDATE_ALL`**, un registre système qui remet `present` à zéro. Avec le chargement par le mode indirect xSPI (§ 4.2) **dans une région de PSRAM que le cache de données n'a jamais touchée**, cela suffit au chargeur du premier silicium.
+  - **Fait au RTL (P73, 6 novembre)** : entrée `INVALIDATE_ALL_i` d'`INO_FETCH_LINE`, `ICACHE_INVALIDATE_i` de la macro `ino_fetch` (au nord, après `halt_i`), d'`INSTRUCTION_UNIT` et de `TAHX_1` (défaut `'0'`). Une impulsion d'un cycle suffit.
+  - Effet : `present` à zéro et ligne fautive oubliée (une mémoire réparée ou reconfigurée redevient lisible). Un remplissage en cours a pu lire d'anciens octets : il se termine sur le bus mais ne rend pas sa ligne présente, qui sera relue. Un remplissage qui commence au même front est écarté lui aussi (un remplissage de plus, par prudence).
+  - Les octets déjà passés dans la file d'octets ou la file de décodage ne sont pas touchés : **le logiciel fait suivre l'invalidation d'un transfert qui redirige le frontal** (TRAP / RTX, ou `RESUME` du débogueur) avant d'exécuter le code modifié.
+  - Banc : `T_I1d_FETCH_LINE_INVALIDATE_tb` (258 vérifications : succès après chargement, contenu périmé sans invalidation, relecture après invalidation, invalidation pendant un remplissage, faute gardée jusqu'à l'invalidation).
+  - Coût (synthèse générique Yosys de la netlist extraite) : 17 148 → 17 548 cellules (+2,3 %), une bascule de plus (`fill_stale`). Le RESET de `present` reste une remise à zéro synchrone ; l'invalidation ajoute un multiplexeur par bit.
+- Lecture par le débogueur : cœur arrêté, ses accès passent par le port EXEC du cache de données (multiplexeur au sommet), et non par la matrice ; il voit alors les lignes sales, sans relance d'`ino_data_cache`.
 - Plus tard : `DCACHE_WRITEBACK_ALL` et `DCACHE_INVALIDATE_ALL` (balayage des 256 ensembles × 4 voies, réécriture des lignes sales, puis invalidation), pour un rechargement à chaud, le code auto-modifiable ou un futur DMA.
 
 ## 7. Broches (QFN64)
@@ -253,13 +281,13 @@ x: 0          1900 1960   2760 2820 3220 3280             4780
 
 | macro | N | O | S | E | à relancer |
 |---|---|---|---|---|---|
-| `ino_fetch` | horloge, RESET, `halt_i`, reprise | — | `i_*` (vers la matrice) | fenêtre, consommation, prédiction, sur la moitié haute (face à `decode_predict`) | oui, avec `ICACHE_INVALIDATE_ALL` (§ 6) |
+| `ino_fetch` | horloge, RESET, `halt_i`, `icache_invalidate_i`, reprise | — | `i_*` (vers la matrice) | fenêtre, consommation, prédiction, sur la moitié haute (face à `decode_predict`) | oui, avec `ICACHE_INVALIDATE_ALL` (§ 6) |
 | `ino_decode_predict` | reprise, retrait, horloge | fenêtre, consommation, prédiction (même ordre que l'est de `fetch`) | — | `out_*` (inchangé) | oui |
 | `decode_queue` | horloge | `push_*` | `flush_i` | `pop_*` | non (inchangé) |
 | `stack_unit_16_8` | horloge, `commit_o`, `idle_o`, `decode_valid_i` | case de `decode_queue` (inchangé) | de gauche à droite : émission, retour, frame, disp (`exec_entier`, `system`) ; `mem_*` (canal) ; maintenance | de bas en haut : limites, sync, disp_w (`system`, par l'espace libre à l'est) | oui ; routage global validé par Vincent (débordement 0, Metal3 77 %) |
 | `ino_exec_entier` | horloge, émission, retour, frame, disp, maintenance | `arith_*` | — | de bas en haut : `mem_*` (canal), limites, sync, co-pile (`system`) | oui |
 | `ino_exec_arith` | horloge | — | — | de bas en haut : retour et READY (face à `exec_entier`), émission (vers `stack_unit`) | oui |
-| `ino_system` | horloge, émission, retour, frame, disp, maintenance, sync, disp_w, fautes, frontière, redirection | de bas en haut : `mem_*` (canal), limites, co-pile | signaux de puce (vers le bloc sud-est) | — | oui |
+| `ino_system` | horloge, émission, retour, frame, disp, maintenance, sync, disp_w, fautes, frontière, redirection | de bas en haut : `mem_*` (canal), limites, co-pile | signaux de puce (vers le bloc sud-est), dont `resume_req_i`, `resume_pc_i`, `halt_pc_o` | — | oui (`RESUME`) |
 | `ino_data_cache` | — | `d_*` | — | ports STACK et EXEC | broches inchangées ; à refaire avec `VALID_BASE_G = 0` (§ 3) |
 
 ## 9. Étapes
@@ -273,16 +301,16 @@ x: 0          1900 1960   2760 2820 3220 3280             4780
    | `stack_unit_16_8` | 1500 × 1500 | +0,19 | routée, broches v69 (Vincent) ; 2 capacités max |
    | `ino_exec_entier` | 900 × 1000 | +0,46 | routée, broches P67 ; 10 transitions max, 4 capacités max (coin lent) |
    | `ino_exec_arith` | 1150 × 1150 | +1,27 | routée, broches P67 ; 7 transitions max (coin lent) |
-   | `ino_system` | 1100 × 1000 | +7,01 | routée, broches P67 ; à relancer si `RESUME` (§ 5.1) |
-   | `ino_fetch` | 1900 × 2200 | (+5,22, anciennes broches) | **à relancer** : broches P68 et `ICACHE_INVALIDATE_ALL` |
-   | `ino_data_cache` | serre | (+1,11) | **à relancer** pour `VALID_BASE_G = 0`, broches inchangées |
+   | `ino_system` | 1100 × 1000 | +7,01 | routée, broches P67 ; **à relancer** : `RESUME` (§ 5.1), 65 broches de plus au sud |
+   | `ino_fetch` | 1900 × 2200 | (+5,22, anciennes broches) | **à relancer** : broches P68 et `ICACHE_INVALIDATE_ALL` (P73, RTL fait) |
+   | `ino_data_cache` | 2275 × 1062 | +1,26 | routée le 6 novembre (P71, `VALID_BASE_G = 0`, marges de hold 0,2 ns) ; hold +0,066 au coin rapide ; 71 transitions max, 2 capacités max (coin lent) |
 
 2. RTL, dans cet ordre, pour vérifier tôt l'idée centrale (quatre mots de 64 bits → une rafale octale de 32 octets) :
    1. matrice 2 × 2 (D > I), agrégation des lignes et **un seul** contrôleur xSPI (`xspi_controller` + `xspi_phy`, délai de garde), avec un modèle VHDL de PSRAM octale, puis de flash (démarrage `0x03` sur 3 octets) ;
-   2. attributs mémoire et port `R_*` au sommet (§ 2.2), bus de registres, `SIZE` / `TYPE` ;
+   2. attributs mémoire et port `R_*` au sommet (§ 2.2), bus de registres, `SIZE` / `TYPE`, `BOOT_SEL` et `NULL_GUARD` (§ 4.3) ;
    3. second port, `MEM_RESET#`, mode indirect ;
    4. UART, I2C, temporisateur, registres système ; TAP JTAG, module de débogage, BSR et BSDL ;
-   5. `ICACHE_INVALIDATE_ALL` dans `ino_fetch` ; `VALID_BASE_G = 0` pour `ino_data_cache` ; `RESUME` dans `ino_system` (§ 5.1) ; sommet `TAHX_SOC`.
+   5. sommet `TAHX_SOC`. (`RESUME` dans `ino_system`, `VALID_BASE_G = 0` pour `ino_data_cache` et `ICACHE_INVALIDATE_ALL` dans `ino_fetch` : faits le 6 novembre, § 5.1, § 3 et § 6.)
    
    Bancs unitaires, puis modèles de flash et de PSRAM octales dans N3, et mesure des cycles sur les B_*.
 3. Couronne de plots, assemblage, LEF et GDS.

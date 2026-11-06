@@ -70,6 +70,9 @@ architecture TEST of T_K8_CORE_SYSTEM_tb is
    signal exit_code  : word64_t;
    signal fpc        : address_t;
    signal fcode      : trap_code_t;
+   signal resume_req : std_logic := '0';
+   signal resume_pc  : address_t := ( others => '0' );
+   signal halt_pc    : address_t;
 
    signal poke_valid : std_logic := '0';
    signal poke_addr  : address_t := ( others => '0' );
@@ -105,6 +108,7 @@ begin
          EXEC_MEM_REQ_o => exec_mem_req, EXEC_MEM_READY_i => '1', EXEC_MEM_RSP_i => exec_mem_rsp,
          IRQ_PENDING_i => irq_pending, IRQ_ACK_o => irq_ack, IRQ_ACK_CODE_o => irq_ack_code,
          HALT_REQ_i => halt_req, HALTED_o => halted, HALT_CAUSE_o => halt_cause, EXIT_CODE_o => exit_code,
+         RESUME_REQ_i => resume_req, RESUME_PC_i => resume_pc, HALT_PC_o => halt_pc,
          FPC_o => fpc, FCODE_o => fcode, STACK_IDLE_o => stack_idle );
 
    MEMORY : process( clk )
@@ -249,6 +253,49 @@ begin
          WAIT_SYS_IDLE;
       end procedure;
 
+      -- Arrêt de mise au point : présente s à la frontière pc et attend HALTED,
+      -- sans qu'aucune instruction ne soit prise.
+      procedure HALT_AT( constant s : decoded_slot_t; constant pc : natural ) is
+         variable n : natural := 0;
+      begin
+         boundary_pc <= A( pc ); boundary_valid <= '1';
+         decode_block <= ( others => NO_SLOT ); decode_block( 0 ) <= s;
+         decode_count <= to_unsigned( 1, decode_count'length );
+         loop
+            wait until rising_edge( clk ); wait for 1 ns;
+            CHECK( c, decode_take = 0, "CORE_SYSTEM HALT : aucune prise a la frontiere" );
+            exit when halted = '1';
+            n := n + 1; CHECK( c, n < 100, "CORE_SYSTEM HALT borne" );
+         end loop;
+         CHECK( c, halt_cause = HALT_REQUEST, "CORE_SYSTEM HALT cause HALT_REQUEST" );
+         CHECK( c, halt_pc = A( pc ), "CORE_SYSTEM HALT_PC", HEX( A( pc ) ), HEX( halt_pc ) );
+         CHECK( c, system_hold = '1', "CORE_SYSTEM HALT tient SYSTEM_HOLD" );
+         for i in 1 to 20 loop
+            wait until rising_edge( clk ); wait for 1 ns;
+            CHECK( c, decode_take = 0 and halted = '1' and redirect_valid = '0',
+                   "CORE_SYSTEM HALT stable" );
+         end loop;
+         decode_count <= ( others => '0' ); decode_block <= ( others => NO_SLOT );
+         boundary_valid <= '0';
+      end procedure;
+
+      procedure RESUME( constant pc : natural ) is
+         variable n : natural := 0;
+      begin
+         resume_pc <= A( pc ); resume_req <= '1';
+         wait until rising_edge( clk ); resume_req <= '0';
+         loop
+            wait for 1 ns;
+            exit when redirect_valid = '1';
+            n := n + 1; CHECK( c, n < 20, "CORE_SYSTEM RESUME redirection bornee" );
+            wait until rising_edge( clk );
+         end loop;
+         CHECK( c, redirect_pc = A( pc ), "CORE_SYSTEM RESUME PC", HEX( A( pc ) ), HEX( redirect_pc ) );
+         CHECK( c, halted = '0' and halt_cause = HALT_NONE, "CORE_SYSTEM RESUME HALTED retombe" );
+         CHECK( c, irq_ack = '0', "CORE_SYSTEM RESUME sans IRQ_ACK" );
+         WAIT_SYS_IDLE;
+      end procedure;
+
       procedure WAIT_IRQ( constant pc_redirect : natural; constant return_pc : natural ) is
          variable n : natural := 0;
       begin
@@ -322,6 +369,71 @@ begin
       CHECK( c, frame.rsp = A( RSP0 ), "CORE_SYSTEM CTX_RESTORE RSP" );
       CHECK( c, RD64( DSP0 + 8 ) = x"0000000000000001", "CORE_SYSTEM CTX_RESTORE resultat 1" );
       CHECK( c, dr = '0', "CORE_SYSTEM CTX_RESTORE DR" );
+
+      ------------------------------------------------------------------
+      -- Arret de mise au point et reprise (RESUME).
+      ------------------------------------------------------------------
+      -- 1. HALT_REQ leve hors frontiere : l'instruction est prise au repos (cas d'une
+      --    forme len = 0, qui ferme la frontiere), puis l'arret a lieu a la frontiere.
+      CHECK( c, halt_pc = A( 0 ), "CORE_SYSTEM HALT_PC nul avant tout arret" );
+      halt_req <= '1';
+      RUN_NORMAL( SLOT( OP_LI_D32, 5, 16#4040#, 5 ) );
+      CHECK( c, halted = '0', "CORE_SYSTEM pas d'arret hors frontiere" );
+      CHECK( c, frame.dsp = A( DSP0 + 16 ), "CORE_SYSTEM instruction prise malgre HALT_REQ" );
+      HALT_AT( SLOT( x"30", 0, 16#4045#, 1 ), 16#4045# );
+      CHECK( c, frame.dsp = A( DSP0 + 16 ), "CORE_SYSTEM HALT : etat de pile intact" );
+
+      -- 2. Reprise au PC d'arret, HALT_REQ retombe : l'execution continue.
+      halt_req <= '0';
+      RESUME( 16#4045# );
+      RUN_NORMAL( SLOT( x"30", 0, 16#4045#, 1 ) );
+      CHECK( c, frame.dsp = A( DSP0 + 8 ), "CORE_SYSTEM execution apres RESUME" );
+
+      -- 3. Reprise a un autre PC avec HALT_REQ maintenu : nouvel arret au PC de reprise.
+      halt_req <= '1';
+      HALT_AT( SLOT( x"30", 0, 16#4046#, 1 ), 16#4046# );
+      RESUME( 16#4100# );
+      HALT_AT( SLOT( x"30", 0, 16#4100#, 1 ), 16#4100# );
+      halt_req <= '0';
+      RESUME( 16#4100# );
+
+      -- 4. Faute avant la frontiere, HALT_REQ leve : la faute est livree, l'arret a
+      --    lieu a la premiere instruction du handler, FPC et FCODE sont conserves.
+      POKE64( VTB + 8*128, W( 16#4500# ) );
+      halt_req <= '1';
+      RUN_NORMAL( SLOT( OP_LI_D32, 7, 16#4050#, 5 ) );
+      RUN_NORMAL( SLOT( OP_LI_D32, 0, 16#4055#, 5 ) );
+      PRESENT( SLOT( x"15", 0, 16#405A#, 1 ) );                -- DIV par 0 : faute 128
+      for i in 0 to 1000 loop
+         wait until rising_edge( clk ); wait for 1 ns;
+         CHECK( c, halted = '0', "CORE_SYSTEM faute livree avant l'arret" );
+         exit when redirect_valid = '1';
+         CHECK( c, i < 1000, "CORE_SYSTEM livraison de faute bornee" );
+      end loop;
+      CHECK( c, redirect_pc = A( 16#4500# ), "CORE_SYSTEM faute : handler", HEX( A( 16#4500# ) ), HEX( redirect_pc ) );
+      WAIT_SYS_IDLE;
+      CHECK( c, fpc = A( 16#405A# ) and fcode = to_unsigned( 128, 8 ) and dr = '1', "CORE_SYSTEM faute FPC/FCODE/DR" );
+      HALT_AT( SLOT( x"15", 0, 16#4500#, 1 ), 16#4500# );
+      CHECK( c, fpc = A( 16#405A# ) and fcode = to_unsigned( 128, 8 ), "CORE_SYSTEM HALT conserve FPC/FCODE" );
+
+      -- 5. Les autres arrets ne se reprennent pas : double faute (DR = 1).
+      halt_req <= '0';
+      RESUME( 16#4500# );
+      PRESENT( SLOT( x"15", 0, 16#4500#, 1 ) );                -- DIV par 0 avec DR = 1
+      for i in 0 to 1000 loop
+         wait until rising_edge( clk ); wait for 1 ns;
+         exit when halted = '1';
+         CHECK( c, i < 1000, "CORE_SYSTEM double faute bornee" );
+      end loop;
+      CHECK( c, halt_cause = HALT_DOUBLE_FAULT, "CORE_SYSTEM double faute : arret" );
+      resume_pc <= A( 16#4600# ); resume_req <= '1';
+      wait until rising_edge( clk ); resume_req <= '0';
+      for i in 1 to 20 loop
+         wait until rising_edge( clk ); wait for 1 ns;
+         CHECK( c, halted = '1' and redirect_valid = '0' and halt_cause = HALT_DOUBLE_FAULT,
+                "CORE_SYSTEM RESUME sans effet sur une double faute" );
+      end loop;
+      CHECK( c, halt_pc = A( 16#4500# ), "CORE_SYSTEM HALT_PC inchange par la double faute" );
 
       FINISH( c, "T_K8_CORE_SYSTEM_tb" ); running <= false; wait;
    end process STIMULI;

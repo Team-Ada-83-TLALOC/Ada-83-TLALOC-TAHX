@@ -27,6 +27,7 @@ architecture STRUCTURE of INO_SYSTEM is
    signal sync_rsp      : address_t;
    signal disp_wdata    : address_t;
    signal fpc           : address_t;
+   signal halt_pc       : address_t;
    signal mem_req       : mem_request_t;
 
 begin
@@ -51,6 +52,7 @@ U_SYSTEM :
       MEM_REQ_o => mem_req, MEM_READY_i => MEM_READY_i, MEM_RSP_i => MEM_RSP_i,
       IRQ_PENDING_i => IRQ_PENDING_i, IRQ_ACK_o => IRQ_ACK_o, IRQ_ACK_CODE_o => IRQ_ACK_CODE_o,
       HALT_REQ_i => HALT_REQ_i, HALTED_o => HALTED_o, HALT_CAUSE_o => HALT_CAUSE_o,
+      RESUME_REQ_i => RESUME_REQ_i, RESUME_PC_i => TO_VA( RESUME_PC_i ), HALT_PC_o => halt_pc,
       EXIT_CODE_o => EXIT_CODE_o, FPC_o => fpc, FCODE_o => FCODE_o );
 
    -- Registres de la system_unit coupes par CUT : TO_PA est exact.
@@ -60,6 +62,7 @@ U_SYSTEM :
    SYNC_RSP_o    <= TO_PA( sync_rsp );
    DISP_WDATA_o  <= TO_PA( disp_wdata );
    FPC_o         <= TO_PA( fpc );
+   HALT_PC_o     <= TO_PA( halt_pc );
    MEM_REQ_o     <= TO_PA_EXEC( mem_req );
 
    -- pragma translate_off
@@ -67,7 +70,7 @@ U_SYSTEM :
    begin
       if rising_edge( CLK_i ) then
          assert PA_OK( redirect_pc ) and PA_OK( sync_dsp ) and PA_OK( sync_rsp )
-                and PA_OK( disp_wdata ) and PA_OK( fpc ) and PA_OK( complete.target )
+                and PA_OK( disp_wdata ) and PA_OK( fpc ) and PA_OK( halt_pc ) and PA_OK( complete.target )
             report "INO_SYSTEM : sortie d'adresse non realisable (TO_PA inexact)" severity failure;
       end if;
    end process CHECK;

@@ -41,6 +41,12 @@ is                              ---------
 
    subtype paddr_t is unsigned( PA_BITS - 1 downto 0 );
 
+   -- Base de validite des acces de donnees de la macro INO_DATA_CACHE (TAHX_SOC) :
+   -- 0, car le bloc de demarrage et BOOT_STAGE0 sont en bas de la memoire. La
+   -- constante DATA_VALID_BASE (0x0040_0000, plateforme de simulation) reste celle
+   -- du OoO et des bancs de DATA_CACHE.
+   constant INO_DATA_VALID_BASE : address_t := ( others => '0' );
+
    -- Premiere adresse non realisee : 2 ** PA_BITS, sur 64 bits.
    constant PA_LIMIT : address_t := ( PA_BITS => '1', others => '0' );
 
