@@ -2,7 +2,7 @@
 
 But : mettre `TAHX_1` (cœur InO, 64 bits) dans un boîtier **QFN64**. Le système mémoire externe est fait de flashs et de PSRAM octales (xSPI), ce qui est bien plus simple que de la DDR. Avec une UART et un bus I2C, on obtient un microcontrôleur 64 bits.
 
-Statut : décisions de l'utilisateur du 5 novembre (§ 1). Cette version intègre les remarques de deux relectures croisées (ChatGPT), vérifiées dans le RTL : décodage des registres avant `ino_data_cache`, pas de répétition des petites mémoires, agrégation des quatre mots d'une ligne, QFN64, broches de débogage, groupes de plots par côté ; puis attributs mémoire avant le cache (écritures vers la flash), démarrage sous 16 Mio, fenêtres à base fixe, PHY xSPI séparé, délai de garde, `MEM_RESET#`. Le reste est une proposition à discuter.
+Statut : décisions de l'utilisateur du 5 novembre (§ 1). Cette version intègre les remarques de deux relectures croisées (ChatGPT), vérifiées dans le RTL : décodage des registres avant `ino_data_cache`, pas de répétition des petites mémoires, agrégation des quatre mots d'une ligne, QFN64, broches de débogage, groupes de plots par côté ; puis attributs mémoire avant le cache (écritures vers la flash), démarrage sous 16 Mio, fenêtres à base fixe, PHY xSPI séparé, délai de garde, `MEM_RESET#`. Débogage : JTAG avec balayage des plots (décision du 6 novembre). Le reste est une proposition à discuter.
 
 ## 1. Décisions
 
@@ -142,19 +142,52 @@ Les NOR ISSI ont une entrée `RESET#`, de même que l'OctalRAM. Une sortie **`ME
 | I2C | maître Fast (400 kHz) et Fast-mode Plus (1 MHz), adressage sur 7 bits, START / STOP / START répété, étirement de l'horloge par l'esclave ; FIFO de 8 octets | fin de transfert, NACK, perte d'arbitrage |
 | temporisateur | compteur sur 64 bits, deux comparateurs | comparaison |
 | registres système | identifiant, `EXIT_CODE`, `FCODE`, `HALT_CAUSE`, masque et état des interruptions, GPIO, maintenance des caches (§ 6) | — |
-| débogage | 4 broches série (§ 5.1) : arrêt, reprise, lecture de PC / FPC / FCODE, lecture et écriture des registres système, sans dépendre de l'exécution de logiciel ni de la mémoire externe | — |
+| débogage | TAP JTAG et module de débogage (§ 5.1) : arrêt, reprise, lecture de PC / FPC / FCODE, accès aux registres et à la mémoire, balayage des plots ; sans dépendre de l'exécution de logiciel ni de la mémoire externe | — |
 
 - **Préparation I3C** : SCL et SDA sur des plots bidirectionnels pilotés en tri-état. L'I2C s'en sert en drain ouvert (niveau bas actif, haut relâché), ce qui permet plus tard la sortie push-pull d'I3C. Le contrôleur I2C est découpé pour qu'un contrôleur I3C basic le remplace derrière le même bus de registres. Fast-mode Plus demande 20 mA en sortie au niveau bas : plots `IOPadInOut30mA`.
 - **Interruptions** : les 32 lignes `IRQ_PENDING` du cœur sont alimentées par l'UART, l'I2C, le temporisateur et les GPIO configurées en entrée.
 - **Débogage** : l'UART ne sert que si le RESET, le port xSPI, la flash, le fetch et le cœur fonctionnent déjà. Les 4 broches de débogage permettent de voir un premier silicium qui se bloque avant.
 
-### 5.1 Interface de débogage
+### 5.1 Débogage : TAP JTAG et module de débogage
 
-Une interface série sur 4 broches, avec des commandes (`HALT`, `RESUME`, `READ_PC`, `READ_FPC`, `READ_FCODE`, lecture et écriture d'un registre système, lecture de l'état xSPI) plutôt que des broches dédiées à l'arrêt et à la reprise. Deux formes possibles, à choisir :
-- **type SPI** (`DBG_CLK`, `DBG_CS#`, `DBG_DIN`, `DBG_DOUT`) : la plus simple, pilotable par n'importe quel maître SPI (FTDI, Raspberry Pi) ;
-- **TAP JTAG** (`TCK`, `TMS`, `TDI`, `TDO`, IEEE 1149.1) : même nombre de broches, un automate TAP de 16 états et un registre d'instruction ; on gagne les sondes et l'outillage standard (FTDI + OpenOCD), et la porte reste ouverte à un balayage des plots (boundary scan) plus tard.
+**Décision (6 novembre)** : transport **JTAG IEEE 1149.1** (`TCK`, `TMS`, `TDI`, `TDO`), avec un protocole de débogage aussi simple que possible, propre à TAHX, et le **balayage des plots (boundary scan) dès le premier silicium** : c'est sur les premiers prototypes que le débogage servira le plus.
 
-Dans les deux cas, l'horloge de débogage est asynchrone de celle du cœur : les commandes traversent par une poignée de main synchronisée sur 2 bascules, et l'interface vit sur un RESET distinct de celui du cœur pour pouvoir observer un cœur bloqué.
+```
+                       TAHX_SOC
+             ┌──────────────────────────────┐
+TCK -------->│  TAP JTAG (16 états, IR)     │
+TMS -------->│     │            │           │
+TDI -------->│     ▼            ▼           │
+TDO <--------│  module de    registre de    │
+             │  débogage     balayage (BSR) │── entre le cœur et chaque plot de signal
+             │     │                        │
+             │  HALT / RESUME / RESET cœur  │
+             │  PC, FPC, FCODE, état        │
+             │  registres R_*, mémoire      │
+             └──────────────────────────────┘
+```
+
+**Instructions** (registre d'instruction de 4 bits) :
+
+| instruction | registre de données | rôle |
+|---|---|---|
+| `BYPASS` | 1 bit | obligatoire (1149.1) |
+| `IDCODE` | 32 bits | instruction par défaut après Test-Logic-Reset ; bit 0 = 1, version, numéro de pièce, code fabricant (pas de code JEDEC : valeur à choisir) |
+| `SAMPLE/PRELOAD` | BSR | obligatoire : capture des plots en fonctionnement, préchargement avant `EXTEST` |
+| `EXTEST` | BSR | obligatoire : les plots sont pilotés par le BSR (test des soudures et de la carte, des mémoires xSPI) |
+| `DBG_CONTROL` | 32 bits | HALT, RESUME, RESET du cœur, arrêt dès la sortie du RESET (`HALT_ON_RESET`), lancement d'un accès (lecture ou écriture, taille) |
+| `DBG_ADDRESS` | 32 bits | adresse physique de l'accès |
+| `DBG_DATA` | 64 bits | donnée de l'accès |
+| `DBG_STATUS` | 32 bits | `HALTED`, `HALT_CAUSE`, accès occupé / fini / en faute, erreurs collantes xSPI (§ 4.4) |
+
+PC, FPC et FCODE se lisent comme registres du module de débogage par `DBG_ADDRESS` (plage réservée), pour ne pas multiplier les instructions.
+
+**Points de conception :**
+- **RESET du TAP** : pas de broche `TRST#` (QFN64). Le TAP revient en Test-Logic-Reset par cinq `TCK` avec `TMS` = 1, et sur le RESET de la puce (tenant lieu de remise à zéro à la mise sous tension). Le RESET du **cœur** est distinct : `RESET` de la puce ou bit `DBG_CONTROL.CORE_RESET`, ce qui permet de relancer le cœur sans perdre le TAP, puis de l'arrêter avant sa première instruction (`HALT_ON_RESET`).
+- **Arrêt et reprise** : `HALT_REQ_i` d'`ino_system` existe (aujourd'hui une broche de la puce, désormais pilotée par le module de débogage). Mais **l'état `S_HALT` d'`INO_SYSTEM_UNIT` est terminal** (`when S_HALT => null;`) : seul le RESET en sort. `RESUME` demande donc une retouche RTL d'`ino_system` (sortie de `S_HALT` vers une redirection au PC suivant), et une relance de la macro, aujourd'hui à +7,0 ns. Sans elle, le débogage du premier silicium reste possible en « arrêt, lecture, RESET du cœur ».
+- **Accès mémoire** : le module de débogage est un **troisième maître de la matrice**, de priorité la plus basse, qui n'agit que cœur arrêté. Il atteint la mémoire externe même si le cœur ne démarre pas (port A en `0x03` au RESET), et le bus de registres `R_*` par le même décodage. Il ne voit pas les lignes sales du cache de données : tant que `DCACHE_WRITEBACK_ALL` n'existe pas (§ 6), une lecture de débogage peut rendre une valeur périmée d'une ligne modifiée.
+- **Domaines d'horloge** : `TCK` est asynchrone de l'horloge du cœur. Les commandes et les accès traversent par une poignée de main synchronisée sur deux bascules dans chaque sens ; le BSR et le TAP restent entièrement dans le domaine `TCK`.
+- **Registre de balayage** : une cellule par plot d'entrée, deux par plot de sortie à trois états (donnée et validation), trois par plot bidirectionnel (entrée, sortie, validation). Pour les 40 plots de signal hors JTAG : environ 100 cellules. `CLK` et `RESET` sont en observation seule. Le multiplexeur de chaque cellule est sur le chemin plot ↔ cœur : à compter dans le budget de sortie xSPI en DTR (§ 4.4). Il faudra aussi écrire le **fichier BSDL** de la puce, qui décrit le TAP et l'ordre du BSR aux outils de test.
 
 ## 6. Cohérence des caches
 
@@ -170,7 +203,7 @@ Dans les deux cas, l'horloge de débogage est asynchrone de celle du cœur : les
 | xSPI B : idem | 12 |
 | UART TX, RX ; I2C SCL, SDA | 4 |
 | horloge, RESET | 2 |
-| débogage (SPI ou JTAG, § 5.1) | 4 |
+| JTAG : TCK, TMS, TDI, TDO (§ 5.1) | 4 |
 | GPIO (dont interruptions externes et `HALTED`) | 8 |
 | `MEM_RESET_A#`, `MEM_RESET_B#` (§ 4.5) | 2 |
 | **signaux** | **44** |
@@ -231,13 +264,25 @@ x: 0          1900 1960   2760 2820 3220 3280             4780
 
 ## 9. Étapes
 
-1. Broches des macros (P67, avec la version de `stack_unit_16_8` de Vincent : limites, sync et disp_w à l'est) et relance de cinq macros : `ino_decode_predict`, `stack_unit_16_8`, `ino_exec_entier`, `ino_exec_arith`, `ino_system`. `decode_queue` garde son run. `ino_fetch` (nouvelles broches de P67) et `ino_data_cache` (broches inchangées) seront relancées avec leurs retouches RTL de l'étape 2, pour ne faire qu'un run chacune.
+1. Macros (état au 6 novembre, coin lent, 25 ns) :
+
+   | macro | boîte (µm) | marge | état |
+   |---|---|---|---|
+   | `ino_decode_predict` | 900 × 1100 | +1,03 | routée, broches P68 |
+   | `decode_queue` | 400 × 1100 | +1,86 | routée, inchangée |
+   | `stack_unit_16_8` | 1500 × 1500 | +0,19 | routée, broches v69 (Vincent) ; 2 capacités max |
+   | `ino_exec_entier` | 900 × 1000 | +0,46 | routée, broches P67 ; 10 transitions max, 4 capacités max (coin lent) |
+   | `ino_exec_arith` | 1150 × 1150 | +1,27 | routée, broches P67 ; 7 transitions max (coin lent) |
+   | `ino_system` | 1100 × 1000 | +7,01 | routée, broches P67 ; à relancer si `RESUME` (§ 5.1) |
+   | `ino_fetch` | 1900 × 2200 | (+5,22, anciennes broches) | **à relancer** : broches P68 et `ICACHE_INVALIDATE_ALL` |
+   | `ino_data_cache` | serre | (+1,11) | **à relancer** pour `VALID_BASE_G = 0`, broches inchangées |
+
 2. RTL, dans cet ordre, pour vérifier tôt l'idée centrale (quatre mots de 64 bits → une rafale octale de 32 octets) :
    1. matrice 2 × 2 (D > I), agrégation des lignes et **un seul** contrôleur xSPI (`xspi_controller` + `xspi_phy`, délai de garde), avec un modèle VHDL de PSRAM octale, puis de flash (démarrage `0x03` sur 3 octets) ;
    2. attributs mémoire et port `R_*` au sommet (§ 2.2), bus de registres, `SIZE` / `TYPE` ;
    3. second port, `MEM_RESET#`, mode indirect ;
-   4. UART, I2C, temporisateur, registres système, débogage ;
-   5. `ICACHE_INVALIDATE_ALL` dans `ino_fetch` ; `VALID_BASE_G = 0` pour `ino_data_cache` ; sommet `TAHX_SOC`.
+   4. UART, I2C, temporisateur, registres système ; TAP JTAG, module de débogage, BSR et BSDL ;
+   5. `ICACHE_INVALIDATE_ALL` dans `ino_fetch` ; `VALID_BASE_G = 0` pour `ino_data_cache` ; `RESUME` dans `ino_system` (§ 5.1) ; sommet `TAHX_SOC`.
    
    Bancs unitaires, puis modèles de flash et de PSRAM octales dans N3, et mesure des cycles sur les B_*.
 3. Couronne de plots, assemblage, LEF et GDS.
