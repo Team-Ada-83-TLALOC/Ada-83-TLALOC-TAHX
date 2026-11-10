@@ -15,7 +15,9 @@
 #                         occupees entierement obstruees (-bloat_occupied_layers) :
 #                         rien ne passe au-dessus d'une macro au sommet ;
 #   <macro>.nl.v          netlist finale, sans alimentations (final/nl/) ;
-#   spef/<coin>.spef      parasites des trois coins (final/spef/) ;
+#   spef/<coin>.spef.gz   parasites, compresses (final/spef/) : un seul coin RC, nom,
+#                         commun aux trois coins de cellules ; gzip pour rester
+#                         sous les 50 Mo de GitHub (stack_unit : 97 -> 28 Mo) ;
 #   lib/<coin>.lib        modeles de timing, s'il y en a (final/lib/) ;
 #   PROVENANCE_VUES.txt   run, date, empreintes.
 # Le GDS (final/gds ou final/klayout_gds) n'est pas copie : trop lourd pour git. Son
@@ -65,7 +67,7 @@ for f in "$FINAL"/spef/*/*.spef "$FINAL"/spef/*.spef; do
    [ -f "$f" ] || continue
    coin=$(basename "$(dirname "$f")")
    [ "$coin" = spef ] && coin=$(basename "$f" .spef | sed 's/^[^.]*\.//')
-   cp "$f" "$DEST/spef/$coin.spef"; n_spef=$((n_spef + 1))
+   gzip -c "$f" > "$DEST/spef/$coin.spef.gz"; n_spef=$((n_spef + 1))
 done
 n_lib=0
 for f in "$FINAL"/lib/*/*.lib "$FINAL"/lib/*.lib; do
@@ -91,4 +93,4 @@ GDS=$(compgen -G "$FINAL/klayout_gds/*.gds" || compgen -G "$FINAL/gds/*.gds" || 
    fi
 } > "$DEST/PROVENANCE_VUES.txt"
 cat "$DEST/PROVENANCE_VUES.txt"
-[ "$n_spef" -eq 3 ] || echo "attention : $n_spef SPEF au lieu de 3 (voir $FINAL/spef)"
+[ "$n_spef" -ge 1 ] || echo "attention : aucun SPEF (voir $FINAL/spef)"

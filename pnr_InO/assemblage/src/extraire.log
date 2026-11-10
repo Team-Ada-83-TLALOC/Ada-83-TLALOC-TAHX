@@ -1,0 +1,247 @@
+
+ /----------------------------------------------------------------------------\
+ |                                                                            |
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |                                                                            |
+ |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |                                                                            |
+ |  Permission to use, copy, modify, and/or distribute this software for any  |
+ |  purpose with or without fee is hereby granted, provided that the above    |
+ |  copyright notice and this permission notice appear in all copies.         |
+ |                                                                            |
+ |  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |
+ |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |
+ |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |
+ |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |
+ |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |
+ |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |
+ |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |
+ |                                                                            |
+ \----------------------------------------------------------------------------/
+
+ Yosys 0.33 (git sha1 2584903a060)
+
+
+-- Running command `
+read_rtlil /tmp/claude-0/sta_h/brut.il
+hierarchy -check -top TAHX_1
+blackbox stack_unit_16_8 ino_decode_queue ino_decode_predict ino_exec_entier ino_exec_arith ino_system ino_data_cache ino_fetch
+hierarchy -top TAHX_1
+chformal -remove
+proc
+flatten
+opt_clean
+write_verilog -noattr /tmp/claude-0/tahx_new/pnr_InO/assemblage/src/tahx_1_sommet.v
+write_verilog -noattr -blackboxes /tmp/claude-0/tahx_new/pnr_InO/assemblage/src/macros_bb.v
+' --
+
+1. Executing RTLIL frontend.
+Input filename: /tmp/claude-0/sta_h/brut.il
+
+2. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1. Analyzing design hierarchy..
+Top module:  \TAHX_1
+Used module:     \instruction_unit
+Used module:         \ino_fetch
+Used module:             \ino_fetch_line
+Used module:                 \ino_fetch_ram32_2r_512
+Used module:                 \ino_fetch_ram_1r_32_512
+Used module:                 \ino_fetch_ram_1r_64_512
+Used module:             \ino_byte_queue
+Used module:         \ino_decode_predict
+Used module:             \branch_predict
+Used module:                 \ino_pred_table2_2r_512
+Used module:             \ino_decode_pipe
+Used module:     \ino_frontend_control
+Used module:     \ino_decode_queue
+Used module:         \ino_decode_queue_ram207_2_143
+Used module:     \ino_data_cache
+Used module:         \ino_dcache_core_2_32768_4_99020781522388a2744aeffa2fdefc2fd405cad6
+Used module:             \ino_cache_ram1p_48_256
+Used module:             \ino_cache_ram1p_64_1024
+Used module:     \ino_core_system_16_8
+Used module:         \ino_system
+Used module:             \ino_system_unit
+Used module:         \stack_unit_16_8
+Used module:         \ino_execute
+Used module:             \ino_exec_entier
+Used module:                 \ino_backend_excm_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                     \ino_excm_unit
+Used module:                     \ino_backend_block_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                         \ino_block_unit
+Used module:                         \ino_backend_complex_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                             \ino_complex_unit_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                             \ino_backend_float_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                                 \ino_backend_memory_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                                     \ino_memory_unit
+Used module:                                     \ino_backend_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                                         \ino_integer_unit
+Used module:                                         \ino_branch_unit
+Used module:                                     \ino_address_unit
+Used module:             \ino_exec_arith
+Used module:                 \ino_arith_unit
+
+2.2. Analyzing design hierarchy..
+Top module:  \TAHX_1
+Used module:     \instruction_unit
+Used module:         \ino_fetch
+Used module:             \ino_fetch_line
+Used module:                 \ino_fetch_ram32_2r_512
+Used module:                 \ino_fetch_ram_1r_32_512
+Used module:                 \ino_fetch_ram_1r_64_512
+Used module:             \ino_byte_queue
+Used module:         \ino_decode_predict
+Used module:             \branch_predict
+Used module:                 \ino_pred_table2_2r_512
+Used module:             \ino_decode_pipe
+Used module:     \ino_frontend_control
+Used module:     \ino_decode_queue
+Used module:         \ino_decode_queue_ram207_2_143
+Used module:     \ino_data_cache
+Used module:         \ino_dcache_core_2_32768_4_99020781522388a2744aeffa2fdefc2fd405cad6
+Used module:             \ino_cache_ram1p_48_256
+Used module:             \ino_cache_ram1p_64_1024
+Used module:     \ino_core_system_16_8
+Used module:         \ino_system
+Used module:             \ino_system_unit
+Used module:         \stack_unit_16_8
+Used module:         \ino_execute
+Used module:             \ino_exec_entier
+Used module:                 \ino_backend_excm_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                     \ino_excm_unit
+Used module:                     \ino_backend_block_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                         \ino_block_unit
+Used module:                         \ino_backend_complex_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                             \ino_complex_unit_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                             \ino_backend_float_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                                 \ino_backend_memory_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                                     \ino_memory_unit
+Used module:                                     \ino_backend_5ba93c9db0cff93f52b521d7420e43f6eda2784f
+Used module:                                         \ino_integer_unit
+Used module:                                         \ino_branch_unit
+Used module:                                     \ino_address_unit
+Used module:             \ino_exec_arith
+Used module:                 \ino_arith_unit
+Removed 0 unused modules.
+
+3. Executing HIERARCHY pass (managing design hierarchy).
+
+3.1. Analyzing design hierarchy..
+Top module:  \TAHX_1
+Used module:     \instruction_unit
+Used module:     \ino_frontend_control
+Used module:     \ino_core_system_16_8
+Used module:         \ino_execute
+
+3.2. Analyzing design hierarchy..
+Top module:  \TAHX_1
+Used module:     \instruction_unit
+Used module:     \ino_frontend_control
+Used module:     \ino_core_system_16_8
+Used module:         \ino_execute
+Removing unused module `\ino_system_unit'.
+Removing unused module `\ino_pred_table2_2r_512'.
+Removing unused module `\ino_memory_unit'.
+Removing unused module `\ino_integer_unit'.
+Removing unused module `\ino_fetch_ram_1r_64_512'.
+Removing unused module `\ino_fetch_ram_1r_32_512'.
+Removing unused module `\ino_fetch_ram32_2r_512'.
+Removing unused module `\ino_fetch_line'.
+Removing unused module `\ino_excm_unit'.
+Removing unused module `\ino_decode_queue_ram207_2_143'.
+Removing unused module `\ino_decode_pipe'.
+Removing unused module `\ino_dcache_core_2_32768_4_99020781522388a2744aeffa2fdefc2fd405cad6'.
+Removing unused module `\ino_complex_unit_5ba93c9db0cff93f52b521d7420e43f6eda2784f'.
+Removing unused module `\ino_cache_ram1p_64_1024'.
+Removing unused module `\ino_cache_ram1p_48_256'.
+Removing unused module `\ino_byte_queue'.
+Removing unused module `\ino_branch_unit'.
+Removing unused module `\ino_block_unit'.
+Removing unused module `\ino_backend_memory_5ba93c9db0cff93f52b521d7420e43f6eda2784f'.
+Removing unused module `\ino_backend_float_5ba93c9db0cff93f52b521d7420e43f6eda2784f'.
+Removing unused module `\ino_backend_excm_5ba93c9db0cff93f52b521d7420e43f6eda2784f'.
+Removing unused module `\ino_backend_complex_5ba93c9db0cff93f52b521d7420e43f6eda2784f'.
+Removing unused module `\ino_backend_block_5ba93c9db0cff93f52b521d7420e43f6eda2784f'.
+Removing unused module `\ino_backend_5ba93c9db0cff93f52b521d7420e43f6eda2784f'.
+Removing unused module `\ino_arith_unit'.
+Removing unused module `\ino_address_unit'.
+Removing unused module `\branch_predict'.
+Removed 27 unused modules.
+
+4. Executing PROC pass (convert processes to netlists).
+
+4.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+4.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+4.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+4.4. Executing PROC_INIT pass (extract init attributes).
+
+4.5. Executing PROC_ARST pass (detect async resets in processes).
+
+4.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+4.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+4.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+4.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+4.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+4.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+4.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module instruction_unit.
+Optimizing module ino_frontend_control.
+<suppressed ~5 debug messages>
+Optimizing module ino_core_system_16_8.
+<suppressed ~6 debug messages>
+Optimizing module ino_execute.
+Optimizing module TAHX_1.
+<suppressed ~3 debug messages>
+
+5. Executing FLATTEN pass (flatten design).
+Deleting now unused module instruction_unit.
+Deleting now unused module ino_frontend_control.
+Deleting now unused module ino_core_system_16_8.
+Deleting now unused module ino_execute.
+<suppressed ~4 debug messages>
+
+6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \TAHX_1..
+Removed 461 unused cells and 700 unused wires.
+<suppressed ~462 debug messages>
+
+7. Executing Verilog backend.
+
+7.1. Executing BMUXMAP pass.
+
+7.2. Executing DEMUXMAP pass.
+Dumping module `\TAHX_1'.
+
+8. Executing Verilog backend.
+
+8.1. Executing BMUXMAP pass.
+
+8.2. Executing DEMUXMAP pass.
+Dumping module `\ino_data_cache'.
+Dumping module `\ino_decode_predict'.
+Dumping module `\ino_decode_queue'.
+Dumping module `\ino_exec_arith'.
+Dumping module `\ino_exec_entier'.
+Dumping module `\ino_fetch'.
+Dumping module `\ino_system'.
+Dumping module `\stack_unit_16_8'.
+
+End of script. Logfile hash: 0ccdb1943b, CPU: user 0.92s system 0.10s, MEM: 122.60 MB peak
+Yosys 0.33 (git sha1 2584903a060)
+Time spent: 71% 2x read_rtlil (0 sec), 17% 2x hierarchy (0 sec), ...

@@ -1,4 +1,4 @@
-# TAHX_SOC : sous-système mémoire et périphériques (projet, 5 novembre 2026, revu le 6 novembre)
+# TAHX_SOC : sous-système mémoire et périphériques (projet, 5 novembre 2026, revu le 7 novembre)
 
 But : mettre `TAHX_1` (cœur InO, 64 bits) dans un boîtier **QFN64**. Le système mémoire externe est fait de flashs et de PSRAM octales (xSPI), ce qui est bien plus simple que de la DDR. Avec une UART et un bus I2C, on obtient un microcontrôleur 64 bits.
 
@@ -243,7 +243,7 @@ PC, FPC et FCODE se lisent comme registres du module de débogage par `DBG_ADDRE
 
 ## 8. Plan de puce
 
-Plan en trois zones, à l'échelle (µm, y vers le bas, canaux de 60 µm, 150 µm entre `exec_entier` et `system`) :
+Plan en trois zones, à l'échelle (µm, y vers le bas, canaux de 60 µm, 150 µm entre `exec_entier` et `system`). Plan initial ; **remplacé par le plan élargi** du § 8.1 :
 
 ```
 x: 0          1900 1960   2760 2820 3220 3280             4780
@@ -277,6 +277,81 @@ x: 0          1900 1960   2760 2820 3220 3280             4780
 - **Bloc sud-est** : registres, UART, I2C, temporisateur, débogage, avec les signaux « puce » de `system` (sortie, interruptions, arrêt) par son côté sud.
 - Boîte englobante ≈ 5,3 × 3,7 mm, soit ≈ 5,7 × 4,1 mm avec la couronne de plots (80 × 180 µm, coins de 180 × 180 µm).
 
+### 8.1 Canaux : le plan élargi (6 novembre)
+
+Avec les LEF abstraits des macros routées (`pnr_InO/vues_macros.sh`), rien ne passe au-dessus d'une macro : les SRAM obstruent Metal1 à Metal4 et TopMetal1 porte les bandes d'alimentation. Les couches de routage de cmos5l sont Metal2 (V), Metal3 (H), Metal4 (V), au pas de 0,48 µm, et TopMetal1 (H, 3,28 µm). **La capacité horizontale est la moitié de la verticale** : un canal horizontal de 60 µm porte ≈ 94 fils (70 % d'utilisation).
+
+`synth_InO/sta/plan_puce/canaux.py` route les 5 371 bits entre macros sur une grille de 20 µm (Dijkstra par faisceau, coûts négociés). Dans le plan retenu, le canal entre `stack_unit` et la rangée `exec_entier` / `ino_system` est **surchargé 5,7 fois** : 1 287 bits sortent du sud de `stack_unit`, dont le bus d'émission vers les deux macros (≈ 1 000 µm entre elles) et les retours `complete` / `stack_maint` multiplexés dans la logique de liaison ; jusqu'à 498 fils horizontaux superposés.
+
+**Décision (6 novembre) : plan élargi** (`canaux.py --plan elargi`). Aucune macro n'est à relancer.
+
+| macro | x, y (µm, coin haut-gauche, y vers le bas) |
+|---|---|
+| `ino_fetch` | 0, 0 |
+| `ino_decode_predict` | 2000, 0 |
+| `ino_decode_queue` | 2960, 0 |
+| `stack_unit_16_8` | 3460, 0 |
+| `ino_exec_arith` | 2000, 1160 |
+| `ino_exec_entier` | 3350, 1860 |
+| `ino_system` | 4440, 1860 |
+| `ino_data_cache` | 1935, 2960 |
+
+- Canal `stack` / `entier + system` : 60 → **360 µm** ; `fetch | predict`, `dq | stack`, `entier / dcache` : 100 µm ; `entier | system` : 190 µm.
+- Charge (× capacité) : `stack` / `entier + system` 1,22 en horizontal ; `entier | system` 1,12 en vertical ; les autres ≤ 1,0. À confirmer au routage global de l'assemblage (l'estimateur surestime les liaisons à plusieurs destinations).
+- Boîte des macros 5,54 × 4,02 mm, ≈ 5,9 × 4,4 mm avec la couronne : dans la cavité du QFN64.
+- Longueurs routées estimées (pire bit) : chaînage `stack` → `entier` 1,7 mm (moyenne 0,74), FAST_PIPE 1,24 mm, `arith` → `entier` 0,76 mm.
+- Autre voie, plus tard si nécessaire : dupliquer en sortie de `stack_unit` les 128 bits d'émission lus par `ino_system`, en face d'elle, et rentrer dans `stack_unit` les multiplexeurs `complete` / `stack_maint` (relance de `stack_unit`, `exec_entier`, `ino_system`).
+
+### 8.2 STA d'assemblage (6 novembre)
+
+`synth_InO/sta/assemblage/` : les huit macros par leurs modèles de timing (`vues/lib/`), la logique de liaison synthétisée seule (≈ 1 000 cellules, 0,013 mm²), les fils estimés d'après le plan élargi (modèle en π, répéteurs tous les 500 µm), horloge idéale au sommet et 0,5 ns d'incertitude.
+
+| coin | sans fil | plan retenu | plan élargi |
+|---|---|---|---|
+| lent (1,08 V, 125 °C) | −8,5 ns | −10,4 ns | **−11,7 ns** |
+| typique (1,2 V, 25 °C) | +3,9 ns | — | **+1,9 ns** |
+| rapide | +9,6 ns | — | +8,4 ns |
+
+**25 ns tiennent au coin typique, pas au coin lent** (≈ 37 ns, 27 MHz). Le pire chemin est le chaînage `stack_unit` → `exec_entier` → multiplexeur de liaison → `stack_unit`, en un cycle (coin lent, sans fil) :
+
+| étape | ns |
+|---|---|
+| `stack_unit` : horloge → `issue_o.slot` | 3,47 |
+| `exec_entier` : `issue_i.slot` → `complete_o.fault` | 16,18 |
+| multiplexeur `complete` de la liaison | 0,22 |
+| `stack_unit` : setup de `complete_i.fault` + arbre d'horloge de la macro | 11,98 + 1,11 |
+
+**Cause : des budgets contradictoires.** `sdc_macro.tcl` a donné à chaque port le pire chemin du cœur estimé qui le traverse, si bien que les deux macros d'un même chemin ont reçu chacune toute sa marge : `exec_entier` a eu 18 ns de traversée (entrée à 3,4 ns, sortie 3,3 ns avant le front), `stack_unit` 14,9 ns derrière `complete_i` (arrivée supposée à 10,1 ns). Chaque macro tient son SDC ; leur somme dépasse la période de près de 10 ns. Même effet, moindre, sur FAST_PIPE (`dcache` → `entier` → liaison → `stack`, −7,4 ns sans fil), sur `predict` → `dq` → `stack` (−3,5 ns) et sur les données du cache (−1,2 ns).
+
+**Après le routage global du plan `aligne_dc` (7 novembre)** : dépassement 190 pistes (10 513 pour le plan élargi), pire marge au coin lent −9,84 ns (≈ 35 ns), coin typique +1,39 ns. Le −10,0 ns « r2r » rangé sous le coin rapide dans `metrics.json` est la pire violation tous coins confondus (artefact déjà noté pour les étapes intermédiaires). Toutes les violations aboutissent à `stack_unit/complete_i`. Décomposition au coin lent (STA d'assemblage, à 0,1 ns du routage global) :
+
+| chemin | `stack` horloge → `issue_o` | `dcache` horloge → `exec_rsp_o` | traversée `exec_entier` | liaison et fils | `stack` après `complete_i` | marge |
+|---|---|---|---|---|---|---|
+| chaînage | 4,89 | — | 16,43 | 0,89 | 11,98 | −11,2 |
+| FAST_PIPE | — | 12,68 | 7,23 | 0,89 | 11,98 | −9,9 |
+
+- `stack_unit` après `complete_i` (12,9 ns jusqu'aux bascules `cells_s` et `source_value_s`, 31 cellules) : prise de l'instruction suivante dans le cycle du commit (V2, V3), lecture des cases par indice et comparaisons d'adresses. Conforme à l'estimation à plat, avec 2,4 ns de marge sur son SDC.
+- `exec_entier`, `issue_i.slot` → `complete_o.fault` : 39 cellules en 16,5 ns, presque toutes de force 1, dont 15 tampons `buf_1`, transitions de 0,5 à 1,1 ns ; 1,2 ns de marge sur son SDC, qui demandait `complete_o` 3,3 ns avant le front. L'estimation à plat donnait ≈ 6,6 ns. **Chemin jamais optimisé** faute de contrainte.
+- `ino_data_cache`, horloge → `exec_rsp_o.valid` : 12,7 ns pour 18,3 ns permis (marge ≈ 5,6 ns), donc lui aussi peu optimisé.
+
+Suites possibles (à décider) :
+1. **Accepter** pour le premier silicium 25 ns au coin typique et ≈ 37 ns au coin lent (horloge réglable ; xSPI à la même horloge). *(Non retenu : voir le rebudgétage ci-dessous.)*
+2. **Rebudgéter** : SDC cohérents tirés de cette STA (la marge d'un chemin partagée entre les macros qu'il traverse), puis relance de `stack_unit`, `exec_entier`, et selon les résultats `ino_data_cache`, `ino_decode_predict`, `ino_decode_queue`. La somme à tenir sur le chaînage est ≈ 18 ns pour 28 ns aujourd'hui (traversée d'`exec_entier` + chemin derrière `complete_i` de `stack_unit`).
+
+**Rebudgétage retenu (7 novembre, P78).** Relevé de 6 846 chemins qui traversent des macros (plan `aligne_dc`, liaison synthétisée à `-D 1000`, coin lent), dont le pire par chaque broche de macro. Un facteur g ≤ 1 par macro sur ses segments internes, choisi par programme linéaire en nombres mixtes : période atteignable d'abord, puis coût des relances et effort réparti (outils et méthode : `synth_InO/sta/assemblage/LISEZMOI.md`).
+
+Correction trouvée en route : **les `.lib` des macros sont en horloge idéale.** Horloge → sortie et setup y sont comptés sans l'arbre d'horloge interne (`ino_data_cache` : 12,25 ns dans la `.lib`, 12,10 en horloge idéale, 14,32 en horloge propagée). Un chemin de A vers B est donc plus long de L_A − L_B que dans la STA d'assemblage : L vaut 2,4 ns pour `ino_fetch`, 2,2 pour `ino_data_cache`, 0,7 à 1,2 pour les autres. FAST_PIPE (`dcache` → `entier` → `stack`) perd ainsi ≈ 1 ns de plus que ce qu'indiquaient les chiffres ci-dessus. Avec ces latences, **25 ns ne sont plus atteignables** dans les accélérations jugées possibles (25,7 ns) : les SDC sont faits pour **26 ns**.
+
+| macro | relance | g | pire chemin interne (ns) | à gagner sur la macro routée actuelle (STA avec le nouveau SDC) |
+|---|---|---|---|---|
+| `ino_exec_entier` | oui | 0,55 | 18,6 → 10,3 | −7,5 ns : `issue_i` → `complete_o`, chemin jamais optimisé (cellules de force 1) |
+| `stack_unit_16_8` | oui | 0,75 | 22,9 → 17,2 | −4,6 ns : `decode_slot_i` → bascules, et derrière `complete_i` |
+| `ino_data_cache` | oui | 0,73 | 15,6 → 11,3 | −3,9 ns : horloge → `exec_rsp_o` |
+| `ino_system` | oui | 0,95 | 11,7 → 11,1 | −0,7 ns : `mem_req_o.address` |
+| `ino_fetch`, `ino_decode_predict`, `decode_queue`, `ino_exec_arith` | non | 1 | — | — |
+
+À 27 ns, `ino_system` sort de la liste et `stack_unit` n'a plus que 0,80. Le flux est itératif : après chaque relance, réécrire les vues (`vues_macros.sh`), refaire la STA d'assemblage et le relevé, puis rebudgéter les macros restantes (`--macros`) avec ce que la macro relancée a réellement atteint.
+
 **Côtés des broches des macros** (fichiers `pin_order_25ns.cfg`, P67) :
 
 | macro | N | O | S | E | à relancer |
@@ -301,9 +376,11 @@ x: 0          1900 1960   2760 2820 3220 3280             4780
    | `stack_unit_16_8` | 1500 × 1500 | +0,19 | routée, broches v69 (Vincent) ; 2 capacités max |
    | `ino_exec_entier` | 900 × 1000 | +0,46 | routée, broches P67 ; 10 transitions max, 4 capacités max (coin lent) |
    | `ino_exec_arith` | 1150 × 1150 | +1,27 | routée, broches P67 ; 7 transitions max (coin lent) |
-   | `ino_system` | 1100 × 1000 | +7,01 | routée, broches P67 ; **à relancer** : `RESUME` (§ 5.1), 65 broches de plus au sud |
-   | `ino_fetch` | 1900 × 2200 | (+5,22, anciennes broches) | **à relancer** : broches P68 et `ICACHE_INVALIDATE_ALL` (P73, RTL fait) |
+   | `ino_system` | 1100 × 1000 | > 0 | routée avec `RESUME` (§ 5.1), 65 broches de plus au sud |
+   | `ino_fetch` | 1900 × 2200 | > 0 | routée avec les broches P68 et `ICACHE_INVALIDATE_ALL` (P73) |
    | `ino_data_cache` | 2275 × 1062 | +1,26 | routée le 6 novembre (P71, `VALID_BASE_G = 0`, marges de hold 0,2 ns) ; hold +0,066 au coin rapide ; 71 transitions max, 2 capacités max (coin lent) |
+
+   **Relances suivantes (P78)** : `ino_exec_entier`, `stack_unit_16_8`, `ino_data_cache`, `ino_system` avec les SDC rebudgétés à 26 ns (§ 8.2).
 
 2. RTL, dans cet ordre, pour vérifier tôt l'idée centrale (quatre mots de 64 bits → une rafale octale de 32 octets) :
    1. matrice 2 × 2 (D > I), agrégation des lignes et **un seul** contrôleur xSPI (`xspi_controller` + `xspi_phy`, délai de garde), avec un modèle VHDL de PSRAM octale, puis de flash (démarrage `0x03` sur 3 octets) ;

@@ -1,0 +1,55 @@
+/* boite noire, ecrite par extraire_sommet.sh */
+(* blackbox *)
+module ino_decode_predict(clk_i, reset_i, window_i, window_count_i, window_pc_i, window_fault_i, out_ready_i, \retire_i.valid , \retire_i.is_control , \retire_i.conditional , \retire_i.taken , \retire_i.pc_low , \retire_i.ghist_low , \recovery_i.valid , \recovery_i.new_pc , \recovery_i.ghist , \recovery_i.ras_ptr , consume_o, consumed_bytes_o, stop_o, out_block_o
+, out_count_o, out_valid_o, predict_valid_o, predict_pc_o);
+  input clk_i;
+  wire clk_i;
+  output consume_o;
+  wire consume_o;
+  output [5:0] consumed_bytes_o;
+  wire [5:0] consumed_bytes_o;
+  output [571:0] out_block_o;
+  wire [571:0] out_block_o;
+  output [3:0] out_count_o;
+  wire [3:0] out_count_o;
+  input out_ready_i;
+  wire out_ready_i;
+  output out_valid_o;
+  wire out_valid_o;
+  output [31:0] predict_pc_o;
+  wire [31:0] predict_pc_o;
+  output predict_valid_o;
+  wire predict_valid_o;
+  input [15:0] \recovery_i.ghist ;
+  wire [15:0] \recovery_i.ghist ;
+  input [31:0] \recovery_i.new_pc ;
+  wire [31:0] \recovery_i.new_pc ;
+  input [2:0] \recovery_i.ras_ptr ;
+  wire [2:0] \recovery_i.ras_ptr ;
+  input \recovery_i.valid ;
+  wire \recovery_i.valid ;
+  input reset_i;
+  wire reset_i;
+  input \retire_i.conditional ;
+  wire \retire_i.conditional ;
+  input [8:0] \retire_i.ghist_low ;
+  wire [8:0] \retire_i.ghist_low ;
+  input \retire_i.is_control ;
+  wire \retire_i.is_control ;
+  input [8:0] \retire_i.pc_low ;
+  wire [8:0] \retire_i.pc_low ;
+  input \retire_i.taken ;
+  wire \retire_i.taken ;
+  input \retire_i.valid ;
+  wire \retire_i.valid ;
+  output stop_o;
+  wire stop_o;
+  input [5:0] window_count_i;
+  wire [5:0] window_count_i;
+  input [31:0] window_fault_i;
+  wire [31:0] window_fault_i;
+  input [255:0] window_i;
+  wire [255:0] window_i;
+  input [31:0] window_pc_i;
+  wire [31:0] window_pc_i;
+endmodule

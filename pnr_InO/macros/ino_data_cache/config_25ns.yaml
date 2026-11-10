@@ -8,7 +8,8 @@ VERILOG_FILES:
   - dir::src/ino_data_cache.v
 
 CLOCK_PORT: clk_i
-CLOCK_PERIOD: 25
+# 26 ns : SDC rebudgete (P78, synth_InO/sta/assemblage/rebudgeter.py) ; nom de fichier garde.
+CLOCK_PERIOD: 26
 
 # Run contraint a 25 ns (etude de vitesse, 29 octobre, § 8.14) : reglages valides
 # sur ino_decode_predict (run G), ino_exec_entier et ino_exec_arith (§ 8.13).
@@ -71,6 +72,9 @@ GRT_ALLOW_CONGESTION: true
 # Arbre d'horloge avec macros (lecon d'ino_fetch) et marges de hold.
 CTS_CLK_MAX_WIRE_LENGTH: 300
 CTS_DISTANCE_BETWEEN_BUFFERS: 300
+# Marges de hold portees a 0,2 ns (6 novembre, P71) : avec 0,1 ns, le run de
+# VALID_BASE_G = 0 laissait 2 chemins registre a registre a -0,031 ns (coin fast)
+# et -0,017 ns (coin typ) apres le routage detaille (5 tampons de hold seulement).
 PL_RESIZER_HOLD_SLACK_MARGIN: 0.2
 GRT_RESIZER_HOLD_SLACK_MARGIN: 0.2
 
