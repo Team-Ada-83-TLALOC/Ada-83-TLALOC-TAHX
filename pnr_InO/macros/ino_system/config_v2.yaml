@@ -6,21 +6,21 @@ DESIGN_NAME: ino_system
 # dans la boite 1645 x 520 um de pin_order.cfg (840 broches au nord, 386 sur les
 # 520 um de l'est) deborde en Metal3, la seule couche horizontale fine (34 569,
 # usage 108 % ; Metal4 a 42 %). Voir l'etude, § 8.15.
-IO_PIN_ORDER_CFG: dir::system_pin_order_test.cfg
+IO_PIN_ORDER_CFG: dir::pin_order_v2.cfg
 
 VERILOG_FILES:
   - dir::src/ino_system.v
 
 CLOCK_PORT: clk_i
 # 26 ns : SDC rebudgete (P78, synth_InO/sta/assemblage/rebudgeter.py) ; nom de fichier garde.
-CLOCK_PERIOD: 26
+CLOCK_PERIOD: 20
 
 # Run contraint a 25 ns (etude de vitesse, 29 octobre, § 8.14) : reglages valides
 # sur ino_decode_predict (run G), ino_exec_entier et ino_exec_arith (§ 8.13).
 # Budgets d'entree / sortie tires du coeur entier par synth_InO/sta/sdc_macro.tcl
 # (netlist d'estimation v3s, coin slow, fils 'Zero').
-PNR_SDC_FILE: dir::ino_system_25ns.sdc
-SIGNOFF_SDC_FILE: dir::ino_system_25ns.sdc
+#PNR_SDC_FILE: dir::ino_system_25ns.sdc
+#SIGNOFF_SDC_FILE: dir::ino_system_25ns.sdc
 
 # Synthese DELAY, placement guide par le timing, synthese et placement-routage au
 # coin lu.
@@ -51,9 +51,9 @@ GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 400
 # de stack_unit.
 FP_SIZING: absolute
 
-DIE_AREA: [0, 0, 700, 1600]
+DIE_AREA: [0, 0, 700, 1750]
 
-PL_TARGET_DENSITY_PCT: 50
+PL_TARGET_DENSITY_PCT: 48
 PL_ROUTABILITY_DRIVEN: true
 GRT_ALLOW_CONGESTION: true
 

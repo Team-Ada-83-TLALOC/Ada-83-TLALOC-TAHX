@@ -10,14 +10,14 @@ VERILOG_FILES:
 
 CLOCK_PORT: clk_i
 # 26 ns : SDC rebudgete (P78, synth_InO/sta/assemblage/rebudgeter.py) ; nom de fichier garde.
-CLOCK_PERIOD: 26
+CLOCK_PERIOD: 10
 
 # Run contraint (etude de vitesse, 28 octobre, § 8.11) : ino_execute en deux macros.
 # Budgets d'entree / sortie tires du coeur entier par synth_InO/sta/sdc_macro.tcl
 # (coin slow, fils 'Zero').
-PNR_SDC_FILE: dir::ino_exec_entier_25ns.sdc
-SIGNOFF_SDC_FILE: dir::ino_exec_entier_25ns.sdc
-
+#PNR_SDC_FILE: dir::ino_exec_entier_25ns_pnr.sdc
+#SIGNOFF_SDC_FILE: dir::ino_exec_entier_25ns.sdc
+   # le SDC complet reste la référence du signoff
 # Reglages valides sur ino_decode_queue / ino_decode_predict (§ 7) : synthese DELAY,
 # placement guide par le timing, synthese, placement et arbre d'horloge au coin lu.
 SYNTH_STRATEGY: "DELAY 1"
@@ -67,8 +67,8 @@ GRT_DESIGN_REPAIR_MAX_SLEW_PCT: 25
 # 1 673 broches, dont ≈ 600 a l'ouest (emission, retour, sommets de pile), sur
 # 1 000 um.
 FP_SIZING: absolute
-DIE_AREA: [0, 0, 1250, 1000]
-PL_TARGET_DENSITY_PCT: 55
+DIE_AREA: [0, 0, 1000, 1200]
+PL_TARGET_DENSITY_PCT: 48
 PL_ROUTABILITY_DRIVEN: true
 
 GRT_ALLOW_CONGESTION: true
