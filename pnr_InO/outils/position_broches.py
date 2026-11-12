@@ -35,14 +35,16 @@ Regles de io_place.py (a connaitre pour ecrire un cfg a la main) :
 
 Fichier de souhaits (--viser) : la syntaxe du pin_order.cfg (#N, #ER, #BUS_SORT,
 @min_distance=..., $N, expressions), plus devant une expression :
-    > 386.0  \\\\?reset_i           le groupe commence a 386,0 um (sa broche la plus proche
-                                    de l'origine du cote, quel que soit le sens) ;
+    > 386.0  \\\\?reset_i           le groupe commence a 386,0 um de l'origine du cote ;
     >+20     \\\\?exec_req_i\\..*     20 um apres la fin du groupe precedent ;
     sans >   : juste a la suite du groupe precedent (ou au debut du cote) ;
     %pas 2   (dans un cote) : une broche tous les 2 emplacements (1,68 um sur E/W, 1,92 um
              sur N/S) au lieu de 1 ; les $N du fichier de souhaits comptent alors en pas.
+Cote inverse (#NR, #SR, #ER, #WR) : l'origine passe a l'autre bout (droite pour N/S, haut
+pour E/W) ; les groupes s'ecrivent dans l'ordre depuis ce bout, les > s'y mesurent, et les
+bits de chaque groupe vont en decroissant le long de l'axe. Le R est reporte dans le cfg
+ecrit, dont la liste garde l'ordre du souhait (io_place.py la retourne lui-meme).
 Positions arrondies au pas du cote ; le cfg ecrit est relu et replace pour controle.
-Les groupes doivent etre ecrits dans le sens du cote (croissant, ou decroissant pour #NR...).
 """
 import argparse, math, os, re, sys
 
@@ -401,11 +403,21 @@ def viser(texte, bits, W, H, couche_h, couche_v):
         ntot = S - 1 if t == 1 else S // t
         if S // ntot != t:
             sys.exit(f"cote {c} : pas {t} impossible ({S} emplacements)")
-        r0 = (S - (t * (ntot - 1) + 1)) // 2
-        def x_de(j):
-            return um(slots[min(r0 + t * j, S - 1)])
-        # groupes dans le sens du cote ; rangs comptes depuis l'origine du cote
-        groupes, k = [], 0
+        u = S - (t * (ntot - 1) + 1)
+        rev = info["rev"]
+        Lc = W if c in "NS" else H
+        # #XR : io_place.py retourne la liste ecrite ; le j-ieme rang de la liste ecrite
+        # tombe donc a l'emplacement S - 1 - (u - u // 2) - t j, compte depuis l'autre
+        # bout. Les positions (>) d'un cote inverse sont donc mesurees depuis ce bout-la
+        # (haut pour E/W, droite pour N/S) et les groupes ecrits dans l'ordre depuis ce
+        # bout ; la sortie garde l'ordre et le R.
+        r0 = (u - u // 2) if rev else u // 2
+        def slot_de(j):
+            k = r0 + t * j
+            return slots[max(0, S - 1 - k)] if rev else slots[min(k, S - 1)]
+        def x_de(j):                             # coordonnee dans le repere du souhait
+            return um(Lc - slot_de(j)) if rev else um(slot_de(j))
+        groupes = []
         for i, e in enumerate(info["pins"]):
             if isinstance(e, int):
                 groupes.append(("$", e, None))
@@ -419,10 +431,6 @@ def viser(texte, bits, W, H, couche_h, couche_v):
                     sys.exit(f"{b} pris par deux expressions : {pris[b]} et {e}")
                 pris[b] = e
             groupes.append((e, len(g), marques.get((id(info), i))))
-        if info["rev"]:
-            # #XR : la liste ecrite est inversee par io_place.py ; on raisonne dans le sens
-            # croissant (groupes ecrits en decroissant -> on les retourne)
-            groupes = groupes[::-1]
         cur, sortie = 0, []
         for e, nb, mq in groupes:
             if e == "$":
@@ -430,7 +438,7 @@ def viser(texte, bits, W, H, couche_h, couche_v):
                 continue
             if mq is not None:
                 if mq[0] == "abs":
-                    r = round((mq[1] * DBU - slots[r0]) / (t * pas))
+                    r = round((mq[1] - x_de(0)) * DBU / (t * pas))
                 else:
                     r = cur + round(mq[1] * DBU / (t * pas))
                 if r < cur:
@@ -440,14 +448,13 @@ def viser(texte, bits, W, H, couche_h, couche_v):
                     sortie.append(r - cur)
                 cur = r
             sortie.append(e)
-            rapport.append((c, e, nb, x_de(cur), x_de(cur + nb - 1)))
+            a0, a1 = sorted((um(slot_de(cur)), um(slot_de(cur + nb - 1))))
+            rapport.append((c, e, nb, a0, a1, rev, um(Lc)))
             cur += nb
         if cur > ntot:
             sys.exit(f"cote {c} : {cur} rangs pour {ntot} au pas {t}")
         if ntot - cur > 0:
             sortie.append(ntot - cur)
-        if info["rev"]:
-            sortie = sortie[::-1]
         lignes.append("")
         lignes.append("#" + info["nom"])
         if info["min"] is not None and info["min"] != cotes.get("_", {}).get("min"):
@@ -495,12 +502,17 @@ def main():
         # controle : on replace avec le cfg produit
         cotes, _, _ = lire_cfg(texte)
         out, hors2 = placer(bits, cotes, W, H, couche_h, couche_v)
-        for c, e, nb, p0, p1 in rapport:
+        for c, e, nb, p0, p1, rev, Lc in rapport:
             liste, pos, _ = out[c]
             g = next(g for x, g in liste if x == e)
             ps = [um(pos[b]) for b in g]
             ok = abs(min(ps) - p0) < 0.01 and abs(max(ps) - p1) < 0.01
-            print(f"   {c} {e:44s} {nb:4d} bits  {min(ps):8.2f} -> {max(ps):8.2f} um {'' if ok else '  ECART'}")
+            if rev:      # depuis l'autre bout, comme dans le souhait, puis depuis l'origine
+                q = f"{Lc - max(ps):8.2f} -> {Lc - min(ps):8.2f} um depuis l'autre bout " \
+                    f"({min(ps):.2f} -> {max(ps):.2f} depuis l'origine)"
+            else:
+                q = f"{min(ps):8.2f} -> {max(ps):8.2f} um"
+            print(f"   {c}{'R' if rev else ' '} {e:44s} {nb:4d} bits  {q}{'' if ok else '  ECART'}")
         if hors2:
             print(f"[attention] {len(hors2)} broches sans expression : " + ", ".join(hors2[:8]))
         return
