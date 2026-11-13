@@ -1,70 +1,119 @@
-# Passation TAHX_SOC : des macros au RTL du SoC (6 novembre 2026, revu le 7 novembre)
+# Passation TAHX_SOC : assemblage v2 et timings (13 novembre 2026)
 
-Session précédente : routage des 8 macros InO à 25 ns (P49–P68), architecture du SoC (P66–P69), évaluateur de plan de puce (P69). La session a été compactée : reprendre de ce document.
+Document pour reprendre dans une nouvelle conversation. Il remplace la passation du 7 novembre. La référence d'architecture est `claude/ARCHI_SOC_TAHX.md` (§ 8.1 canaux, § 8.2 STA d'assemblage et rebudgétage). La présente passation donne l'état et la suite.
 
-## 0. Où sont les choses
+## 0. Contexte et sources
 
-- **Dépôt TAHX (GitHub)** : commit de Vincent du 6 novembre plus les correctifs P74–P78 (assemblage, plans, rebudgétage).
-- **Placement des broches** : `pnr_InO/outils/position_broches.py` (positions d'après un `pin_order.cfg`, cfg d'après des positions voulues, LEF d'essai ; voir `pnr_InO/LISEZMOI.md`).
-- **STA d'assemblage et rebudgétage** : `synth_InO/sta/assemblage/` (`LISEZMOI.md`). Demande un OpenSTA avec `Path::arrivals()` (une méthode ajoutée à `search/Search.i`, voir le LISEZMOI).
-- **Project « Ada_83_TLALOC_TAHX »** :
-  - `claude/ARCHI_SOC_TAHX.md` : **la spécification du SoC** (décisions, adresses, xSPI, attributs mémoire, périphériques, JTAG, broches QFN64, plan de puce, étapes). À lire en premier.
-  - `claude/ETUDE_VITESSE_TAHX_InO.md`, `claude/PASSATION_VITESSE_TAHX_InO.md` : historique du routage des macros (§ 8.23–8.26).
-  - `claude/PASSATION_TAHX_InO_silicium.md` : le flux LibreLane sur IHP sg13cmos5l.
-- **Évaluateur de plan de puce** : `plan_puce.tgz` (fourni le 6 novembre), à verser dans `synth_InO/sta/plan_puce/`. `python3 plan_retenu.py` redonne les chiffres du plan retenu ; `README.md` décrit les scripts.
+- **Projet.** TAHX_SOC : cœur in-order TAHX_1, 64 bits, en 8 macros dures. Boîtier QFN64, mémoire xSPI octale. Technologie IHP sg13cmos5l, flux LibreLane Classic. Échanges en français avec Vincent.
+- **Dépôt GitHub `Team-Ada-83-TLALOC/Ada-83-TLALOC-TAHX`.** Commit de référence `dcb44e0` du 13 novembre (« floorplan v2 vérification des LEF et routages macros »). Il contient P74–P80 et le travail de Vincent sur le floorplan v2. Partir d'un clone neuf.
+- **Disposition.** Modèle Logisim `logisim/TAHX_TOP_logisim_echelle_v11h.circ`. Les rectangles des sous-circuits sont en µm, à 3 µm près : le coin haut-gauche est à `loc` + (3, 3), avec l'ancre de l'apparence en (47, 47) et le rectangle en (50, 50).
+- **Limites de l'environnement de Claude.**
+  - Pas de LibreLane ni de Magic : c'est Vincent qui lance les runs.
+  - OpenSTA est à recompiler avec `Path::arrivals()` (voir `synth_InO/sta/assemblage/LISEZMOI.md`).
+  - La `.lib` des SRAM cmos5l manque. Celle de sg13g2 donne les mêmes chiffres (vérifié sur `ino_data_cache`).
 
-## 1. État des macros (coin lent)
+## 1. Floorplan v2 (v11h, retenu)
 
-Toutes routées à 25 ns avec les anciens SDC (P67–P73) : `ino_system` avec `RESUME`, `ino_fetch` avec `ICACHE_INVALIDATE_ALL`, `ino_data_cache` avec `VALID_BASE_G = 0`. Vues d'assemblage dans `pnr_InO/macros/<m>/vues/` (`vues_macros.sh` : LEF, netlist, SPEF gzippé, `.lib` des trois coins).
+Coin haut-gauche, y vers le bas, en µm. La boîte des macros mesure 6780 × 3930 µm.
 
-**À relancer avec les SDC rebudgétés (P78, période 26 ns)**, dans cet ordre :
-
-| ordre | macro | à gagner | remarque |
+| macro | position | taille | config v2 |
 |---|---|---|---|
-| 1 | `ino_exec_entier` | 7,5 ns (`issue_i` → `complete_o`, 16,8 → ≈ 9,3) | le gros de l'effort ; chemin jamais optimisé, rapide à relancer |
-| 2 | `stack_unit_16_8` | 4,6 ns (`decode_slot_i` → bascules, derrière `complete_i`) | la plus longue |
-| 3 | `ino_data_cache` | 3,9 ns (horloge → `exec_rsp_o`) | marges de hold 0,2 ns gardées |
-| 4 | `ino_system` | 0,7 ns (`mem_req_o.address`) | légère |
+| ino_fetch | (3, 603) | 1900 × 2200 | 25 ns, SDC `_25ns` |
+| ino_decode_predict | (2253, 603) | 1100 × 1100 (au lieu de 800 × 1050) | 25 ns |
+| decode_queue | (3453, 603) | 800 × 1100 (au lieu de 400 × 1100) | 20 ns, SDC `_25ns` |
+| stack_unit_16_8 | (4703, 803) | 1500 × 1500 | 26 ns (SDC P78) |
+| ino_data_cache | (2253, 1713) | 2275 × 1061,84 | 26 ns (SDC P78) |
+| ino_exec_arith | (3203, 2933) | 1150 × 1150 | 25 ns |
+| ino_exec_entier | (4683, 2933) | 1000 × 1200 (au lieu de 900 × 1000) | `CLOCK_PERIOD: 10`, SDC P78 en commentaire (SDC par défaut) |
+| ino_system | (6083, 2383) | 700 × 1750 (portrait, au lieu de 1100 × 1000) | `CLOCK_PERIOD: 20`, SDC en commentaire |
+| frontend_control | (4663, 203) | 620 × 200 | bloc du modèle Logisim, absent des 8 macros : à préciser avec Vincent |
 
-Les anciens SDC sont gardés en `*_25ns.sdc.avant_rebudget` ; les configurations passent à `CLOCK_PERIOD: 26` (noms de fichiers inchangés). Après chaque relance : `vues_macros.sh <m>`, puis STA d'assemblage, relevé et `rebudgeter.py --macros <restantes>` avec ce que la macro a atteint (§ 8.2 d'`ARCHI_SOC_TAHX.md`).
+État des macros v2 :
+- Chaque macro a dans son dossier un `wish_pin_order_v2.cfg`, passé par `pnr_InO/outils/position_broches.py` pour donner un `pin_order_v2.cfg`, puis un `config_v2.yaml`.
+- Les `<m>_v2.lef` sont de vrais abstraits, tirés des runs v2 de Vincent.
+- **Les vues de `vues/` (`.lib`, `.spef`, netlist) sont encore celles des runs v1 du 6 novembre.**
+- Pour `ino_exec_entier` et `ino_system`, la période v2 est réglée par `CLOCK_PERIOD` seul : 10 et 20 ns sans les SDC d'E/S. À confirmer avec Vincent : choix délibéré pour pousser la logique interne, ou état transitoire ?
 
-## 2. Plan de puce et assemblage
+## 2. Ce qui a été établi (à ne pas refaire)
 
-Plan **`aligne_dc`** (`canaux.py`) : `exec_entier` à 328 µm de `stack_unit`, `ino_data_cache` au sud, décalé de 368 µm vers l'est. Routage global de l'assemblage (`pnr_InO/assemblage/config_aligne_dc.yaml`, `--to OpenROAD.GlobalRouting`, 14 min) : débordement 190 pistes, jugé gérable. Puce 6,28 × 4,42 mm avec la couronne.
+- **Congestion.** Les canaux horizontaux ont deux fois moins de capacité que les verticaux. Les macros obstruent tout leur rectangle (`-bloat_occupied_layers`, faute de Magic). `canaux.py` (Dijkstra à coûts négociés) prédit bien les points chauds du routage global : en v1, `aligne_dc` donnait un débordement de 190.
+- **`metrics.json` aux étapes intermédiaires.** Seul le coin rapide y est recalculé. La valeur « r2r ws » affichée sous le coin rapide est en fait le pire de tous les coins, donc celui du coin lent.
+- **Les `.lib` des macros sont en horloge idéale.** Horloge → sortie et setup y sont comptés sans l'arbre interne. Un chemin de A vers B est donc plus long de L_A − L_B que dans la STA d'assemblage. En v1 : L vaut 2,4 ns pour fetch, 2,2 pour dcache, 0,7 à 1,2 pour les autres (`latence_macros.tcl`). **À remesurer en v2.**
+- **SDC d'E/S cohérents.** Il faut une valeur par bit quand le pire bit d'un bus n'est pas celui du plus long chemin interne. Les traversées se bornent par paire de bus, avec des surcharges bit à bit : dans OpenSTA, à priorité égale, le `set_max_delay` le plus serré l'emporte. Le relevé des chemins doit inclure le pire chemin par chaque broche.
+- **Coût en temps de calcul des surcharges bit à bit.** Elles multiplient les étiquettes (tags) d'OpenSTA et ralentissent fortement `repair_timing` (`ino_exec_entier`). Vincent a écrit `pnr_InO/outils/compacter_traversees.py` pour les compacter.
+- **Règles de `io_place.py`** (dans l'aide de `position_broches.py`) :
+  - pas commun t = ⌊S/n⌋ ; `$N` vaut N·t emplacements, ce n'est pas une distance fixe ;
+  - les emplacements libres sont répartis par moitié aux deux bouts ;
+  - n = S avec des `$` fait échouer l'outil ;
+  - une broche ne peut être prise que par une seule expression : pour servir deux côtés, il faut dupliquer la sortie dans le RTL.
+- **Sorties de macros qui alimentent plusieurs macros** (candidates à la duplication) :
+  - `stack.issue_o` (268 bits, vers arith, entier, system) ;
+  - `dcache.exec_rsp_o` (vers entier, system) ;
+  - `system.limits_o` (vers entier, stack) ;
+  - `stack.disp_o` et `frame_*_o` (vers entier, system) ;
+  - `stack.commit_o` (vers fetch, predict, dq, system).
+- **Arbre d'horloge du sommet (v1).** 2,5 ns de latence et 1,8 ns d'écart au coin rapide, à surveiller. Piste : décaler l'horloge du sommet selon l'insertion interne de chaque macro.
 
-**STA d'assemblage** (§ 8.2) : −9,84 ns au coin lent après le routage global (≈ 35 ns), +1,39 ns au coin typique. Cause : SDC de macros contradictoires sur les chemins qui en traversent plusieurs. **Décidé : rebudgéter** (P78). Avec l'insertion d'horloge interne des macros, que les `.lib` ignorent, la période atteignable est 25,7 ns ; cible retenue : **26 ns** au coin lent.
+## 3. Outils (dépôt)
 
-Plus tard (Vincent) : placer les broches au mieux sur les canaux, réexaminer la disposition des macros (esquisse Logisim : `data_cache` en haut à droite au-dessus de `stack_unit`, `entier` et `arith` à droite de `stack`, `system` dessous, `fetch` / `predict` / `dq` à gauche, matrice et xSPI en haut à gauche, périphériques sous `predict`), PDN des macros (`PDN_MULTILAYER: false`, grille TopMetal1 au sommet), arbre d'horloge du sommet (2,5 ns de latence, 1,8 ns d'écart au coin rapide). Piste : équilibrer l'horloge du sommet sur les insertions internes des macros (`fetch` et `dcache` à 2,2–2,4 ns contre ≈ 1 ns).
+| outil | rôle |
+|---|---|
+| `synth_InO/sta/plan_puce/canaux.py` | plans de macros (`PLANS`), estimation de la congestion des canaux |
+| `pnr_InO/assemblage/generer_config.py <plan>` | config LibreLane de l'assemblage (`--to OpenROAD.GlobalRouting`, sans PDN). **Lit `vues/<m>.lef` : à adapter pour `<m>_v2.lef`** |
+| `pnr_InO/assemblage/extraire_sommet.sh` | netlist du sommet et déclarations des macros en boîtes noires |
+| `pnr_InO/vues_macros.sh <m>` | vues d'un run : LEF, netlist, SPEF gzippé, `.lib` des 3 coins, `PROVENANCE_VUES.txt` |
+| `synth_InO/sta/assemblage/` | STA d'assemblage (`synth_colle.sh` avec D=1000, `fils.py <plan>`, `sta_assemblage.tcl`), relevé des chemins (`releve_chemins.tcl`), rebudgétage (`rebudgeter.py`, `verifier_budgets.py`), `latence_macros.tcl` ; voir le LISEZMOI |
+| `pnr_InO/outils/position_broches.py` | positions des broches d'après un cfg, cfg d'après des souhaits (`>`, `>+`, `%pas`, côtés `R` mesurés depuis l'autre bout), LEF d'essai (`--lef`), `--verifier-lef` |
+| `pnr_InO/outils/flux_broches.py`, `flux.tcl` (Vincent) | demande de fil interne d'une macro pour une disposition de broches donnée |
+| `pnr_InO/outils/compacter_traversees.py` (Vincent) | compactage des `set_max_delay` de traversée d'un SDC |
 
-## 3. Décisions ouvertes
+## 4. Suite : assemblage v2, puis timings macro par macro
 
-1. **`ino_data_cache` : `VALID_BASE_G = 0`, fait (P71), routé.** La « convention » (pas de données sous 4 Mio) n'était pas tenable : le bloc de démarrage à `BOOT_BLOCK = 0` est lu par `Q_BOOT` à travers le port EXEC, donc par `VALID_ACCESS`. Compatibilité avec eXecutor : la limite ne fait que s'élargir (§ 3 d'`ARCHI_SOC_TAHX.md`). TLALOC ne contrôle pas `null`. Netlist : une ligne change ; `etat_macros.sh` ne le voit pas (même stat), voir `PROVENANCE.txt`.
-2. **`RESUME` dans `ino_system` : fait au RTL (6 novembre), routé.** Arrêt pris à une frontière, priorité faute > arrêt > interruption, ports `RESUME_REQ_i`, `RESUME_PC_i`, `HALT_PC_o` ; prise limitée au repos sous `HALT_REQ` dans la logique de sommet d'`INO_CORE_SYSTEM`. Banc `T_K8_CORE_SYSTEM_tb` (674 vérifications). Détail : § 5.1 d'`ARCHI_SOC_TAHX.md`. Le Verilog de la macro est à réextraire (`pnr_InO/etat_macros.sh --extraire ino_system`), `pin_order_25ns.cfg` a les trois nouveaux ports au sud.
-3. **`BOOT_SEL` et `NULL_GUARD` : retenus (6 novembre),** à faire à l'étape 2 du RTL (§ 4.3 d'`ARCHI_SOC_TAHX.md`) : échange des fenêtres du port A par une broche de configuration, pour mettre la PSRAM en 0 et charger les images HX à `0x0040_0000` sans les relier ; zone de garde programmable contre `null`. Logique de sommet seulement, aucune macro ne change.
-4. **Valeur d'`IDCODE`** (pas de code fabricant JEDEC).
-5. **Composants mémoire** (IS25LX, IS66WVO…BLL) et **dimensions de cavité QFN64** d'IHP : à confirmer sur les fiches.
+Contrainte de Vincent : **garder le floorplan v11h.** On ne s'autorise que des permutations de bits ou de bus le long d'un côté, qui ne changent pas la disposition.
 
-## 4. Travail suivant : le RTL du SoC
+1. **Plan v11h dans les outils.**
+   - Écrire un convertisseur `.circ` → plan `canaux.py` (positions du § 1), ou saisir le plan à la main.
+   - Faire lire les `<m>_v2.lef` à `canaux.py`, `fils.py` et `generer_config.py` (option de suffixe, ou chemin de LEF par macro).
+   - Régler le sort de `frontend_control`.
+2. **Assemblage v2, routage global** (`config_v11h.yaml`). Vincent lance le run. Comparer le débordement et les points chauds à la prédiction de `canaux.py`.
+3. **Vues v2.** `vues_macros.sh` sur les runs v2 des 8 macros, pour avoir `.lib`, SPEF et netlist v2. Remesurer L (`latence_macros.tcl`).
+4. **STA d'assemblage v2.**
+   - Lancer `fils.py v11h` sur les sorties des runs v2 et des .lib v2 ; repérer les chemins critiques qui traversent plusieurs macros.
+   - Relevé des chemins, puis `rebudgeter.py --periode 26` (ou la période atteignable affichée), puis `verifier_budgets.py`.
+   - Compacter les traversées (`compacter_traversees.py`) avant de relancer.
+5. **Macro par macro.** Commencer par celle qui porte le plus d'écart (en v1 : entier, puis stack, dcache, system). Après chaque relance : vues, STA d'assemblage, puis rebudgéter les macros restantes avec ce qui a été atteint.
+6. **Si une liaison ne tient pas.** Permuter des bits ou des bus sur le côté concerné (souhaits, puis `position_broches.py`, puis `flux_broches.py` pour le fil interne), ou dupliquer une sortie (§ 2), sans toucher au floorplan.
 
-Dans l'ordre du § 9 d'`ARCHI_SOC_TAHX.md`. Points d'entrée dans le RTL :
+## 5. Plus tard
+
+- PDN des macros (`PDN_MULTILAYER: false`, grille TopMetal1 au sommet).
+- Arbre d'horloge du sommet.
+- RTL du SoC : matrice 2 × 2, agrégation de lignes, xSPI, BOOT_SEL, NULL_GUARD, débogueur par le port EXEC (décisions dans ARCHI § 3–6).
+
+## 6. Décisions déjà prises (RTL, rappel)
+
+- `VALID_BASE_G = 0` (P71), `RESUME` (P70) et `ICACHE_INVALIDATE_ALL` (P73) sont faits et routés en v1 (détail : ARCHI § 3, § 5.1, § 6).
+- `BOOT_SEL` et `NULL_GUARD` sont retenus et restent à écrire avec le RTL du SoC (ARCHI § 4.3). Ils ne touchent que la logique de sommet.
+- Questions encore ouvertes : la valeur d'`IDCODE`, les composants mémoire (IS25LX, IS66WVO…BLL) et la cavité QFN64 d'IHP.
+
+Points d'entrée du RTL du SoC, dans l'ordre du § 9 d'ARCHI :
 
 | tâche | fichiers |
 |---|---|
-| matrice 2 × 2 (+ maître de débogage), agrégation des 4 mots en une ligne de 32 octets | nouveau ; interfaces `I_*` de `V_TAHX_1_in_order.vhd` et `D_*` de `M3b_INO_DCACHE_CORE.vhd` |
-| `xspi_controller` + `xspi_phy`, délai de garde, démarrage `0x03` sur 3 octets | nouveau ; modèles VHDL de PSRAM octale et de flash pour les bancs |
-| attributs mémoire (`outside`) et port `R_*` | sommet : `exec_mem_req` → `TO_PA_EXEC` (`K1a_INO_PORTS_PA.vhd`) → `INO_DATA_CACHE` ; le bit `outside` mène à la faute 132 dans `VALID_ACCESS` (`M3b_INO_DCACHE_CORE.vhd`) |
-| `ICACHE_INVALIDATE_ALL` | fait (P73) : `I1d_INO_FETCH_LINE.vhd`, `I6_INO_FETCH*.vhd`, `I_INSTRUCTION_UNIT*.vhd`, `V_TAHX_1*.vhd` ; banc `I1d_FETCH_LINE_INVALIDATE` ; § 6 d'`ARCHI_SOC_TAHX.md` |
-| `VALID_BASE_G = 0` | fait (P71) : `A0_INO_PADDR.vhd`, `M3c_INO_DATA_CACHE*.vhd` |
-| `RESUME` | fait (6 novembre) : `S1_INO_SYSTEM_UNIT*.vhd`, `S1c_INO_SYSTEM*.vhd`, `K8_INO_CORE_SYSTEM*.vhd`, `V_TAHX_1*.vhd` |
-| TAP JTAG, module de débogage, BSR, BSDL | nouveau (§ 5.1) |
-| UART, I2C (préparé pour I3C), temporisateur, registres système, `MEM_RESET#` | nouveau (§ 4.5, § 5) |
+| matrice 2 × 2 (+ maître de débogage), agrégation de 4 mots en une ligne de 32 octets | nouveau ; interfaces `I_*` de `V_TAHX_1_in_order.vhd` et `D_*` de `M3b_INO_DCACHE_CORE.vhd` |
+| `xspi_controller` + `xspi_phy`, démarrage `0x03` sur 3 octets | nouveau ; modèles VHDL de PSRAM et de flash octales pour les bancs |
+| attributs mémoire (`outside`), port `R_*` | sommet : `exec_mem_req` → `TO_PA_EXEC` (`K1a_INO_PORTS_PA.vhd`) → `INO_DATA_CACHE` ; faute 132 dans `VALID_ACCESS` |
+| TAP JTAG, débogage, BSR, BSDL | nouveau (ARCHI § 5.1) |
+| UART, I2C, temporisateur, registres système, `MEM_RESET#` | nouveau (ARCHI § 4.5, § 5) |
 
-Premier jalon : la matrice, l'agrégation et un seul port xSPI avec le modèle de PSRAM, pour vérifier que quatre requêtes de 64 bits deviennent bien une rafale octale de 32 octets.
+## 7. À retenir du flux LibreLane (macros)
 
-## 5. À retenir du flux (macros)
-
-- Dans `pin_order_25ns.cfg` : **aucun commentaire** (le parseur les refuse), `@bit_major` en tête (`#BUS_SORT` est déconseillé). Les broches sont réparties à pas constant sur le côté, de bas en haut à l'ouest et à l'est, de gauche à droite au nord et au sud ; `$n` réserve n emplacements.
-- Mettre tous les bus d'une macro sur un seul côté sature Metal3 (`stack_unit` P67 : débordement de 46 239).
-- `STAMidPNR` ne rapporte que le coin rapide : les valeurs lent et typique d'un `metrics.json` intermédiaire sont celles d'avant le placement-routage.
+- `pin_order.cfg` :
+  - **aucun commentaire**, le parseur les refuse ;
+  - mettre `@bit_major` en tête plutôt que `#BUS_SORT`, qui est déconseillé ;
+  - ne pas mettre tous les bus d'une macro sur un seul côté : cela sature Metal3 (`stack_unit` P67 : débordement de 46 239).
+- `STAMidPNR` ne rapporte que le coin rapide (voir § 2).
 - Le flux est chaotique : un déplacement de 0,1 µm change le résultat. On garde un bon run plutôt que de le « corriger ».
-- `pnr_InO/verifier_broches_sram.py <DEF> <LEF>…` sert de LVS minimal pour les broches des SRAM (donner tous les LEF utilisés).
+- `pnr_InO/verifier_broches_sram.py <DEF> <LEF>…` sert de LVS minimal pour les broches des SRAM.
+- `ino_data_cache` : marges de hold de 0,2 ns en placement et en routage global (`PL_` / `GRT_RESIZER_HOLD_SLACK_MARGIN`).
+- Autres documents du Project : `ETUDE_VITESSE_TAHX_InO.md` et `PASSATION_VITESSE_TAHX_InO.md` (historique du routage des macros), `PASSATION_TAHX_InO_silicium.md` (le flux LibreLane sur sg13cmos5l).
