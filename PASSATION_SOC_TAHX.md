@@ -14,7 +14,7 @@ Document pour reprendre dans une nouvelle conversation. Il remplace la passation
 
 ## 1. Floorplan v2 (v11h, retenu)
 
-Coin haut-gauche, y vers le bas, en µm. La boîte des macros mesure 6780 × 3930 µm.
+Coin haut-gauche, y vers le bas, en µm, d'après Logisim (à quelques µm près). La boîte des macros mesure 6780 × 3930 µm avec `frontend_control`, 6780,16 × 3538,52 sans. **Positions exactes : `canaux.PLANS["v11h"]`** (Y du `FLOORPLAN_TAHX_v11h.md`) ; la rangée du bas (arith, entier, system) y est 8,5 µm plus bas que dans Logisim.
 
 | macro | position | taille | config v2 |
 |---|---|---|---|
@@ -26,7 +26,7 @@ Coin haut-gauche, y vers le bas, en µm. La boîte des macros mesure 6780 × 393
 | ino_exec_arith | (3203, 2933) | 1150 × 1150 | 25 ns |
 | ino_exec_entier | (4683, 2933) | 1000 × 1200 (au lieu de 900 × 1000) | `CLOCK_PERIOD: 10`, SDC P78 en commentaire (SDC par défaut) |
 | ino_system | (6083, 2383) | 700 × 1750 (portrait, au lieu de 1100 × 1000) | `CLOCK_PERIOD: 20`, SDC en commentaire |
-| frontend_control | (4663, 203) | 620 × 200 | bloc du modèle Logisim, absent des 8 macros : à préciser avec Vincent |
+| frontend_control | (4663, 203) | 620 × 200 | logique de liaison du sommet (pas une macro) : placée librement ; la marge du haut de l'assemblage (550 µm) garde sa zone |
 
 État des macros v2 :
 - Chaque macro a dans son dossier un `wish_pin_order_v2.cfg`, passé par `pnr_InO/outils/position_broches.py` pour donner un `pin_order_v2.cfg`, puis un `config_v2.yaml`.
@@ -59,7 +59,9 @@ Coin haut-gauche, y vers le bas, en µm. La boîte des macros mesure 6780 × 393
 | outil | rôle |
 |---|---|
 | `synth_InO/sta/plan_puce/canaux.py` | plans de macros (`PLANS`), estimation de la congestion des canaux |
-| `pnr_InO/assemblage/generer_config.py <plan>` | config LibreLane de l'assemblage (`--to OpenROAD.GlobalRouting`, sans PDN). **Lit `vues/<m>.lef` : à adapter pour `<m>_v2.lef`** |
+| `pnr_InO/assemblage/generer_config.py <plan>` | config LibreLane de l'assemblage (`--to OpenROAD.GlobalRouting`, sans PDN) ; LEF du plan (v11h → `<m>_v2.lef`), x au pas de 0,48, y au pas de 0,42, GDS v2 trouvés sous `runs/` (`--gds auto`) |
+| `synth_InO/sta/plan_puce/alignement.py` | décalage bit à bit des bus droits et croisements des bus coudés, d'après la netlist du sommet et les LEF du plan |
+| `synth_InO/sta/plan_puce/lire_circ.py` | positions du modèle Logisim comparées au plan |
 | `pnr_InO/assemblage/extraire_sommet.sh` | netlist du sommet et déclarations des macros en boîtes noires |
 | `pnr_InO/vues_macros.sh <m>` | vues d'un run : LEF, netlist, SPEF gzippé, `.lib` des 3 coins, `PROVENANCE_VUES.txt` |
 | `synth_InO/sta/assemblage/` | STA d'assemblage (`synth_colle.sh` avec D=1000, `fils.py <plan>`, `sta_assemblage.tcl`), relevé des chemins (`releve_chemins.tcl`), rebudgétage (`rebudgeter.py`, `verifier_budgets.py`), `latence_macros.tcl` ; voir le LISEZMOI |
@@ -71,11 +73,15 @@ Coin haut-gauche, y vers le bas, en µm. La boîte des macros mesure 6780 × 393
 
 Contrainte de Vincent : **garder le floorplan v11h.** On ne s'autorise que des permutations de bits ou de bus le long d'un côté, qui ne changent pas la disposition.
 
-1. **Plan v11h dans les outils.**
-   - Écrire un convertisseur `.circ` → plan `canaux.py` (positions du § 1), ou saisir le plan à la main.
-   - Faire lire les `<m>_v2.lef` à `canaux.py`, `fils.py` et `generer_config.py` (option de suffixe, ou chemin de LEF par macro).
-   - Régler le sort de `frontend_control`.
-2. **Assemblage v2, routage global** (`config_v11h.yaml`). Vincent lance le run. Comparer le débordement et les points chauds à la prédiction de `canaux.py`.
+1. **Plan v11h dans les outils : fait (13 novembre, après-midi).**
+   - `canaux.PLANS["v11h"]` : positions exactes, LEF v2 par défaut (`lef_macro()`, `--lef v1|v2` dans `canaux.py`, `fils.py`, `generer_config.py`).
+   - `alignement.py` (netlist synthétisée du sommet, mêmes ports en v1 et v2) : 2 483 bits de bus droits à décalage nul, dont tous ceux du FLOORPLAN ; stack → arith : 1 paire croisée (`class[2]` / `op[0]`), comme relevé. Écarts restants (1 bit chacun, hors chemins critiques) : `maint_done_o` → `stack_maint_done_i` d'entier (−128,64 µm), `halted_o` (sud de system) → `halt_i` (nord de fetch), 9,7 mm.
+   - Point ouvert du FLOORPLAN, `system.issue_i` (140 bits) : sens d'ensemble correct (81 % des paires dans l'ordre), mais 1 828 paires croisées, car op / val / len / pc / operand0 sont entrelacés sur l'ouest de system et contigus au sud de stack. Permutation possible le long du côté si le routage le demande.
+   - `frontend_control` : logique de liaison du sommet, pas une macro ; placée par le placement global. Marge du haut de l'assemblage portée à 550 µm (`MARGE_HAUT`) pour garder sa zone et le passage des bus `commit` → nord de fetch / predict.
+   - `canaux.py --plan v11h` : débordement estimé 30 800 pistes (13 100 pour `aligne_dc`, qui a donné 190 au routage global). Points chauds : bande au-dessus de predict / dq vers le nord de stack (`commit` vers fetch, predict, dq, system, ≈ 3,3 × la capacité, en partie artefact : liaisons à plusieurs destinations comptées une par une) et sous system (bloc des périphériques réduit à un point : artefact). Canaux entre macros ≤ 0,9 hors de cette bande.
+   - Longueurs routées estimées (pire bit) par rapport à `aligne_dc` : chaînage 0,94 mm (0,72), retour 0,62 (0,44), FAST_PIPE 1,26 / 1,48 (1,02 / 0,96), arith → entier 0,32 (1,18), dq → stack 1,86 (4,10).
+   - **À signaler :** puce de l'assemblage 7,08 × 4,24 mm, soit ≈ 7,5 × 4,6 mm avec la couronne de plots : au-delà de la cavité de 6,6 × 6,6 mm annoncée pour le QFN64 9 × 9 d'IHP (ARCHI § 1, à confirmer).
+2. **Assemblage v2, routage global** (`config_v11h.yaml`, déjà généré ; le régénérer sur la machine des runs pour pointer les GDS v2). Vincent lance le run. Comparer le débordement et les points chauds à la prédiction de `canaux.py`.
 3. **Vues v2.** `vues_macros.sh` sur les runs v2 des 8 macros, pour avoir `.lib`, SPEF et netlist v2. Remesurer L (`latence_macros.tcl`).
 4. **STA d'assemblage v2.**
    - Lancer `fils.py v11h` sur les sorties des runs v2 et des .lib v2 ; repérer les chemins critiques qui traversent plusieurs macros.

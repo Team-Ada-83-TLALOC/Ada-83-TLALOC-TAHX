@@ -10,13 +10,15 @@ VERILOG_FILES:
 
 CLOCK_PORT: clk_i
 # 26 ns : SDC rebudgete (P78, synth_InO/sta/assemblage/rebudgeter.py) ; nom de fichier garde.
-CLOCK_PERIOD: 10
+CLOCK_PERIOD: 15
+
+DRT_SAVE_DRC_REPORT_ITERS: 5
 
 # Run contraint (etude de vitesse, 28 octobre, § 8.11) : ino_execute en deux macros.
 # Budgets d'entree / sortie tires du coeur entier par synth_InO/sta/sdc_macro.tcl
 # (coin slow, fils 'Zero').
-#PNR_SDC_FILE: dir::ino_exec_entier_25ns_pnr.sdc
-#SIGNOFF_SDC_FILE: dir::ino_exec_entier_25ns.sdc
+PNR_SDC_FILE: dir::ino_exec_entier_25ns_pnr.sdc
+SIGNOFF_SDC_FILE: dir::ino_exec_entier_25ns.sdc
    # le SDC complet reste la référence du signoff
 # Reglages valides sur ino_decode_queue / ino_decode_predict (§ 7) : synthese DELAY,
 # placement guide par le timing, synthese, placement et arbre d'horloge au coin lu.
@@ -51,7 +53,9 @@ LAYERS_RC:
 # Marges des reparations, validees sur ino_decode_predict (run G, 26 octobre :
 # -0,72 -> +0,79 ns au coin slow, occupation inchangee) : 1 ns de marge de setup
 # visee par les reparations de timing, 25 % de marge de slew.
-PL_RESIZER_SETUP_SLACK_MARGIN: 1.0
+PL_RESIZER_SETUP_SLACK_MARGIN: 0.3
+PL_RESIZER_SETUP_REPAIR_TNS_PCT: 10
+
 # Apres routage global (OpenROAD.ResizerTimingPostGRT, mono-fil et lente : plus de
 # 11 h sur ino_execute avec 1 ns, 27 octobre) : marge reduite et seulement 10 % des
 # extremites en violation (les pires) ; le gros du travail est fait apres placement.

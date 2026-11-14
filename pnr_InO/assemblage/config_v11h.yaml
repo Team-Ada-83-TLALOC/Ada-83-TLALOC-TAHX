@@ -1,0 +1,196 @@
+# Assemblage de TAHX_1 (coeur, 8 macros) : genere par generer_config.py, plan 'v11h' de synth_InO/sta/plan_puce/canaux.py. Ne pas modifier a la main.
+# Premier essai : routage global seulement (librelane ... --to OpenROAD.GlobalRouting),
+# sans grille d'alimentation (voir l'en-tete de generer_config.py).
+PDK: ihp-sg13cmos5l
+DESIGN_NAME: TAHX_1
+VERILOG_FILES:
+  - dir::src/tahx_1_sommet.v
+# LEF vues ; .lib et netlists des macros : vues/ (voir PROVENANCE_VUES.txt).
+CLOCK_PORT: CLK_i
+CLOCK_PERIOD: 26
+SYNTH_STRATEGY: "DELAY 1"
+SYNTH_CORNER: nom_slow_1p08V_125C
+PNR_CORNERS: [nom_slow_1p08V_125C, nom_fast_1p32V_m40C]
+PL_TIMING_DRIVEN: true
+PL_ROUTABILITY_DRIVEN: true
+PL_TARGET_DENSITY_PCT: 60
+GRT_ALLOW_CONGESTION: true
+LAYERS_RC:
+  "*":
+    Metal1: { res: 8.54576E-03, cap: 1.0E-10 }
+    Metal2: { res: 2.53519E-03, cap: 1.69121E-04 }
+    Metal3: { res: 1.54329E-03, cap: 1.82832E-04 }
+    Metal4: { res: 6.31424E-04, cap: 1.66454E-04 }
+DESIGN_REPAIR_MAX_WIRE_LENGTH: 500
+GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 500
+DESIGN_REPAIR_MAX_SLEW_PCT: 25
+GRT_DESIGN_REPAIR_MAX_SLEW_PCT: 25
+CTS_CLK_MAX_WIRE_LENGTH: 300
+CTS_DISTANCE_BETWEEN_BUFFERS: 300
+FP_SIZING: absolute
+DIE_AREA: [0, 0, 7079.52, 4238.64]
+FP_MACRO_HORIZONTAL_HALO: 10
+FP_MACRO_VERTICAL_HALO: 10
+DIODE_ON_PORTS: in
+DIODE_CELL: sg13cmos5l_antennanp/A
+MACROS:
+  ino_fetch:
+    lef:          # OBS plein, d'apres ino_fetch/vues/ino_fetch.lef
+      - dir::lef_obs/ino_fetch.lef
+    gds:          # FANTOME (contour du LEF) : pas de run v2 complet
+      - dir::gds_fantomes/ino_fetch.gds
+    vh:
+      - dir::src/bb/ino_fetch.v
+    lib:
+      "*_slow_*":
+        - dir::../macros/ino_fetch/vues/lib/nom_slow_1p08V_125C.lib
+      "*_typ_*":
+        - dir::../macros/ino_fetch/vues/lib/nom_typ_1p20V_25C.lib
+      "*_fast_*":
+        - dir::../macros/ino_fetch/vues/lib/nom_fast_1p32V_m40C.lib
+    instances:
+      "u_instruction.u_fetch":
+        location: [149.76, 1488.06]
+        orientation: N
+  ino_decode_predict:
+    lef:          # OBS plein, d'apres ino_decode_predict/vues/ino_decode_predict.lef
+      - dir::lef_obs/ino_decode_predict.lef
+    gds:          # FANTOME (contour du LEF) : pas de run v2 complet
+      - dir::gds_fantomes/ino_decode_predict.gds
+    vh:
+      - dir::src/bb/ino_decode_predict.v
+    lib:
+      "*_slow_*":
+        - dir::../macros/ino_decode_predict/vues/lib/nom_slow_1p08V_125C.lib
+      "*_typ_*":
+        - dir::../macros/ino_decode_predict/vues/lib/nom_typ_1p20V_25C.lib
+      "*_fast_*":
+        - dir::../macros/ino_decode_predict/vues/lib/nom_fast_1p32V_m40C.lib
+    instances:
+      "u_instruction.u_decode_predict":
+        location: [2400.0, 2588.46]
+        orientation: N
+  ino_decode_queue:
+    lef:          # OBS plein, d'apres decode_queue/vues/decode_queue.lef
+      - dir::lef_obs/ino_decode_queue.lef
+    gds:          # FANTOME (contour du LEF) : pas de run v2 complet
+      - dir::gds_fantomes/ino_decode_queue.gds
+    vh:
+      - dir::src/bb/ino_decode_queue.v
+    lib:
+      "*_slow_*":
+        - dir::../macros/decode_queue/vues/lib/nom_slow_1p08V_125C.lib
+      "*_typ_*":
+        - dir::../macros/decode_queue/vues/lib/nom_typ_1p20V_25C.lib
+      "*_fast_*":
+        - dir::../macros/decode_queue/vues/lib/nom_fast_1p32V_m40C.lib
+    instances:
+      "u_decode_queue":
+        location: [3600.0, 2588.46]
+        orientation: N
+  stack_unit_16_8:
+    lef:          # OBS plein, d'apres stack_unit_16_8/vues/stack_unit_16_8.lef
+      - dir::lef_obs/stack_unit_16_8.lef
+    gds:          # FANTOME (contour du LEF) : pas de run v2 complet
+      - dir::gds_fantomes/stack_unit_16_8.gds
+    vh:
+      - dir::src/bb/stack_unit_16_8.v
+    lib:
+      "*_slow_*":
+        - dir::../macros/stack_unit_16_8/vues/lib/nom_slow_1p08V_125C.lib
+      "*_typ_*":
+        - dir::../macros/stack_unit_16_8/vues/lib/nom_typ_1p20V_25C.lib
+      "*_fast_*":
+        - dir::../macros/stack_unit_16_8/vues/lib/nom_fast_1p32V_m40C.lib
+    instances:
+      "u_core.u_stack":
+        location: [4849.92, 1988.7]
+        orientation: N
+  ino_data_cache:
+    lef:          # OBS plein, d'apres ino_data_cache/vues/ino_data_cache.lef
+      - dir::lef_obs/ino_data_cache.lef
+    gds:          # FANTOME (contour du LEF) : pas de run v2 complet
+      - dir::gds_fantomes/ino_data_cache.gds
+    vh:
+      - dir::src/bb/ino_data_cache.v
+    lib:
+      "*_slow_*":
+        - dir::../macros/ino_data_cache/vues/lib/nom_slow_1p08V_125C.lib
+      "*_typ_*":
+        - dir::../macros/ino_data_cache/vues/lib/nom_typ_1p20V_25C.lib
+      "*_fast_*":
+        - dir::../macros/ino_data_cache/vues/lib/nom_fast_1p32V_m40C.lib
+    instances:
+      "u_data_cache":
+        location: [2400.0, 1516.62]
+        orientation: N
+  ino_exec_arith:
+    lef:          # OBS plein, d'apres ino_exec_arith/vues/ino_exec_arith.lef
+      - dir::lef_obs/ino_exec_arith.lef
+    gds:          # FANTOME (contour du LEF) : pas de run v2 complet
+      - dir::gds_fantomes/ino_exec_arith.gds
+    vh:
+      - dir::src/bb/ino_exec_arith.v
+    lib:
+      "*_slow_*":
+        - dir::../macros/ino_exec_arith/vues/lib/nom_slow_1p08V_125C.lib
+      "*_typ_*":
+        - dir::../macros/ino_exec_arith/vues/lib/nom_typ_1p20V_25C.lib
+      "*_fast_*":
+        - dir::../macros/ino_exec_arith/vues/lib/nom_fast_1p32V_m40C.lib
+    instances:
+      "u_core.u_backend.u_arith":
+        location: [3349.92, 199.5]
+        orientation: N
+  ino_exec_entier:
+    lef:          # OBS plein, d'apres ino_exec_entier/vues/ino_exec_entier.lef
+      - dir::lef_obs/ino_exec_entier.lef
+    gds:          # FANTOME (contour du LEF) : pas de run v2 complet
+      - dir::gds_fantomes/ino_exec_entier.gds
+    vh:
+      - dir::src/bb/ino_exec_entier.v
+    lib:
+      "*_slow_*":
+        - dir::../macros/ino_exec_entier/vues/lib/nom_slow_1p08V_125C.lib
+      "*_typ_*":
+        - dir::../macros/ino_exec_entier/vues/lib/nom_typ_1p20V_25C.lib
+      "*_fast_*":
+        - dir::../macros/ino_exec_entier/vues/lib/nom_fast_1p32V_m40C.lib
+    instances:
+      "u_core.u_backend.u_entier":
+        location: [4829.76, 149.94]
+        orientation: N
+  ino_system:
+    lef:          # OBS plein, d'apres ino_system/vues/ino_system.lef
+      - dir::lef_obs/ino_system.lef
+    gds:          # FANTOME (contour du LEF) : pas de run v2 complet
+      - dir::gds_fantomes/ino_system.gds
+    vh:
+      - dir::src/bb/ino_system.v
+    lib:
+      "*_slow_*":
+        - dir::../macros/ino_system/vues/lib/nom_slow_1p08V_125C.lib
+      "*_typ_*":
+        - dir::../macros/ino_system/vues/lib/nom_typ_1p20V_25C.lib
+      "*_fast_*":
+        - dir::../macros/ino_system/vues/lib/nom_fast_1p32V_m40C.lib
+    instances:
+      "u_core.u_system":
+        location: [6229.92, 149.94]
+        orientation: N
+RUN_LVS: false
+RUN_KLAYOUT_DRC: false
+RUN_MAGIC_STREAMOUT: false
+RUN_MAGIC_WRITE_LEF: false
+RUN_MAGIC_DRC: false
+RUN_KLAYOUT_XOR: false
+meta:
+  version: 2
+  flow: Classic
+  substituting_steps:
+    OpenROAD.GeneratePDN: null
+    Odb.CheckDesignAntennaProperties: null
+    Magic.SpiceExtraction: null
+    Checker.IllegalOverlap: null
+    Netgen.LVS: null
+    Checker.LVS: null

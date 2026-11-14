@@ -90,7 +90,72 @@ PLANS = {
            "sous fetch": (0, 2200, 1935, 2960), "entier / dcache": (1935, 2860, 4250, 2960),
            "arith / dcache": (2000, 2310, 3150, 2960)}),
 }
+
+
+def _plan_v11h():
+    """Floorplan v2 (Logisim v11h, valide le 13 novembre ; pnr_InO/FLOORPLAN_TAHX_v11h.md).
+
+    Y exacts (bus droits au bit pres) : bas de chaque macro relatif au bas D de
+    decode_predict, multiples de 0,42 um (pistes Metal3 des broches E/O). X d'apres
+    Logisim (coin haut-gauche = loc + 3), au pas de 0,48 um (pistes Metal2 des broches
+    N/S) ; stack_unit a X(exec_entier) + 20,16. Converti ici en coin haut-gauche, y vers
+    le bas, haut de decode_predict en y = 0, bord gauche de fetch en x = 0.
+    """
+    taille = {"ino_fetch": (1900, 2200), "ino_decode_predict": (1100, 1100),
+              "ino_decode_queue": (800, 1100), "stack_unit_16_8": (1500, 1500),
+              "ino_data_cache": (2275, 1061.84), "ino_exec_arith": (1150, 1150),
+              "ino_exec_entier": (1000, 1200), "ino_system": (700, 1750)}
+    ybas = {"ino_fetch": -1100.40, "ino_decode_predict": 0.0, "ino_decode_queue": 0.0,
+            "stack_unit_16_8": -599.76, "ino_data_cache": -1071.84, "ino_exec_arith": -2388.96,
+            "ino_exec_entier": -2438.52, "ino_system": -2438.52}
+    x = {"ino_fetch": 0.0, "ino_decode_predict": 2250.24, "ino_decode_queue": 3450.24,
+         "ino_data_cache": 2250.24, "ino_exec_arith": 3200.16, "ino_exec_entier": 4680.00,
+         "ino_system": 6080.16}
+    x["stack_unit_16_8"] = round(x["ino_exec_entier"] + 20.16, 2)
+    R = {m: (x[m], round(1100.0 - (ybas[m] + taille[m][1]), 2)) for m in taille}
+    return dict(
+      R=R, LEF="v2", SOC=(1100, 2900), PERIPH=(6430, 3700),
+      # marge du haut de l'assemblage (generer_config.py) : bloc frontend_control a
+      # 400 um au-dessus de decode_predict dans Logisim, plus 150 um.
+      MARGE_HAUT=550,
+      # bloc de logique de liaison du modele Logisim (pas une macro : cellules placees
+      # librement par le placement global) ; coin haut-gauche, y vers le bas, taille.
+      FRONTEND_CONTROL=((4660.0, -400.0), (620, 200)),
+      CANAUX={"fetch | predict": (1900, 0, 2250.24, 2200.4),
+              "predict | dq": (3350.24, 0, 3450.24, 1100),
+              "dq | stack": (4250.24, 0, 4700.16, 1110),
+              "dcache / arith": (2250.24, 2171.84, 4680, 2338.96),
+              "carrefour stack / entier / system": (4525.24, 1699.76, 6080.16, 2338.52),
+              "dcache | stack (bas)": (4525.24, 1110, 4700.16, 1699.76),
+              "arith | entier": (4350.16, 2338.96, 4680, 3538.52),
+              "entier | system": (5680, 2338.52, 6080.16, 3538.52),
+              "est de stack": (6200.16, 0, 6780.16, 1788.52),
+              "sous fetch": (0, 2200.4, 3200.16, 3538.52)})
+
+
+PLANS["v11h"] = _plan_v11h()
 R, SOC, PERIPH = PLANS["retenu"]["R"], PLANS["retenu"]["SOC"], PLANS["retenu"]["PERIPH"]
+
+
+def lef_macro(m, version=None):
+    """Chemin du LEF d'une macro : vues/<d>.lef (vues_macros.sh ; 'vues' ou 'v1') par defaut ;
+    version 'v2' : <d>_v2.lef du dossier de la macro (abstraits des runs v2) ; autre
+    valeur : suffixe du meme type (<d>_<version>.lef)."""
+    d = DOSSIER.get(m, m)
+    if not version or version in ("v1", "vues"):
+        return os.path.join(MACROS, d, "vues", f"{d}.lef")
+    return os.path.join(MACROS, d, f"{d}_{version}.lef")
+
+
+def grille_pas(v, pas):
+    """v arrondi au multiple de pas le plus proche (positions des macros au sommet :
+    x au pas de 0,48 um, Metal2 ; y au pas de 0,42 um, Metal3)."""
+    return round(round(v / pas) * pas, 2)
+
+
+def version_lef(plan, demande=None):
+    """Version de LEF a lire : celle demandee (--lef), sinon celle du plan, sinon v1."""
+    return demande or PLANS[plan].get("LEF")
 
 # Liaisons critiques (plan_puce.py) : nom, macro source, prefixe du champ, macro destination.
 CRIT = [("chainage stack -> entier", "stack_unit_16_8", "issue_o", "ino_exec_entier"),
@@ -139,14 +204,17 @@ def main():
     ap.add_argument("--util", type=float, default=0.7)
     ap.add_argument("--marge", type=float, default=200.0, help="marge autour des macros (um)")
     ap.add_argument("--png", default=os.path.join(ICI, "canaux.png"))
+    ap.add_argument("--lef", default=None,
+                    help="version des LEF : v1 (vues/<m>.lef), v2 (<m>_v2.lef) ; defaut : celle du plan")
     a = ap.parse_args()
     if a.plan:
         R, SOC, PERIPH = PLANS[a.plan]["R"], PLANS[a.plan]["SOC"], PLANS[a.plan]["PERIPH"]
+    vlef = version_lef(a.plan or "retenu", a.lef)
+    print(f"plan {a.plan or 'retenu'}, LEF {vlef or 'v1'}")
 
     boites, broches = {}, {}
     for m, (x0, y0) in R.items():
-        d = DOSSIER.get(m, m)
-        w, h, pins = lire_lef(os.path.join(MACROS, d, "vues", f"{d}.lef"))
+        w, h, pins = lire_lef(lef_macro(m, vlef))
         boites[m] = (x0, y0, w, h)
         broches[m] = {n: (x0 + px, y0 + (h - py)) for n, (px, py) in pins.items()}   # y vers le bas
 

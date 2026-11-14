@@ -3,7 +3,8 @@
 
 Usage : fils.py <connexions.txt> <plan> <sortie.tcl> [--detour 1.3]
   connexions.txt : sortie de connexions.tcl (net, pilotes, charges) ;
-  plan           : nom d'un plan de canaux.py (retenu, elargi) ;
+  plan           : nom d'un plan de canaux.py (retenu, elargi, aligne_dc, v11h) ;
+  --lef v1|v2    : LEF des macros (defaut : celle du plan ; v11h -> <m>_v2.lef) ;
 Ecrit un Tcl pour OpenSTA :
   - set_load <C fil> sur chaque net (capacite du fil, vue par le pilote) ;
   - set_annotated_delay -net du pilote a chaque charge (Elmore d'une etoile :
@@ -45,12 +46,13 @@ def main():
     ap.add_argument("--registre-d", action="store_true",
                     help="etage de registres sur D_* dans la matrice, au bord ouest du cache : "
                          "les ports D_* sont pris a ce bord (fils courts)")
+    ap.add_argument("--lef", default=None, help="v1, v2 ; defaut : celle du plan")
     a = ap.parse_args()
     plan = C.PLANS[a.plan]
+    vlef = C.version_lef(a.plan, a.lef)
     broches = {}
     for m, (x0, y0) in plan["R"].items():
-        d = C.DOSSIER.get(m, m)
-        w, h, pins = C.lire_lef(os.path.join(C.MACROS, d, "vues", f"{d}.lef"))
+        w, h, pins = C.lire_lef(C.lef_macro(m, vlef))
         broches[m] = {n: (x0 + px, y0 + (h - py)) for n, (px, py) in pins.items()}
 
     nets = []
@@ -74,7 +76,7 @@ def main():
                 return None
             if a.registre_d and b.startswith("D_"):
                 x0, y0 = plan["R"]["ino_data_cache"]
-                return (x0 - 20, y0 + 1062 - 529)     # milieu des broches d_* (bord ouest)
+                return (x0 - 20, y0 + 1061.84 - 529)  # milieu des broches d_* (bord ouest)
             return plan["SOC"] if re.match(r"(I_|D_)", b) else plan["PERIPH"]
         m = INST.get(inst)
         if m is None:
@@ -117,7 +119,7 @@ def main():
         return pos.get(inst)
 
     out = open(a.sortie, "w")
-    out.write(f"# fils du sommet, plan {a.plan}, detour {a.detour}\n")
+    out.write(f"# fils du sommet, plan {a.plan}, LEF {vlef or 'v1'}, detour {a.detour}\n")
     longs = []
     for n, d, l in nets:
         if not d or not l:

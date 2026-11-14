@@ -11,12 +11,14 @@ CLOCK_PORT: clk_i
 # 26 ns : SDC rebudgete (P78, synth_InO/sta/assemblage/rebudgeter.py) ; nom de fichier garde.
 CLOCK_PERIOD: 26
 
+DRT_SAVE_DRC_REPORT_ITERS: 5
+
 # Run contraint a 25 ns (etude de vitesse, 29 octobre, § 8.14) : reglages valides
 # sur ino_decode_predict (run G), ino_exec_entier et ino_exec_arith (§ 8.13).
 # Budgets d'entree / sortie tires du coeur entier par synth_InO/sta/sdc_macro.tcl
 # (netlist d'estimation v3s, coin slow, fils 'Zero').
-#PNR_SDC_FILE: dir::stack_unit_16_8_25ns.sdc
-#SIGNOFF_SDC_FILE: dir::stack_unit_16_8_25ns.sdc
+PNR_SDC_FILE: dir::stack_unit_16_8_25ns.sdc
+SIGNOFF_SDC_FILE: dir::stack_unit_16_8_25ns.sdc
 
 # Synthese DELAY, placement guide par le timing, synthese et placement-routage au
 # coin lu.
@@ -35,12 +37,16 @@ LAYERS_RC:
     Metal4: { res: 6.31424E-04, cap: 1.66454E-04 }
 
 # Marges des reparations (§ 8.10, P25) et tampons sur les fils longs.
-PL_RESIZER_SETUP_SLACK_MARGIN: 1.0
-GRT_RESIZER_SETUP_SLACK_MARGIN: 1.0
+PL_RESIZER_SETUP_SLACK_MARGIN: 0.3
+GRT_RESIZER_SETUP_SLACK_MARGIN: 0.3
 DESIGN_REPAIR_MAX_SLEW_PCT: 25
 GRT_DESIGN_REPAIR_MAX_SLEW_PCT: 25
-DESIGN_REPAIR_MAX_WIRE_LENGTH: 400
-GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 400
+# essai à 0 valait 400
+DESIGN_REPAIR_MAX_WIRE_LENGTH: 0
+GRT_DESIGN_REPAIR_MAX_WIRE_LENGTH: 0
+
+GRT_RESIZER_SETUP_REPAIR_TNS_PCT: 10
+PL_RESIZER_SETUP_REPAIR_TNS_PCT: 10
 
 # stack_unit_16_8 : 0,719 mm2 de cellules en synthese d'estimation typ (v4s, port
 # d'ecriture unique des caches de pile, P29 ; 1,035 mm2 avant), environ 0,9 mm2
@@ -51,7 +57,7 @@ FP_SIZING: absolute
 # deborde de 3 923 (Metal3 3 027, usage 89 %, jusqu'a 34 pistes de trop dans une
 # case). Boite de 2,25 mm2 (+33 % de pistes), densite visee 50 %.
 DIE_AREA: [0, 0, 1500, 1500]
-PL_TARGET_DENSITY_PCT: 50
+PL_TARGET_DENSITY_PCT: 53
 PL_ROUTABILITY_DRIVEN: true
 GRT_ALLOW_CONGESTION: true
 # Variante 1500a (P62, 3 novembre) : run de config_25ns_1500.yaml (29 octobre) a
