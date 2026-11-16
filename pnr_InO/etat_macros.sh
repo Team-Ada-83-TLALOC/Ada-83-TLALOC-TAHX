@@ -30,7 +30,7 @@ trap 'rm -rf "$TMP"' EXIT
 # repertoire de la macro -> module de tete
 declare -A TETE=(
    [stack_unit_16_8]=stack_unit_16_8
-   [decode_queue]=ino_decode_queue
+   [ino_decode_queue]=ino_decode_queue
    [ino_decode_predict]=ino_decode_predict
    [ino_exec_entier]=ino_exec_entier
    [ino_exec_arith]=ino_exec_arith
@@ -42,7 +42,7 @@ declare -A TETE=(
 # ino_exec_entier et ino_exec_arith, routees chacune a part (etude de vitesse, § 8.11).
 # Son repertoire de macro est retire le 30 octobre (P51) ; l'entite VHDL INO_EXECUTE
 # reste, comme enveloppe des deux macros.
-ORDRE=( stack_unit_16_8 decode_queue ino_decode_predict ino_exec_entier ino_exec_arith ino_system ino_data_cache ino_fetch )
+ORDRE=( stack_unit_16_8 ino_decode_queue ino_decode_predict ino_exec_entier ino_exec_arith ino_system ino_data_cache ino_fetch )
 
 EXTRAIRE=()
 if [ "${1:-}" = "--extraire" ]; then

@@ -2,7 +2,13 @@
 """Rebudgetage des SDC de macros d'apres la STA d'assemblage de TAHX_1.
 
 Usage : rebudgeter.py <chemins.txt> [--periode 25] [--incert 0.5] [--lambda 0.5]
-                      [--biais 0.3] [--sortie dossier] [--macros ...]
+                      [--biais 0.3] [--sortie dossier] [--macros ...] [--lat latences_slow.txt]
+                      [--gmin MACRO=G ...] [--critiques N]
+  --gmin : g minimal d'une macro, a la place de GMIN (ex. stack_unit_16_8=0.95 : effort modere).
+  --critiques N : les N chemins de plus petite marge apres mise a l'echelle, segment par segment.
+  --exclure MOTIF : ecarte les chemins passant par un point qui contient MOTIF (ex. RESET_i).
+  --lat : latences internes mesurees (sortie de latences_macros.sh, lignes
+          « LAT <module> bascules N min a moy b max c », moyenne retenue) au lieu de LAT.
   chemins.txt : sortie de releve_chemins.tcl (coin lent, fils du plan de puce).
 
 Methode.
@@ -24,7 +30,8 @@ Methode.
     tau + biais, set_output_delay -max = periode - incertitude - tau + biais (biais : ecart
     d'horloge entre macros), par bus (pire bit) ; -min gardes de l'ancien SDC (hold) ;
     traversees combinatoires : set_max_delay par paire de bus = le plus grand, sur les
-    paires de bits relevees, de entree + D + sortie, D = budget interne alloue au chemin le
+    paires de bits relevees, de entree + D + sortie + incertitude (OpenSTA la retire aussi
+    d'un set_max_delay), D = budget interne alloue au chemin le
     plus serre qui traverse la paire de bits (au moins g_M * d).
     Insertion d'horloge interne des macros (LAT) : +L_A au depart d'un chemin lance par la
     macro A, -L_B a l'arrivee dans B (modeles .lib en horloge ideale) ; les SDC sont dans
@@ -43,11 +50,11 @@ RACINE = os.path.abspath(os.path.join(ICI, "..", "..", ".."))
 MACROS = os.path.join(RACINE, "pnr_InO", "macros")
 
 INST = {"u_instruction.u_fetch": "ino_fetch", "u_instruction.u_decode_predict": "ino_decode_predict",
-        "u_decode_queue": "decode_queue", "u_core.u_stack": "stack_unit_16_8",
+        "u_decode_queue": "ino_decode_queue", "u_core.u_stack": "stack_unit_16_8",
         "u_core.u_backend.u_entier": "ino_exec_entier", "u_core.u_backend.u_arith": "ino_exec_arith",
         "u_core.u_system": "ino_system", "u_data_cache": "ino_data_cache"}
 # Cout d'une relance (duree, sensibilite du flux) et acceleration jugee atteignable.
-COUT = {"ino_exec_entier": 1.0, "ino_exec_arith": 1.0, "ino_system": 1.0, "decode_queue": 1.0,
+COUT = {"ino_exec_entier": 1.0, "ino_exec_arith": 1.0, "ino_system": 1.0, "ino_decode_queue": 1.0,
         "ino_decode_predict": 1.5, "stack_unit_16_8": 2.0, "ino_data_cache": 3.0, "ino_fetch": 4.0}
 GMIN = {"ino_exec_entier": 0.55, "ino_system": 0.65, "ino_data_cache": 0.70, "stack_unit_16_8": 0.75}
 GMIN_DEFAUT = 0.80
@@ -58,8 +65,35 @@ ECART = 0.25      # ns : ecart au pire bit du bus au-dela duquel un bit a sa pro
 # setup sans elle non plus. Un chemin de A vers B est donc plus long de L_A - L_B que dans
 # la STA d'assemblage ; on l'ajoute en segments fixes (+L_A au depart, -L_B a l'arrivee).
 LAT = {"ino_exec_entier": 1.01, "stack_unit_16_8": 1.20, "ino_data_cache": 2.22, "ino_system": 1.04,
-       "ino_fetch": 2.39, "ino_decode_predict": 0.98, "decode_queue": 0.71, "ino_exec_arith": 0.95}
+       "ino_fetch": 2.39, "ino_decode_predict": 0.98, "ino_decode_queue": 0.71, "ino_exec_arith": 0.95}
 EFFORT = 0.6       # poids de l'effort (1 - g) / (1 - g_min), a cote du cout d'une relance
+
+
+# Macros dont les chemins critiques partent des SRAM : LAT = horloge des SRAM (LATSRAM)
+LAT_PAR_SRAM = ("ino_data_cache",)
+
+
+def charger_lat(fichier):
+    """LAT d'apres latences_<coin>.txt (latences_macros.sh) : moyenne aux bascules ; pour
+    LAT_PAR_SRAM, moyenne a l'horloge des SRAM (lignes LATSRAM) si elle est donnee."""
+    par_module = {}                       # module = dossier de la macro
+    sram = {}
+    for l in open(fichier):
+        t = l.split()
+        if len(t) >= 10 and t[0] == "LATSRAM" and t[6] == "moy" and math.isfinite(float(t[7])):
+            sram[par_module.get(t[1], t[1])] = float(t[7])
+        if len(t) >= 10 and t[0] == "LAT" and t[6] == "moy":
+            m, v = par_module.get(t[1], t[1]), float(t[7])
+            if not math.isfinite(v) or not math.isfinite(float(t[5])) or not math.isfinite(float(t[9])):
+                print(f"LAT de {m} non finie dans {fichier} ({' '.join(t[4:10])}) : "
+                      f"valeur v1 gardee ({LAT.get(m, 0.0):.2f}) ; relancer latences_macros.sh")
+                continue
+            LAT[m] = v
+    for m in LAT_PAR_SRAM:
+        if m in sram:
+            print(f"LAT de {m} : horloge des SRAM {sram[m]:.2f} (bascules {LAT.get(m, 0.0):.2f})")
+            LAT[m] = sram[m]
+    print("LAT (ns) : " + ", ".join(f"{m} {v:.2f}" for m, v in sorted(LAT.items())))
 
 
 def macro_de(pin):
@@ -94,6 +128,11 @@ def segments(c, direction, periode, incert):
     pts = c["pts"]
     seg = []
     m0, _ = macro_de(pts[0][0])
+    # depart a la broche d'horloge d'une macro suivie de sa sortie : la sortie est le depart
+    if (m0 and len(pts) > 1 and direction.get(pts[0][0]) == "input"
+            and macro_de(pts[1][0])[0] == m0 and direction.get(pts[1][0]) == "output"
+            and re.search(r"(^|/)clk", pts[0][0].split("/")[-1]) and pts[0][1] <= 1e-3):
+        pts = pts[1:]
     if m0 and direction.get(pts[0][0]) == "output":
         seg.append((None, LAT.get(m0, 0.0), None, None))        # insertion d'horloge de la macro
         seg.append((m0, pts[0][1], None, pts[0][0]))            # horloge -> sortie
@@ -191,12 +230,34 @@ def main():
     ap.add_argument("--sortie", default=None, help="dossier des SDC rebudgetes")
     ap.add_argument("--macros", nargs="*", default=None,
                     help="macros autorisees a la relance (defaut : toutes)")
+    ap.add_argument("--lat", default=None, help="latences_<coin>.txt de latences_macros.sh")
+    ap.add_argument("--ecart", type=float, default=ECART,
+                    help=f"ecart au pire bit au-dela duquel un bit a sa propre valeur (ns, {ECART})")
+    ap.add_argument("--gmin", action="append", default=[], metavar="MACRO=G",
+                    help="g minimal d'une macro (remplace GMIN ; repetable), ex. stack_unit_16_8=0.95")
+    ap.add_argument("--critiques", type=int, default=0, metavar="N",
+                    help="affiche les N chemins de plus petite marge apres mise a l'echelle")
+    ap.add_argument("--exclure", action="append", default=[], metavar="MOTIF",
+                    help="ecarte les chemins dont un point (port, broche) contient MOTIF, "
+                         "ex. RESET_i : chemins de reset traites a part (multicycle, RTL)")
     a = ap.parse_args()
+    globals()["ECART"] = a.ecart
+    for x in a.gmin:
+        m, v = x.split("=")
+        GMIN[m] = float(v)
+    if a.lat:
+        charger_lat(a.lat)
     chemins, broches = lire(a.chemins)
+    if a.exclure:
+        n0 = len(chemins)
+        chemins = [c for c in chemins if not any(m in p for m in a.exclure for p, _ in c["pts"])]
+        print(f"--exclure {' '.join(a.exclure)} : {n0 - len(chemins)} chemins ecartes sur {n0}")
     direction = {p: v[0] for p, v in broches.items()}
     T, U = a.periode, a.incert
     chs = [segments(c, direction, a.periode_releve, U) for c in chemins]
     chs = [s for s in chs if any(m for m, _, _, _ in s)]
+    if not chs:
+        sys.exit("aucun chemin traversant une macro (--exclure trop large ?)")
     macros = sorted({m for s in chs for m, _, _, _ in s if m})
     if a.macros is not None:
         for m in macros:
@@ -215,6 +276,36 @@ def main():
     for m in macros:
         print(f"{m:20s} {'oui' if y[m] else 'non':8s} {g[m]:6.3f}  {GMIN.get(m, GMIN_DEFAUT):6.2f}  "
               f"{pire[m]:6.2f} -> {pire[m] * g[m]:6.2f} ns")
+
+    if a.critiques:
+        # chemins qui fixent la periode : marge apres mise a l'echelle, segments
+        def court(p):
+            return "" if p is None else macro_de(p)[1] if macro_de(p)[0] else p.split("/")[-1]
+        cl = []
+        for c, s in zip([c for c in chemins], [segments(c, direction, a.periode_releve, U)
+                                               for c in chemins]):
+            if not any(m for m, _, _, _ in s):
+                continue
+            tot = sum(d * (g[m] if m else 1.0) for m, d, _, _ in s)
+            cl.append(((T - U + z) - tot, c, s))
+        cl.sort(key=lambda e: e[0])
+        vus_c = set()
+        n = 0
+        for marge, c, s in cl:
+            cle = tuple((m, round(d, 2)) for m, d, _, _ in s)
+            if cle in vus_c:
+                continue
+            vus_c.add(cle)
+            n += 1
+            print(f"\nchemin critique {n} : marge {marge:+.3f} ns (a la periode {T + z:.2f}), "
+                  f"extremite {c['fin']}")
+            for m, d, u, v in s:
+                x = d * (g[m] if m else 1.0)
+                quoi = f"{m} (g {g[m]:.3f})" if m else \
+                    ("insertion +L / -L" if u is None and v is None else "fixe")
+                print(f"   {quoi:30s} {d:7.3f} -> {x:7.3f}   {court(u)} -> {court(v)}")
+            if n >= a.critiques:
+                break
 
     # Instants mis a l'echelle et marges.
     arr, req = defaultdict(lambda: -1e30), defaultdict(lambda: 1e30)
@@ -252,10 +343,22 @@ def main():
     for m in macros:
         if not y[m]:
             continue
-        ancien = [f for f in os.listdir(os.path.join(MACROS, m)) if f.endswith("_25ns.sdc")][0]
+        ancien = sorted(f for f in os.listdir(os.path.join(MACROS, m)) if f.endswith("_25ns.sdc"))[0]
         src = open(os.path.join(MACROS, m, ancien)).read().splitlines()
         while src and src[0].startswith("#"):      # en-tete de sdc_macro.tcl, perime
             src.pop(0)
+        # Ancien SDC deja rebudgete (P78) : lignes « -max V ... ;# avant H » et « -min H »,
+        # surcharges « -max » par bit. On n'en garde que le -min (hold d'origine) par bus ;
+        # les -max (bus et bits) sont remplaces. Format d'origine : « set_X_delay V ».
+        anc_max = defaultdict(list)              # (in|out, bus) -> anciennes lignes -max
+        anc_val = {}                             # (in|out, bus) -> ancienne valeur -max du bus
+        for l in src:
+            mo = re.match(r"set_(input|output)_delay\s+-max\s+(\S+)\s+-clock clk \[get_ports \{(.+)\}\]", l)
+            if mo:
+                k = ("in" if mo.group(1) == "input" else "out", re.sub(r"\[\d+\]$", "[*]", mo.group(3)))
+                anc_max[k].append(l.split("   ;#")[0])
+                if k[1] == mo.group(3):
+                    anc_val[k] = mo.group(2)
         par_bus = defaultdict(lambda: None)
         par_bit = {}                             # (in|out, broche) -> valeur du bit
         for p, t in tau.items():
@@ -295,18 +398,29 @@ def main():
                 # periode des SDC = periode atteignable (les budgets en dependent)
                 out.append(re.sub(r"-period \S+", f"-period {T + z:g}", l))
                 continue
-            mo = re.match(r"set_(input|output)_delay\s+(\S+)\s+-clock clk \[get_ports \{(.+)\}\]", l)
+            if re.match(r"set_(input|output)_delay\s+-max\s", l):
+                continue                         # -max d'un SDC deja rebudgete : remplace
+            mo = re.match(r"set_(input|output)_delay\s+-min\s+(\S+)\s+-clock clk \[get_ports \{(.+)\}\]", l) \
+                or re.match(r"set_(input|output)_delay\s+([-0-9.]\S*)\s+-clock clk \[get_ports \{(.+)\}\]", l)
             if mo:
                 kind = "in" if mo.group(1) == "input" else "out"
                 v = par_bus[(kind, mo.group(3))]
                 vus.add((kind, mo.group(3)))
                 if v is not None:
+                    avant = anc_val.get((kind, mo.group(3)), mo.group(2))
                     out.append(f"set_{mo.group(1)}_delay -max {v:7.3f} -clock clk [get_ports {{{mo.group(3)}}}]"
-                               f"   ;# avant {mo.group(2)}")
-                    out.append(f"set_{mo.group(1)}_delay -min {mo.group(2)} -clock clk [get_ports {{{mo.group(3)}}}]")
+                               f"   ;# avant {avant}")
+                    # -min <= -max (pire bit compris) : un -min plus grand, repris
+                    # d'une ligne sans -min/-max (port « nouveau » d'un SDC rebudgete),
+                    # rendrait le hold optimiste aux deux sens (entree et sortie).
+                    vmin = min([float(mo.group(2)), v]
+                               + [vb for _, vb in surcharges[(kind, mo.group(3))]])
+                    out.append(f"set_{mo.group(1)}_delay -min {vmin:.3f} -clock clk [get_ports {{{mo.group(3)}}}]"
+                               + ("" if vmin == float(mo.group(2)) else f"   ;# ancien -min {mo.group(2)}"))
                     for port, vb in surcharges[(kind, mo.group(3))]:
                         out.append(f"set_{mo.group(1)}_delay -max {vb:7.3f} -clock clk [get_ports {{{port}}}]")
                 else:
+                    out.extend(anc_max.get((kind, mo.group(3)), []))   # bus sans budget : ancien -max garde
                     out.append(l)
             elif l.startswith("set_max_delay") or l.startswith("# Traversees") or \
                     l.startswith("# du pire chemin") or l.startswith("# 0.5 de sa marge"):
@@ -316,7 +430,9 @@ def main():
         for (kind, bus), v in sorted(par_bus.items()):
             if (kind, bus) not in vus and v is not None:
                 d = "input" if kind == "in" else "output"
-                out.append(f"set_{d}_delay {v:7.3f} -clock clk [get_ports {{{bus}}}]   ;# nouveau")
+                out.append(f"set_{d}_delay -max {v:7.3f} -clock clk [get_ports {{{bus}}}]   ;# nouveau")
+                vmin = min([v] + [vb for _, vb in surcharges[(kind, bus)]])
+                out.append(f"set_{d}_delay -min {vmin:.3f} -clock clk [get_ports {{{bus}}}]   ;# sans hold d'origine")
                 for port, vb in surcharges[(kind, bus)]:
                     out.append(f"set_{d}_delay -max {vb:7.3f} -clock clk [get_ports {{{port}}}]")
         def val(kind, port):                     # valeur ecrite pour ce bit
@@ -341,7 +457,9 @@ def main():
             pu, pv = macro_de(u)[1], macro_de(v)[1]
             bu = re.sub(r"\[\d+\]$", "[*]", pu)
             bv = re.sub(r"\[\d+\]$", "[*]", pv)
-            x = val("in", pu) + D + val("out", pv)
+            # OpenSTA retire aussi l'incertitude d'horloge d'un set_max_delay entre ports
+            # (requis = V - incertitude - sortie) : V = entree + D + sortie + U pour d <= D.
+            x = val("in", pu) + D + val("out", pv) + U
             par_paire[(pu, pv)] = min(par_paire.get((pu, pv), 1e30), x)
             dmin[(bu, bv)] = min(dmin[(bu, bv)], D)
         for (pu, pv), x in par_paire.items():
@@ -355,13 +473,13 @@ def main():
             bv = re.sub(r"\[\d+\]$", "[*]", pv)
             if par_bus[("in", bu)] is None or par_bus[("out", bv)] is None:
                 continue                         # ports sans budget : rien a borner
-            x = val("in", pu) + g[m] * d + val("out", pv)
+            x = val("in", pu) + g[m] * d + val("out", pv) + U
             if x > paires[(bu, bv)]:
                 paires[(bu, bv)] = x
                 n_lib += 1
             dmin[(bu, bv)] = min(dmin[(bu, bv)], g[m] * d)
         if paires:
-            out.append("# Traversees combinatoires : max_delay = entree + D + sortie, D = budget interne")
+            out.append("# Traversees combinatoires : max_delay = entree + D + sortie + incertitude, D = budget interne")
             out.append("# alloue au chemin le plus serre qui traverse la paire.")
         n_sur = 0
         for (bu, bv), md in sorted(paires.items()):

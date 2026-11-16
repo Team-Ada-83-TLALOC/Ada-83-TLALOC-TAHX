@@ -1,7 +1,9 @@
 # Releve des chemins de TAHX_1 qui traversent des macros, pour rebudgeter.py.
 # Variables : comme sta_assemblage.tcl (COIN, FILS, ...), plus NCH (40000 chemins),
 # PAR_EXT (10 par extremite), SMAX (marge maximale relevee, ns ; 4) et SORTIE.
-# Demande la methode Path arrivals() (OpenSTA modifie, voir LISEZMOI).
+# Avec la methode Path arrivals() (OpenSTA modifie, voir LISEZMOI) : ecriture directe.
+# Sans elle (OpenSTA de la distribution) : les chemins sont ecrits par report_checks dans
+# <SORTIE>.rpt, puis convertis au meme format par texte_vers_chemins.py (python3).
 # Format :
 #   P <marge s> <requis s> <extremite> <port|macro>
 #   <broche> <arrivee s>          (une ligne par point, du depart a l'extremite)
@@ -38,7 +40,19 @@ proc ecrire { f pe } {
 }
 set pes [find_timing_paths -path_delay max -group_path_count $NCH -endpoint_path_count $PAR_EXT \
             -slack_max $SMAX -sort_by_slack]
-foreach pe $pes { ecrire $f $pe }
+set TEXTE [expr { [llength $pes] > 0 && [catch { [[lindex $pes 0] path] arrivals }] }]
+if { $TEXTE } {
+   # OpenSTA sans arrivals() : rapports texte, convertis a la fin
+   set RPT "[env_ou SORTIE chemins.txt].rpt"
+   puts "Path arrivals() absent : rapports texte dans $RPT"
+   # -fields input_pins : sans lui, report_checks n'imprime que les sorties de chaque
+   # etage ; les broches d'entree des macros manquent et leurs traversees (entree ->
+   # sortie) passent pour des segments fixes du sommet (releve v11h du 15 novembre).
+   report_checks -path_delay max -group_path_count $NCH -endpoint_path_count $PAR_EXT \
+      -slack_max $SMAX -fields {input_pins} -digits 6 > $RPT
+} else {
+   foreach pe $pes { ecrire $f $pe }
+}
 puts "[llength $pes] chemins"
 # Second passage : le pire chemin par chaque broche de macro de marge < SMAX. Les PAR_EXT
 # pires chemins d'une extremite peuvent tous passer par le meme bus (issue_i.slot de
@@ -51,8 +65,14 @@ foreach inst $MACRO_INST {
    foreach p [get_pins -of_objects [get_cells $inst]] {
       set s [get_property $p slack_max]
       if { $s eq "" || $s eq "INF" || $s > $SMAX } { continue }
-      foreach pe [find_timing_paths -path_delay max -through $p -group_path_count 1 -endpoint_path_count 1] {
-         ecrire $f $pe ; incr npar
+      if { $TEXTE } {
+         report_checks -path_delay max -through $p -group_path_count 1 -endpoint_path_count 1 \
+            -fields {input_pins} -digits 6 >> $RPT
+         incr npar
+      } else {
+         foreach pe [find_timing_paths -path_delay max -through $p -group_path_count 1 -endpoint_path_count 1] {
+            ecrire $f $pe ; incr npar
+         }
       }
    }
 }
@@ -67,3 +87,7 @@ foreach inst $MACRO_INST {
    }
 }
 close $f
+if { $TEXTE } {
+   set conv [file join [file dirname [info script]] texte_vers_chemins.py]
+   puts [exec python3 $conv $RPT [env_ou SORTIE chemins.txt]]
+}

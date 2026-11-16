@@ -9,7 +9,7 @@ set MAC    [env_ou MACROS .]
 array set NOMCOIN { slow nom_slow_1p08V_125C typ nom_typ_1p20V_25C fast nom_fast_1p32V_m40C }
 array set LIBCOIN { slow slow_1p08V_125C typ typ_1p20V_25C fast fast_1p32V_m40C }
 read_liberty $STD/sg13cmos5l_stdcell_$LIBCOIN($COIN).lib
-foreach m { decode_queue ino_data_cache ino_decode_predict ino_exec_arith ino_exec_entier ino_fetch ino_system stack_unit_16_8 } {
+foreach m { ino_decode_queue ino_data_cache ino_decode_predict ino_exec_arith ino_exec_entier ino_fetch ino_system stack_unit_16_8 } {
    read_liberty $MAC/$m/vues/lib/$NOMCOIN($COIN).lib
 }
 read_verilog [env_ou NETLIST tahx_1_colle.v]
@@ -21,3 +21,8 @@ set_output_delay [expr { $IO_FRAC * $P }] -clock clk [all_outputs]
 set_input_delay 1.0 -clock clk [get_ports RESET_i]   ;# bascule de synchronisation
 set_driving_cell -lib_cell sg13cmos5l_buf_4 -pin X [all_inputs -no_clocks]
 set_load 0.02 [all_outputs]
+# Assemblage route (LibreLane) : NETLIST = sa netlist, SPEF = ses parasites extraits (RCX) ;
+# l'horloge du sommet reste ideale (modeles .lib des macros en horloge ideale, latences
+# internes LAT et ecart entre macros comptes par rebudgeter.py).
+set SPEF [env_ou SPEF ""]
+if { $SPEF ne "" } { read_spef $SPEF }

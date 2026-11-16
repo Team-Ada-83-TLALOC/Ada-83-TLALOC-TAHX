@@ -62,7 +62,10 @@ def main():
     ap.add_argument("--periode-releve", type=float, default=25.0)
     ap.add_argument("--incert", type=float, default=0.5)
     ap.add_argument("--biais", type=float, default=0.3)
+    ap.add_argument("--lat", default=None, help="latences_<coin>.txt (comme rebudgeter.py)")
     a = ap.parse_args()
+    if a.lat:
+        R.charger_lat(a.lat)
     chemins, broches = R.lire(a.chemins)
     direction = {p: v[0] for p, v in broches.items()}
     chs = [R.segments(c, direction, a.periode_releve, a.incert) for c in chemins]
@@ -89,7 +92,7 @@ def main():
                 k = mdp(md, pu, pv)
                 if k is None:
                     continue
-                sorte, b = "entree->sortie", k - val(vin, pu) - val(vout, pv)
+                sorte, b = "entree->sortie", k - val(vin, pu) - val(vout, pv) - unc
             r = b / (g * d)
             if r < pire[(m, sorte)][0]:
                 pire[(m, sorte)] = (r, f"{pu or 'clk'} -> {pv or 'bascule'} : d {d:.2f}, g d {g * d:.2f}, "
@@ -105,7 +108,7 @@ def main():
             k = mdp(md, pu, pv)
             if k is None or val(vin, pu) is None or val(vout, pv) is None:
                 continue
-            b = k - val(vin, pu) - val(vout, pv)
+            b = k - val(vin, pu) - val(vout, pv) - unc     # OpenSTA retire l'incertitude
             r = b / (g * d)
             if r < pire[(m, "arc .lib")][0]:
                 pire[(m, "arc .lib")] = (r, f"{pu} -> {pv} : d {d:.2f}, g d {g * d:.2f}, budget {b:.2f}")

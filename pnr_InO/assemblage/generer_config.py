@@ -19,7 +19,10 @@ Ecrit pnr_InO/assemblage/config_<plan>.yaml :
   - marge du haut : --marge-haut, sinon cle MARGE_HAUT du plan (v11h : zone du bloc
     frontend_control du modele Logisim, logique de liaison placee librement) ;
   - GDS (--gds) :
-      auto (defaut) : pour des LEF v2, le run complet le plus recent de
+      auto (defaut) : avec --lef vues, le GDS du run d'ou viennent les vues
+        (vues/PROVENANCE_VUES.txt, ecrit par vues_macros.sh : meme run que LEF, .lib
+        et netlist ; chemin absolu, ou relatif a pnr_InO/ ou a la racine) ;
+        pour des LEF v2, le run complet le plus recent de
         pnr_InO/macros/<m>/runs/ (final/klayout_gds/*.gds present, resolved.json avec
         IO_PIN_ORDER_CFG = pin_order_v2.cfg et DIE_AREA a la taille du LEF v2) ; a
         defaut, le GDS fantome (gds_fantomes.py, ecrit au besoin) ;
@@ -33,6 +36,13 @@ Ecrit pnr_InO/assemblage/config_<plan>.yaml :
     les LEF de vues/ (v1) : les fils du sommet ne passent pas sur les macros. Les LEF
     v2 tires d'ODB arretes au routage global n'obstruent que les rails et sangles
     d'alimentation (7 % de Metal2 a Metal4) ; --obs lef les garde tels quels ;
+  - IGNORE_DISCONNECTED_MODULES : les 8 macros et TAHX_1, tant que la grille
+    d'alimentation est sautee (broches VPWR/VGND des macros et du sommet non reliees,
+    Checker.DisconnectedPins) ; --avec-alim l'omet ; sans grille, OpenROAD.IRDropReport
+    est aussi saute (PSM-0069 : VPWR non connecte) ;
+  - --sans ETAPE : etape sautee en plus (ex. OpenROAD.DiodeInsertion : la reparation
+    d'antennes par diodes relance un routage global incremental qui peut echouer,
+    GRT-0183 ; essai d'assemblage sans alimentation, antennes a reprendre plus tard) ;
   - .lib : vues/lib/ (runs v1 tant que vues_macros.sh n'a pas ete passe sur les runs
     v2 ; memes ports en v1 et v2) ;
   - premier essai : flux arrete au routage global, sans grille d'alimentation (les
@@ -109,9 +119,30 @@ def lef_obs_plein(m, lef):
     return f"lef_obs/{m}.lef"
 
 
+def gds_provenance(d):
+    """(GDS de vues/PROVENANCE_VUES.txt en dir::, run, existe ?)."""
+    prov = open(os.path.join(C.MACROS, d, "vues", "PROVENANCE_VUES.txt")).read()
+    g = re.search(r"^GDS\s*:\s*(\S+)", prov, re.M)
+    r = re.search(r"^Run\s*:\s*(\S+)", prov, re.M)
+    gds = g.group(1) if g else ""
+    run = os.path.basename(r.group(1).rstrip("/")) if r else "?"
+    pnr = os.path.dirname(C.MACROS)
+    cands = [gds] if os.path.isabs(gds) else [os.path.join(pnr, gds), os.path.join(C.RACINE, gds)]
+    existe = any(os.path.isfile(c) for c in cands)
+    k = gds.find("macros/" + d + "/")
+    if k >= 0 and (k == 0 or gds[k - 1] == "/"):
+        return "dir::../" + gds[k:], run, existe
+    return gds, run, existe
+
+
 def gds_macro(m, d, vlef, mode):
     """(chemin du GDS, origine) ; voir l'en-tete."""
-    if mode == "auto" and vlef and vlef != "v1":
+    if mode == "auto" and vlef == "vues":
+        gds, run, existe = gds_provenance(d)
+        if existe:
+            return gds, f"{run} (vues/PROVENANCE_VUES.txt)"
+        print(f"   {m} : GDS de PROVENANCE_VUES.txt introuvable ({gds}), fantome")
+    if mode == "auto" and vlef and vlef not in ("v1", "vues"):
         cible = taille_lef(C.lef_macro(m, vlef))
         cible = (round(cible[0], 2), round(cible[1], 2))
         for run in sorted(glob.glob(os.path.join(C.MACROS, d, "runs", "RUN_*")), reverse=True):
@@ -125,12 +156,8 @@ def gds_macro(m, d, vlef, mode):
         os.makedirs(os.path.dirname(f), exist_ok=True)
         F.ecrire_gds(f, F.nom_macro(lef), w, h, 189, 4)
         return f"dir::gds_fantomes/{m}.gds", "FANTOME (contour du LEF) : pas de run v2 complet"
-    prov = open(os.path.join(C.MACROS, d, "vues", "PROVENANCE_VUES.txt")).read()
-    g = re.search(r"^GDS\s*:\s*(\S+)", prov, re.M)
-    gds = g.group(1) if g else ""
-    k = gds.find("/pnr_InO/macros/")
-    gds = "dir::../macros/" + gds[k + len("/pnr_InO/macros/"):] if k >= 0 else gds
-    return gds, "vues (runs v1)"
+    gds, run, _ = gds_provenance(d)
+    return gds, f"{run} (vues/PROVENANCE_VUES.txt)"
 
 
 def main():
@@ -141,6 +168,11 @@ def main():
     ap.add_argument("--lef", default=None, help="v1, v2 ; defaut : celle du plan")
     ap.add_argument("--gds", default="auto", choices=["auto", "fantome", "vues"])
     ap.add_argument("--obs", default="pleine", choices=["pleine", "lef"])
+    ap.add_argument("--sans", action="append", default=[], metavar="ETAPE",
+                    help="etape LibreLane a sauter en plus (meta.substituting_steps), "
+                         "ex. OpenROAD.DiodeInsertion ; repetable")
+    ap.add_argument("--avec-alim", action="store_true",
+                    help="ne pas ignorer les broches d'alimentation non reliees")
     ap.add_argument("--periode", type=float, default=26.0, help="ns (SDC rebudgetes P78 : 26)")
     a = ap.parse_args()
     plan = C.PLANS[a.plan]
@@ -224,11 +256,21 @@ def main():
             w(f"      \"*_{coin}_*\":\n        - dir::../macros/{d}/vues/lib/{nom}.lib")
         w("    instances:")
         w(f"      \"{INST[m]}\":\n        location: [{lx}, {ly}]\n        orientation: N")
+    if not a.avec_alim:
+        noms = [F.nom_macro(C.lef_macro(m, vlef)) for m in plan["R"]]
+        w("# sans grille d'alimentation : VPWR/VGND des macros et du sommet non relies (attendu)")
+        w("IGNORE_DISCONNECTED_MODULES:")
+        for n in noms + ["TAHX_1"]:
+            w(f"  - {n}")
     w("RUN_LVS: false\nRUN_KLAYOUT_DRC: false\nRUN_MAGIC_STREAMOUT: false\nRUN_MAGIC_WRITE_LEF: false")
     w("RUN_MAGIC_DRC: false\nRUN_KLAYOUT_XOR: false")
     w("meta:\n  version: 2\n  flow: Classic\n  substituting_steps:")
-    for s in ("OpenROAD.GeneratePDN", "Odb.CheckDesignAntennaProperties", "Magic.SpiceExtraction",
-              "Checker.IllegalOverlap", "Netgen.LVS", "Checker.LVS"):
+    etapes = ["OpenROAD.GeneratePDN", "Odb.CheckDesignAntennaProperties", "Magic.SpiceExtraction",
+              "Checker.IllegalOverlap", "Netgen.LVS", "Checker.LVS"]
+    if not a.avec_alim:
+        # sans grille, l'analyse de chute de tension echoue (PSM-0069, VPWR non connecte)
+        etapes.append("OpenROAD.IRDropReport")
+    for s in etapes + [x for x in a.sans if x not in etapes]:
         w(f"    {s}: null")
     sortie = os.path.join(ICI, f"config_{a.plan}.yaml")
     open(sortie, "w").write("\n".join(L) + "\n")

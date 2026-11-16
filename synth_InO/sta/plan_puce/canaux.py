@@ -30,7 +30,7 @@ ICI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ICI)
 RACINE = os.path.abspath(os.path.join(ICI, "..", "..", ".."))
 MACROS = os.path.join(RACINE, "pnr_InO", "macros")
-DOSSIER = {"ino_decode_queue": "decode_queue"}          # module -> dossier de pnr_InO/macros
+DOSSIER = {}          # module -> dossier de pnr_InO/macros (identite depuis ino_decode_queue/)
 
 # Plans : coin haut-gauche des macros (y vers le bas, orientation N), points des blocs
 # SoC et peripheriques, canaux nommes (x0, y0, x1, y1).

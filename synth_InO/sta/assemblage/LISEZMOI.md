@@ -29,6 +29,20 @@ cellules de la branche `dev` de la PDK d'IHP.
 
 ## Rebudgétage des SDC de macros (P78)
 
+Principes (repère de temps, sens des contraintes, partage de la période) : `BUDGET_TIMING.md`.
+
+Sur l'**assemblage routé** (v11h, LibreLane jusqu'à `STAPostPNR`), sans `fils.py` : sa
+netlist et son SPEF, horloge du sommet idéale comme pour les `.lib` des macros ; latences
+internes mesurées par `latences_macros.sh` :
+```
+R=../../../pnr_InO/assemblage/runs/<RUN>
+./latences_macros.sh slow                                                  # latences_slow.txt
+COIN=slow PERIODE=26 NETLIST=$R/final/nl/TAHX_1.nl.v SPEF=$R/final/spef/nom/TAHX_1.nom.spef \
+  SORTIE=chemins_v11h.txt sta -no_splash -exit releve_chemins.tcl
+./rebudgeter.py chemins_v11h.txt --periode 26 --periode-releve 26 --lat latences_slow.txt --sortie sdc_rebudget_v11h
+./verifier_budgets.py chemins_v11h.txt sdc_rebudget_v11h --periode-releve 26 --lat latences_slow.txt
+```
+
 ```
 COIN=slow FILS=fils_aligne_dc_slow.tcl SORTIE=chemins_dc.txt sta -no_splash -exit releve_chemins.tcl
 ./rebudgeter.py chemins_dc.txt --periode 25 --sortie sdc_rebudget    # g par macro, SDC des macros à relancer
@@ -44,6 +58,10 @@ COIN=slow FILS=fils_aligne_dc_slow.tcl SORTIE=chemins_dc.txt sta -no_splash -exi
     while (p) { a.push_back(p->arrival()); p = p->prevPath(); } return a; }
   ```
   (compiler avec `-DBUILD_TESTS=OFF -DUSE_TCL_READLINE=OFF -DCUDD_DIR=…`).
+  Sans cette méthode (OpenSTA de la distribution, nix) : `releve_chemins.tcl` écrit les
+  chemins par `report_checks` dans `<SORTIE>.rpt` et les convertit au même format avec
+  `texte_vers_chemins.py` (python3) ; plus lent au second passage (un `report_checks
+  -through` par broche), même résultat.
 - `rebudgeter.py` : un facteur g_M ≤ 1 par macro sur ses segments internes, choisi par un
   programme linéaire en nombres mixtes (scipy) : période atteignable d'abord, puis coût
   des relances (`COUT`) et effort (1 − g) / (1 − g_min) (`GMIN` : accélération jugée
@@ -59,7 +77,8 @@ COIN=slow FILS=fils_aligne_dc_slow.tcl SORTIE=chemins_dc.txt sta -no_splash -exi
   interne), si bien qu'un chemin de A vers B est plus long de L_A − L_B que dans la STA
   d'assemblage ; `rebudgeter.py` l'ajoute en segments fixes. L : `ino_fetch` 2,39,
   `ino_data_cache` 2,22, `stack_unit` 1,20, `ino_system` 1,04, `exec_entier` 1,01,
-  `decode_predict` 0,98, `exec_arith` 0,95, `decode_queue` 0,71 ns (coin lent).
+  `decode_predict` 0,98, `exec_arith` 0,95, `decode_queue` 0,71 ns (coin lent, v1).
+  Les 8 d'un coup, d'après `vues/` : `latences_macros.sh [slow|typ|fast]` (`PDK`, `STA`).
   Traversées absentes du relevé : complétées par les arcs combinatoires des `.lib`
   (retard à 0,039 pF, × g). Si la cible n'est pas atteignable dans les `GMIN`, les SDC
   sont écrits à la période atteignable (`create_clock`).
