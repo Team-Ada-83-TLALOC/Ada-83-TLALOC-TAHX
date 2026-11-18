@@ -18,10 +18,176 @@ Les bancs sont dans `tests_InO/` (même lanceur, `sources` en `../vhdl_SoC/...`)
 | `S3_XSPI_PHY.vhd` | `XSPI_PHY` : SCLK = CLK / 2, DQ en DTR, échantillonnage par CLK, CS# ; SPI 1S | fait, banc `S2_XSPI` |
 | `S4_XSPI_PORT.vhd` | `XSPI_PORT` : contrôleur + PHY, un port | fait, banc `S2_XSPI` (136 vérifications) |
 | `tests/commun/MEMOIRE_XSPI_OCTALE.vhd` | modèle de flash (SPI 1S / octal DTR, identifiant, état, WREN, CR2, effacement, programmation) et de PSRAM octale, aller-retour réglable | fait |
-| attributs mémoire et port `R_*` | décodeur avant le cache de données | à faire |
-| UART, I2C (prête pour I3C), temporisateur, registres système | bus de registres | à faire |
-| TAP JTAG, débogage, BSR | troisième maître de la matrice | à faire |
-| `TAHX_SOC` | sommet | à faire |
+| `vhdl_InO/V1_INO_ATTRIBUTS.vhd` | `INO_ATTRIBUTS` : attributs mémoire, port `R_*`, accès du débogueur, devant le port EXEC du cache de données (dans `TAHX_1`) | fait, banc `M4_INO_ATTRIBUTS` (156 vérifications) |
+| `S5_UART.vhd` | `UART` : 8N1, diviseur 16 bits, FIFO de 8 octets, boucle interne | fait, banc `S5_UART` (51 vérifications) |
+| `S6_I2C_BITS.vhd` | `I2C_BITS` : couche de bits (START, STOP, bits, étirement, arbitrage, bus occupé) | fait, banc `S7_I2C` |
+| `S7_I2C.vhd` | `I2C` : maître I2C (100 kHz à 1 MHz), FIFO de commandes et de réception, registres | fait, banc `S7_I2C` (48 vérifications) |
+| `S8_JTAG_TAP.vhd` | `JTAG_TAP` : TAP 1149.1, IDCODE, BYPASS, SAMPLE/PRELOAD, EXTEST, registres `DBG_*` | fait, banc `S9_DEBUG` |
+| `S9_DEBUG_MODULE.vhd` | `DEBUG_MODULE` : arrêt, reprise, `DPC`, RESET du cœur, accès mémoire | fait, banc `S9_DEBUG` (25 vérifications) |
+| `S10_SOC_REGISTRES.vhd` | `SOC_REGISTRES` : décodeur du port `R_*` vers le bus de registres (un `SEL` par bloc) | fait, banc `S10_REGISTRES` |
+| `S11_TEMPORISATEUR.vhd` | `TEMPORISATEUR` : compteur de 64 bits, prédiviseur, deux comparateurs | fait, banc `S10_REGISTRES` |
+| `S12_SYSTEME.vhd` | `SYSTEME` : identifiant, démarrage (`MEM_RESET#`, `BOOT_SEL`, `CORE_HOLD`), `NULL_GUARD`, masque des IRQ, invalidation du cache d'instructions, GPIO, état du cœur | fait, banc `S10_REGISTRES` (172 vérifications avec les deux précédents) |
+| `S13_TAHX_SOC.vhd` | `TAHX_SOC` : sommet, toutes les pièces reliées, plots en triplets | fait, banc d'intégration `S13_TAHX_SOC` (103 vérifications) |
+| BSR (cellules de plots), BSDL | | à faire, avec la liste des plots |
+
+## Bus de registres des périphériques
+
+Convention commune (UART, I2C ; registres du port xSPI sans `SEL`) : `SEL_i`, `WE_i`,
+`ADDR_i` (numéro de mot de 32 bits), `WDATA_i` ; `RDATA_o` combinatoire. Une lecture qui
+a un effet (retrait d'une FIFO) le produit au front qui termine le cycle où `SEL_i = 1`.
+Interruptions par niveau (`IRQ_o`), vers `IRQ_PENDING` du cœur. Le décodeur `R_*`
+(`SOC_REGISTRES`) donne à chaque bloc 4 Kio dans `0xF000_0000` (bloc b en
+`0xF000_0000 + b × 0x1000`, registre n en `+ 4 n`).
+
+## Carte des registres (`0xF00b_b000`)
+
+| bloc | base | registres | |
+|---|---|---|---|
+| 0 | `0xF000_0000` | 18 | registres système (`SYSTEME`) |
+| 1 | `0xF000_1000` | 9 | temporisateur |
+| 2 | `0xF000_2000` | 3 | UART |
+| 3 | `0xF000_3000` | 4 | I2C |
+| 4 | `0xF000_4000` | 16 | port xSPI A |
+| 5 | `0xF000_5000` | 16 | port xSPI B |
+
+Accès de 32 bits alignés seulement. Faute (132, précise) : autre taille, adresse non
+alignée, bloc 6 à 255, numéro de registre au-delà du nombre du bloc ; un accès en faute
+ne touche aucun registre. Latence : réponse 2 cycles après l'acceptation (`SOC_REGISTRES` :
+REPOS, ACCES avec `SEL` un cycle, REPONSE). Synthèse Yosys : 860 cellules, 88 bascules.
+
+## Registres système (`SYSTEME`)
+
+| | registre | champs |
+|---|---|---|
+| 0 | ID | `0x7A58_0001` (générique) |
+| 1 | CONFIG | 0 BOOT_SEL (lecture seule : GPIO0 échantillonné à la sortie du RESET) |
+| 2 | NULL_GUARD | 4..0 : garde sous 2 ** n pour le cœur (0 : sans), ARCHI § 4.3 |
+| 3 | IRQ_SOURCES | lecture : lignes des périphériques |
+| 4 | IRQ_MASQUE | 1 : ligne transmise à `IRQ_PENDING` du cœur (0 au RESET) |
+| 5 | CACHES | écriture du bit 0 : impulsion `ICACHE_INVALIDATE_ALL` ; se relit 0 |
+| 6 | MEM_RESET | écriture : 0 impulsion `MEM_RESET_A#`, 1 `MEM_RESET_B#` (ignorée pendant une impulsion) ; lecture : 0, 1 impulsion en cours, 2 démarrage terminé |
+| 7 | GPIO_DIR | 1 : sortie |
+| 8 | GPIO_SORTIE | |
+| 9 | GPIO_ENTREE | après deux bascules |
+| 10 | GPIO_IT_EN | |
+| 11 | GPIO_IT_ETAT | fronts montants mémorisés ; effacés en écrivant 1 |
+| 12 | GPIO_FONCTION | 0 : GPIO7 montre `HALTED` (en sortie ; 1 au RESET) |
+| 13, 14 | EXIT_CODE | bas, haut |
+| 15 | FPC | |
+| 16 | ETAT_COEUR | 7..0 FCODE, 10..8 HALT_CAUSE, 16 HALTED |
+| 17 | SCRATCH | |
+
+Démarrage : à la sortie du RESET, GPIO0 → BOOT_SEL, puis `MEM_RESET_A#` et `_B#` bas
+pendant `MR_IMPULSION_G` cycles (1 µs), attente de `MR_REPRISE_G` cycles (100 µs) ;
+`CORE_HOLD_o` tient le cœur en RESET jusque-là. `MEM_RESET_OE_o` = 0 pendant le RESET
+(haute impédance, ARCHI § 4.5). Synthèse Yosys : 1 026 cellules, 152 bascules.
+
+## Temporisateur (`TEMPORISATEUR`)
+
+| | registre | champs |
+|---|---|---|
+| 0 | CPT_BAS | lecture : fige CPT_HAUT (lecture cohérente des 64 bits : BAS puis HAUT) |
+| 1 | CPT_HAUT | valeur figée par la dernière lecture de CPT_BAS ; écriture directe |
+| 2 | CTRL | 0 ACTIF, 1 IE0, 2 IE1 |
+| 3 | PRE | un pas tous les PRE + 1 cycles |
+| 4, 5 | CMP0 | bas, haut (tout à 1 au RESET) |
+| 6, 7 | CMP1 | bas, haut |
+| 8 | ETAT | 0 CPT ≥ CMP0, 1 CPT ≥ CMP1 |
+
+IRQ_k = IE_k et CPT ≥ CMP_k (niveau : le logiciel avance CMP_k ou coupe IE_k).
+Synthèse Yosys : 2 118 cellules, 291 bascules (dont 64 + 128 de compteur et
+comparateurs ; PRE et son diviseur sur 32 bits pourraient passer à 16).
+
+## Attributs mémoire (`INO_ATTRIBUTS`, dans `TAHX_1`)
+
+Entre le port EXEC du cœur et le cache de données (logique de liaison, aucune macro ne
+change). `ATTR_EN_i` = 0 : comportement d'origine (bancs, plateforme N3). `ATTR_EN_i` = 1
+(`TAHX_SOC`) :
+- `0xF000_0000` – `0xF00F_FFFF` → port `R_*` (décalage sur 20 bits), jamais au cache ;
+- fenêtres 0 à 3 → cache, avec `outside` = 1 (faute 132 sans accès externe) si la sélection
+  est absente (TYPE 00), si le décalage dépasse 2 ** SIZE, pour une écriture vers une
+  flash (TYPE 01), ou, pour le cœur seulement, sous 2 ** NULL_GUARD ;
+- tout le reste → cache, `outside` = 1.
+TYPE et SIZE viennent des registres CFG des ports xSPI ; fenêtres 0 et 1 échangées par
+BOOT_SEL. Deux sources : le cœur et, cœur arrêté seulement, le débogueur (`DBG_*`, ARCHI
+§ 6). Une requête à la fois : la suivante n'est acceptée qu'après la réponse (sans coût :
+le cache ne répond jamais dans le cycle où il accepte ; cycles des B_* inchangés).
+Synthèse Yosys : 823 cellules, 3 bascules. **Chemin à surveiller** : `READY` du cache
+dépend combinatoirement de la validité de la requête, qui dépend maintenant du décodage
+de `0xF00` (12 bits + bits 63..32 nuls) ; le tour EXEC → décodage → cache → READY →
+EXEC est à vérifier à la STA d'assemblage.
+
+## Sommet (`TAHX_SOC`)
+
+Voir l'en-tête de `S13_TAHX_SOC.vhd` (schéma). Points de câblage :
+- RESET : `RESET_i` resynchronisé (deux bascules) ; `rst_sys` = RESET ou `CORE_RESET` du
+  débogueur, pour tout sauf le TAP (RESET asynchrone, domaine TCK) et le module de
+  débogage ; cœur : `rst_sys` ou `CORE_HOLD`. Un `CORE_RESET` refait donc tout le
+  démarrage (impulsion `MEM_RESET#`, BOOT_SEL relu, port A en SPI `0x03`).
+- `BOOT_BLOCK` = `0x1000_0000` si BOOT_SEL = 1, sinon 0 (la flash reste sur CS0).
+- `IRQ_SOURCES` : 0 temporisateur CMP0, 1 CMP1, 2 UART, 3 I2C, 4 GPIO (code 32 + i ; le
+  plus petit est servi d'abord).
+- Plots en triplets (sortie, validation, entrée) ; xSPI (SCLK, CS#, DQ, DQS) en haute
+  impédance pendant `rst_sys` ; pas encore de BSR (`BSR_TDO` à 0).
+- Débogueur : `M_*` du module → `DBG_*` de `TAHX_1` (par les attributs et le cache).
+
+Banc d'intégration `S13_TAHX_SOC` : la puce vue de ses plots, une flash (modèle, SPI 1S)
+sur CS0 du port A avec un bloc de démarrage valide (`vecteurs/boot_s13.txt`), pilotée par
+JTAG : IDCODE, CORE_RESET + HALT_ON_RESET (arrêt au PC du bloc, DPC = 0x1000), registres
+système et xSPI, mots et octets de la flash par le cache, fautes d'attributs, octet émis
+par l'UART, GPIO, IRQ du temporisateur et des GPIO. Le modèle de mémoire xSPI accepte
+maintenant une image (`IMAGE_G`, mots de 64 bits en hexadécimal).
+
+
+## UART (`UART`)
+
+| | registre | champs |
+|---|---|---|
+| 0 | DONNEE | écriture : octet à émettre (perdu si FIFO pleine) ; lecture : 7..0 octet, 8 valide (retiré), 9 erreur de trame |
+| 1 | ETAT | 0 émission pleine, 1 émission vide (et émetteur au repos), 2 réception non vide, 3 réception pleine, 4 débordement, 5 erreur de trame, 6 octet perdu (4 à 6 collants, effacés en écrivant 1), 11..8 et 15..12 remplissage |
+| 2 | CTRL | 15..0 DIV (bit = DIV + 1 cycles ; 115 200 bauds à 36 MHz : 311, valeur au RESET), 16 IE_RX, 17 IE_TX, 18 BOUCLE |
+
+Réception : start vérifié à mi-bit (parasite plus court qu'un demi-bit ignoré), bits au
+milieu, break attendu après une erreur de trame ; tolère ±3 % d'écart de débit (banc).
+Synthèse Yosys : 977 cellules, 242 bascules.
+
+## I2C prête pour I3C (`I2C_BITS` + `I2C`)
+
+Le logiciel empile des **commandes** (registre 0 en écriture) : 7..0 octet, 8 START
+avant, 9 STOP après, 10 LECTURE, 11 NACK (dernier octet lu), 12 SANS_OCTET. Adresse
+d'esclave = octet émis avec START ; START sur un bus déjà à nous = START répété.
+
+| | registre | champs |
+|---|---|---|
+| 0 | COMMANDE / RECU | écriture : commande (perdue si FIFO pleine) ; lecture : 7..0 octet, 8 valide |
+| 1 | ETAT | 0 occupé, 1 commandes pleine, 2 réception non vide, 3 NACK, 4 arbitrage perdu, 5 commande perdue (3 à 5 collants), 6 bus occupé, 7 bus à nous, 11..8 commandes, 15..12 octets reçus |
+| 2 | TEMPS | 15..0 T_BAS, 31..16 T_HAUT (cycles) ; 36 MHz : 100 kHz 180 / 160 (RESET), 400 kHz 48 / 24, 1 MHz 20 / 12 |
+| 3 | CONF | 0 ACTIF, 1 IE_FIN, 2 IE_ERR, 3 SCL_PP, 4 RAPPEL |
+
+NACK sur un octet émis : FIFO vidée, STOP. Arbitrage perdu : FIFO vidée, lignes
+relâchées. Lecture : attend une place en réception (SCL tenu bas). **Préparation I3C** :
+couche de bits séparée (le mode SDR d'I3C s'y ajoutera), plots bidirectionnels à trois
+états en drain ouvert par la validation (push-pull possible : `SCL_PP`), sortie
+`RAPPEL_o` pour la résistance de rappel commandée qu'exige I3C. Synthèse Yosys : 1 578
+cellules, 293 bascules.
+
+## Débogage (`JTAG_TAP` + `DEBUG_MODULE`)
+
+TAP IEEE 1149.1 (domaine TCK, pas de TRST# : cinq TCK avec TMS = 1, ou RESET de la puce),
+IR de 4 bits capturé `0001` : `0000` EXTEST, `0001` IDCODE (par défaut, `0x1ADA8301` à
+choisir), `0010` SAMPLE/PRELOAD, `1000` DBG_CONTROL, `1001` DBG_ADDRESS, `1010` DBG_DATA
+(64 bits), `1011` DBG_STATUS, autres BYPASS. La chaîne BSR est hors du TAP (impulsions
+`BSR_CAPTURE` / `SHIFT` / `UPDATE`, `EXTEST_o`) : elle viendra avec la liste des plots.
+
+DBG_CONTROL : 0 HALT, 1 RESUME, 2 CORE_RESET, 3 HALT_ON_RESET, 4 ACCES, 5 ECRITURE, 7..6
+TAILLE (8 à 64 bits), 8 INTERNE. Registres internes : 0 DPC (chargé à chaque arrêt,
+présenté sur `RESUME_PC_o`), 1 HALT_PC, 2 FPC, 3 FCODE, 4 HALT_CAUSE. DBG_STATUS : 0
+HALTED, 1 occupé, 2 fait, 3 faute, 4 refusé (cœur en marche), 15..8 HALT_CAUSE, 16
+CORE_RESET, 17 HALT_REQ, 31..24 version. Commandes vers le domaine du cœur par une
+bascule resynchronisée ; état ramené dans le domaine TCK par deux bascules. Accès
+mémoire par un port maître (`M_*`, réponse aussi pour une écriture) à relier au port EXEC
+du cache de données au sommet (ARCHI § 6 : il voit les lignes sales). Synthèse Yosys :
+TAP 720 cellules, 271 bascules ; module 622 cellules, 112 bascules.
 
 ## Interfaces
 

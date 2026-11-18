@@ -1,4 +1,4 @@
-# Passation TAHX_SOC : assemblage v11h clos à 27,5 ns, vers le SoC complet (18 novembre 2026)
+# Passation TAHX_SOC : assemblage v11h clos à 27,5 ns, SoC complet au RTL (18 novembre 2026)
 
 Document pour reprendre dans une nouvelle conversation. Il remplace la passation du
 16 novembre. Références :
@@ -220,12 +220,62 @@ demande une résistance de rappel pilotée par le contrôleur), SCL en push-pull
 machine I2C séparée de la couche de bits pour ajouter plus tard le mode SDR d'I3C
 (12,5 MHz). À reporter dans ARCHI au moment du RTL.
 
-Fait au 18 novembre (`vhdl_SoC/LISEZMOI.md`) : matrice (`S1_SOC_MATRICE`, 60
-vérifications) ; port xSPI complet, SCLK = CLK / 2 décidé par Vincent
-(`XSPI_CONTROLLER`, `XSPI_PHY`, `XSPI_PORT`, modèle `tests/commun/MEMOIRE_XSPI_OCTALE.vhd`,
-banc `S2_XSPI`, 91 vérifications) : ligne de 32 octets en 1 156 cycles en SPI 1S
-(démarrage), 60 en octal DTR (≈ 19 Mo/s à 36 MHz) ; ≈ 2 640 cellules, 467 bascules.
-Suivant : mode indirect (passage de la flash en octal par logiciel), puis l'étape 2.
+Fait au 18 novembre (`vhdl_SoC/LISEZMOI.md`, patchs 0002-0010 sur `2f4ed39`) : **toutes
+les pièces du SoC existent et sont reliées dans `TAHX_SOC`** (`vhdl_SoC/S13_TAHX_SOC.vhd`),
+sauf les cellules BSR (avec la liste des plots) et le délai de garde xSPI.
+- Matrice (`S1_SOC_MATRICE`, 60 vérifications) ; port xSPI, SCLK = CLK / 2 décidé par
+  Vincent, mode indirect (`S2_XSPI`, 136) : ligne de 32 octets en 1 156 cycles en SPI 1S
+  (démarrage), 60 en octal DTR ; ≈ 6 530 cellules, 789 bascules avec le mode indirect.
+- UART (`S5_UART`, 51), I2C prête pour I3C (`S7_I2C`, 48), TAP JTAG et module de
+  débogage (`S9_DEBUG`, 25) ; patch 0009.
+- Patch 0010 : attributs mémoire `INO_ATTRIBUTS` dans `TAHX_1` (`M4_INO_ATTRIBUTS`, 156) ;
+  décodeur `R_*` `SOC_REGISTRES`, temporisateur, registres système avec démarrage
+  (`MEM_RESET#`, `BOOT_SEL`, `CORE_HOLD`) (`S10_REGISTRES`, 172) ; sommet `TAHX_SOC` et banc
+  d'intégration `S13_TAHX_SOC` (103 : la puce vue de ses plots, une flash sur CS0 du port
+  A, pilotée par JTAG : CORE_RESET + HALT_ON_RESET, registres, flash par le cache, fautes
+  d'attributs, UART, GPIO, IRQ). Suite complète : 60 bancs OK, cycles des B_*
+  inchangés (`BILAN.txt`).
+- Chaque banc est éprouvé par des fautes injectées : les survivantes ont mené à des
+  vérifications de plus (ou étaient équivalentes, notées).
+- Décision de câblage : le débogueur atteint la mémoire par le port EXEC du cache de
+  données (ARCHI § 6, § 5.1 révisé), pas par la matrice.
+
+### 5.1 Comment tout est relié (`TAHX_SOC`)
+
+```
+TAHX_1 ── I_*, D_* ──> SOC_MATRICE ──> XSPI_PORT A (BOOT_G) ── plots xSPI A, MEM_RESET_A#
+  │                              └───> XSPI_PORT B          ── plots xSPI B, MEM_RESET_B#
+  │ (INO_ATTRIBUTS, entre EXEC et le cache de données)
+  ├── R_* ──> SOC_REGISTRES ── SEL(0..5) ──> SYSTEME, TEMPORISATEUR, UART, I2C, xSPI A, B
+  └── DBG_* <── DEBUG_MODULE <── CTL, ADR, WDATA, bascule ── JTAG_TAP ── TCK TMS TDI TDO
+```
+- Retours vers le cœur : `CS_TYPE` / `CS_SIZE` des deux ports xSPI → attributs ;
+  `BOOT_SEL`, `NULL_GUARD`, `ICACHE_INVALIDATE`, `IRQ_PENDING` (après IRQ_MASQUE) depuis
+  `SYSTEME` ; `HALT_REQ`, `RESUME_REQ`, `RESUME_PC` depuis le débogueur.
+- RESET : `RESET_i` resynchronisé ; `rst_sys` = RESET ou `CORE_RESET` (tout sauf TAP et
+  module de débogage) ; cœur = `rst_sys` ou `CORE_HOLD` (impulsion `MEM_RESET#` et reprise
+  des mémoires). `BOOT_BLOCK` = 0 ou `0x1000_0000` selon BOOT_SEL.
+- IRQ : 0, 1 temporisateur, 2 UART, 3 I2C, 4 GPIO.
+- Plots : triplets (sortie, validation, entrée), xSPI en haute impédance pendant `rst_sys`.
+
+### 5.2 Conséquences pour l'assemblage (à faire chez Vincent)
+
+1. **L'entité `TAHX_1` a changé** (ports à la fin, tous avec valeur par défaut) :
+   `ATTR_EN_i`, `CS_TYPE_i`, `CS_SIZE_i`, `BOOT_SEL_i`, `NULL_GUARD_i`, le port `R_*` et le
+   port `DBG_*`. Aucune macro ne change : `INO_ATTRIBUTS` est de la logique de liaison
+   (823 cellules génériques), entre `exec_mem_req` et le port EXEC d'`ino_data_cache`.
+   Il faut ré-extraire la colle du sommet (`extraire_sommet.sh`) ; tant que le sommet
+   reste `TAHX_1` avec `ATTR_EN_i = 0`, le décodage se simplifie à la synthèse (seul
+   restent les multiplexeurs du débogueur, à 0).
+2. **Le sommet d'assemblage devient `TAHX_SOC`** : nouvelles broches (44 signaux de
+   l'ARCHI § 7, en triplets), blocs SoC en cellules standard (ordre de grandeur Yosys
+   générique : 2 × 6 530 xSPI, matrice, 1 600 I2C, 1 000 UART, 2 100 temporisateur,
+   1 000 système, 860 décodeur, 1 350 débogage, 820 attributs ≈ 30 000 cellules),
+   placement sud-ouest / sud-est (ARCHI § 8), domaine TCK à déclarer au SDC.
+3. **Chemin à surveiller** : `READY` du cache de données dépend combinatoirement de la
+   validité de la requête ; elle passe maintenant par le décodage de `0xF00` des
+   attributs. Le tour EXEC → attributs → cache → `READY` → attributs → EXEC est à mesurer
+   à la STA (budget FAST_PIPE) ; si besoin, précalculer `vers_r` dans `ino_execute`.
 
 Le RTL et ses bancs peuvent avancer chez Claude (GHDL, Yosys pour les surfaces) pendant
 que Vincent fait les essais d'alimentation. Bancs unitaires, puis modèles de mémoire

@@ -181,6 +181,15 @@ BUS_RESULTATS :
 
    HALTED_o		<= halted;
    HALT_PC_o		<= ( others => '0' );			-- RESUME : InO seulement
+   R_REQ_o		<= '0';					-- SoC : InO seulement
+   R_WRITE_o		<= '0';
+   R_ADDR_o		<= ( others => '0' );
+   R_SIZE_o		<= "00";
+   R_WDATA_o		<= ( others => '0' );
+   DBG_READY_o		<= '0';
+   DBG_RVALID_o		<= '0';
+   DBG_RDATA_o		<= ( others => '0' );
+   DBG_FAULT_o		<= '0';
 
 		--------------------------------------------------------------------------------
 		-- Frontal

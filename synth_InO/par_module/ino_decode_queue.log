@@ -24,7 +24,7 @@
 
 -- Running command `
          read_rtlil ../synth_InO/par_module/brut.il
-         blackbox  TAHX_1 branch_predict ino_address_unit ino_arith_unit ino_backend_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_block_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_complex_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_excm_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_float_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_memory_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_0670975198601484cafb86c5e6d381ebe42bbd9e ino_decode_pipe ino_decode_predict ino_decode_queue_ram207_2_143 ino_excm_unit ino_exec_arith ino_exec_entier ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_frontend_control ino_integer_unit ino_memory_unit ino_pred_table2_2r_512 ino_system ino_system_unit instruction_unit stack_unit_16_8
+         blackbox  TAHX_1 branch_predict ino_address_unit ino_arith_unit ino_attributs ino_backend_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_block_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_complex_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_excm_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_float_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_backend_memory_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_block_unit ino_branch_unit ino_byte_queue ino_cache_ram1p_48_256 ino_cache_ram1p_64_1024 ino_complex_unit_5ba93c9db0cff93f52b521d7420e43f6eda2784f ino_core_system_16_8 ino_data_cache ino_dcache_core_2_32768_4_99020781522388a2744aeffa2fdefc2fd405cad6 ino_decode_pipe ino_decode_predict ino_decode_queue_ram207_2_143 ino_excm_unit ino_exec_arith ino_exec_entier ino_execute ino_fetch ino_fetch_line ino_fetch_ram32_2r_512 ino_fetch_ram_1r_32_512 ino_fetch_ram_1r_64_512 ino_frontend_control ino_integer_unit ino_memory_unit ino_pred_table2_2r_512 ino_system ino_system_unit instruction_unit stack_unit_16_8
          hierarchy -top ino_decode_queue
          synth -top ino_decode_queue -noshare -noabc
          dfflibmap -liberty /home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib
@@ -211,8 +211,8 @@ Finding identical cells in module `\ino_decode_queue'.
 Removed a total of 0 cells.
 
 3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
-Adding SRST signal on \1034 ($dff) from module ino_decode_queue (D = $auto$ghdl.cc:806:import_module$169 [3:0], Q = \count, rval = 4'0000).
-Adding SRST signal on \1033 ($dff) from module ino_decode_queue (D = $auto$ghdl.cc:806:import_module$167 [2:0], Q = \head, rval = 3'000).
+Adding SRST signal on \1039 ($dff) from module ino_decode_queue (D = $auto$ghdl.cc:806:import_module$186 [3:0], Q = \count, rval = 4'0000).
+Adding SRST signal on \1038 ($dff) from module ino_decode_queue (D = $auto$ghdl.cc:806:import_module$184 [2:0], Q = \head, rval = 3'000).
 
 3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \ino_decode_queue..
@@ -251,70 +251,70 @@ Optimizing module ino_decode_queue.
 3.8.16. Finished OPT passes. (There is nothing left to do.)
 
 3.9. Executing WREDUCE pass (reducing word size of cells).
-Removed top 1 bits (of 143) from mux cell ino_decode_queue.$auto$ghdl.cc:1030:import_module$299 ($mux).
-Removed top 30 bits (of 32) from port A of cell ino_decode_queue.\1005 ($gt).
-Removed top 27 bits (of 32) from port B of cell ino_decode_queue.\1005 ($gt).
-Converting cell ino_decode_queue.\1005 ($gt) from signed to unsigned.
-Removed top 1 bits (of 2) from port A of cell ino_decode_queue.\1005 ($gt).
-Removed top 1 bits (of 5) from port B of cell ino_decode_queue.\1005 ($gt).
-Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\1011 ($add).
-Removed top 31 bits (of 32) from port B of cell ino_decode_queue.\1011 ($add).
-Removed top 29 bits (of 32) from port Y of cell ino_decode_queue.\1011 ($add).
-Removed top 28 bits (of 32) from port A of cell ino_decode_queue.\1016 ($sub).
-Removed top 31 bits (of 32) from port B of cell ino_decode_queue.\1016 ($sub).
-Removed top 27 bits (of 32) from port Y of cell ino_decode_queue.\1016 ($sub).
-Removed top 28 bits (of 32) from port B of cell ino_decode_queue.\1018 ($add).
-Removed top 28 bits (of 32) from port Y of cell ino_decode_queue.\1018 ($add).
-Removed top 28 bits (of 32) from port A of cell ino_decode_queue.\1018 ($add).
-Removed top 28 bits (of 32) from port A of cell ino_decode_queue.\561 ($sub).
-Removed top 28 bits (of 32) from port B of cell ino_decode_queue.\561 ($sub).
-Removed top 27 bits (of 32) from port Y of cell ino_decode_queue.\561 ($sub).
-Removed top 27 bits (of 32) from port A of cell ino_decode_queue.\563 ($ge).
-Removed top 28 bits (of 32) from port B of cell ino_decode_queue.\563 ($ge).
-Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\688 ($add).
-Removed top 28 bits (of 32) from port B of cell ino_decode_queue.\688 ($add).
-Removed top 29 bits (of 32) from port Y of cell ino_decode_queue.\688 ($add).
-Removed top 1 bits (of 4) from port B of cell ino_decode_queue.\688 ($add).
-Removed top 31 bits (of 32) from port A of cell ino_decode_queue.\693 ($lt).
-Removed top 27 bits (of 32) from port B of cell ino_decode_queue.\693 ($lt).
-Converting cell ino_decode_queue.\693 ($lt) from signed to unsigned.
-Removed top 1 bits (of 5) from port B of cell ino_decode_queue.\693 ($lt).
-Removed top 30 bits (of 32) from port A of cell ino_decode_queue.\768 ($lt).
-Removed top 27 bits (of 32) from port B of cell ino_decode_queue.\768 ($lt).
-Converting cell ino_decode_queue.\768 ($lt) from signed to unsigned.
-Removed top 1 bits (of 2) from port A of cell ino_decode_queue.\768 ($lt).
-Removed top 1 bits (of 5) from port B of cell ino_decode_queue.\768 ($lt).
-Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\771 ($add).
-Removed top 31 bits (of 32) from port B of cell ino_decode_queue.\771 ($add).
-Removed top 29 bits (of 32) from port Y of cell ino_decode_queue.\771 ($add).
-Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\837 ($lt).
-Removed top 27 bits (of 32) from port B of cell ino_decode_queue.\837 ($lt).
-Converting cell ino_decode_queue.\837 ($lt) from signed to unsigned.
-Removed top 1 bits (of 3) from port A of cell ino_decode_queue.\837 ($lt).
-Removed top 1 bits (of 5) from port B of cell ino_decode_queue.\837 ($lt).
-Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\840 ($add).
-Removed top 30 bits (of 32) from port B of cell ino_decode_queue.\840 ($add).
-Removed top 29 bits (of 32) from port Y of cell ino_decode_queue.\840 ($add).
-Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\906 ($lt).
-Removed top 27 bits (of 32) from port B of cell ino_decode_queue.\906 ($lt).
-Converting cell ino_decode_queue.\906 ($lt) from signed to unsigned.
-Removed top 1 bits (of 3) from port A of cell ino_decode_queue.\906 ($lt).
-Removed top 1 bits (of 5) from port B of cell ino_decode_queue.\906 ($lt).
-Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\909 ($add).
-Removed top 30 bits (of 32) from port B of cell ino_decode_queue.\909 ($add).
-Removed top 29 bits (of 32) from port Y of cell ino_decode_queue.\909 ($add).
-Removed top 1 bits (of 143) from mux cell ino_decode_queue.$auto$ghdl.cc:1028:import_module$297 ($mux).
-Removed top 1 bits (of 143) from mux cell ino_decode_queue.$auto$ghdl.cc:1029:import_module$298 ($mux).
-Removed top 1 bits (of 5) from port Y of cell ino_decode_queue.\1016 ($sub).
-Removed top 1 bits (of 143) from wire ino_decode_queue.$auto$ghdl.cc:1026:import_module$295.
-Removed top 1 bits (of 143) from wire ino_decode_queue.$auto$ghdl.cc:1027:import_module$296.
-Removed top 29 bits (of 32) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$130.
-Removed top 29 bits (of 32) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$139.
-Removed top 29 bits (of 32) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$148.
-Removed top 29 bits (of 32) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$167.
-Removed top 28 bits (of 32) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$168.
-Removed top 28 bits (of 32) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$169.
-Removed top 1 bits (of 143) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$174.
+Removed top 1 bits (of 143) from mux cell ino_decode_queue.$auto$ghdl.cc:1030:import_module$316 ($mux).
+Removed top 30 bits (of 32) from port A of cell ino_decode_queue.\1010 ($gt).
+Removed top 27 bits (of 32) from port B of cell ino_decode_queue.\1010 ($gt).
+Converting cell ino_decode_queue.\1010 ($gt) from signed to unsigned.
+Removed top 1 bits (of 2) from port A of cell ino_decode_queue.\1010 ($gt).
+Removed top 1 bits (of 5) from port B of cell ino_decode_queue.\1010 ($gt).
+Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\1016 ($add).
+Removed top 31 bits (of 32) from port B of cell ino_decode_queue.\1016 ($add).
+Removed top 29 bits (of 32) from port Y of cell ino_decode_queue.\1016 ($add).
+Removed top 28 bits (of 32) from port A of cell ino_decode_queue.\1021 ($sub).
+Removed top 31 bits (of 32) from port B of cell ino_decode_queue.\1021 ($sub).
+Removed top 27 bits (of 32) from port Y of cell ino_decode_queue.\1021 ($sub).
+Removed top 28 bits (of 32) from port B of cell ino_decode_queue.\1023 ($add).
+Removed top 28 bits (of 32) from port Y of cell ino_decode_queue.\1023 ($add).
+Removed top 28 bits (of 32) from port A of cell ino_decode_queue.\1023 ($add).
+Removed top 28 bits (of 32) from port A of cell ino_decode_queue.\566 ($sub).
+Removed top 28 bits (of 32) from port B of cell ino_decode_queue.\566 ($sub).
+Removed top 27 bits (of 32) from port Y of cell ino_decode_queue.\566 ($sub).
+Removed top 27 bits (of 32) from port A of cell ino_decode_queue.\568 ($ge).
+Removed top 28 bits (of 32) from port B of cell ino_decode_queue.\568 ($ge).
+Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\693 ($add).
+Removed top 28 bits (of 32) from port B of cell ino_decode_queue.\693 ($add).
+Removed top 29 bits (of 32) from port Y of cell ino_decode_queue.\693 ($add).
+Removed top 1 bits (of 4) from port B of cell ino_decode_queue.\693 ($add).
+Removed top 31 bits (of 32) from port A of cell ino_decode_queue.\698 ($lt).
+Removed top 27 bits (of 32) from port B of cell ino_decode_queue.\698 ($lt).
+Converting cell ino_decode_queue.\698 ($lt) from signed to unsigned.
+Removed top 1 bits (of 5) from port B of cell ino_decode_queue.\698 ($lt).
+Removed top 30 bits (of 32) from port A of cell ino_decode_queue.\773 ($lt).
+Removed top 27 bits (of 32) from port B of cell ino_decode_queue.\773 ($lt).
+Converting cell ino_decode_queue.\773 ($lt) from signed to unsigned.
+Removed top 1 bits (of 2) from port A of cell ino_decode_queue.\773 ($lt).
+Removed top 1 bits (of 5) from port B of cell ino_decode_queue.\773 ($lt).
+Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\776 ($add).
+Removed top 31 bits (of 32) from port B of cell ino_decode_queue.\776 ($add).
+Removed top 29 bits (of 32) from port Y of cell ino_decode_queue.\776 ($add).
+Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\842 ($lt).
+Removed top 27 bits (of 32) from port B of cell ino_decode_queue.\842 ($lt).
+Converting cell ino_decode_queue.\842 ($lt) from signed to unsigned.
+Removed top 1 bits (of 3) from port A of cell ino_decode_queue.\842 ($lt).
+Removed top 1 bits (of 5) from port B of cell ino_decode_queue.\842 ($lt).
+Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\845 ($add).
+Removed top 30 bits (of 32) from port B of cell ino_decode_queue.\845 ($add).
+Removed top 29 bits (of 32) from port Y of cell ino_decode_queue.\845 ($add).
+Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\911 ($lt).
+Removed top 27 bits (of 32) from port B of cell ino_decode_queue.\911 ($lt).
+Converting cell ino_decode_queue.\911 ($lt) from signed to unsigned.
+Removed top 1 bits (of 3) from port A of cell ino_decode_queue.\911 ($lt).
+Removed top 1 bits (of 5) from port B of cell ino_decode_queue.\911 ($lt).
+Removed top 29 bits (of 32) from port A of cell ino_decode_queue.\914 ($add).
+Removed top 30 bits (of 32) from port B of cell ino_decode_queue.\914 ($add).
+Removed top 29 bits (of 32) from port Y of cell ino_decode_queue.\914 ($add).
+Removed top 1 bits (of 143) from mux cell ino_decode_queue.$auto$ghdl.cc:1028:import_module$314 ($mux).
+Removed top 1 bits (of 143) from mux cell ino_decode_queue.$auto$ghdl.cc:1029:import_module$315 ($mux).
+Removed top 1 bits (of 5) from port Y of cell ino_decode_queue.\1021 ($sub).
+Removed top 1 bits (of 143) from wire ino_decode_queue.$auto$ghdl.cc:1026:import_module$312.
+Removed top 1 bits (of 143) from wire ino_decode_queue.$auto$ghdl.cc:1027:import_module$313.
+Removed top 29 bits (of 32) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$147.
+Removed top 29 bits (of 32) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$156.
+Removed top 29 bits (of 32) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$165.
+Removed top 29 bits (of 32) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$184.
+Removed top 28 bits (of 32) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$185.
+Removed top 28 bits (of 32) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$186.
+Removed top 1 bits (of 143) from wire ino_decode_queue.$auto$ghdl.cc:806:import_module$191.
 
 3.10. Executing PEEPOPT pass (run peephole optimizers).
 
@@ -325,55 +325,55 @@ Removed 0 unused cells and 9 unused wires.
 
 3.12. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module ino_decode_queue:
-  creating $macc model for \1011 ($add).
-  creating $macc model for \1016 ($sub).
-  creating $macc model for \1018 ($add).
-  creating $macc model for \561 ($sub).
-  creating $macc model for \621 ($sub).
-  creating $macc model for \688 ($add).
-  creating $macc model for \703 ($sub).
-  creating $macc model for \771 ($add).
-  creating $macc model for \778 ($sub).
-  creating $macc model for \840 ($add).
-  creating $macc model for \847 ($sub).
-  creating $macc model for \909 ($add).
-  creating $macc model for \916 ($sub).
-  merging $macc model for \1016 into \1018.
-  creating $alu model for $macc \909.
-  creating $alu model for $macc \847.
-  creating $alu model for $macc \840.
-  creating $alu model for $macc \778.
-  creating $alu model for $macc \771.
-  creating $alu model for $macc \703.
-  creating $alu model for $macc \688.
-  creating $alu model for $macc \621.
-  creating $alu model for $macc \561.
-  creating $alu model for $macc \916.
-  creating $alu model for $macc \1011.
-  creating $macc cell for \1018: $auto$alumacc.cc:365:replace_macc$67910
-  creating $alu model for \1005 ($gt): new $alu
-  creating $alu model for \563 ($ge): new $alu
-  creating $alu model for \693 ($lt): new $alu
-  creating $alu model for \768 ($lt): new $alu
-  creating $alu model for \837 ($lt): new $alu
-  creating $alu model for \906 ($lt): new $alu
-  creating $alu cell for \906: $auto$alumacc.cc:485:replace_alu$67917
-  creating $alu cell for \837: $auto$alumacc.cc:485:replace_alu$67922
-  creating $alu cell for \768: $auto$alumacc.cc:485:replace_alu$67927
-  creating $alu cell for \693: $auto$alumacc.cc:485:replace_alu$67932
-  creating $alu cell for \563: $auto$alumacc.cc:485:replace_alu$67937
-  creating $alu cell for \1005: $auto$alumacc.cc:485:replace_alu$67948
-  creating $alu cell for \1011: $auto$alumacc.cc:485:replace_alu$67959
-  creating $alu cell for \916: $auto$alumacc.cc:485:replace_alu$67962
-  creating $alu cell for \561: $auto$alumacc.cc:485:replace_alu$67965
-  creating $alu cell for \621: $auto$alumacc.cc:485:replace_alu$67968
-  creating $alu cell for \688: $auto$alumacc.cc:485:replace_alu$67971
-  creating $alu cell for \703: $auto$alumacc.cc:485:replace_alu$67974
-  creating $alu cell for \771: $auto$alumacc.cc:485:replace_alu$67977
-  creating $alu cell for \778: $auto$alumacc.cc:485:replace_alu$67980
-  creating $alu cell for \840: $auto$alumacc.cc:485:replace_alu$67983
-  creating $alu cell for \847: $auto$alumacc.cc:485:replace_alu$67986
-  creating $alu cell for \909: $auto$alumacc.cc:485:replace_alu$67989
+  creating $macc model for \1016 ($add).
+  creating $macc model for \1021 ($sub).
+  creating $macc model for \1023 ($add).
+  creating $macc model for \566 ($sub).
+  creating $macc model for \626 ($sub).
+  creating $macc model for \693 ($add).
+  creating $macc model for \708 ($sub).
+  creating $macc model for \776 ($add).
+  creating $macc model for \783 ($sub).
+  creating $macc model for \845 ($add).
+  creating $macc model for \852 ($sub).
+  creating $macc model for \914 ($add).
+  creating $macc model for \921 ($sub).
+  merging $macc model for \1021 into \1023.
+  creating $alu model for $macc \914.
+  creating $alu model for $macc \852.
+  creating $alu model for $macc \845.
+  creating $alu model for $macc \783.
+  creating $alu model for $macc \776.
+  creating $alu model for $macc \708.
+  creating $alu model for $macc \693.
+  creating $alu model for $macc \626.
+  creating $alu model for $macc \566.
+  creating $alu model for $macc \921.
+  creating $alu model for $macc \1016.
+  creating $macc cell for \1023: $auto$alumacc.cc:365:replace_macc$69713
+  creating $alu model for \1010 ($gt): new $alu
+  creating $alu model for \568 ($ge): new $alu
+  creating $alu model for \698 ($lt): new $alu
+  creating $alu model for \773 ($lt): new $alu
+  creating $alu model for \842 ($lt): new $alu
+  creating $alu model for \911 ($lt): new $alu
+  creating $alu cell for \911: $auto$alumacc.cc:485:replace_alu$69720
+  creating $alu cell for \842: $auto$alumacc.cc:485:replace_alu$69725
+  creating $alu cell for \773: $auto$alumacc.cc:485:replace_alu$69730
+  creating $alu cell for \698: $auto$alumacc.cc:485:replace_alu$69735
+  creating $alu cell for \568: $auto$alumacc.cc:485:replace_alu$69740
+  creating $alu cell for \1010: $auto$alumacc.cc:485:replace_alu$69751
+  creating $alu cell for \1016: $auto$alumacc.cc:485:replace_alu$69762
+  creating $alu cell for \921: $auto$alumacc.cc:485:replace_alu$69765
+  creating $alu cell for \566: $auto$alumacc.cc:485:replace_alu$69768
+  creating $alu cell for \626: $auto$alumacc.cc:485:replace_alu$69771
+  creating $alu cell for \693: $auto$alumacc.cc:485:replace_alu$69774
+  creating $alu cell for \708: $auto$alumacc.cc:485:replace_alu$69777
+  creating $alu cell for \776: $auto$alumacc.cc:485:replace_alu$69780
+  creating $alu cell for \783: $auto$alumacc.cc:485:replace_alu$69783
+  creating $alu cell for \845: $auto$alumacc.cc:485:replace_alu$69786
+  creating $alu cell for \852: $auto$alumacc.cc:485:replace_alu$69789
+  creating $alu cell for \914: $auto$alumacc.cc:485:replace_alu$69792
   created 17 $alu and 1 $macc cells.
 
 3.13. Executing OPT pass (performing simple optimizations).
@@ -564,17 +564,17 @@ Using extmapper simplemap for cells of type $mux.
 Using extmapper simplemap for cells of type $sdff.
 Using extmapper maccmap for cells of type $macc.
   add \count (4 bits, unsigned)
-  add $auto$ghdl.cc:806:import_module$162 (4 bits, unsigned)
-  sub $auto$ghdl.cc:806:import_module$166 (1 bits, unsigned)
+  add $auto$ghdl.cc:806:import_module$179 (4 bits, unsigned)
+  sub $auto$ghdl.cc:806:import_module$183 (1 bits, unsigned)
   packed 1 (1) bits / 1 words into adder tree
 Using extmapper simplemap for cells of type $not.
 Using extmapper simplemap for cells of type $xor.
 Using extmapper simplemap for cells of type $reduce_and.
 Using extmapper simplemap for cells of type $reduce_or.
 Using extmapper simplemap for cells of type $or.
+Using extmapper simplemap for cells of type $and.
 Using extmapper simplemap for cells of type $logic_not.
 Using template $paramod$3ef7d3dd227da7627a99c5e5a6a4deb817573e39\_90_alu for cells of type $alu.
-Using extmapper simplemap for cells of type $and.
 Using template $paramod$d1615bf4e5e328245ffd1550e5fe105901cda77b\_90_alu for cells of type $alu.
 Using template $paramod$32a7b7b86c07519b7537abc18e96f0331f97914d\_90_alu for cells of type $alu.
 Using extmapper simplemap for cells of type $reduce_bool.
@@ -752,8 +752,8 @@ ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_1".
 ABC: Scl_LibertyReadGenlib() skipped sequential cell "sg13g2_sdfrbpq_2".
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_sighold" due to dont_use attribute.
 ABC: Scl_LibertyReadGenlib() skipped cell "sg13g2_slgcp_1" due to dont_use attribute.
-ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.02 sec
-ABC: Memory =    2.86 MB. Time =     0.02 sec
+ABC: Library "sg13g2_stdcell_typ_1p20V_25C" from "/home/vmo/IHP-Open-PDK/ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib" has 54 cells (20 skipped: 14 seq; 6 tri-state; 0 no func; 10 dont_use).  Time =     0.01 sec
+ABC: Memory =    2.86 MB. Time =     0.01 sec
 ABC: + source /home/vmo/Documents/ada83_git/Ada-83-TLALOC-TAHX/vhdl_InO/../synth_InO/par_module/abc_direct.abc 
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
@@ -792,6 +792,6 @@ Finding unused cells or wires in module \ino_decode_queue..
 Removed 0 unused cells and 2028 unused wires.
 <suppressed ~1 debug messages>
 Warnings: 4 unique messages, 36 total
-End of script. Logfile hash: 7bf226b69f, CPU: user 2.25s system 0.07s, MEM: 119.87 MB peak
+End of script. Logfile hash: 975b6ef837, CPU: user 1.99s system 0.05s, MEM: 122.90 MB peak
 Yosys 0.33 (git sha1 2584903a060)
-Time spent: 28% 1x abc (0 sec), 21% 2x read_rtlil (0 sec), ...
+Time spent: 26% 1x abc (0 sec), 21% 2x read_rtlil (0 sec), ...

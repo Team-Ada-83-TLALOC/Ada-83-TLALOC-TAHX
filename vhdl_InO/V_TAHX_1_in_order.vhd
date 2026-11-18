@@ -78,6 +78,12 @@ of TAHX_1 is                    --------
 
    signal halted               : std_logic;
 
+   -- port EXEC du cache, apres les attributs memoire (INO_ATTRIBUTS)
+   signal dc_exec_req          : exec_mem_request_pa_t;
+   signal dc_exec_ready        : std_logic;
+   signal dc_exec_rsp          : mem_response_t;
+   signal dbg_rsp              : mem_response_t;
+
 begin
 
   HALTED_o <= halted;
@@ -151,7 +157,7 @@ U_CORE :
       STACK_MEM_RSP_i	=> stack_mem_rsp,	-- Vient du cache data
 
       EXEC_MEM_REQ_o	=> exec_mem_req,
-      EXEC_MEM_READY_i	=> dc_ready( 1 ),
+      EXEC_MEM_READY_i	=> dc_ready( 1 ),	-- Vient des attributs memoire
       EXEC_MEM_RSP_i	=> exec_mem_rsp,	-- Vient du cache data
 
       IRQ_PENDING_i => IRQ_PENDING_i, IRQ_ACK_o => IRQ_ACK_o, IRQ_ACK_CODE_o => IRQ_ACK_CODE_o,
@@ -186,6 +192,25 @@ U_CORE :
    dc_req( 0 ) <= stack_mem_req;
    dc_req( 1 ) <= exec_mem_req;
 
+   -- Attributs memoire, port de registres R_* et acces du debogueur, devant le port
+   -- EXEC (ARCHI_SOC_TAHX.md § 2.2, § 6). ATTR_EN_i = 0 : TO_PA_EXEC, comme avant.
+   U_ATTRIBUTS : entity work.INO_ATTRIBUTS
+      port map (
+         CLK_i => CLK_i, RESET_i => RESET_i,
+         ATTR_EN_i => ATTR_EN_i, CS_TYPE_i => CS_TYPE_i, CS_SIZE_i => CS_SIZE_i,
+         BOOT_SEL_i => BOOT_SEL_i, NULL_GUARD_i => NULL_GUARD_i, HALTED_i => halted,
+         C_REQ_i => exec_mem_req, C_READY_o => dc_ready( 1 ), C_RSP_o => exec_mem_rsp,
+         G_REQ_i => DBG_REQ_i, G_WRITE_i => DBG_WRITE_i, G_ADDR_i => DBG_ADDR_i,
+         G_SIZE_i => DBG_SIZE_i, G_WDATA_i => DBG_WDATA_i, G_READY_o => DBG_READY_o,
+         G_RSP_o => dbg_rsp,
+         DC_REQ_o => dc_exec_req, DC_READY_i => dc_exec_ready, DC_RSP_i => dc_exec_rsp,
+         R_REQ_o => R_REQ_o, R_WRITE_o => R_WRITE_o, R_ADDR_o => R_ADDR_o, R_SIZE_o => R_SIZE_o,
+         R_WDATA_o => R_WDATA_o, R_READY_i => R_READY_i, R_RVALID_i => R_RVALID_i,
+         R_RDATA_i => R_RDATA_i, R_FAULT_i => R_FAULT_i );
+   DBG_RVALID_o <= dbg_rsp.valid;
+   DBG_RDATA_o  <= dbg_rsp.rdata;
+   DBG_FAULT_o  <= dbg_rsp.fault;
+
 U_DATA_CACHE :
   entity work.INO_DATA_CACHE(STRUCTURE)
     port map (
@@ -196,9 +221,9 @@ U_DATA_CACHE :
       STACK_READY_o	=> dc_ready( 0 ),
       STACK_RSP_o	=> stack_mem_rsp,
 
-      EXEC_REQ_i	=> TO_PA_EXEC( exec_mem_req ),
-      EXEC_READY_o	=> dc_ready( 1 ),
-      EXEC_RSP_o	=> exec_mem_rsp,
+      EXEC_REQ_i	=> dc_exec_req,
+      EXEC_READY_o	=> dc_exec_ready,
+      EXEC_RSP_o	=> dc_exec_rsp,
 
       D_REQ_o	=> D_REQ_o,
       D_WRITE_o	=> D_WRITE_o,

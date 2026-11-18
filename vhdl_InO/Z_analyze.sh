@@ -212,7 +212,8 @@ $A K8_INO_CORE_SYSTEM_rtl.vhd
 $A K9_INO_FRONTEND_CONTROL.vhd
 $A K9_INO_FRONTEND_CONTROL_rtl.vhd
 
-# Architecture de sommet InO.
+# Architecture de sommet InO (attributs memoire et port R_* devant le cache).
+$A V1_INO_ATTRIBUTS.vhd
 $A V_TAHX_1_in_order.vhd
 
 echo "analyse TAHX_1(IN_ORDER), VHDL-$STD : correcte"

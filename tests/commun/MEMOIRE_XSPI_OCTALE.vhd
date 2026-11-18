@@ -23,7 +23,8 @@ use ieee.numeric_std.all;
         -- T_AR_i represente tout l'aller-retour (plot SCLK, carte, memoire, plot DQ) ; un
         -- signal pour que le banc le balaye.
         -- Contenu initial : MOTIF( GRAINE_G, adresse ) ; taille 2 ** TAILLE_LOG2_G octets,
-        -- adresses repliees.
+        -- adresses repliees. IMAGE_G (si non vide) : fichier texte de mots de 64 bits en
+        -- hexadecimal, un par ligne, petit-boutistes, charges a partir de IMAGE_BASE_G.
         --
         -- Commandes de la flash (inspirees des Macronix MX25UM, simplifiees) :
         --   SPI 1S   03 lecture (3 octets d'adresse), 9F identifiant (ID_G, 3 octets),
@@ -55,6 +56,7 @@ end package body;
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use std.textio.all;
 use work.MEMOIRE_XSPI_PKG.all;
 
 entity MEMOIRE_XSPI_OCTALE is
@@ -67,6 +69,8 @@ entity MEMOIRE_XSPI_OCTALE is
       GRAINE_G       : natural := 0;
       ID_G           : std_logic_vector( 23 downto 0 ) := x"C2803A";   -- fabricant, type, taille
       OCCUPE_G       : natural := 3;
+      IMAGE_G        : string  := "";                            -- mots de 64 bits en hexadecimal, un par ligne
+      IMAGE_BASE_G   : natural := 0;                             -- adresse du premier mot
       CMD_INV_G      : boolean := true;                          -- octal : 2e octet = complement (sinon repetition)                             -- lectures d'etat avec WIP = 1
       NOM_G          : string  := "memoire"
    );
@@ -91,6 +95,11 @@ begin
       type mem_t is array( 0 to TAILLE - 1 ) of std_logic_vector( 7 downto 0 );
       type genre_t is ( SORTIE_MEM, SORTIE_ID, SORTIE_ETAT, ENTREE, AUCUNE, INVALIDE );
       variable mem     : mem_t;
+      file     f_img   : text;
+      variable st_img  : file_open_status;
+      variable l_img   : line;
+      variable w_img   : std_logic_vector( 63 downto 0 );
+      variable a_img   : natural;
       variable f       : natural;                                -- fronts (octal) ou bits (SPI)
       variable b       : std_logic_vector( 7 downto 0 );
       variable cmd     : std_logic_vector( 7 downto 0 );
@@ -181,6 +190,21 @@ begin
       for a in 0 to TAILLE - 1 loop
          mem( a ) := MOTIF( GRAINE_G, a );
       end loop;
+      if IMAGE_G'length > 0 then                                -- image : remplace le motif
+         file_open( st_img, f_img, IMAGE_G, read_mode );
+         assert st_img = open_ok report NOM_G & " : image " & IMAGE_G & " introuvable" severity failure;
+         a_img := IMAGE_BASE_G;
+         while not endfile( f_img ) loop
+            readline( f_img, l_img );
+            next when l_img'length = 0;
+            hread( l_img, w_img );
+            for k in 0 to 7 loop
+               mem( ( a_img + k ) mod TAILLE ) := w_img( 8 * k + 7 downto 8 * k );
+            end loop;
+            a_img := a_img + 8;
+         end loop;
+         file_close( f_img );
+      end if;
 
       loop
          wait until falling_edge( CS_N_i );

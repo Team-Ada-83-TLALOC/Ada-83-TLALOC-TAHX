@@ -145,7 +145,37 @@ is				------
       ICACHE_INVALIDATE_i	:in  std_logic := '0';			-- ICACHE_INVALIDATE_ALL (InO)
       EXIT_CODE_o		:out word64_t;				-- code de TRAP 0 (EXIT)
       FPC_o		:out address_t;				-- dernière faute ou interruption
-      FCODE_o		:out trap_code_t				-- Code de faute/trappe
+      FCODE_o		:out trap_code_t;				-- Code de faute/trappe
+
+		--------------------------------------------------------------------------------
+		--	S o C   (InO : ARCHI_SOC_TAHX.md § 2.2, § 6 ; OoO : sans effet)
+		--------------------------------------------------------------------------------
+
+      ATTR_EN_i		:in  std_logic := '0';			-- attributs memoire et R_* (TAHX_SOC)
+      CS_TYPE_i		:in  std_logic_vector( 7 downto 0 ) := ( others => '0' );	-- 2 bits : A0 A1 B0 B1
+      CS_SIZE_i		:in  std_logic_vector( 19 downto 0 ) := ( others => '0' );	-- log2, 5 bits par selection
+      BOOT_SEL_i		:in  std_logic := '0';			-- fenetres du port A echangees
+      NULL_GUARD_i		:in  unsigned( 4 downto 0 ) := ( others => '0' );	-- garde sous 2 ** n (0 : sans)
+
+      R_REQ_o		:out std_logic;				-- port de registres (0xF000_0000, 1 Mio)
+      R_WRITE_o		:out std_logic;
+      R_ADDR_o		:out unsigned( 19 downto 0 );
+      R_SIZE_o		:out unsigned( 1 downto 0 );
+      R_WDATA_o		:out word64_t;
+      R_READY_i		:in  std_logic := '0';
+      R_RVALID_i		:in  std_logic := '0';
+      R_RDATA_i		:in  word64_t := ( others => '0' );
+      R_FAULT_i		:in  std_logic := '0';
+
+      DBG_REQ_i		:in  std_logic := '0';			-- acces du debogueur, coeur arrete
+      DBG_WRITE_i		:in  std_logic := '0';
+      DBG_ADDR_i		:in  unsigned( 31 downto 0 ) := ( others => '0' );
+      DBG_SIZE_i		:in  unsigned( 1 downto 0 ) := "11";
+      DBG_WDATA_i		:in  word64_t := ( others => '0' );
+      DBG_READY_o		:out std_logic;
+      DBG_RVALID_o		:out std_logic;
+      DBG_RDATA_o		:out word64_t;
+      DBG_FAULT_o		:out std_logic
 
    );
 		------
