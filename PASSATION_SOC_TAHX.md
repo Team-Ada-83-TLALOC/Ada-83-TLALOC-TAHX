@@ -152,7 +152,41 @@ sommet, et les bandes ne touchent pas le bord. Par ailleurs, `generer_config.py
 | B | macros gardées ; grille du sommet autour des macros, et raccords TopMetal1 sur la bande de 5,76 µm de chaque bord, jusqu'aux extrémités des bandes | aucune | script PDN sur mesure, OBS des LEF à ouvrir sur les bords ; chute de tension le long de bandes de 2 µm sur 0,7 à 2,5 mm |
 | C | retirer de l'ODB final les bandes TopMetal1 des macros, refaire les vues | aucune relance de placement | chirurgie d'ODB, signaux éventuels sur TopMetal1 |
 
-Premiers pas proposés :
+**Décision (18 novembre, après `couches_macro.py` et `bords_alim.py`) : option B.**
+C est exclue (signaux sur TopMetal1 dans toutes les macros) ; `bords_alim.py` sur les
+8 ODB retenus : 443 bandes TopMetal1 sur 443 atteignables par un bord, une seule
+extrémité bloquée (`ino_fetch`, VGND y ≈ 869, côté droit ; l'autre bout est libre).
+Les bandes vont par paires VPWR / VGND écartées de 6 µm, au pas de 50 µm, comme la
+grille du PDK.
+
+Mise en œuvre (`pnr_InO/assemblage/pdn_peigne.tcl`, `PDN_CFG`) : la grille du PDK,
+puis, après `pdngen`, un **peigne** dans le halo de 10 µm de chaque côté gauche et droit
+de chaque macro : deux rails Metal4 verticaux de 2,8 µm (0,5 µm du bord, écart 2 µm),
+chaque bande de la macro prolongée en TopMetal1 jusqu'à son rail, chaque bande
+TopMetal1 de la grille arrêtée au halo prolongée jusqu'au rail de son net, TopVia1
+(3 coupures) à chaque croisement du même net. L'ordre des rails est choisi par côté ;
+tout rectangle est vérifié (espacement, autre net, autres macros), un écart du même
+net est comblé. `generer_config.py --avec-alim` prend par défaut `--obs peigne`
+(TopMetal1 ouvert entre le bout des bandes et le bord) et écrit `PDN_CFG`.
+Essai hors LibreLane : `pnr_InO/outils/essai_peigne/lancer.sh` (vraies LEF, grille
+factice sur 50 phases) : 0 erreur, ≥ 21 attaches par rail, espacements et connexité
+vérifiés par un script indépendant. **Validé le 18 novembre** (RUN_2026-11-18_17-26-38, `--avec-alim`, 27,5 ns) : 16 côtés
+peignés, 0 erreur, 5 229 coupures TopVia1EWNS, au moins 20 attaches par rail ;
+`check_power_grid` sans erreur, « All shapes connected » sur VPWR et VGND ; routage
+détaillé 0 DRC ; setup lent +0,118 ns. Avertissements sans effet : PDN-0110 (vias
+Metal4 → TopMetal1 refusés **dans** les macros par l'OBS, grille de macro par défaut de
+LibreLane) et PDN-0195 (vias de rails Metal1 au bord des halos). Restent :
+- hold lent −14 ps sur `ICACHE_INVALIDATE_i → u_fetch` : entrée comptée depuis
+  `clk_soc` (5,0 ns) alors que l'horloge arrive à 5,64 ns sur fetch, hold de bibliothèque
+  de la macro 1,72 ns ; artefact du budget d'E/S, à régler avec `LAT_SOMMET` et
+  l'équilibrage de l'arbre (§ 4, plus bas), ou au niveau `TAHX_SOC` ;
+- chute de tension : 2,8 mV mesurés, mais `power__total` = 1,8 mW, la puissance des
+  macros n'étant pas dans leurs `.lib` ; à refaire avec la puissance de chaque macro
+  (estimation à la main : < 1 mV dans les peignes et les bandes pour 10 mA par macro) ;
+- 8 réseaux en violation d'antenne (RepairAntennas sauté, GRT-0183) ; DRC KLayout /
+  Magic et LVS sur les GDS réels à confirmer.
+
+Premiers pas proposés (avant la décision, pour mémoire) :
 1. Mesurer sur l'ODB de chaque macro l'usage de TopMetal1 par les signaux (petit outil
    ODB à écrire) : décide entre A et C, et du `RT_MAX_LAYER` des futures relances.
 2. Essai de A sur une petite macro (`ino_decode_queue` ou `ino_system`) : timing comparé
@@ -185,6 +219,13 @@ système. Décisions dans ARCHI § 3-6 ; ordre retenu (ARCHI § 9, étape 2) :
 demande une résistance de rappel pilotée par le contrôleur), SCL en push-pull possible ;
 machine I2C séparée de la couche de bits pour ajouter plus tard le mode SDR d'I3C
 (12,5 MHz). À reporter dans ARCHI au moment du RTL.
+
+Fait au 18 novembre (`vhdl_SoC/LISEZMOI.md`) : matrice (`S1_SOC_MATRICE`, 60
+vérifications) ; port xSPI complet, SCLK = CLK / 2 décidé par Vincent
+(`XSPI_CONTROLLER`, `XSPI_PHY`, `XSPI_PORT`, modèle `tests/commun/MEMOIRE_XSPI_OCTALE.vhd`,
+banc `S2_XSPI`, 91 vérifications) : ligne de 32 octets en 1 156 cycles en SPI 1S
+(démarrage), 60 en octal DTR (≈ 19 Mo/s à 36 MHz) ; ≈ 2 640 cellules, 467 bascules.
+Suivant : mode indirect (passage de la flash en octal par logiciel), puis l'étape 2.
 
 Le RTL et ses bancs peuvent avancer chez Claude (GHDL, Yosys pour les surfaces) pendant
 que Vincent fait les essais d'alimentation. Bancs unitaires, puis modèles de mémoire
@@ -220,7 +261,9 @@ d'`extraire_units.sh` ; 0004 `pnr_InO/outils/comparer_lib.py` ; 0005 cette passa
 | `releve_chemins.tcl` + `texte_vers_chemins.py` | relevé des traversées sans `arrivals()` |
 | `rebudgeter.py` | `--lat`, `--ecart`, `--gmin M=G`, `--critiques N`, `--exclure MOTIF`, `--macros` |
 | `verifier_budgets.py` | contrôle des SDC de macro écrits |
-| `pnr_InO/assemblage/generer_config.py` | `--lef vues`, GDS de `PROVENANCE_VUES.txt`, `--sans ETAPE`, `--sdc`, `--periode` ; `--avec-alim` incomplet (§ 4) |
+| `pnr_InO/assemblage/generer_config.py` | `--lef vues`, GDS de `PROVENANCE_VUES.txt`, `--sans ETAPE`, `--sdc`, `--periode` ; `--avec-alim` : `--obs peigne` et `PDN_CFG: pdn_peigne.tcl` (§ 4) |
+| `pnr_InO/assemblage/pdn_peigne.tcl` | grille du PDK + peignes de raccord des macros par les bords (option B, § 4) |
+| `pnr_InO/outils/essai_peigne/` | essai du peigne sans LibreLane (`PDK_ROOT=... ./lancer.sh`) |
 
 ## 9. À retenir du flux LibreLane
 

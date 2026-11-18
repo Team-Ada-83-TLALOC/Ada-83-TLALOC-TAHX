@@ -49,9 +49,19 @@ Ecrit pnr_InO/assemblage/config_<plan>.yaml :
     GRT-0183 ; essai d'assemblage sans alimentation, antennes a reprendre plus tard) ;
   - .lib : vues/lib/ (runs v1 tant que vues_macros.sh n'a pas ete passe sur les runs
     v2 ; memes ports en v1 et v2) ;
-  - premier essai : flux arrete au routage global, sans grille d'alimentation (les
-    macros ont leur grille jusqu'a TopMetal1, la couche du haut ; le raccordement
-    au sommet demandera des macros en PDN_MULTILAYER: false, Metal4 seul).
+  - alimentation (--avec-alim) : GeneratePDN avec la grille du PDK (pdn_cfg.tcl de
+    LibreLane : Metal4 vertical, TopMetal1 horizontal) et PDN_MACRO_CONNECTIONS pour
+    chaque instance ; sans l'option, GeneratePDN et IRDropReport sont sautes. Les macros
+    retenues au 17 novembre ont leur grille jusqu'a TopMetal1, la couche du haut : avec
+    l'OBS pleine, la grille du sommet est coupee autour d'elles et leurs broches restent
+    non reliees ; --obs sous-tm1 laisse passer les bandes TopMetal1 du sommet au-dessus
+    des macros, ce qui n'est sur que pour des macros sans TopMetal1 (relance en
+    PDN_MULTILAYER: false et RT_MAX_LAYER: Metal4, ou bandes retirees de l'ODB) ; voir
+    pnr_InO/outils/couches_macro.py et la passation du 18 novembre, § 4.
+    Option retenue le 18 novembre (bords_alim.py : 443 bandes sur 443 atteignables
+    par un bord) : --avec-alim prend par defaut --obs peigne, couloirs TopMetal1
+    ouverts entre le bout des bandes et le bord, et PDN_CFG = pdn_peigne.tcl (grille
+    du PDK, puis un peigne de deux rails Metal4 dans le halo de chaque cote).
 """
 import argparse, os, re, sys
 
@@ -110,17 +120,68 @@ def run_v2_complet(run, cible, version):
 COUCHES_OBS = ("Metal1", "Metal2", "Metal3", "Metal4", "TopMetal1")
 
 
-def lef_obs_plein(m, lef):
+def lef_obs_plein(m, lef, couches=COUCHES_OBS):
     """Copie du LEF avec un OBS plein ; -> chemin relatif au dossier de l'assemblage."""
     w, h = taille_lef(lef)
     lignes = open(lef).read().split("\n")
     debut = next(i for i, l in enumerate(lignes) if l.strip() == "OBS")
     fin = next(i for i in range(debut + 1, len(lignes)) if lignes[i].strip() == "END")
-    obs = ["  OBS"] + [x for c in COUCHES_OBS for x in (f"    LAYER {c} ;", f"     RECT  0 0 {w:g} {h:g} ;")] + ["  END"]
+    obs = ["  OBS"] + [x for c in couches for x in (f"    LAYER {c} ;", f"     RECT  0 0 {w:g} {h:g} ;")] + ["  END"]
     os.makedirs(os.path.join(ICI, "lef_obs"), exist_ok=True)
     sortie = os.path.join(ICI, "lef_obs", f"{m}.lef")
     open(sortie, "w").write("\n".join(lignes[:debut] + obs + lignes[fin + 1:]))
     return f"lef_obs/{m}.lef"
+
+
+def couloirs_alim(lef, portee=30.0):
+    """Bandes TopMetal1 de VPWR / VGND qui s'arretent a moins de portee um d'un bord
+    gauche ou droit : [(x1, x2, y1, y2)] des zones a ouvrir entre leur bout et le bord."""
+    w, h = taille_lef(lef)
+    texte = open(lef).read()
+    zones = []
+    for nom in ("VPWR", "VGND"):
+        m = re.search(r"^\s*PIN %s\b(.*?)^\s*END %s\b" % (nom, nom), texte, re.S | re.M)
+        if not m:
+            continue
+        couche = None
+        for l in m.group(1).splitlines():
+            t = l.split()
+            if t[:1] == ["LAYER"]:
+                couche = t[1]
+            elif t[:1] == ["RECT"] and couche == "TopMetal1":
+                x1, y1, x2, y2 = map(float, t[1:5])
+                if x2 - x1 < 10 * (y2 - y1):
+                    continue
+                if 0 < x1 <= portee:
+                    zones.append((0.0, x1, y1, y2))
+                if 0 < w - x2 <= portee:
+                    zones.append((x2, w, y1, y2))
+    return zones
+
+
+def lef_obs_peigne(m, lef):
+    """OBS plein de Metal1 a Metal4 ; TopMetal1 plein sauf entre le bout des bandes
+    d'alimentation et le bord (peigne de pdn_peigne.tcl) -> (chemin, nb de couloirs)."""
+    w, h = taille_lef(lef)
+    zones = couloirs_alim(lef)
+    xs = sorted({0.0, w} | {z[0] for z in zones} | {z[1] for z in zones})
+    rects = []
+    for xa, xb in zip(xs, xs[1:]):
+        libres = sorted((z[2], z[3]) for z in zones if z[0] <= xa and z[1] >= xb)
+        y = 0.0
+        for y1, y2 in libres + [(h, h)]:
+            if y1 > y:
+                rects.append((xa, y, xb, y1))
+            y = max(y, y2)
+    lignes = open(lef).read().split("\n")
+    debut = next(i for i, l in enumerate(lignes) if l.strip() == "OBS")
+    fin = next(i for i in range(debut + 1, len(lignes)) if lignes[i].strip() == "END")
+    obs = ["  OBS"] + [x for c in COUCHES_OBS[:-1] for x in (f"    LAYER {c} ;", f"     RECT  0 0 {w:g} {h:g} ;")]
+    obs += ["    LAYER TopMetal1 ;"] + [f"     RECT  {a:g} {b:g} {c:g} {d:g} ;" for a, b, c, d in rects] + ["  END"]
+    os.makedirs(os.path.join(ICI, "lef_obs"), exist_ok=True)
+    sortie = os.path.join(ICI, "lef_obs", f"{m}.lef")
+    open(sortie, "w").write("\n".join(lignes[:debut] + obs + lignes[fin + 1:]))
+    return f"lef_obs/{m}.lef", len(zones)
 
 
 def gds_provenance(d):
@@ -171,17 +232,27 @@ def main():
     ap.add_argument("--marge-haut", type=float, default=None)
     ap.add_argument("--lef", default=None, help="v1, v2 ; defaut : celle du plan")
     ap.add_argument("--gds", default="auto", choices=["auto", "fantome", "vues"])
-    ap.add_argument("--obs", default="pleine", choices=["pleine", "lef"])
+    ap.add_argument("--obs", default=None, choices=["pleine", "peigne", "sous-tm1", "lef"],
+                    help="defaut : peigne avec --avec-alim, pleine sinon ; "
+                         "pleine : Metal1 a TopMetal1 obstrues sur les macros ; peigne : pleine sauf "
+                         "TopMetal1 entre le bout des bandes d'alimentation et le bord (raccord par "
+                         "les bords, pdn_peigne.tcl) ; sous-tm1 : "
+                         "Metal1 a Metal4 seulement (bandes TopMetal1 du sommet au-dessus des "
+                         "macros : seulement pour des macros sans TopMetal1, options A / C) ; "
+                         "lef : OBS du LEF")
     ap.add_argument("--sans", action="append", default=[], metavar="ETAPE",
                     help="etape LibreLane a sauter en plus (meta.substituting_steps), "
                          "ex. OpenROAD.DiodeInsertion ; repetable")
     ap.add_argument("--avec-alim", action="store_true",
-                    help="ne pas ignorer les broches d'alimentation non reliees")
+                    help="grille d'alimentation du sommet (GeneratePDN, PDN_MACRO_CONNECTIONS, "
+                         "IRDropReport) ; broches non reliees signalees")
     ap.add_argument("--periode", type=float, default=27.5,
                     help="ns (macros budgetees a 26 ; assemblage v11h : 27,5)")
     ap.add_argument("--sdc", default="tahx_1.sdc",
                     help="SDC du sommet (dans ce dossier) ou 'generique' (celui de LibreLane)")
     a = ap.parse_args()
+    if a.obs is None:
+        a.obs = "peigne" if a.avec_alim else "pleine"
     plan = C.PLANS[a.plan]
     vlef = C.version_lef(a.plan, a.lef)
     tailles = {}
@@ -216,8 +287,10 @@ def main():
     w = L.append
     w("# Assemblage de TAHX_1 (coeur, 8 macros) : genere par generer_config.py, plan "
       f"'{a.plan}' de synth_InO/sta/plan_puce/canaux.py. Ne pas modifier a la main.")
-    w("# Premier essai : routage global seulement (librelane ... --to OpenROAD.GlobalRouting),")
-    w("# sans grille d'alimentation (voir l'en-tete de generer_config.py).")
+    if a.avec_alim:
+        w(f"# Grille d'alimentation du sommet (--avec-alim), OBS des macros : {a.obs}.")
+    else:
+        w("# Sans grille d'alimentation (voir l'en-tete de generer_config.py).")
     w("PDK: ihp-sg13cmos5l")
     w("DESIGN_NAME: TAHX_1")
     w("VERILOG_FILES:\n  - dir::src/tahx_1_sommet.v")
@@ -255,9 +328,14 @@ def main():
         lx, ly = position(m)
         w(f"  {m}:")
         lef = C.lef_macro(m, vlef)
-        if a.obs == "pleine":
-            w(f"    lef:          # OBS plein, d'apres {os.path.relpath(lef, C.MACROS)}\n"
-              f"      - dir::{lef_obs_plein(m, lef)}")
+        if a.obs == "peigne":
+            chemin, nc = lef_obs_peigne(m, lef)
+            w(f"    lef:          # OBS peigne ({nc} couloirs TopMetal1), d'apres {os.path.relpath(lef, C.MACROS)}\n"
+              f"      - dir::{chemin}")
+        elif a.obs in ("pleine", "sous-tm1"):
+            couches = COUCHES_OBS if a.obs == "pleine" else COUCHES_OBS[:-1]
+            w(f"    lef:          # OBS {a.obs}, d'apres {os.path.relpath(lef, C.MACROS)}\n"
+              f"      - dir::{lef_obs_plein(m, lef, couches)}")
         else:
             w(f"    lef:\n      - dir::../macros/{os.path.relpath(lef, C.MACROS)}")
         w(f"    gds:          # {origines[m]}\n      - {gds}")
@@ -268,7 +346,19 @@ def main():
             w(f"      \"*_{coin}_*\":\n        - dir::../macros/{d}/vues/lib/{nom}.lib")
         w("    instances:")
         w(f"      \"{INST[m]}\":\n        location: [{lx}, {ly}]\n        orientation: N")
-    if not a.avec_alim:
+    if a.avec_alim:
+        # raccord logique des broches VPWR / VGND de chaque macro aux nets du sommet ;
+        # raccord physique : peignes de pdn_peigne.tcl par les bords (--obs peigne), ou
+        # grille de macro de pdn_cfg.tcl (Metal4 <-> TopMetal1) sous des bandes du sommet
+        # passant au-dessus des broches (--obs sous-tm1, macros sans TopMetal1)
+        w("# grille du sommet : parametres FP_PDN_* du PDK (Metal4 V, TopMetal1 H, pas 50 um)")
+        if a.obs == "peigne":
+            w("# macros raccordees par les bords de leurs bandes TopMetal1 (option B)")
+            w("PDN_CFG: dir::pdn_peigne.tcl\nPDN_HORIZONTAL_HALO: 10\nPDN_VERTICAL_HALO: 10")
+        w("PDN_MACRO_CONNECTIONS:")
+        for m in plan["R"]:
+            w(f"  - \"{INST[m]} VPWR VGND VPWR VGND\"")
+    else:
         noms = [F.nom_macro(C.lef_macro(m, vlef)) for m in plan["R"]]
         w("# sans grille d'alimentation : VPWR/VGND des macros et du sommet non relies (attendu)")
         w("IGNORE_DISCONNECTED_MODULES:")
@@ -277,16 +367,25 @@ def main():
     w("RUN_LVS: false\nRUN_KLAYOUT_DRC: false\nRUN_MAGIC_STREAMOUT: false\nRUN_MAGIC_WRITE_LEF: false")
     w("RUN_MAGIC_DRC: false\nRUN_KLAYOUT_XOR: false")
     w("meta:\n  version: 2\n  flow: Classic\n  substituting_steps:")
-    etapes = ["OpenROAD.GeneratePDN", "Odb.CheckDesignAntennaProperties", "Magic.SpiceExtraction",
+    etapes = ["Odb.CheckDesignAntennaProperties", "Magic.SpiceExtraction",
               "Checker.IllegalOverlap", "Netgen.LVS", "Checker.LVS"]
     if not a.avec_alim:
+        etapes.insert(0, "OpenROAD.GeneratePDN")
         # sans grille, l'analyse de chute de tension echoue (PSM-0069, VPWR non connecte)
         etapes.append("OpenROAD.IRDropReport")
     for s in etapes + [x for x in a.sans if x not in etapes]:
         w(f"    {s}: null")
     sortie = os.path.join(ICI, f"config_{a.plan}.yaml")
     open(sortie, "w").write("\n".join(L) + "\n")
-    print(f"   periode {a.periode:g} ns, SDC {a.sdc}")
+    print(f"   periode {a.periode:g} ns, SDC {a.sdc}, alimentation : "
+          f"{'grille du sommet' if a.avec_alim else 'aucune'}")
+    if a.avec_alim and a.obs != "peigne":
+        print("   ATTENTION : --avec-alim sans --obs peigne : macros raccordees seulement si leurs "
+              "broches sont sous des bandes du sommet")
+    if a.avec_alim and a.obs == "pleine":
+        print("   ATTENTION : --avec-alim avec OBS pleine : la grille du sommet est coupee autour "
+              "des macros, leurs broches VPWR / VGND resteront non reliees (essai de la grille "
+              "de la logique de liaison seulement)")
     print(f"{sortie} : puce {DW} x {DH} um (macros {W:.2f} x {H:.2f}, LEF {vlef or 'v1'}, "
           f"marges {MX} / {MY} / haut {MH}, OBS {a.obs})")
     for m in plan["R"]:

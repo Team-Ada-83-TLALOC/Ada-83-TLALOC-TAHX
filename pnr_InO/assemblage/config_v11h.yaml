@@ -1,6 +1,5 @@
 # Assemblage de TAHX_1 (coeur, 8 macros) : genere par generer_config.py, plan 'v11h' de synth_InO/sta/plan_puce/canaux.py. Ne pas modifier a la main.
-# Premier essai : routage global seulement (librelane ... --to OpenROAD.GlobalRouting),
-# sans grille d'alimentation (voir l'en-tete de generer_config.py).
+# Grille d'alimentation du sommet (--avec-alim), OBS des macros : peigne.
 PDK: ihp-sg13cmos5l
 DESIGN_NAME: TAHX_1
 VERILOG_FILES:
@@ -38,7 +37,7 @@ DIODE_ON_PORTS: in
 DIODE_CELL: sg13cmos5l_antennanp/A
 MACROS:
   ino_fetch:
-    lef:          # OBS plein, d'apres ino_fetch/vues/ino_fetch.lef
+    lef:          # OBS peigne (177 couloirs TopMetal1), d'apres ino_fetch/vues/ino_fetch.lef
       - dir::lef_obs/ino_fetch.lef
     gds:          # RUN_2026-11-09_16-46-17 (vues/PROVENANCE_VUES.txt)
       - dir::../macros/ino_fetch/runs/RUN_2026-11-09_16-46-17/final/klayout_gds/ino_fetch.klayout.gds
@@ -56,7 +55,7 @@ MACROS:
         location: [149.76, 1488.06]
         orientation: N
   ino_decode_predict:
-    lef:          # OBS plein, d'apres ino_decode_predict/vues/ino_decode_predict.lef
+    lef:          # OBS peigne (88 couloirs TopMetal1), d'apres ino_decode_predict/vues/ino_decode_predict.lef
       - dir::lef_obs/ino_decode_predict.lef
     gds:          # RUN_2026-11-09_07-59-00 (vues/PROVENANCE_VUES.txt)
       - dir::../macros/ino_decode_predict/runs/RUN_2026-11-09_07-59-00/final/klayout_gds/ino_decode_predict.klayout.gds
@@ -74,7 +73,7 @@ MACROS:
         location: [2400.0, 2588.46]
         orientation: N
   ino_decode_queue:
-    lef:          # OBS plein, d'apres ino_decode_queue/vues/ino_decode_queue.lef
+    lef:          # OBS peigne (88 couloirs TopMetal1), d'apres ino_decode_queue/vues/ino_decode_queue.lef
       - dir::lef_obs/ino_decode_queue.lef
     gds:          # RUN_2026-11-16_00-29-22 (vues/PROVENANCE_VUES.txt)
       - dir::../macros/ino_decode_queue/runs/RUN_2026-11-16_00-29-22/final/klayout_gds/ino_decode_queue.klayout.gds
@@ -92,7 +91,7 @@ MACROS:
         location: [3600.0, 2588.46]
         orientation: N
   stack_unit_16_8:
-    lef:          # OBS plein, d'apres stack_unit_16_8/vues/stack_unit_16_8.lef
+    lef:          # OBS peigne (120 couloirs TopMetal1), d'apres stack_unit_16_8/vues/stack_unit_16_8.lef
       - dir::lef_obs/stack_unit_16_8.lef
     gds:          # RUN_2026-11-14_05-14-00 (vues/PROVENANCE_VUES.txt)
       - dir::../macros/stack_unit_16_8/runs/RUN_2026-11-14_05-14-00/final/klayout_gds/stack_unit_16_8.klayout.gds
@@ -110,7 +109,7 @@ MACROS:
         location: [4849.92, 1988.7]
         orientation: N
   ino_data_cache:
-    lef:          # OBS plein, d'apres ino_data_cache/vues/ino_data_cache.lef
+    lef:          # OBS peigne (84 couloirs TopMetal1), d'apres ino_data_cache/vues/ino_data_cache.lef
       - dir::lef_obs/ino_data_cache.lef
     gds:          # RUN_2026-11-09_16-54-59 (vues/PROVENANCE_VUES.txt)
       - dir::../macros/ino_data_cache/runs/RUN_2026-11-09_16-54-59/final/klayout_gds/ino_data_cache.klayout.gds
@@ -128,7 +127,7 @@ MACROS:
         location: [2400.0, 1516.62]
         orientation: N
   ino_exec_arith:
-    lef:          # OBS plein, d'apres ino_exec_arith/vues/ino_exec_arith.lef
+    lef:          # OBS peigne (92 couloirs TopMetal1), d'apres ino_exec_arith/vues/ino_exec_arith.lef
       - dir::lef_obs/ino_exec_arith.lef
     gds:          # RUN_2026-11-12_23-08-30 (vues/PROVENANCE_VUES.txt)
       - dir::../macros/ino_exec_arith/runs/RUN_2026-11-12_23-08-30/final/klayout_gds/ino_exec_arith.klayout.gds
@@ -146,7 +145,7 @@ MACROS:
         location: [3349.92, 199.5]
         orientation: N
   ino_exec_entier:
-    lef:          # OBS plein, d'apres ino_exec_entier/vues/ino_exec_entier.lef
+    lef:          # OBS peigne (96 couloirs TopMetal1), d'apres ino_exec_entier/vues/ino_exec_entier.lef
       - dir::lef_obs/ino_exec_entier.lef
     gds:          # RUN_2026-11-17_08-49-23 (vues/PROVENANCE_VUES.txt)
       - dir::../macros/ino_exec_entier/runs/RUN_2026-11-17_08-49-23/final/klayout_gds/ino_exec_entier.klayout.gds
@@ -164,7 +163,7 @@ MACROS:
         location: [4829.76, 149.94]
         orientation: N
   ino_system:
-    lef:          # OBS plein, d'apres ino_system/vues/ino_system.lef
+    lef:          # OBS peigne (140 couloirs TopMetal1), d'apres ino_system/vues/ino_system.lef
       - dir::lef_obs/ino_system.lef
     gds:          # RUN_2026-11-10_23-40-44 (vues/PROVENANCE_VUES.txt)
       - dir::../macros/ino_system/runs/RUN_2026-11-10_23-40-44/final/klayout_gds/ino_system.klayout.gds
@@ -181,17 +180,20 @@ MACROS:
       "u_core.u_system":
         location: [6229.92, 149.94]
         orientation: N
-# sans grille d'alimentation : VPWR/VGND des macros et du sommet non relies (attendu)
-IGNORE_DISCONNECTED_MODULES:
-  - ino_fetch
-  - ino_decode_predict
-  - ino_decode_queue
-  - stack_unit_16_8
-  - ino_data_cache
-  - ino_exec_arith
-  - ino_exec_entier
-  - ino_system
-  - TAHX_1
+# grille du sommet : parametres FP_PDN_* du PDK (Metal4 V, TopMetal1 H, pas 50 um)
+# macros raccordees par les bords de leurs bandes TopMetal1 (option B)
+PDN_CFG: dir::pdn_peigne.tcl
+PDN_HORIZONTAL_HALO: 10
+PDN_VERTICAL_HALO: 10
+PDN_MACRO_CONNECTIONS:
+  - "u_instruction.u_fetch VPWR VGND VPWR VGND"
+  - "u_instruction.u_decode_predict VPWR VGND VPWR VGND"
+  - "u_decode_queue VPWR VGND VPWR VGND"
+  - "u_core.u_stack VPWR VGND VPWR VGND"
+  - "u_data_cache VPWR VGND VPWR VGND"
+  - "u_core.u_backend.u_arith VPWR VGND VPWR VGND"
+  - "u_core.u_backend.u_entier VPWR VGND VPWR VGND"
+  - "u_core.u_system VPWR VGND VPWR VGND"
 RUN_LVS: false
 RUN_KLAYOUT_DRC: false
 RUN_MAGIC_STREAMOUT: false
@@ -202,11 +204,9 @@ meta:
   version: 2
   flow: Classic
   substituting_steps:
-    OpenROAD.GeneratePDN: null
     Odb.CheckDesignAntennaProperties: null
     Magic.SpiceExtraction: null
     Checker.IllegalOverlap: null
     Netgen.LVS: null
     Checker.LVS: null
-    OpenROAD.IRDropReport: null
     OpenROAD.RepairAntennas: null
