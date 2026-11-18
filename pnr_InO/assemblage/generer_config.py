@@ -2,7 +2,8 @@
 """Configuration LibreLane de l'assemblage de TAHX_1 d'apres un plan de canaux.py.
 
 Usage : pnr_InO/assemblage/generer_config.py [plan] [--marge 150] [--marge-haut M]
-                                            [--lef v2] [--gds auto|vues] [--periode 26]
+                                            [--lef v2] [--gds auto|vues] [--periode 27.5]
+                                            [--sdc tahx_1.sdc|generique]
 Ecrit pnr_InO/assemblage/config_<plan>.yaml :
   - DIE_AREA : boite des macros plus une marge de chaque cote (ports de TAHX_1 et
     fils autour des macros) ;
@@ -36,6 +37,9 @@ Ecrit pnr_InO/assemblage/config_<plan>.yaml :
     les LEF de vues/ (v1) : les fils du sommet ne passent pas sur les macros. Les LEF
     v2 tires d'ODB arretes au routage global n'obstruent que les rails et sangles
     d'alimentation (7 % de Metal2 a Metal4) ; --obs lef les garde tels quels ;
+  - SDC (--sdc) : tahx_1.sdc (defaut) en PNR_SDC_FILE et SIGNOFF_SDC_FILE ; il lit
+    CLOCK_PERIOD (--periode) ; 'generique' garde le SDC de LibreLane (IHP : E/S a 20 %,
+    incertitude 0,25 ns, derate de 5 %) ;
   - IGNORE_DISCONNECTED_MODULES : les 8 macros et TAHX_1, tant que la grille
     d'alimentation est sautee (broches VPWR/VGND des macros et du sommet non reliees,
     Checker.DisconnectedPins) ; --avec-alim l'omet ; sans grille, OpenROAD.IRDropReport
@@ -173,7 +177,10 @@ def main():
                          "ex. OpenROAD.DiodeInsertion ; repetable")
     ap.add_argument("--avec-alim", action="store_true",
                     help="ne pas ignorer les broches d'alimentation non reliees")
-    ap.add_argument("--periode", type=float, default=26.0, help="ns (SDC rebudgetes P78 : 26)")
+    ap.add_argument("--periode", type=float, default=27.5,
+                    help="ns (macros budgetees a 26 ; assemblage v11h : 27,5)")
+    ap.add_argument("--sdc", default="tahx_1.sdc",
+                    help="SDC du sommet (dans ce dossier) ou 'generique' (celui de LibreLane)")
     a = ap.parse_args()
     plan = C.PLANS[a.plan]
     vlef = C.version_lef(a.plan, a.lef)
@@ -220,6 +227,11 @@ def main():
     if hors:
         w(f"# ATTENTION : positions hors des pistes (x 0,48 / y 0,42) : {', '.join(hors)}")
     w(f"CLOCK_PORT: CLK_i\nCLOCK_PERIOD: {a.periode:g}")
+    if a.sdc != "generique":
+        if not os.path.isfile(os.path.join(ICI, a.sdc)):
+            sys.exit(f"SDC introuvable : {os.path.join(ICI, a.sdc)}")
+        w(f"# SDC du sommet (horloge virtuelle des E/S, faux chemin RESET_i -> complete_o)")
+        w(f"PNR_SDC_FILE: dir::{a.sdc}\nSIGNOFF_SDC_FILE: dir::{a.sdc}")
     w("SYNTH_STRATEGY: \"DELAY 1\"\nSYNTH_CORNER: nom_slow_1p08V_125C")
     w("PNR_CORNERS: [nom_slow_1p08V_125C, nom_fast_1p32V_m40C]")
     w("PL_TIMING_DRIVEN: true\nPL_ROUTABILITY_DRIVEN: true\nPL_TARGET_DENSITY_PCT: 60")
@@ -274,6 +286,7 @@ def main():
         w(f"    {s}: null")
     sortie = os.path.join(ICI, f"config_{a.plan}.yaml")
     open(sortie, "w").write("\n".join(L) + "\n")
+    print(f"   periode {a.periode:g} ns, SDC {a.sdc}")
     print(f"{sortie} : puce {DW} x {DH} um (macros {W:.2f} x {H:.2f}, LEF {vlef or 'v1'}, "
           f"marges {MX} / {MY} / haut {MH}, OBS {a.obs})")
     for m in plan["R"]:

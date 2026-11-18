@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Extraction du Verilog des macros sans SRAM (stack_unit_16_8, decode_queue,
+# Extraction du Verilog des macros sans SRAM (stack_unit_16_8, ino_decode_queue,
 # ino_decode_predict, ino_exec_entier, ino_exec_arith, ino_system),
 # depuis vhdl_InO/.
 #   BRUT      : RTLIL de TAHX_1(IN_ORDER) (defaut ../synth_InO/par_module/brut.il,
@@ -27,7 +27,7 @@ yosys -p "
    hierarchy -check -top ino_decode_queue
    proc
    opt_clean
-   write_verilog -noattr $DEST_ROOT/decode_queue/src/ino_decode_queue.v
+   write_verilog -noattr $DEST_ROOT/ino_decode_queue/src/ino_decode_queue.v
 "
 
 yosys -p "

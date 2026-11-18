@@ -61,3 +61,30 @@ librelane config_v11h.yaml --to OpenROAD.GlobalRouting
   remplacer par `vues_macros.sh` sur les runs v2 (passation, § 4, étape 3).
 - Comparer au routage global : `synth_InO/sta/plan_puce/canaux.py --plan v11h`
   (points chauds) et `alignement.py --plan v11h` (bus droits au bit près).
+
+## SDC du sommet (17 novembre)
+
+`tahx_1.sdc` remplace le SDC générique de LibreLane (`PNR_SDC_FILE` et `SIGNOFF_SDC_FILE`,
+écrits par `generer_config.py` ; `--sdc generique` pour revenir à l'ancien) :
+```
+pnr_InO/assemblage/generer_config.py v11h --lef vues --sans OpenROAD.RepairAntennas   # 27,5 ns
+```
+- Période `CLOCK_PERIOD` (`--periode`, 27,5 par défaut), incertitude 0,5 ns (setup) et
+  0,1 ns (hold), **sans derate**. Le SDC générique de l'IHP mettait 0,25 ns et ±5 % sur
+  toutes les cellules, arcs des macros compris : les marges du run du 16 novembre
+  (−1,22 ns à 26 ns) ne se comparent pas directement aux nouvelles.
+- E/S comptées depuis une horloge virtuelle `clk_soc` de latence de source `LAT_SOMMET`
+  (5,0 ns, arrivée de l'horloge aux macros) : la logique du SoC qui les attaquera aura à
+  peu près la même latence d'arbre. Entrées à 30 % de la période (-min 1 ns), sorties
+  à 30 % (-min 0), `RESET_i` à 1 ns. À reprendre si l'arbre est rééquilibré (§ 4.2 de la
+  passation). LibreLane avertit qu'une horloge virtuelle ne se propage pas (STA-0450) :
+  c'est attendu, la latence de source reste.
+- Faux chemin `RESET_i` → `u_core.u_backend.u_entier/complete_o*` : arc combinatoire de
+  9,6 ns, fonctionnellement faux (justification dans l'en-tête du SDC ; le RTL est
+  corrigé, l'exception tombe d'elle-même quand `exec_entier` sera refait).
+- Le SDC ne contient ni `set_propagated_clock` ni l'inverse : LibreLane garde l'horloge
+  idéale avant la CTS et la propage après.
+- Vérifié avec OpenSTA sur la liaison synthétisée (`tahx_1_sommet.v`), horloge idéale et
+  arbre simulé de 5,5 ns : plus aucun chemin de `RESET_i` par `complete_o` ; hold à
+  −2,9 ns au coin lent sur `I_RDATA_i` (hold de 3,3 ns de `ino_fetch`, latence interne
+  2,4 ns) : le flux y mettra des tampons, comme avec le SDC générique.

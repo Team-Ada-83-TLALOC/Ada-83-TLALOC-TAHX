@@ -7,7 +7,10 @@ VERILOG_FILES:
   - dir::src/tahx_1_sommet.v
 # LEF vues ; .lib et netlists des macros : vues/ (voir PROVENANCE_VUES.txt).
 CLOCK_PORT: CLK_i
-CLOCK_PERIOD: 26
+CLOCK_PERIOD: 27.5
+# SDC du sommet (horloge virtuelle des E/S, faux chemin RESET_i -> complete_o)
+PNR_SDC_FILE: dir::tahx_1.sdc
+SIGNOFF_SDC_FILE: dir::tahx_1.sdc
 SYNTH_STRATEGY: "DELAY 1"
 SYNTH_CORNER: nom_slow_1p08V_125C
 PNR_CORNERS: [nom_slow_1p08V_125C, nom_fast_1p32V_m40C]
@@ -145,8 +148,8 @@ MACROS:
   ino_exec_entier:
     lef:          # OBS plein, d'apres ino_exec_entier/vues/ino_exec_entier.lef
       - dir::lef_obs/ino_exec_entier.lef
-    gds:          # RUN_2026-11-16_00-32-46 (vues/PROVENANCE_VUES.txt)
-      - dir::../macros/ino_exec_entier/runs/RUN_2026-11-16_00-32-46/final/klayout_gds/ino_exec_entier.klayout.gds
+    gds:          # RUN_2026-11-17_08-49-23 (vues/PROVENANCE_VUES.txt)
+      - dir::../macros/ino_exec_entier/runs/RUN_2026-11-17_08-49-23/final/klayout_gds/ino_exec_entier.klayout.gds
     vh:
       - dir::src/bb/ino_exec_entier.v
     lib:
@@ -205,4 +208,5 @@ meta:
     Checker.IllegalOverlap: null
     Netgen.LVS: null
     Checker.LVS: null
+    OpenROAD.IRDropReport: null
     OpenROAD.RepairAntennas: null

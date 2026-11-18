@@ -296,11 +296,13 @@ begin
    end process FAST_PIPE;
 
    -- Terminaison du fast path dans le cycle de la réponse du cache (V3).
+   -- Sans RESET_i : fast_state_s est remis a FAST_IDLE au front, et STACK_UNIT ignore
+   -- COMPLETE sous reset (voir INO_INTEGER_UNIT).
    FAST_COMPLETE : process( all )
       variable c : ino_complete_t;
    begin
       c := NO_COMPLETE;
-      if fast_state_s = FAST_RSP and MEM_RSP_i.valid = '1' and RESET_i = '0' then
+      if fast_state_s = FAST_RSP and MEM_RSP_i.valid = '1' then
          c.valid := '1';
          if MEM_RSP_i.fault = '1' then
             c.fault := ( valid => '1', code => FAULT_ACCESS );
@@ -308,8 +310,7 @@ begin
             c.result_valid := '1';
             c.result := EXTEND( MEM_RSP_i.rdata, fast_size_s, fast_signed_s );
          end if;
-      elsif fast_state_s = FAST_PTR and MEM_RSP_i.valid = '1' and MEM_RSP_i.fault = '1'
-            and RESET_i = '0' then
+      elsif fast_state_s = FAST_PTR and MEM_RSP_i.valid = '1' and MEM_RSP_i.fault = '1' then
          -- Cellule pointeur en faute (famille C).
          c.valid := '1';
          c.fault := ( valid => '1', code => FAULT_ACCESS );

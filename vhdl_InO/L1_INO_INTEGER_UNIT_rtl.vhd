@@ -282,8 +282,12 @@ begin
    ISSUE_READY_o <= '1';
 
    -- Terminaison dans le cycle d'émission (V3) : aucun registre de sortie.
+   -- RESET_i ne masque pas COMPLETE_o : sous reset, ISSUE_VALID_i est nul (STACK_UNIT
+   -- en ST_IDLE) et STACK_UNIT, seul consommateur, ignore COMPLETE (reset prioritaire).
+   -- Le masquage ajoutait un arc reset_i -> complete_o de 9,6 ns a exec_entier
+   -- (assemblage v11h, 16 novembre 2026).
    computed_s <= EXECUTE( ISSUE_i );
-   COMPLETE_o <= computed_s when ISSUE_VALID_i = '1' and RESET_i = '0' else NO_COMPLETE;
+   COMPLETE_o <= computed_s when ISSUE_VALID_i = '1' else NO_COMPLETE;
 
    -- pragma translate_off
    CHECK_ISSUE : process( CLK_i )

@@ -81,13 +81,16 @@ begin
 
    -- Requête de co-pile du cycle d'émission : LINK sans faute de limite, UNLINK,
    -- UNLINKR. L'émission n'est acceptée qu'avec la requête (MEM_READY_i).
+   -- Sans RESET_i, ici et dans MEM_COMPLETE : sous reset, state_s est remis au front,
+   -- ISSUE_VALID_i est nul, le cache de données (INIT) ne fait au plus qu'une lecture
+   -- et STACK_UNIT ignore COMPLETE et ISSUE_READY (voir INO_INTEGER_UNIT).
    MEM_NOW : process( all )
       variable op    : opcode_t;
       variable csp65 : unsigned( 64 downto 0 );
    begin
       mem_now_s <= '0';
       op := ISSUE_i.slot.canon.op;
-      if state_s = S_IDLE and ISSUE_VALID_i = '1' and SYNC_VALID_i = '0' and RESET_i = '0' then
+      if state_s = S_IDLE and ISSUE_VALID_i = '1' and SYNC_VALID_i = '0' then
          if IS_LINK( op ) then
             csp65 := resize( copile_s.csp, 65 ) + 8;
             if not ( csp65( 64 ) = '1' or csp65( 63 downto 0 ) > LIMITS_i.lim_csp ) then
@@ -115,7 +118,7 @@ begin
       variable c : ino_complete_t;
    begin
       c := EMPTY_COMPLETE;
-      if state_s = S_MEM_RSP and MEM_RSP_i.valid = '1' and RESET_i = '0' and SYNC_VALID_i = '0' then
+      if state_s = S_MEM_RSP and MEM_RSP_i.valid = '1' and SYNC_VALID_i = '0' then
          c.valid := '1';
          if MEM_RSP_i.fault = '1' then
             c.fault := ( valid => '1', code => FAULT_ACCESS );
